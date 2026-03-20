@@ -1,0 +1,60 @@
+import type { Metadata } from 'next'
+import './globals.css'
+import ScrollToTop from '@/components/ScrollToTop'
+import Footer from '@/components/Footer'
+import JsonLd from '@/components/JsonLd'
+
+export const metadata: Metadata = {
+  title: {
+    default: 'Zaleto — Vyhledávač zájezdů',
+    template: '%s | Zaleto',
+  },
+  description: 'Srovnejte tisíce leteckých zájezdů od předních českých cestovních kanceláří. Filtrujte podle destinace, termínu, stravování a ceny. Nejlepší dovolená snadno na jednom místě.',
+  metadataBase: new URL('https://zaleto.cz'),
+  keywords: ['zájezdy', 'last minute zájezdy', 'dovolená', 'all inclusive', 'letecké zájezdy', 'srovnání zájezdů', 'cestovní kancelář', 'levné zájezdy'],
+  openGraph: {
+    siteName: 'Zaleto',
+    locale: 'cs_CZ',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+}
+
+const orgSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Zaleto',
+  url: 'https://zaleto.cz',
+  logo: 'https://zaleto.cz/img/logo/logo.png',
+  description: 'Zaleto je český srovnávač leteckých zájezdů od předních cestovních kanceláří.',
+  email: 'info@zaleto.cz',
+  address: {
+    '@type': 'PostalAddress',
+    addressCountry: 'CZ',
+  },
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="cs">
+      <body>
+        <JsonLd data={orgSchema} />
+        {children}
+        <Footer />
+        <ScrollToTop />
+      </body>
+    </html>
+  )
+}
