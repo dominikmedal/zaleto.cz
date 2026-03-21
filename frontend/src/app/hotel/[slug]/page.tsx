@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiTag, PiCalendarBlank, PiMoon, PiCoins, PiBuildings, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar } from 'react-icons/pi'
+import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiBuildings, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar } from 'react-icons/pi'
 import ScrollToButton from '@/components/ScrollToButton'
 import ViewersBadge from '@/components/ViewersBadge'
 import Header from '@/components/Header'
@@ -73,19 +73,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-function StarsRow({ count, score }: { count: number; score?: number | null }) {
+function StarsRow({ count }: { count: number }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex gap-0.5">
-        {Array.from({ length: count }).map((_, i) => (
-          <PiStarFill key={i} className="w-4 h-4 text-amber-400" />
-        ))}
-      </div>
-      {score != null && (
-        <span className="inline-flex items-center gap-1 text-sm font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-lg">
-          {score.toFixed(1)}<span className="text-amber-400 font-normal text-xs">/10</span>
-        </span>
-      )}
+    <div className="flex gap-0.5">
+      {Array.from({ length: count }).map((_, i) => (
+        <PiStarFill key={i} className="w-4 h-4 text-amber-400" />
+      ))}
     </div>
   )
 }
@@ -140,9 +133,14 @@ export default async function HotelDetailPage({ params }: Props) {
     return hotel.amenities.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)
   })()
 
-  const tagsList = hotel.tags
-    ? hotel.tags.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)
-    : []
+  const tagsList: string[] = (() => {
+    if (!hotel.tags) return []
+    try {
+      const arr = JSON.parse(hotel.tags)
+      if (Array.isArray(arr)) return arr.map((s: string) => s.trim()).filter(Boolean)
+    } catch {}
+    return hotel.tags.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)
+  })()
 
   const distancesList = hotel.distances
     ? hotel.distances.split('|').map((s: string) => s.trim()).filter(Boolean)
@@ -219,7 +217,7 @@ export default async function HotelDetailPage({ params }: Props) {
         {/* Hotel header — above gallery, no background */}
         <div className="mb-5">
           {hotel.stars && hotel.stars > 0 && (
-            <StarsRow count={hotel.stars} score={hotel.review_score} />
+            <StarsRow count={hotel.stars} />
           )}
           <div className="flex flex-wrap items-center gap-2 mt-2 mb-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">{hotel.name}</h1>
@@ -244,16 +242,6 @@ export default async function HotelDetailPage({ params }: Props) {
             <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
               {hotel.agency}
             </span>
-            {tagsList.length > 0 && (
-              <>
-                <span className="w-1 h-1 rounded-full bg-gray-300" />
-                {tagsList.map(tag => (
-                  <span key={tag} className="inline-flex items-center gap-1 text-xs font-medium text-gray-400">
-                    <PiTag className="w-3 h-3" />{tag}
-                  </span>
-                ))}
-              </>
-            )}
           </div>
         </div>
 
@@ -265,7 +253,6 @@ export default async function HotelDetailPage({ params }: Props) {
           name={hotel.name}
           slug={params.slug}
           stars={hotel.stars}
-          score={hotel.review_score}
           location={[hotel.resort_town, hotel.destination, hotel.country].filter(Boolean).join(' · ')}
           minPrice={minTourPrice}
         />

@@ -55,6 +55,13 @@ router.get('/:slug', (req, res) => {
   //   NNM = počet nocí (další alias)
   //   MT  = typ dopravy (2 = letecky)
 
+  // Čedok: URL již obsahuje ?id= (deeplink na konkrétní nabídku), přesměrujeme přímo
+  if (hotel.agency === 'Čedok') {
+    const destUrl = tour.url
+    console.log(`[redirect] cedok ${slug} ${date} → ${destUrl}`)
+    return res.redirect(302, destUrl)
+  }
+
   try {
     const urlObj = new URL(tour.url)
     const p = urlObj.searchParams

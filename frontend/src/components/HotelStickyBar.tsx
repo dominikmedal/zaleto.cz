@@ -7,7 +7,6 @@ interface Props {
   name: string
   slug: string
   stars: number | null
-  score: number | null
   location: string
   minPrice: number
 }
@@ -16,7 +15,7 @@ function fmt(p: number) {
   return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(p)
 }
 
-export default function HotelStickyBar({ name, slug, stars, score, location, minPrice }: Props) {
+export default function HotelStickyBar({ name, slug, stars, location, minPrice }: Props) {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
 
@@ -63,11 +62,6 @@ export default function HotelStickyBar({ name, slug, stars, score, location, min
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate leading-tight">{name}</p>
                 <div className="flex items-center gap-1.5 mt-px">
-                  {score != null && (
-                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-px rounded-md leading-none">
-                      {score.toFixed(1)}
-                    </span>
-                  )}
                   <PiMapPin className="w-3 h-3 text-gray-300 flex-shrink-0" />
                   <span className="text-[11px] text-gray-400 truncate">{location}</span>
                 </div>
