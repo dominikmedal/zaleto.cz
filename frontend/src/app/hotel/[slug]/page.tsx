@@ -131,9 +131,14 @@ export default async function HotelDetailPage({ params }: Props) {
     }
   })()
 
-  const amenitiesList = hotel.amenities
-    ? hotel.amenities.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)
-    : []
+  const amenitiesList: string[] = (() => {
+    if (!hotel.amenities) return []
+    try {
+      const arr = JSON.parse(hotel.amenities)
+      if (Array.isArray(arr)) return arr.map((s: string) => s.trim()).filter(Boolean)
+    } catch {}
+    return hotel.amenities.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)
+  })()
 
   const tagsList = hotel.tags
     ? hotel.tags.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)

@@ -25,6 +25,14 @@ router.get('/', (req, res) => {
       if (arr.length) { conds.push(`meal_plan IN (${arr.map(() => '?').join(',')})`); params.push(...arr) }
     }
 
+    if (req.query.departure_city) {
+      const cities = String(req.query.departure_city).split(',').filter(Boolean)
+      if (cities.length) {
+        conds.push(`departure_city IN (${cities.map(() => '?').join(',')})`)
+        params.push(...cities)
+      }
+    }
+
     const orderMap = { price_asc: 'price ASC', price_desc: 'price DESC', date_asc: 'departure_date ASC' }
     const orderBy = orderMap[sort] || 'departure_date ASC'
 

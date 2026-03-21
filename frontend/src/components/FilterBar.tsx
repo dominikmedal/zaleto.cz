@@ -12,6 +12,7 @@ interface FilterMeta {
   durations: { duration: number; count: number }[]
   stars: { stars: number; count: number }[]
   transports: { transport: string; count: number }[]
+  departureCities: { departure_city: string; count: number }[]
 }
 
 const MEAL_LABELS: Record<string, string> = {
@@ -63,13 +64,14 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
   const [mealPlan,    setMealPlan]    = useState<string[]>(sp.get('meal_plan')?.split(',').filter(Boolean) ?? [])
   const [transport,   setTransport]   = useState(sp.get('transport') || '')
   const [tourType,    setTourType]    = useState(sp.get('tour_type') || '')
+  const [depCity,     setDepCity]     = useState<string[]>(sp.get('departure_city')?.split(',').filter(Boolean) ?? [])
   const [sort,        setSort]        = useState(sp.get('sort') || 'price_asc')
 
   // Open advanced panel if any advanced filter is active on mount
-  const hasAdvanced = !!(duration || minPrice || maxPrice || stars.length || mealPlan.length || transport || tourType)
+  const hasAdvanced = !!(duration || minPrice || maxPrice || stars.length || mealPlan.length || transport || tourType || depCity.length)
   const [showAdvanced, setShowAdvanced] = useState(hasAdvanced)
 
-  const stateKey = JSON.stringify({ destination, dateFrom, dateTo, adults, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, sort })
+  const stateKey = JSON.stringify({ destination, dateFrom, dateTo, adults, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, depCity, sort })
   const lastPushedKey = useRef<string>(stateKey)
 
   const buildParams = useCallback(() => {
@@ -83,11 +85,12 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
     if (maxPrice)           params.set('max_price',   maxPrice)
     if (stars.length)       params.set('stars',       stars.join(','))
     if (mealPlan.length)    params.set('meal_plan',   mealPlan.join(','))
-    if (transport)          params.set('transport',   transport)
-    if (tourType)           params.set('tour_type',   tourType)
-    if (sort !== 'price_asc') params.set('sort',      sort)
+    if (transport)          params.set('transport',     transport)
+    if (tourType)           params.set('tour_type',     tourType)
+    if (depCity.length)     params.set('departure_city', depCity.join(','))
+    if (sort !== 'price_asc') params.set('sort',        sort)
     return params
-  }, [destination, dateFrom, dateTo, adults, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, sort])
+  }, [destination, dateFrom, dateTo, adults, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, depCity, sort])
 
   // Sync state when URL changes externally (e.g. breadcrumb clicks)
   useEffect(() => {
@@ -103,6 +106,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
       mealPlan:    sp.get('meal_plan')?.split(',').filter(Boolean) ?? [],
       transport:   sp.get('transport')  || '',
       tourType:    sp.get('tour_type')  || '',
+      depCity:     sp.get('departure_city')?.split(',').filter(Boolean) ?? [],
       sort:        sp.get('sort')       || 'price_asc',
     }
     setDestination(next.destination)
@@ -116,6 +120,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
     setMealPlan(next.mealPlan)
     setTransport(next.transport)
     setTourType(next.tourType)
+    setDepCity(next.depCity)
     setSort(next.sort)
     // Mark URL's current state as already synced to avoid re-pushing it
     lastPushedKey.current = JSON.stringify(next)
@@ -136,7 +141,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
   const clearAll = () => {
     setDestination([]); setDateFrom(''); setDateTo(''); setAdults(2)
     setDuration(''); setMinPrice(''); setMaxPrice('')
-    setStars([]); setMealPlan([]); setTransport(''); setTourType(''); setSort('price_asc')
+    setStars([]); setMealPlan([]); setTransport(''); setTourType(''); setDepCity([]); setSort('price_asc')
   }
 
   type Chip = { label: string; clear: () => void }
@@ -152,10 +157,11 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
     ...mealPlan.map(m => ({ label: m, clear: () => toggleMeal(m) })),
     ...(tourType === 'last_minute'  ? [{ label: 'Last minute',  clear: () => setTourType('') }] : []),
     ...(tourType === 'first_minute' ? [{ label: 'First minute', clear: () => setTourType('') }] : []),
+    ...depCity.map(c => ({ label: `Odlet: ${c}`, clear: () => setDepCity(p => p.filter(x => x !== c)) })),
   ]
 
   // Count active advanced filters for badge
-  const advancedCount = [duration, minPrice, maxPrice, transport, tourType].filter(Boolean).length + stars.length + mealPlan.length
+  const advancedCount = [duration, minPrice, maxPrice, transport, tourType].filter(Boolean).length + stars.length + mealPlan.length + depCity.length
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-[0_4px_24px_-2px_rgba(0,100,255,0.08),0_1px_4px_rgba(0,0,0,0.04)] mb-6 relative">
@@ -319,6 +325,21 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
                       ))}
                     </select>
                     <PiCaretDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+              )}
+
+              {/* Departure city */}
+              {(meta.departureCities ?? []).length > 1 && (
+                <div>
+                  <p className={label}>Místo odletu</p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {(meta.departureCities ?? []).map(c => (
+                      <PillToggle key={c.departure_city} active={depCity.includes(c.departure_city)}
+                        onClick={() => setDepCity(p => p.includes(c.departure_city) ? p.filter(x => x !== c.departure_city) : [...p, c.departure_city])}>
+                        {c.departure_city}
+                      </PillToggle>
+                    ))}
                   </div>
                 </div>
               )}

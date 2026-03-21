@@ -40,6 +40,7 @@ export interface Tour {
   adults: number
   room_code: string | null
   url: string
+  departure_city?: string | null
 }
 
 export interface Filters {
@@ -54,6 +55,7 @@ export interface Filters {
   meal_plan?: string
   transport?: string
   tour_type?: string   // 'last_minute' | 'first_minute'
+  departure_city?: string
   sort?: string
 }
 

@@ -132,8 +132,9 @@ export async function fetchFilters(): Promise<{
   stars: { stars: number; count: number }[]
   transports: { transport: string; count: number }[]
   totalTours: number
+  departureCities: { departure_city: string; count: number }[]
 }> {
   const res = await fetch(`${API}/api/filters`, { next: { revalidate: 3600 } })
-  if (!res.ok) return { mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [] }
+  if (!res.ok) return { mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], departureCities: [] }
   return res.json()
 }

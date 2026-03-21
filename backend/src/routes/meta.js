@@ -39,7 +39,11 @@ router.get('/filters', (req, res) => {
 
   const { total_tours } = db.prepare(`SELECT COUNT(*) AS total_tours FROM tours`).get()
 
-  res.json({ mealPlans, priceRange, durations, stars, transports, totalTours: total_tours })
+  const departureCities = db.prepare(
+    `SELECT DISTINCT departure_city, COUNT(*) as count FROM tours WHERE departure_city IS NOT NULL AND departure_city != '' GROUP BY departure_city ORDER BY count DESC`
+  ).all()
+
+  res.json({ mealPlans, priceRange, durations, stars, transports, totalTours: total_tours, departureCities })
 })
 
 // GET /api/calendar-prices?date_from=2026-03-01&date_to=2026-05-31[&destination=xxx]

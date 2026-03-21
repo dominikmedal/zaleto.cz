@@ -2,12 +2,13 @@ const express = require('express')
 const router  = express.Router()
 const db      = require('../db')
 
-const FISCHER_AFFILIATE = 'https://www.kqzyfj.com/click-101468674-15041945'
+const FISCHER_AFFILIATE   = 'https://www.kqzyfj.com/click-101468674-15041945'
+const BLUESTYLE_AFFILIATE = 'https://www.tkqlhce.com/click-101468674-14358779'
 
 function affiliateUrl(url, agency) {
-  if ((agency || 'Fischer').toLowerCase() === 'fischer') {
-    return `${FISCHER_AFFILIATE}?url=${encodeURIComponent(url)}`
-  }
+  const a = (agency || '').toLowerCase()
+  if (a === 'fischer')    return `${FISCHER_AFFILIATE}?url=${encodeURIComponent(url)}`
+  if (a === 'blue style') return `${BLUESTYLE_AFFILIATE}?url=${encodeURIComponent(url)}`
   return url
 }
 

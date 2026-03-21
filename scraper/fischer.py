@@ -135,7 +135,8 @@ class ZaletoDB:
             except Exception:
                 pass  # sloupec už existuje
         for col, typ in [("is_last_minute", "INTEGER DEFAULT 0"),
-                         ("is_first_minute", "INTEGER DEFAULT 0")]:
+                         ("is_first_minute", "INTEGER DEFAULT 0"),
+                         ("departure_city", "TEXT")]:
             try:
                 self.conn.execute(f"ALTER TABLE tours ADD COLUMN {col} {typ}")
                 self.conn.commit()
@@ -187,16 +188,17 @@ class ZaletoDB:
         self.conn.execute("""
             INSERT INTO tours (hotel_id, agency, departure_date, return_date, duration,
                                price, transport, meal_plan, adults, room_code, url,
-                               is_last_minute, is_first_minute, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                               is_last_minute, is_first_minute, departure_city, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
             ON CONFLICT(url) DO UPDATE SET
-                price          = excluded.price,
-                transport      = excluded.transport,
-                meal_plan      = excluded.meal_plan,
-                return_date    = excluded.return_date,
-                is_last_minute = excluded.is_last_minute,
+                price           = excluded.price,
+                transport       = excluded.transport,
+                meal_plan       = excluded.meal_plan,
+                return_date     = excluded.return_date,
+                is_last_minute  = excluded.is_last_minute,
                 is_first_minute = excluded.is_first_minute,
-                updated_at     = datetime('now')
+                departure_city  = excluded.departure_city,
+                updated_at      = datetime('now')
         """, (
             hotel_id, AGENCY,
             t["departure_date"], t["return_date"], t["duration"],
@@ -204,6 +206,7 @@ class ZaletoDB:
             t["adults"], t["room_code"], t["url"],
             int(t.get("is_last_minute", False)),
             int(t.get("is_first_minute", False)),
+            t.get("departure_city", ""),
         ))
 
     def commit(self):
@@ -315,12 +318,18 @@ class _HotelJsonParser(HTMLParser):
 # Praha jako výchozí letiště — zajistí že offerFilter.transportOrigin bude vyplněný
 DEFAULT_AIRPORT = 4312  # Praha Václav Havel
 
+AIRPORT_NAMES: dict[int, str] = {
+    4312: "Praha",
+    4313: "Brno",
+    4314: "Ostrava",
+}
 
-def _fetch_embedded(session: requests.Session, url: str) -> dict | None:
-    # Přidej výchozí letiště pokud URL nemá TO= parametr
+
+def _fetch_embedded(session: requests.Session, url: str, airport: int = DEFAULT_AIRPORT) -> dict | None:
+    # Přidej letiště pokud URL nemá TO= parametr
     if "TO=" not in url:
         sep = "&" if "?" in url else "?"
-        url = f"{url}{sep}TO={DEFAULT_AIRPORT}"
+        url = f"{url}{sep}TO={airport}"
     try:
         r = session.get(url, timeout=20)
         if r.status_code != 200:
@@ -557,7 +566,7 @@ def _detect_tour_type(d: dict, dep_dt: datetime) -> tuple[bool, bool]:
 # Sestavení záznamů pro DB
 # ---------------------------------------------------------------------------
 
-def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict):
+def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name: str = ""):
     """Vrátí (hotel_dict, [tour_dict, ...])"""
     offer     = api_data.get("offer", {})
     meal_name = offer.get("mealName", p["meal_code"])
@@ -671,6 +680,7 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict):
             "url":             tour_url,
             "is_last_minute":  is_lm,
             "is_first_minute": is_fm,
+            "departure_city":  airport_name,
         })
 
     return hotel, tours
@@ -681,29 +691,46 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict):
 # ---------------------------------------------------------------------------
 
 def scrape_hotel(session: requests.Session, db: ZaletoDB,
-                 hotel_url: str, slug_counter: dict) -> int:
-    """Scrapuje jeden hotel. Vrací počet uložených termínů."""
-    embedded = _fetch_embedded(session, hotel_url)
-    if not embedded:
+                 hotel_url: str, slug_counter: dict,
+                 airports: list[int] | None = None) -> int:
+    """Scrapuje jeden hotel pro všechna zadaná letiště. Vrací počet uložených termínů."""
+    if airports is None:
+        airports = [DEFAULT_AIRPORT]
+
+    all_tours: list = []
+    hotel_dict = None
+
+    for airport in airports:
+        embedded = _fetch_embedded(session, hotel_url, airport)
+        if not embedded:
+            continue
+
+        p = _parse_embedded(embedded)
+        if not p or not p.get("destination_ids") or not p.get("transport_origin"):
+            logger.debug(f"Neúplná data pro letiště {airport}: {hotel_url}")
+            continue
+
+        # Full-season request
+        api_data = _get_offer(session, p, p["main_filter_from"], p["main_filter_to"])
+
+        # Fallback na konkrétní datum
+        if (not api_data or not api_data.get("availableDates")) and p.get("departure_date"):
+            api_data = _get_offer(session, p, p["departure_date"], p["departure_date"])
+
+        if not api_data or not api_data.get("availableDates"):
+            logger.debug(f"Žádné termíny pro letiště {airport}: {p.get('hotel_name', hotel_url)}")
+            continue
+
+        airport_name = AIRPORT_NAMES.get(airport, str(airport))
+        hd, tour_list = _build_hotel_and_tours(hotel_url, p, api_data, airport_name)
+        if hotel_dict is None:
+            hotel_dict = hd  # metadata z prvního letiště s daty
+        all_tours.extend(tour_list)
+        logger.debug(f"  Letiště {airport} ({airport_name}): {len(tour_list)} termínů")
+
+    if hotel_dict is None:
+        logger.warning(f"Žádné termíny ani data: {hotel_url}")
         return 0
-
-    p = _parse_embedded(embedded)
-    if not p or not p.get("destination_ids") or not p.get("transport_origin"):
-        logger.warning(f"Neúplná data: {hotel_url}")
-        return 0
-
-    # Full-season request
-    api_data = _get_offer(session, p, p["main_filter_from"], p["main_filter_to"])
-
-    # Fallback na konkrétní datum
-    if (not api_data or not api_data.get("availableDates")) and p.get("departure_date"):
-        api_data = _get_offer(session, p, p["departure_date"], p["departure_date"])
-
-    if not api_data or not api_data.get("availableDates"):
-        logger.warning(f"Žádné termíny: {p.get('hotel_name', hotel_url)}")
-        return 0
-
-    hotel_dict, tour_list = _build_hotel_and_tours(hotel_url, p, api_data)
 
     # Unikátní slug
     base_slug = slugify(hotel_dict["name"])
@@ -716,12 +743,12 @@ def scrape_hotel(session: requests.Session, db: ZaletoDB,
     hotel_id = db.upsert_hotel(slug, hotel_dict)
     # Smaž staré termíny tohoto hotelu — při re-scrape chceme jen aktuálně dostupné
     db.conn.execute("DELETE FROM tours WHERE hotel_id = ?", (hotel_id,))
-    for t in tour_list:
+    for t in all_tours:
         db.upsert_tour(hotel_id, t)
     db.commit()
 
-    logger.info(f"  {hotel_dict['name']} ⭐{hotel_dict['stars']} — {len(tour_list)} termínů uloženo")
-    return len(tour_list)
+    logger.info(f"  {hotel_dict['name']} ⭐{hotel_dict['stars']} — {len(all_tours)} termínů uloženo ({len(airports)} letiště)")
+    return len(all_tours)
 
 
 def delete_all(db: ZaletoDB):
@@ -736,7 +763,11 @@ def delete_all(db: ZaletoDB):
     logger.info(f"Smazáno: {hotels_count} hotelů, {tours_count} termínů, recenze.")
 
 
-def run(limit: int = 0, delay: float = 1.5, delete: bool = False):
+def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
+        airports: list[int] | None = None):
+    if airports is None:
+        airports = list(AIRPORT_NAMES.keys())
+
     session = _make_session()
     db      = ZaletoDB()
 
@@ -748,10 +779,12 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False):
     total_saved = 0
     slug_counter: dict = {}
 
+    logger.info(f"Letiště: {airports}")
+
     for i, url in enumerate(hotel_urls, 1):
         logger.info(f"[{i}/{len(hotel_urls)}] {url.split('?')[0]}")
         try:
-            saved = scrape_hotel(session, db, url, slug_counter)
+            saved = scrape_hotel(session, db, url, slug_counter, airports)
             total_saved += saved
         except Exception as e:
             logger.error(f"Chyba u {url}: {e}")
@@ -776,5 +809,11 @@ if __name__ == "__main__":
                         help="Pauza mezi hotely v sekundách")
     parser.add_argument("--delete", action="store_true",
                         help="Před stažením smaže všechny stávající záznamy a začne od nuly")
+    parser.add_argument("--airports", type=str, default='',
+                        help=f"ID letišť oddělená čárkou (default: všechna = {','.join(str(k) for k in AIRPORT_NAMES)}). Př: --airports 4312,4313")
     args = parser.parse_args()
-    run(limit=args.limit, delay=args.delay, delete=args.delete)
+    if args.airports:
+        airports = [int(x.strip()) for x in args.airports.split(",") if x.strip()]
+    else:
+        airports = None  # použij výchozí = všechna letiště
+    run(limit=args.limit, delay=args.delay, delete=args.delete, airports=airports)

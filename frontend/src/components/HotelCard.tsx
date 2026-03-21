@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
-import { PiBuildings, PiTimer, PiCalendarStar, PiCheckCircle, PiForkKnife, PiSwimmingPool, PiWifiHigh, PiSpa, PiUmbrellaSimple } from 'react-icons/pi'
+import { PiBuildings, PiTimer, PiCalendarStar, PiCheckCircle, PiForkKnife, PiSwimmingPool, PiWifiHigh, PiFlower, PiUmbrellaSimple } from 'react-icons/pi'
 import type { Hotel } from '@/lib/types'
 import FavoriteButton from './FavoriteButton'
 import ToursModal from './ToursModal'
@@ -45,7 +45,7 @@ function amenityIcon(label: string) {
   const l = label.toLowerCase()
   if (l.includes('bazén') || l.includes('pool') || l.includes('aqua')) return PiSwimmingPool
   if (l.includes('wi-fi') || l.includes('wifi') || l.includes('internet')) return PiWifiHigh
-  if (l.includes('spa') || l.includes('wellness') || l.includes('sauna') || l.includes('masáž')) return PiSpa
+  if (l.includes('spa') || l.includes('wellness') || l.includes('sauna') || l.includes('masáž')) return PiFlower
   if (l.includes('pláž') || l.includes('beach') || l.includes('moře')) return PiUmbrellaSimple
   return PiCheckCircle
 }

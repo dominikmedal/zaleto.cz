@@ -47,15 +47,16 @@ function getParam(p: string | string[] | undefined): string | undefined {
   return Array.isArray(p) ? p[0] : p
 }
 
-const fmt = (n: number) => n.toLocaleString('cs-CZ')
-const fmtShort = (n: number) => {
+const fmt = (n: number | null) => n != null ? n.toLocaleString('cs-CZ') : '0'
+const fmtShort = (n: number | null) => {
+  if (n == null) return '0'
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')} mil.`
   if (n >= 10_000)    return `${Math.round(n / 1000)} tis.`
   if (n >= 1_000)     return `${(n / 1000).toFixed(1).replace('.', ',')} tis.`
   return n.toLocaleString('cs-CZ')
 }
 const hasActiveFilter = (f: Filters) =>
-  !!(f.destination || f.date_from || f.date_to || f.duration || f.min_price || f.max_price || f.stars || f.meal_plan || f.transport || f.tour_type)
+  !!(f.destination || f.date_from || f.date_to || f.duration || f.min_price || f.max_price || f.stars || f.meal_plan || f.transport || f.tour_type || f.departure_city)
 
 export default async function HomePage({ searchParams }: PageProps) {
   const filters: Filters = {
@@ -66,10 +67,11 @@ export default async function HomePage({ searchParams }: PageProps) {
     min_price:   getParam(searchParams.min_price)  ? parseFloat(getParam(searchParams.min_price)!)  : undefined,
     max_price:   getParam(searchParams.max_price)  ? parseFloat(getParam(searchParams.max_price)!)  : undefined,
     stars:       getParam(searchParams.stars),
-    meal_plan:   getParam(searchParams.meal_plan),
-    transport:   getParam(searchParams.transport),
-    tour_type:   getParam(searchParams.tour_type),
-    sort:        getParam(searchParams.sort) || 'price_asc',
+    meal_plan:      getParam(searchParams.meal_plan),
+    transport:      getParam(searchParams.transport),
+    tour_type:      getParam(searchParams.tour_type),
+    departure_city: getParam(searchParams.departure_city),
+    sort:           getParam(searchParams.sort) || 'price_asc',
   }
 
   const page = parseInt(getParam(searchParams.page) || '1')

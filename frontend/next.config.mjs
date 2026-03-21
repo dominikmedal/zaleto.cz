@@ -8,6 +8,7 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.booking.com' },
       { protocol: 'https', hostname: 'images.pexels.com' },
       { protocol: 'https', hostname: 'upload.wikimedia.org' },
+      { protocol: 'https', hostname: 'cdn.siteone.io' },
     ],
   },
 }

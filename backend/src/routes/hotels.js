@@ -8,7 +8,7 @@ router.get('/', (req, res) => {
     const {
       destination, date_from, date_to,
       adults, duration, min_price, max_price,
-      stars, meal_plan, transport, tour_type,
+      stars, meal_plan, transport, tour_type, departure_city,
       sort = 'price_asc', page = '1', limit = '24', view,
     } = req.query
 
@@ -64,6 +64,17 @@ router.get('/', (req, res) => {
     if (transport) {
       tourConds.push('t.transport LIKE ?')
       tourParams.push(`%${transport}%`)
+    }
+
+    if (departure_city) {
+      const cities = String(departure_city).split(',').filter(Boolean)
+      if (cities.length === 1) {
+        tourConds.push('t.departure_city = ?')
+        tourParams.push(cities[0])
+      } else if (cities.length > 1) {
+        tourConds.push(`t.departure_city IN (${cities.map(() => '?').join(',')})`)
+        tourParams.push(...cities)
+      }
     }
 
     if (tour_type === 'last_minute')  { tourConds.push('t.is_last_minute = 1') }

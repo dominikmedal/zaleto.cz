@@ -24,13 +24,18 @@ function bookingUrl(slug: string, tour: Tour, adults: number) {
 }
 
 export default function TourDatesList({ tours, slug }: { tours: Tour[]; slug: string }) {
-  const [sortBy,  setSortBy]  = useState<'date_asc' | 'price_asc'>('date_asc')
-  const [adults,  setAdults]  = useState(2)
+  const [sortBy,      setSortBy]      = useState<'date_asc' | 'price_asc'>('date_asc')
+  const [adults,      setAdults]      = useState(2)
+  const [cityFilter,  setCityFilter]  = useState<string[]>([])
+
+  const availableCities = Array.from(new Set(tours.map(t => t.departure_city).filter(Boolean) as string[]))
 
   const sorted = [...tours].sort((a, b) => {
     if (sortBy === 'price_asc') return a.price - b.price
     return (a.departure_date || '').localeCompare(b.departure_date || '')
   })
+
+  const filtered = cityFilter.length > 0 ? sorted.filter(t => cityFilter.includes(t.departure_city || '')) : sorted
 
   if (tours.length === 0) {
     return (
@@ -79,9 +84,30 @@ export default function TourDatesList({ tours, slug }: { tours: Tour[]; slug: st
         </div>
       </div>
 
+      {/* City filter */}
+      {availableCities.length > 1 && (
+        <div className="flex items-center gap-2 flex-wrap w-full mt-2">
+          <span className="text-sm text-gray-500 flex-shrink-0">Odlet z:</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {availableCities.map(city => (
+              <button key={city} type="button"
+                onClick={() => setCityFilter(p => p.includes(city) ? p.filter(x => x !== city) : [...p, city])}
+                className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-xl border transition-all ${
+                  cityFilter.includes(city)
+                    ? 'bg-[#008afe] text-white border-[#008afe]'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-[#008afe]'
+                }`}>
+                <Plane className="w-3 h-3" />
+                {city}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* List */}
       <div className="space-y-2.5">
-        {sorted.map(tour => (
+        {filtered.map(tour => (
           <a key={tour.id} href={bookingUrl(slug, tour, adults)} target="_blank" rel="noopener noreferrer"
             className="block group bg-white border border-gray-100 hover:border-[#008afe]/30 rounded-2xl p-4 transition-all hover:shadow-sm">
             <div className="flex items-center justify-between gap-4">
@@ -107,6 +133,12 @@ export default function TourDatesList({ tours, slug }: { tours: Tour[]; slug: st
                     <Plane className="w-3.5 h-3.5 text-gray-400" />
                     {tour.transport}
                   </div>
+                )}
+                {tour.departure_city && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#008afe] bg-[#008afe]/8 px-2 py-0.5 rounded-lg">
+                    <Plane className="w-3 h-3" />
+                    {tour.departure_city}
+                  </span>
                 )}
               </div>
 
