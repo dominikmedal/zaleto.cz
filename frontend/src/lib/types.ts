@@ -23,6 +23,8 @@ export interface Hotel {
   available_dates: number
   next_departure: string | null
   total_dates?: number
+  has_last_minute?: number   // 1 pokud má alespoň jeden LM termín
+  has_first_minute?: number  // 1 pokud má alespoň jeden FM termín
 }
 
 export interface Tour {
@@ -51,6 +53,7 @@ export interface Filters {
   stars?: string
   meal_plan?: string
   transport?: string
+  tour_type?: string   // 'last_minute' | 'first_minute'
   sort?: string
 }
 

@@ -15,7 +15,7 @@ export default function ViewersBadge() {
   if (!count) return null
 
   return (
-    <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
+    <div className="flex items-center gap-2  rounded-xl px-3 py-2.5 text-xs text-amber-700">
       <span className="relative flex h-2 w-2 flex-shrink-0">
         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
         <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />

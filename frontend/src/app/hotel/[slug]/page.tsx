@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiTag, PiCalendarBlank, PiMoon, PiCoins, PiBuildings, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots } from 'react-icons/pi'
+import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiTag, PiCalendarBlank, PiMoon, PiCoins, PiBuildings, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar } from 'react-icons/pi'
 import ScrollToButton from '@/components/ScrollToButton'
 import ViewersBadge from '@/components/ViewersBadge'
 import Header from '@/components/Header'
@@ -203,11 +203,7 @@ export default async function HotelDetailPage({ params }: Props) {
             <><span className="text-gray-200 select-none">/</span>
             <Link href={`/?destination=${encodeURIComponent(hotel.country)}`} className="hover:text-blue-500 transition-colors">{hotel.country}</Link></>
           )}
-          {hotel.destination && hotel.destination !== hotel.country && (
-            <><span className="text-gray-200 select-none">/</span>
-            <Link href={`/?destination=${encodeURIComponent(hotel.destination)}`} className="hover:text-blue-500 transition-colors">{hotel.destination}</Link></>
-          )}
-          {hotel.resort_town && hotel.resort_town !== hotel.destination && (
+          {hotel.resort_town && hotel.resort_town !== hotel.country && (
             <><span className="text-gray-200 select-none">/</span>
             <Link href={`/?destination=${encodeURIComponent(hotel.resort_town)}`} className="hover:text-blue-500 transition-colors">{hotel.resort_town}</Link></>
           )}
@@ -220,7 +216,20 @@ export default async function HotelDetailPage({ params }: Props) {
           {hotel.stars && hotel.stars > 0 && (
             <StarsRow count={hotel.stars} score={hotel.review_score} />
           )}
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-2 mb-1 leading-tight">{hotel.name}</h1>
+          <div className="flex flex-wrap items-center gap-2 mt-2 mb-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">{hotel.name}</h1>
+            {tours.some((t: any) => t.is_last_minute === 1) ? (
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-red-500 px-2.5 py-1 rounded-lg shadow-sm">
+                <PiTimer className="w-3.5 h-3.5 flex-shrink-0" />
+                Last minute
+              </span>
+            ) : tours.some((t: any) => t.is_first_minute === 1) ? (
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-500 px-2.5 py-1 rounded-lg shadow-sm">
+                <PiCalendarStar className="w-3.5 h-3.5 flex-shrink-0" />
+                First minute
+              </span>
+            ) : null}
+          </div>
           <div className="flex flex-wrap items-center gap-2 text-gray-500 text-sm">
             <span className="flex items-center gap-1.5">
               <PiMapPin className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
@@ -362,56 +371,56 @@ export default async function HotelDetailPage({ params }: Props) {
             <div className="lg:sticky lg:top-[116px] space-y-3 lg:max-h-[calc(100vh-132px)] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
               {/* Booking widget */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
+              <div className="bg-[#e1f2f3] rounded-2xl p-5 space-y-5">
 
-                {/* Header — same style as Section */}
-                <h3 className="flex items-center gap-2.5 text-[17px] font-semibold text-gray-900">
-                  <span className="text-[#008afe] flex-shrink-0"><PiCoins className="w-5 h-5" /></span>
+                {/* Header */}
+                <h3 className="flex items-center gap-2.5 text-[17px] font-semibold text-[#0d4f52]">
+                  <span className="flex-shrink-0"><PiCoins className="w-5 h-5" /></span>
                   Cena zájezdu
                 </h3>
 
                 {/* Price */}
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Nejnižší cena od osoby</p>
+                  <p className="text-xs text-[#4d8a8c] mb-1">Nejnižší cena od osoby</p>
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-4xl font-extrabold text-emerald-600">{formatPriceShort(minTourPrice)}</span>
-                    <span className="text-base text-gray-400 font-medium">Kč</span>
+                    <span className="text-4xl font-extrabold text-[#0d4f52]">{formatPriceShort(minTourPrice)}</span>
+                    <span className="text-base font-medium text-[#4d8a8c]">Kč</span>
                   </div>
                   {maxTourPrice && maxTourPrice !== minTourPrice && (
-                    <p className="text-xs text-gray-400 mt-0.5">max. {formatPriceShort(maxTourPrice)} Kč / os.</p>
+                    <p className="text-xs text-[#4d8a8c] mt-0.5">max. {formatPriceShort(maxTourPrice)} Kč / os.</p>
                   )}
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-1 border-t border-gray-100">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-1 border-t border-[#b8dfe1]">
                   <div>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Termíny</p>
-                    <p className="text-lg font-extrabold text-gray-900">{tours.length}</p>
+                    <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Termíny</p>
+                    <p className="text-lg font-extrabold text-[#0d4f52]">{tours.length}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Délka pobytu</p>
-                    <p className="text-lg font-extrabold text-gray-900">
+                    <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Délka pobytu</p>
+                    <p className="text-lg font-extrabold text-[#0d4f52]">
                       {durations.length === 0 ? '—' : durations.length === 1 ? durations[0] : `${durations[0]}–${durations[durations.length - 1]}`}
-                      {durations.length > 0 && <span className="text-xs font-normal text-gray-400 ml-1">nocí</span>}
+                      {durations.length > 0 && <span className="text-xs font-normal text-[#4d8a8c] ml-1">nocí</span>}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Stravování</p>
-                    <p className="text-sm font-semibold text-gray-900 leading-tight">
+                    <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Stravování</p>
+                    <p className="text-sm font-semibold text-[#0d4f52] leading-tight">
                       {mealPlans.length === 0 ? '—' : mealPlans[0]}
-                      {mealPlans.length > 1 && <span className="text-xs text-gray-400 ml-1">+{mealPlans.length - 1}</span>}
+                      {mealPlans.length > 1 && <span className="text-xs text-[#4d8a8c] ml-1">+{mealPlans.length - 1}</span>}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Lokalita</p>
-                    <p className="text-xs font-medium text-gray-600 leading-tight">
+                    <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Lokalita</p>
+                    <p className="text-xs font-medium text-[#0d4f52] leading-tight">
                       {[hotel.resort_town, hotel.country].filter(Boolean).join(', ') || '—'}
                     </p>
                   </div>
                 </div>
 
                 {/* CTA */}
-                <div className="space-y-2.5 pt-1 border-t border-gray-100">
+                <div className="space-y-2.5 pt-1 border-t border-[#b8dfe1]">
                   <ViewersBadge />
                   <ScrollToButton
                     targetId="terminy"

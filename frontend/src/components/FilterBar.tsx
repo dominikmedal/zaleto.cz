@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useTransition, useCallback } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { PiX, PiSpinner, PiCaretDown, PiArrowsDownUp, PiSliders, PiUserPlus, PiUserMinus } from 'react-icons/pi'
+import { PiX, PiSpinner, PiCaretDown, PiArrowsDownUp, PiSliders, PiUserPlus, PiUserMinus, PiTimer, PiCalendarStar } from 'react-icons/pi'
 import DateRangePicker from './DateRangePicker'
 import DestinationAutocomplete from './DestinationAutocomplete'
 
@@ -62,13 +62,14 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
   const [stars,       setStars]       = useState<string[]>(sp.get('stars')?.split(',').filter(Boolean) ?? [])
   const [mealPlan,    setMealPlan]    = useState<string[]>(sp.get('meal_plan')?.split(',').filter(Boolean) ?? [])
   const [transport,   setTransport]   = useState(sp.get('transport') || '')
+  const [tourType,    setTourType]    = useState(sp.get('tour_type') || '')
   const [sort,        setSort]        = useState(sp.get('sort') || 'price_asc')
 
   // Open advanced panel if any advanced filter is active on mount
-  const hasAdvanced = !!(duration || minPrice || maxPrice || stars.length || mealPlan.length || transport)
+  const hasAdvanced = !!(duration || minPrice || maxPrice || stars.length || mealPlan.length || transport || tourType)
   const [showAdvanced, setShowAdvanced] = useState(hasAdvanced)
 
-  const stateKey = JSON.stringify({ destination, dateFrom, dateTo, adults, duration, minPrice, maxPrice, stars, mealPlan, transport, sort })
+  const stateKey = JSON.stringify({ destination, dateFrom, dateTo, adults, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, sort })
   const lastPushedKey = useRef<string>(stateKey)
 
   const buildParams = useCallback(() => {
@@ -83,9 +84,10 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
     if (stars.length)       params.set('stars',       stars.join(','))
     if (mealPlan.length)    params.set('meal_plan',   mealPlan.join(','))
     if (transport)          params.set('transport',   transport)
+    if (tourType)           params.set('tour_type',   tourType)
     if (sort !== 'price_asc') params.set('sort',      sort)
     return params
-  }, [destination, dateFrom, dateTo, adults, duration, minPrice, maxPrice, stars, mealPlan, transport, sort])
+  }, [destination, dateFrom, dateTo, adults, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, sort])
 
   // Sync state when URL changes externally (e.g. breadcrumb clicks)
   useEffect(() => {
@@ -100,6 +102,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
       stars:       sp.get('stars')?.split(',').filter(Boolean) ?? [],
       mealPlan:    sp.get('meal_plan')?.split(',').filter(Boolean) ?? [],
       transport:   sp.get('transport')  || '',
+      tourType:    sp.get('tour_type')  || '',
       sort:        sp.get('sort')       || 'price_asc',
     }
     setDestination(next.destination)
@@ -112,6 +115,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
     setStars(next.stars)
     setMealPlan(next.mealPlan)
     setTransport(next.transport)
+    setTourType(next.tourType)
     setSort(next.sort)
     // Mark URL's current state as already synced to avoid re-pushing it
     lastPushedKey.current = JSON.stringify(next)
@@ -132,7 +136,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
   const clearAll = () => {
     setDestination([]); setDateFrom(''); setDateTo(''); setAdults(2)
     setDuration(''); setMinPrice(''); setMaxPrice('')
-    setStars([]); setMealPlan([]); setTransport(''); setSort('price_asc')
+    setStars([]); setMealPlan([]); setTransport(''); setTourType(''); setSort('price_asc')
   }
 
   type Chip = { label: string; clear: () => void }
@@ -146,10 +150,12 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
     ...(transport ? [{ label: transport, clear: () => setTransport('') }] : []),
     ...stars.map(s    => ({ label: '★'.repeat(Number(s)), clear: () => toggleStar(s) })),
     ...mealPlan.map(m => ({ label: m, clear: () => toggleMeal(m) })),
+    ...(tourType === 'last_minute'  ? [{ label: 'Last minute',  clear: () => setTourType('') }] : []),
+    ...(tourType === 'first_minute' ? [{ label: 'First minute', clear: () => setTourType('') }] : []),
   ]
 
   // Count active advanced filters for badge
-  const advancedCount = [duration, minPrice, maxPrice, transport].filter(Boolean).length + stars.length + mealPlan.length
+  const advancedCount = [duration, minPrice, maxPrice, transport, tourType].filter(Boolean).length + stars.length + mealPlan.length
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-[0_4px_24px_-2px_rgba(0,100,255,0.08),0_1px_4px_rgba(0,0,0,0.04)] mb-6 relative">
@@ -231,6 +237,31 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
         {showAdvanced && (
           <div className="border-t border-gray-100 pt-4 space-y-4">
             <div className="flex flex-wrap gap-x-8 gap-y-4 items-start">
+
+              {/* Tour type */}
+              <div>
+                <p className={label}>Typ nabídky</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  <button type="button" onClick={() => setTourType(t => t === 'last_minute' ? '' : 'last_minute')}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all whitespace-nowrap ${
+                      tourType === 'last_minute'
+                        ? 'bg-red-500 text-white border-red-500 shadow-sm'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-red-400 hover:text-red-500'
+                    }`}>
+                    <PiTimer className="w-3.5 h-3.5 flex-shrink-0" />
+                    Last minute
+                  </button>
+                  <button type="button" onClick={() => setTourType(t => t === 'first_minute' ? '' : 'first_minute')}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all whitespace-nowrap ${
+                      tourType === 'first_minute'
+                        ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600'
+                    }`}>
+                    <PiCalendarStar className="w-3.5 h-3.5 flex-shrink-0" />
+                    First minute
+                  </button>
+                </div>
+              </div>
 
               {/* Stars */}
               {meta.stars.length > 0 && (

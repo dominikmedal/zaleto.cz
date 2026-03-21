@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { PiSun, PiCalendarStar, PiBuildingApartment, PiAirplane, PiGlobe, PiTag } from 'react-icons/pi'
+import { PiSun, PiCalendarStar, PiBuildingApartment, PiAirplane, PiGlobe, PiTag, PiLightning, PiTimer } from 'react-icons/pi'
 import Header from '@/components/Header'
 import FilterBar from '@/components/FilterBar'
 import HotelGrid from '@/components/HotelGrid'
@@ -55,7 +55,7 @@ const fmtShort = (n: number) => {
   return n.toLocaleString('cs-CZ')
 }
 const hasActiveFilter = (f: Filters) =>
-  !!(f.destination || f.date_from || f.date_to || f.duration || f.min_price || f.max_price || f.stars || f.meal_plan || f.transport)
+  !!(f.destination || f.date_from || f.date_to || f.duration || f.min_price || f.max_price || f.stars || f.meal_plan || f.transport || f.tour_type)
 
 export default async function HomePage({ searchParams }: PageProps) {
   const filters: Filters = {
@@ -68,11 +68,13 @@ export default async function HomePage({ searchParams }: PageProps) {
     stars:       getParam(searchParams.stars),
     meal_plan:   getParam(searchParams.meal_plan),
     transport:   getParam(searchParams.transport),
+    tour_type:   getParam(searchParams.tour_type),
     sort:        getParam(searchParams.sort) || 'price_asc',
   }
 
   const page = parseInt(getParam(searchParams.page) || '1')
   const singleDest = filters.destination && !filters.destination.includes(',') ? filters.destination : null
+  const tourType = filters.tour_type
   const noFilters = !hasActiveFilter(filters)
 
   const [{ hotels, pagination }, destinations, meta, wiki] = await Promise.all([
@@ -219,11 +221,19 @@ export default async function HomePage({ searchParams }: PageProps) {
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight mb-2">
                 {singleDest
                   ? (wiki ? wiki.title : singleDest)
+                  : tourType === 'last_minute'
+                  ? <><span className="text-red-500 inline-flex items-center gap-2"><PiTimer className="w-8 h-8 sm:w-10 sm:h-10" />Last minute 2026</span></>
+                  : tourType === 'first_minute'
+                  ? <><span className="text-emerald-500 inline-flex items-center gap-2"><PiCalendarStar className="w-8 h-8 sm:w-10 sm:h-10" />First minute 2026</span> </>
                   : <>Najdi svůj zájezd <span className="text-[#008afe]">snadno a rychle</span>.</>}
               </h1>
               <p className="text-gray-500 text-sm sm:text-base max-w-xl leading-relaxed">
                 {singleDest
                   ? (wiki ? wikiDescription : `Zájezdy do destinace ${singleDest} od předních cestovních kanceláří.`)
+                  : tourType === 'last_minute'
+                  ? 'Zájezdy s odletem v nejbližších dnech za zvýhodněné ceny. Vyber, rezervuj a jeď.'
+                  : tourType === 'first_minute'
+                  ? 'Výhodné zájezdy pro ty, kdo plánují s předstihem. Nejlepší ceny pro včasné rezervace.'
                   : 'Porovnejte termíny a ceny od předních cestovních kanceláří na jednom místě.'}
               </p>
             </div>

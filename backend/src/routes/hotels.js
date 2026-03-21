@@ -8,8 +8,8 @@ router.get('/', (req, res) => {
     const {
       destination, date_from, date_to,
       adults, duration, min_price, max_price,
-      stars, meal_plan, transport,
-      sort = 'price_asc', page = '1', limit = '24',
+      stars, meal_plan, transport, tour_type,
+      sort = 'price_asc', page = '1', limit = '24', view,
     } = req.query
 
     const pageNum = Math.max(1, parseInt(page) || 1)
@@ -66,6 +66,9 @@ router.get('/', (req, res) => {
       tourParams.push(`%${transport}%`)
     }
 
+    if (tour_type === 'last_minute')  { tourConds.push('t.is_last_minute = 1') }
+    if (tour_type === 'first_minute') { tourConds.push('t.is_first_minute = 1') }
+
     const havingConds = []
     if (min_price) { havingConds.push('min_price >= ?') }
     if (max_price) { havingConds.push('min_price <= ?') }
@@ -88,13 +91,20 @@ router.get('/', (req, res) => {
     if (min_price) havingParams.push(parseFloat(min_price))
     if (max_price) havingParams.push(parseFloat(max_price))
 
+    const extraFields = view === 'list'
+      ? ', h.description, h.amenities, h.distances, h.food_options, h.price_includes'
+      : ', h.food_options, h.amenities'
+
     const sql = `
       SELECT
         h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
-        h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude,
+        h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
+        ${extraFields},
         MIN(t.price) AS min_price,
         COUNT(t.id) AS available_dates,
-        MIN(t.departure_date) AS next_departure
+        MIN(t.departure_date) AS next_departure,
+        MAX(t.is_last_minute) AS has_last_minute,
+        MAX(t.is_first_minute) AS has_first_minute
       FROM hotels h
       INNER JOIN tours t ON t.hotel_id = h.id ${tourWhere}
       WHERE 1=1 ${hotelWhere}

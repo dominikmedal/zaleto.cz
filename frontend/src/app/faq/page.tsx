@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Header from '@/components/Header'
-import FaqAccordion, { FAQS } from '@/components/FaqAccordion'
+import FaqAccordion from '@/components/FaqAccordion'
+import { FAQS } from '@/components/faq-data'
 import JsonLd from '@/components/JsonLd'
 import { PiEnvelope } from 'react-icons/pi'
 

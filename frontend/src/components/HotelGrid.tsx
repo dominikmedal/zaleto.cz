@@ -10,10 +10,11 @@ import { API } from '@/lib/api'
 
 const HotelsMapView = dynamic(() => import('./HotelsMapView'), { ssr: false })
 
-async function fetchPage(sp: URLSearchParams, page: number, limit: number): Promise<{ hotels: Hotel[]; pagination: Pagination }> {
+async function fetchPage(sp: URLSearchParams, page: number, limit: number, view?: string): Promise<{ hotels: Hotel[]; pagination: Pagination }> {
   const params = new URLSearchParams(sp)
   params.set('page', String(page))
   params.set('limit', String(limit))
+  if (view === 'list') params.set('view', 'list')
   const res = await fetch(`${API}/api/hotels?${params.toString()}`)
   if (!res.ok) throw new Error('Failed to fetch hotels')
   return res.json()
@@ -32,17 +33,34 @@ export default function HotelGrid({ hotels: initial, pagination: initialPag, adu
     setPagination(initialPag)
   }, [initial, initialPag])
 
+  const prevViewRef = useRef(view)
+  useEffect(() => {
+    const prev = prevViewRef.current
+    prevViewRef.current = view
+    if (view === prev) return
+    // Re-fetch only when switching to/from list (extra fields needed)
+    if (view !== 'list' && prev !== 'list') return
+    setLoading(true)
+    fetchPage(sp, 1, initialPag.limit, view)
+      .then(({ hotels: next, pagination: nextPag }) => {
+        setHotels(next)
+        setPagination(nextPag)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [view, sp, initialPag.limit])
+
   const loadMore = useCallback(async () => {
     if (loading || !pagination.hasMore) return
     setLoading(true)
     try {
-      const { hotels: next, pagination: nextPag } = await fetchPage(sp, pagination.page + 1, pagination.limit)
+      const { hotels: next, pagination: nextPag } = await fetchPage(sp, pagination.page + 1, pagination.limit, view)
       setHotels(prev => [...prev, ...next])
       setPagination(nextPag)
     } catch { /* ignore */ } finally {
       setLoading(false)
     }
-  }, [loading, pagination, sp])
+  }, [loading, pagination, sp, view])
 
   useEffect(() => {
     const el = sentinelRef.current
@@ -103,7 +121,7 @@ export default function HotelGrid({ hotels: initial, pagination: initialPag, adu
       {/* Grid view */}
       {view === 'grid' && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-5 gap-y-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
             {hotels.map(hotel => <HotelCard key={hotel.id} hotel={hotel} adults={adults} />)}
           </div>
           <div ref={sentinelRef} className="h-4 mt-8" />

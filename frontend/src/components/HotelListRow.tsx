@@ -4,10 +4,12 @@ import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import {
   PiMapPin, PiBuildings, PiCalendarBlank, PiForkKnife,
-  PiStarFill, PiCheckCircle, PiRuler, PiArrowRight,
+  PiStarFill, PiCheckCircle, PiRuler, PiArrowRight, PiTimer, PiCalendarStar,
+  PiSwimmingPool, PiWifiHigh, PiSpa, PiUmbrellaSimple,
 } from 'react-icons/pi'
 import type { Hotel } from '@/lib/types'
 import FavoriteButton from './FavoriteButton'
+import ToursModal from './ToursModal'
 
 const fmt = (n: number) => new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(n)
 
@@ -36,6 +38,15 @@ function parseDistances(raw: string | null): string[] {
   }
 }
 
+function amenityIcon(label: string) {
+  const l = label.toLowerCase()
+  if (l.includes('bazén') || l.includes('pool') || l.includes('aqua')) return PiSwimmingPool
+  if (l.includes('wi-fi') || l.includes('wifi') || l.includes('internet')) return PiWifiHigh
+  if (l.includes('spa') || l.includes('wellness') || l.includes('sauna') || l.includes('masáž')) return PiSpa
+  if (l.includes('pláž') || l.includes('beach') || l.includes('moře')) return PiUmbrellaSimple
+  return PiCheckCircle
+}
+
 function parsePriceIncludes(raw: string | null): string[] {
   if (!raw) return []
   try {
@@ -61,8 +72,9 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
     }
   })()
 
-  const [activeIdx, setActiveIdx] = useState(0)
-  const [hovered, setHovered]     = useState(false)
+  const [activeIdx,  setActiveIdx]  = useState(0)
+  const [hovered,    setHovered]    = useState(false)
+  const [modalOpen,  setModalOpen]  = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -70,8 +82,6 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
     intervalRef.current = setInterval(() => setActiveIdx(i => (i + 1) % photos.length), 1600)
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [hovered, photos.length])
-
-  const currentPhoto = photos[activeIdx] ?? photos[0]
 
   const amenities: string[] = (() => {
     try { return hotel.amenities ? JSON.parse(hotel.amenities) : [] }
@@ -81,23 +91,29 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
   const description = hotel.description ? stripHtml(hotel.description) : null
 
   return (
+    <>
     <Link href={`/hotel/${hotel.slug}`} className="group block">
-      <article className="bg-white border border-gray-100 hover:border-[#008afe]/25 hover:shadow-md rounded-2xl overflow-hidden transition-all duration-200 flex min-h-[200px]">
+      <article
+        className="bg-white border border-gray-100 hover:border-[#008afe]/25 hover:shadow-md rounded-2xl overflow-hidden transition-all duration-200 flex min-h-[200px]"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => { setHovered(false); setActiveIdx(0); if (intervalRef.current) clearInterval(intervalRef.current) }}
+      >
 
         {/* ── Image ── */}
-        <div
-          className="relative flex-shrink-0 w-[220px] sm:w-[260px] self-stretch"
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => { setHovered(false); setActiveIdx(0); if (intervalRef.current) clearInterval(intervalRef.current) }}
-        >
-          {currentPhoto ? (
-            <Image
-              src={currentPhoto}
-              alt={hotel.name}
-              fill
-              className="object-cover transition-all duration-500 group-hover:scale-[1.03]"
-              sizes="260px"
-            />
+        <div className="relative flex-shrink-0 w-[220px] sm:w-[260px] self-stretch">
+          {photos.length > 0 ? (
+            <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-[1.03]">
+              {photos.map((photo, i) => (
+                <Image
+                  key={photo}
+                  src={photo}
+                  alt={hotel.name}
+                  fill
+                  className={`object-cover transition-opacity duration-400 ${i === activeIdx ? 'opacity-100' : 'opacity-0'}`}
+                  sizes="260px"
+                />
+              ))}
+            </div>
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
               <PiBuildings className="w-12 h-12 text-blue-200" />
@@ -139,14 +155,36 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
                 <PiMapPin className="w-3.5 h-3.5 flex-shrink-0" />
                 <span className="truncate">{[hotel.resort_town, hotel.country].filter(Boolean).join(', ')}</span>
               </div>
-              <span className="text-[11px] text-gray-300 flex-shrink-0">·</span>
-              <span className="text-[11px] text-gray-400 flex-shrink-0">{hotel.agency}</span>
             </div>
 
-            {/* Name */}
-            <h3 className="font-semibold text-gray-900 text-base leading-snug group-hover:text-[#008afe] transition-colors">
-              {hotel.name}
-            </h3>
+            {/* Name + badges */}
+            <div className="flex items-start gap-2 flex-wrap">
+              <h3 className="font-semibold text-gray-900 text-base leading-snug group-hover:text-[#008afe] transition-colors">
+                {hotel.name}
+              </h3>
+              <div className="flex flex-col items-start gap-1 mt-0.5 flex-shrink-0">
+                {hotel.has_last_minute ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-red-500 px-2 py-1 rounded-lg leading-none shadow-sm">
+                    <PiTimer className="w-3 h-3 flex-shrink-0" />
+                    Last minute
+                  </span>
+                ) : hotel.has_first_minute ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-emerald-500 px-2 py-1 rounded-lg leading-none shadow-sm">
+                    <PiCalendarStar className="w-3 h-3 flex-shrink-0" />
+                    First minute
+                  </span>
+                ) : null}
+                {hotel.available_dates > 0 && (
+                  <button
+                    type="button"
+                    onClick={e => { e.preventDefault(); setModalOpen(true) }}
+                    className="inline-flex items-center text-[10px] font-semibold text-[#008afe] bg-[#008afe]/8 hover:bg-[#008afe]/15 px-2 py-1 rounded-lg leading-none transition-colors whitespace-nowrap"
+                  >
+                    {hotel.available_dates} {hotel.available_dates === 1 ? 'termín' : hotel.available_dates < 5 ? 'termíny' : 'termínů'}
+                  </button>
+                )}
+              </div>
+            </div>
 
             {/* Description */}
             {description && (
@@ -155,31 +193,24 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
               </p>
             )}
 
-            {/* Meal plans */}
-            {mealPlans.length > 0 && (
-              <div className="flex items-center flex-wrap gap-1.5">
-                {mealPlans.map(m => (
-                  <span key={m} className="inline-flex items-center gap-1 text-[11px] text-gray-600 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-lg">
-                    <PiForkKnife className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                    {m}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Amenities */}
-            {amenities.length > 0 && (
-              <div className="flex items-center flex-wrap gap-1.5">
-                {amenities.slice(0, 8).map(a => (
-                  <span key={a} className="text-[11px] text-gray-500 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-lg">
-                    {a}
-                  </span>
-                ))}
-                {amenities.length > 8 && (
-                  <span className="text-[11px] text-gray-400">+{amenities.length - 8} dalších</span>
-                )}
-              </div>
-            )}
+            {/* Highlights */}
+            {(mealPlans.length > 0 || amenities.length > 0) && (() => {
+              const items = [
+                ...mealPlans.slice(0, 1).map(m => ({ label: m, Icon: PiForkKnife, color: 'text-amber-400' })),
+                ...amenities.slice(0, 1).map(a => ({ label: a, Icon: amenityIcon(a), color: 'text-[#008afe]' })),
+              ].slice(0, 2)
+              return (
+                <div className="flex items-center overflow-hidden">
+                  {items.map(({ label, Icon, color }, i) => (
+                    <span key={label} className={`inline-flex items-center gap-1 text-[11px] text-gray-500 flex-shrink-0 ${i === items.length - 1 ? 'min-w-0 flex-shrink' : ''}`}>
+                      {i > 0 && <span className="text-gray-200 flex-shrink-0 mx-1">·</span>}
+                      <Icon className={`w-3 h-3 flex-shrink-0 ${color}`} />
+                      <span className={i === items.length - 1 ? 'truncate' : ''}>{label}</span>
+                    </span>
+                  ))}
+                </div>
+              )
+            })()}
 
             {/* Distances */}
             {distances.length > 0 && (
@@ -212,11 +243,6 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
             <FavoriteButton slug={hotel.slug} name={hotel.name} variant="card" />
 
             <div className="flex flex-col items-end gap-2 text-right">
-              {hotel.available_dates > 0 && (
-                <span className="text-[11px] font-semibold text-[#008afe] bg-[#008afe]/8 px-2.5 py-1 rounded-full whitespace-nowrap">
-                  {hotel.available_dates} {hotel.available_dates === 1 ? 'termín' : hotel.available_dates < 5 ? 'termíny' : 'termínů'}
-                </span>
-              )}
               {nextDep && (
                 <div className="flex items-center gap-1 text-[11px] text-gray-400">
                   <PiCalendarBlank className="w-3 h-3 flex-shrink-0" />
@@ -243,5 +269,10 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
         </div>
       </article>
     </Link>
+
+    {modalOpen && (
+      <ToursModal slug={hotel.slug} name={hotel.name} onClose={() => setModalOpen(false)} />
+    )}
+    </>
   )
 }

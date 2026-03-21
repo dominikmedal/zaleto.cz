@@ -112,6 +112,8 @@ class ZaletoDB:
                 adults INTEGER DEFAULT 2,
                 room_code TEXT,
                 url TEXT UNIQUE NOT NULL,
+                is_last_minute INTEGER DEFAULT 0,
+                is_first_minute INTEGER DEFAULT 0,
                 created_at TEXT DEFAULT (datetime('now')),
                 updated_at TEXT DEFAULT (datetime('now'))
             );
@@ -132,6 +134,13 @@ class ZaletoDB:
                 self.conn.commit()
             except Exception:
                 pass  # sloupec už existuje
+        for col, typ in [("is_last_minute", "INTEGER DEFAULT 0"),
+                         ("is_first_minute", "INTEGER DEFAULT 0")]:
+            try:
+                self.conn.execute(f"ALTER TABLE tours ADD COLUMN {col} {typ}")
+                self.conn.commit()
+            except Exception:
+                pass
 
         self.conn.commit()
 
@@ -177,19 +186,24 @@ class ZaletoDB:
     def upsert_tour(self, hotel_id: int, t: dict):
         self.conn.execute("""
             INSERT INTO tours (hotel_id, agency, departure_date, return_date, duration,
-                               price, transport, meal_plan, adults, room_code, url, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                               price, transport, meal_plan, adults, room_code, url,
+                               is_last_minute, is_first_minute, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
             ON CONFLICT(url) DO UPDATE SET
-                price        = excluded.price,
-                transport    = excluded.transport,
-                meal_plan    = excluded.meal_plan,
-                return_date  = excluded.return_date,
-                updated_at   = datetime('now')
+                price          = excluded.price,
+                transport      = excluded.transport,
+                meal_plan      = excluded.meal_plan,
+                return_date    = excluded.return_date,
+                is_last_minute = excluded.is_last_minute,
+                is_first_minute = excluded.is_first_minute,
+                updated_at     = datetime('now')
         """, (
             hotel_id, AGENCY,
             t["departure_date"], t["return_date"], t["duration"],
             t["price"], t["transport"], t["meal_plan"],
             t["adults"], t["room_code"], t["url"],
+            int(t.get("is_last_minute", False)),
+            int(t.get("is_first_minute", False)),
         ))
 
     def commit(self):
@@ -495,6 +509,51 @@ def _get_offer(session: requests.Session, p: dict,
 
 
 # ---------------------------------------------------------------------------
+# Detekce last minute / first minute
+# ---------------------------------------------------------------------------
+
+LAST_MINUTE_DAYS  = 21   # odjezd do 21 dní → last minute
+FIRST_MINUTE_DAYS = 180  # odjezd za 180+ dní → first minute
+
+def _detect_tour_type(d: dict, dep_dt: datetime) -> tuple[bool, bool]:
+    """
+    Vrátí (is_last_minute, is_first_minute).
+
+    1) Zkusí Fischer-nativní pole (badges / labels / offerType / tags).
+    2) Fallback: výpočet z dnů do odjezdu v momentu scrape.
+    """
+    today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+    days_until = (dep_dt - today).days
+
+    # --- 1) Fischer API pole ---
+    # Fischer občas vrací badges/labels jako seznam objektů nebo stringů
+    raw_badges = (
+        d.get("badges") or d.get("labels") or d.get("tags") or
+        d.get("offerBadges") or d.get("specialOffers") or []
+    )
+    badge_texts: list[str] = []
+    for b in raw_badges:
+        if isinstance(b, dict):
+            badge_texts.append(b.get("name", "") + " " + b.get("type", "") + " " + b.get("code", ""))
+        elif isinstance(b, str):
+            badge_texts.append(b)
+    combined = " ".join(badge_texts).lower()
+
+    offer_type = str(d.get("offerType", "") or "").lower()
+    combined += " " + offer_type
+
+    if "last" in combined or "lastminute" in combined:
+        return True, False
+    if "first" in combined or "early" in combined or "firstminute" in combined:
+        return False, True
+
+    # --- 2) Výpočet z data ---
+    is_last_minute  = 0 <= days_until <= LAST_MINUTE_DAYS
+    is_first_minute = days_until >= FIRST_MINUTE_DAYS
+    return is_last_minute, is_first_minute
+
+
+# ---------------------------------------------------------------------------
 # Sestavení záznamů pro DB
 # ---------------------------------------------------------------------------
 
@@ -598,16 +657,20 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict):
         )
         tour_url = f"{base_url}?{qs}"
 
+        is_lm, is_fm = _detect_tour_type(d, dep_dt)
+
         tours.append({
-            "departure_date": raw_date,
-            "return_date":    ret_dt.strftime("%Y-%m-%d"),
-            "duration":       nights,
-            "price":          price,
-            "transport":      transport,
-            "meal_plan":      meal_name,
-            "adults":         p["adults"],
-            "room_code":      p["room_code"],
-            "url":            tour_url,
+            "departure_date":  raw_date,
+            "return_date":     ret_dt.strftime("%Y-%m-%d"),
+            "duration":        nights,
+            "price":           price,
+            "transport":       transport,
+            "meal_plan":       meal_name,
+            "adults":          p["adults"],
+            "room_code":       p["room_code"],
+            "url":             tour_url,
+            "is_last_minute":  is_lm,
+            "is_first_minute": is_fm,
         })
 
     return hotel, tours
