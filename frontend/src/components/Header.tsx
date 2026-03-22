@@ -9,9 +9,31 @@ import HeaderFavorites from './HeaderFavorites'
 import FavoritesToast from './FavoritesToast'
 import PromoBar from './PromoBar'
 
-export default function Header() {
+function NavLinks() {
   const sp = useSearchParams()
   const tourType = sp.get('tour_type')
+  return (
+    <nav className="hidden lg:flex items-center gap-0.5 text-sm font-medium">
+      <Link href="/?tour_type=last_minute" className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-red-600 ${
+        tourType === 'last_minute' ? 'bg-red-50 font-semibold' : 'hover:bg-red-50'
+      }`}>
+        <PiTimer className="w-4 h-4 flex-shrink-0" />
+        Last minute
+      </Link>
+      <Link href="/?tour_type=first_minute" className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-emerald-600 ${
+        tourType === 'first_minute' ? 'bg-emerald-50 font-semibold' : 'hover:bg-emerald-50'
+      }`}>
+        <PiCalendarStar className="w-4 h-4 flex-shrink-0" />
+        First minute
+      </Link>
+      <Link href="/kontakt" className="px-3 py-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap">
+        Kontakt
+      </Link>
+    </nav>
+  )
+}
+
+export default function Header() {
   return (
     <>
       <div className="sticky top-0 z-40">
@@ -38,23 +60,9 @@ export default function Header() {
 
             {/* Right: nav + favorites */}
             <div className="flex items-center gap-3 flex-shrink-0">
-              <nav className="hidden lg:flex items-center gap-0.5 text-sm font-medium">
-                <Link href="/?tour_type=last_minute" className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-red-600 ${
-                  tourType === 'last_minute' ? 'bg-red-50 font-semibold' : 'hover:bg-red-50'
-                }`}>
-                  <PiTimer className="w-4 h-4 flex-shrink-0" />
-                  Last minute
-                </Link>
-                <Link href="/?tour_type=first_minute" className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-emerald-600 ${
-                  tourType === 'first_minute' ? 'bg-emerald-50 font-semibold' : 'hover:bg-emerald-50'
-                }`}>
-                  <PiCalendarStar className="w-4 h-4 flex-shrink-0" />
-                  First minute
-                </Link>
-                <Link href="/kontakt" className="px-3 py-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap">
-                  Kontakt
-                </Link>
-              </nav>
+              <Suspense>
+                <NavLinks />
+              </Suspense>
               <div className="hidden lg:block w-px h-5 bg-gray-200 flex-shrink-0" />
               <HeaderFavorites />
             </div>

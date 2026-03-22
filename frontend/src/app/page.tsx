@@ -104,7 +104,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   // Fetch destination photos for carousel — Pexels (all parallel, cached via backend SQLite)
   const regionPhotos = noFilters
-    ? await Promise.all(topRegions.map(({ region }) => fetchDestinationPhoto(region)))
+    ? await Promise.all(topRegions.map(({ region }) => fetchDestinationPhoto(region).catch(() => null)))
     : []
 
   const countryCount = new Set(destinations.map(d => d.country)).size
