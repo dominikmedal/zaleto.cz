@@ -311,7 +311,7 @@ def run_scraper(scraper: dict, conn: sqlite3.Connection) -> dict:
     """
     agency = scraper["agency"]
     script = str(BASE_DIR / scraper["module"])
-    cmd    = [sys.executable, script] + scraper["args"]
+    cmd    = [sys.executable, "-u", script] + scraper["args"]
 
     env = {**os.environ, "DATABASE_PATH": DB_PATH}
 
@@ -336,9 +336,10 @@ def run_scraper(scraper: dict, conn: sqlite3.Connection) -> dict:
         logger.info(f"Spouštím: {agency}  ({' '.join(cmd[-2:])})")
         logger.info(f"{'─'*55}")
 
-        proc = subprocess.run(
+        proc = subprocess.Popen(
             cmd,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
             encoding="utf-8",
             errors="replace",
@@ -346,13 +347,17 @@ def run_scraper(scraper: dict, conn: sqlite3.Connection) -> dict:
             cwd=str(BASE_DIR),
         )
 
-        # Vypis stdout do logu orchestrátoru
-        if proc.stdout:
-            for line in proc.stdout.splitlines():
-                logger.info(f"  [{agency}] {line}")
+        # Stream stdout v reálném čase
+        captured_lines: list[str] = []
+        for line in proc.stdout:
+            line = line.rstrip("\n")
+            captured_lines.append(line)
+            logger.info(f"  [{agency}] {line}")
+
+        proc.wait()
 
         if proc.returncode != 0:
-            err_lines = (proc.stderr or proc.stdout or "neznámá chyba").strip().splitlines()
+            err_lines = captured_lines or ["neznámá chyba"]
             result["error"] = err_lines[-1][:200] if err_lines else f"exit {proc.returncode}"
             result["log_tail"] = "\n".join(err_lines[-20:])
             logger.error(f"{agency} skončil s kódem {proc.returncode}: {result['error']}")
