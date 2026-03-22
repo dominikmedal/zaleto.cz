@@ -63,32 +63,35 @@ export default function HotelsMapView() {
 
         const bounds: [number, number][] = []
 
-        hotels.forEach(hotel => {
-          bounds.push([hotel.latitude, hotel.longitude])
-          const stars = hotel.stars ? '★'.repeat(hotel.stars) : ''
-          const loc   = hotel.resort_town || ''
+        for (const hotel of hotels) {
+          if (cancelled) return
+          try {
+            bounds.push([hotel.latitude, hotel.longitude])
+            const stars = hotel.stars ? '★'.repeat(hotel.stars) : ''
+            const loc   = hotel.resort_town || ''
 
-          L.marker([hotel.latitude, hotel.longitude], {
-            icon: L.divIcon({
-              className: '',
-              html: `<div style="background:white;border:2px solid #e5e7eb;border-radius:10px;padding:3px 8px;font-size:11px;font-weight:700;color:#374151;box-shadow:0 2px 8px rgba(0,0,0,0.12);white-space:nowrap;cursor:pointer;">${fmt(hotel.min_price)} Kč</div>`,
-              iconSize:   [100, 26],
-              iconAnchor: [50, 13],
-              popupAnchor: [0, -16],
-            }),
-          }).addTo(map).bindPopup(`
-            <div style="font-family:system-ui,sans-serif;min-width:170px;padding:2px 0">
-              ${stars ? `<p style="color:#f59e0b;font-size:11px;margin:0 0 2px;line-height:1">${stars}</p>` : ''}
-              <p style="font-weight:700;font-size:13px;margin:0 0 2px;line-height:1.3">${hotel.name}</p>
-              ${loc ? `<p style="color:#9ca3af;font-size:11px;margin:0 0 6px">${loc}</p>` : '<div style="height:6px"></div>'}
-              <p style="color:#0093FF;font-weight:700;font-size:13px;margin:0 0 8px">od ${fmt(hotel.min_price)} Kč</p>
-              <a href="/hotel/${hotel.slug}" style="display:inline-block;background:#0093FF;color:white;font-size:11px;font-weight:600;padding:5px 12px;border-radius:8px;text-decoration:none">Zobrazit →</a>
-            </div>
-          `)
-        })
+            L.marker([hotel.latitude, hotel.longitude], {
+              icon: L.divIcon({
+                className: '',
+                html: `<div style="background:white;border:2px solid #e5e7eb;border-radius:10px;padding:3px 8px;font-size:11px;font-weight:700;color:#374151;box-shadow:0 2px 8px rgba(0,0,0,0.12);white-space:nowrap;cursor:pointer;">${fmt(hotel.min_price)} Kč</div>`,
+                iconSize:   [100, 26],
+                iconAnchor: [50, 13],
+                popupAnchor: [0, -16],
+              }),
+            }).addTo(map).bindPopup(`
+              <div style="font-family:system-ui,sans-serif;min-width:170px;padding:2px 0">
+                ${stars ? `<p style="color:#f59e0b;font-size:11px;margin:0 0 2px;line-height:1">${stars}</p>` : ''}
+                <p style="font-weight:700;font-size:13px;margin:0 0 2px;line-height:1.3">${hotel.name}</p>
+                ${loc ? `<p style="color:#9ca3af;font-size:11px;margin:0 0 6px">${loc}</p>` : '<div style="height:6px"></div>'}
+                <p style="color:#0093FF;font-weight:700;font-size:13px;margin:0 0 8px">od ${fmt(hotel.min_price)} Kč</p>
+                <a href="/hotel/${hotel.slug}" style="display:inline-block;background:#0093FF;color:white;font-size:11px;font-weight:600;padding:5px 12px;border-radius:8px;text-decoration:none">Zobrazit →</a>
+              </div>
+            `)
+          } catch { /* marker failed — skip */ }
+        }
 
-        if (bounds.length > 0) {
-          map.fitBounds(L.latLngBounds(bounds), { padding: [48, 48], maxZoom: 13 })
+        if (!cancelled && bounds.length > 0) {
+          try { map.fitBounds(L.latLngBounds(bounds), { padding: [48, 48], maxZoom: 13 }) } catch { /* ignore */ }
         }
 
         setCount(hotels.length)
