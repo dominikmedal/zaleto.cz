@@ -80,15 +80,15 @@ export default async function HomePage({ searchParams }: PageProps) {
   const noFilters = !hasActiveFilter(filters)
 
   const [{ hotels, pagination }, destinations, meta, wiki] = await Promise.all([
-    fetchHotels({ ...filters, page, limit: 24 }),
-    fetchDestinations(),
-    fetchFilters(),
-    singleDest ? fetchWikiSummary(singleDest) : Promise.resolve(null),
+    fetchHotels({ ...filters, page, limit: 24 }).catch(() => ({ hotels: [], pagination: { total: 0, page: 1, limit: 24, totalPages: 0, hasMore: false } })),
+    fetchDestinations().catch(() => []),
+    fetchFilters().catch(() => ({ mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], totalTours: 0, departureCities: [] })),
+    singleDest ? fetchWikiSummary(singleDest).catch(() => null) : Promise.resolve(null),
   ])
 
   // Hero photo — Pexels
   const heroPhoto = singleDest
-    ? (await fetchDestinationPhoto(singleDest))
+    ? await fetchDestinationPhoto(singleDest).catch(() => null)
     : null
 
   // Top unique regions with hotel counts
