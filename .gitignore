@@ -20,6 +20,11 @@ data/*.db
 data/*.db-shm
 data/*.db-wal
 
+# ── Secrets ───────────────────────────────────────────
+backend/.env
+scraper/.env
+frontend/.env.local
+
 # ── Claude ───────────────────────────────────────────
 .claude/
 

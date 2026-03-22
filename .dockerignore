@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/
+
+# Frontend (not needed in Railway image)
+frontend/
+
+# Database files (populated at runtime via Railway volume)
+data/
+
+# Scraper virtualenv and cache
+scraper/venv/
+scraper/__pycache__/
+scraper/*.pyc
+scraper/.env
+
+# Backend secrets and dev files
+backend/.env
+backend/.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Misc
+scripts/
+*.md
