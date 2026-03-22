@@ -24,8 +24,9 @@ export default function HotelStickyBar({ name, slug, stars, location, minPrice }
     if (!el) return
     const observer = new IntersectionObserver(
       ([entry]) => setVisible(!entry.isIntersecting),
-      // -96px rootMargin = promo bar (32px) + header (64px)
-      { threshold: 0, rootMargin: '-96px 0px 0px 0px' }
+      // Top: -96px = promo bar (32px) + header (64px)
+      // Bottom: +9999px = sentinel below the fold counts as intersecting (not yet scrolled past)
+      { threshold: 0, rootMargin: '-96px 0px 9999px 0px' }
     )
     observer.observe(el)
     return () => observer.disconnect()
