@@ -12,6 +12,7 @@ import TourDatesList from '@/components/TourDatesList'
 import HotelGallery from '@/components/HotelGallery'
 import ReviewsSection from '@/components/ReviewsSection'
 import { fetchHotel, fetchHotelTours, fetchNearbyHotels } from '@/lib/api'
+import type { NearbyHotel } from '@/lib/types'
 import JsonLd from '@/components/JsonLd'
 
 // Leaflet needs browser APIs → dynamic import, no SSR
@@ -110,7 +111,7 @@ export default async function HotelDetailPage({ params }: Props) {
 
   const tours = toursData.tours
 
-  const nearby = hotel.latitude && hotel.longitude
+  const nearby: NearbyHotel[] = hotel.latitude && hotel.longitude
     ? await fetchNearbyHotels(hotel.latitude, hotel.longitude, params.slug, 8)
     : []
 

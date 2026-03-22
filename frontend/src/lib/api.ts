@@ -1,4 +1,4 @@
-import type { Hotel, Tour, Filters, Pagination } from './types'
+import type { Hotel, NearbyHotel, Tour, Filters, Pagination } from './types'
 
 export const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -105,7 +105,7 @@ export async function fetchWikiSummary(query: string): Promise<{
   return null
 }
 
-export async function fetchNearbyHotels(lat: number, lon: number, exclude: string, limit = 6): Promise<Hotel[]> {
+export async function fetchNearbyHotels(lat: number, lon: number, exclude: string, limit = 6): Promise<NearbyHotel[]> {
   try {
     const params = new URLSearchParams({ lat: String(lat), lon: String(lon), exclude, limit: String(limit) })
     const res = await fetch(`${API}/api/hotels/nearby?${params}`, { next: { revalidate: 600 } })
@@ -135,6 +135,6 @@ export async function fetchFilters(): Promise<{
   departureCities: { departure_city: string; count: number }[]
 }> {
   const res = await fetch(`${API}/api/filters`, { next: { revalidate: 3600 } })
-  if (!res.ok) return { mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], departureCities: [] }
+  if (!res.ok) return { mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], totalTours: 0, departureCities: [] }
   return res.json()
 }

@@ -25,6 +25,20 @@ export interface Hotel {
   total_dates?: number
   has_last_minute?: number   // 1 pokud má alespoň jeden LM termín
   has_first_minute?: number  // 1 pokud má alespoň jeden FM termín
+  distance_km?: number       // vyplněno u výsledků nearby hotelů
+}
+
+export interface NearbyHotel {
+  id: number
+  slug: string
+  name: string
+  stars: number | null
+  thumbnail_url: string | null
+  min_price: number
+  resort_town: string | null
+  latitude: number
+  longitude: number
+  distance_km?: number
 }
 
 export interface Tour {
