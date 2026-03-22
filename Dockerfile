@@ -2,7 +2,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app/backend
 COPY backend/package*.json ./
-RUN npm ci --production
+RUN npm install --omit=dev
 
 # ── Stage 2: final image ───────────────────────────────────────────────────
 FROM node:20-alpine
