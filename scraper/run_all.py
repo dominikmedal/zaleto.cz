@@ -127,6 +127,49 @@ def open_db() -> sqlite3.Connection:
     return conn
 
 
+# ---------------------------------------------------------------------------
+# Checkpoint — přežije restart kontejneru (deploy)
+# ---------------------------------------------------------------------------
+
+def ensure_checkpoint_table(conn: sqlite3.Connection):
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS scraper_checkpoints (
+            agency       TEXT NOT NULL,
+            cycle_date   TEXT NOT NULL,
+            completed_at TEXT NOT NULL,
+            PRIMARY KEY (agency, cycle_date)
+        )
+    """)
+    conn.commit()
+
+
+def get_completed_today(conn: sqlite3.Connection) -> set:
+    """Vrátí množinu CK, které dnes již úspěšně dokončily stahování."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    rows = conn.execute(
+        "SELECT agency FROM scraper_checkpoints WHERE cycle_date = ?", (today,)
+    ).fetchall()
+    return {r["agency"] for r in rows}
+
+
+def mark_completed(conn: sqlite3.Connection, agency: str):
+    today = datetime.now().strftime("%Y-%m-%d")
+    conn.execute(
+        "INSERT OR REPLACE INTO scraper_checkpoints (agency, cycle_date, completed_at) "
+        "VALUES (?, ?, ?)",
+        (agency, today, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+    )
+    conn.commit()
+
+
+def clear_checkpoints(conn: sqlite3.Connection):
+    """Smaže checkpointy starší než 2 dny (údržba tabulky)."""
+    conn.execute(
+        "DELETE FROM scraper_checkpoints WHERE cycle_date < date('now', '-2 days')"
+    )
+    conn.commit()
+
+
 def get_counts(conn: sqlite3.Connection, agency: str) -> dict:
     """Vrátí počty hotelů a termínů pro danou CK."""
     h = conn.execute(
@@ -320,6 +363,8 @@ def run_scraper(scraper: dict, conn: sqlite3.Connection) -> dict:
             result["stale_removed"] = stale
             if stale:
                 logger.info(f"  Stale cleanup: smazáno {stale} zastaralých termínů ({agency})")
+            # Ulož checkpoint — přežije restart kontejneru
+            mark_completed(conn, agency)
 
     except Exception:
         tb = traceback.format_exc()
@@ -398,13 +443,14 @@ def build_report(
     # ── HTML ──────────────────────────────────────────────────────────────
     rows_html = ""
     for r in results:
-        icon    = "✅" if not r["error"] else "❌"
+        skipped = r.get("skipped", False)
+        icon    = "⏭️" if skipped else ("✅" if not r["error"] else "❌")
         h_diff  = r["hotels_after"]  - r["hotels_before"]
         t_diff  = r["tours_after"]   - r["tours_before"]
         stale   = r.get("stale_removed", 0)
-        dur     = f"{r['duration_sec'] / 60:.1f} min"
-        err_txt = r["error"] or "OK"
-        err_col = "#d32f2f" if r["error"] else "#388e3c"
+        dur     = "—" if skipped else f"{r['duration_sec'] / 60:.1f} min"
+        err_txt = "přeskočeno (checkpoint)" if skipped else (r["error"] or "OK")
+        err_col = "#888" if skipped else ("#d32f2f" if r["error"] else "#388e3c")
         rows_html += f"""
         <tr>
           <td>{icon}&nbsp;<strong>{r['agency']}</strong></td>
@@ -471,16 +517,18 @@ def build_report(
         "",
     ]
     for r in results:
-        icon   = "OK " if not r["error"] else "ERR"
-        h_diff = r["hotels_after"]  - r["hotels_before"]
-        t_diff = r["tours_after"]   - r["tours_before"]
-        stale = r.get("stale_removed", 0)
+        skipped = r.get("skipped", False)
+        icon    = "SKP" if skipped else ("OK " if not r["error"] else "ERR")
+        h_diff  = r["hotels_after"]  - r["hotels_before"]
+        t_diff  = r["tours_after"]   - r["tours_before"]
+        stale   = r.get("stale_removed", 0)
+        dur     = "checkpoint" if skipped else f"{r['duration_sec']/60:.1f} min"
         lines.append(
             f"  [{icon}] {r['agency']:<12}  "
             f"hotely: {r['hotels_after']} ({h_diff:+d})  "
             f"termíny: {r['tours_after']} ({t_diff:+d})  "
             f"stale: -{stale}  "
-            f"{r['duration_sec']/60:.1f} min"
+            f"{dur}"
             + (f"  CHYBA: {r['error']}" if r["error"] else "")
         )
     text = "\n".join(lines)
@@ -516,11 +564,29 @@ def run_cycle(cycle: int, skip_email: bool = False):
 
     conn = open_db()
     ensure_canonical_slug(conn)
+    ensure_checkpoint_table(conn)
+    clear_checkpoints(conn)
+
+    already_done = get_completed_today(conn)
+    if already_done:
+        logger.info(f"Checkpoint: přeskakuji již dokončené CK: {', '.join(sorted(already_done))}")
 
     results: list[dict] = []
     for scraper in SCRAPERS:
         if _shutdown:
             break
+        if scraper["agency"] in already_done:
+            logger.info(f"✓ {scraper['agency']} — přeskočeno (checkpoint z dnešního cyklu)")
+            # Přidej do výsledků jako "skipped" pro report
+            before = get_counts(conn, scraper["agency"])
+            results.append({
+                "agency": scraper["agency"],
+                "hotels_before": before["hotels"], "tours_before": before["tours"],
+                "hotels_after":  before["hotels"], "tours_after":  before["tours"],
+                "stale_removed": 0, "duration_sec": 0.0,
+                "error": "", "log_tail": "", "skipped": True,
+            })
+            continue
         result = run_scraper(scraper, conn)
         results.append(result)
 
