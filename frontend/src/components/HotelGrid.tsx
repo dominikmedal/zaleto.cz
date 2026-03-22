@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Loader2, LayoutGrid, List, Map } from 'lucide-react'
+import { PiMagnifyingGlass } from 'react-icons/pi'
 import dynamic from 'next/dynamic'
 import HotelCard from './HotelCard'
 import HotelListRow from './HotelListRow'
@@ -76,7 +77,7 @@ export default function HotelGrid({ hotels: initial, pagination: initialPag, adu
   if (hotels.length === 0) {
     return (
       <div className="text-center py-24">
-        <p className="text-5xl mb-5">🔍</p>
+        <PiMagnifyingGlass className="w-12 h-12 text-gray-300 mx-auto mb-5" />
         <h3 className="text-xl font-semibold text-gray-800 mb-2">Žádné výsledky</h3>
         <p className="text-gray-400 text-sm">Zkuste upravit filtry nebo vyberte jinou destinaci.</p>
       </div>
