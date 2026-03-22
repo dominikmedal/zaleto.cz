@@ -15,7 +15,8 @@ app.use(cors({
   origin: (origin, cb) => {
     if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
         origin === 'https://zaleto.cz' || origin === 'https://www.zaleto.cz' ||
-        (origin || '').endsWith('.vercel.app')) {
+        (origin || '').endsWith('.vercel.app') ||
+        (origin || '').endsWith('.railway.app')) {
       cb(null, true)
     } else {
       cb(new Error('Not allowed by CORS'))
