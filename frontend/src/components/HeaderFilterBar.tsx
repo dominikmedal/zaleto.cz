@@ -118,6 +118,8 @@ export default function HeaderFilterBar() {
   const [tourType,    setTourType]    = useState(init.tourType)
   const [depCity,     setDepCity]     = useState<string[]>(init.depCity)
 
+  const initialStateKey = JSON.stringify(init)
+
   // UI state
   const [activePanel,     setActivePanel]     = useState<'dest' | 'date' | 'adv' | null>(null)
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false)
@@ -165,7 +167,7 @@ export default function HeaderFilterBar() {
   }, [destination, dateFrom, dateTo, adults, sort, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, depCity])
 
   // ── Sync from URL when on home page ───────────────────────────────────────
-  const lastPushedKey = useRef<string>('')
+  const lastPushedKey = useRef<string>(initialStateKey)
 
   useEffect(() => {
     if (!isHome) return
