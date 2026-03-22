@@ -28,6 +28,8 @@ interface Props {
   destinations: DestRow[]
   value: string[]
   onChange: (value: string[]) => void
+  noLabel?: boolean
+  defaultOpen?: boolean
 }
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -118,7 +120,7 @@ interface HotelResult {
   slug: string; name: string; country: string; resort_town: string | null; stars: number | null; thumbnail_url: string | null
 }
 
-export default function DestinationAutocomplete({ destinations, value, onChange }: Props) {
+export default function DestinationAutocomplete({ destinations, value, onChange, noLabel, defaultOpen }: Props) {
   const router = useRouter()
   const [query,        setQuery]        = useState('')
   const [open,         setOpen]         = useState(false)
@@ -129,6 +131,11 @@ export default function DestinationAutocomplete({ destinations, value, onChange 
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef     = useRef<HTMLInputElement>(null)
   const listRef      = useRef<HTMLDivElement>(null)
+
+  // Auto-open when used as embedded component
+  useEffect(() => {
+    if (defaultOpen) { setOpen(true); setTimeout(() => inputRef.current?.focus(), 50) }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cycle placeholder text when idle
   useEffect(() => {
@@ -223,7 +230,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange 
         key={`${item.level}-${item.value}`}
         data-idx={idx}
         type="button"
-        onMouseDown={e => { e.preventDefault(); toggle(item.value) }}
+        onMouseDown={e => { e.preventDefault(); toggle(item.value); setQuery('') }}
         onMouseEnter={() => setHighlighted(idx)}
         className={`w-full flex items-center justify-between pr-4 transition-colors text-left ${
           isCountry ? 'py-2 pl-4' : isResort ? 'py-1.5 pl-10' : 'py-2 pl-5'
@@ -298,7 +305,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange 
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="block text-xs font-medium text-gray-500 mb-1.5">Destinace</label>
+      {!noLabel && <label className="block text-xs font-medium text-gray-500 mb-1.5">Destinace</label>}
 
       <div
         className={`relative min-h-[42px] w-full px-2.5 py-1.5 flex flex-wrap items-center gap-1.5 border rounded-xl bg-white cursor-text transition-all duration-150 ${

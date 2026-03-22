@@ -13,6 +13,10 @@ interface Props {
   destination?: string
   onDateFromChange: (v: string) => void
   onDateToChange:   (v: string) => void
+  defaultOpen?: boolean
+  noLabel?: boolean
+  inline?: boolean
+  onComplete?: () => void
 }
 
 // ─── Date utilities (no external libs) ───────────────────────────────────────
@@ -143,13 +147,13 @@ function MonthGrid({ year, month, priceMap, allPrices, dateFrom, dateTo, hover, 
 
 // ─── DateRangePicker ──────────────────────────────────────────────────────────
 
-export default function DateRangePicker({ dateFrom, dateTo, destination, onDateFromChange, onDateToChange }: Props) {
+export default function DateRangePicker({ dateFrom, dateTo, destination, onDateFromChange, onDateToChange, defaultOpen, noLabel, inline, onComplete }: Props) {
   const today = toYMD(new Date())
   const init  = dateFrom ? (() => { const [y, m] = dateFrom.split('-').map(Number); return { year: y, month: m - 1 } })() : { year: new Date().getFullYear(), month: new Date().getMonth() }
 
   const [viewYear,  setViewYear]  = useState(init.year)
   const [viewMonth, setViewMonth] = useState(init.month)
-  const [open,      setOpen]      = useState(false)
+  const [open,      setOpen]      = useState(defaultOpen ?? false)
   const [picking,   setPicking]   = useState<'from' | 'to'>('from')
   const [hover,     setHover]     = useState('')
   const [priceMap,  setPriceMap]  = useState<Map<string, DayPrice>>(new Map())
@@ -173,7 +177,7 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
     setLoading(false)
   }, [viewYear, viewMonth, destination])
 
-  useEffect(() => { if (open) loadPrices() }, [open, loadPrices])
+  useEffect(() => { if (open || inline) loadPrices() }, [open, inline, loadPrices])
 
   // Outside click
   useEffect(() => {
@@ -192,7 +196,9 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
     } else {
       if (cmpYMD(ymd, dateFrom) < 0) { onDateToChange(dateFrom); onDateFromChange(ymd) }
       else { onDateToChange(ymd) }
-      setOpen(false); setPicking('from'); setHover('')
+      setPicking('from'); setHover('')
+      if (inline) { onComplete?.() }
+      else { setOpen(false) }
     }
   }
 
@@ -206,10 +212,53 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
     ? `Od ${fmtDisplay(dateFrom)}…`
     : null
 
+  // ── Shared calendar content ──────────────────────────────────────────────────
+  const calendarContent = (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <button type="button" onClick={prev} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+          <PiCaretLeft className="w-4 h-4 text-gray-600" />
+        </button>
+        <span className="text-xs text-gray-500 font-medium">
+          {picking === 'from' ? '① Vyberte datum odjezdu' : '② Vyberte datum návratu'}
+          {loading && <span className="ml-2 text-blue-400 animate-pulse">načítám ceny…</span>}
+        </span>
+        <button type="button" onClick={next} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+          <PiCaretRight className="w-4 h-4 text-gray-600" />
+        </button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onMouseLeave={() => setHover('')}>
+        <MonthGrid year={viewYear} month={viewMonth} priceMap={priceMap} allPrices={allPrices}
+          dateFrom={dateFrom} dateTo={dateTo} hover={hover} picking={picking} today={today}
+          onDayClick={handleDayClick} onDayHover={setHover} />
+        <MonthGrid year={month2.year} month={month2.month} priceMap={priceMap} allPrices={allPrices}
+          dateFrom={dateFrom} dateTo={dateTo} hover={hover} picking={picking} today={today}
+          onDayClick={handleDayClick} onDayHover={setHover} />
+      </div>
+      <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-4 text-[11px] text-gray-500">
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />Levné</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />Průměrné</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-400 inline-block" />Dražší</span>
+        <span className="text-gray-300 text-xs ml-1">Ceny od osoby / 2 os.</span>
+        {!inline && (
+          <button type="button" onClick={() => { setOpen(false); setPicking('from'); setHover('') }}
+            className="ml-auto text-xs text-gray-400 underline underline-offset-2 hover:text-gray-600 transition-colors">
+            Zavřít
+          </button>
+        )}
+      </div>
+    </>
+  )
+
+  // ── Inline mode — render calendar directly (no trigger button) ────────────
+  if (inline) {
+    return <div style={{ width: 'min(680px, calc(100vw - 2rem))' }}>{calendarContent}</div>
+  }
+
+  // ── Normal mode — trigger button + popup ──────────────────────────────────
   return (
     <div className="relative" ref={triggerRef}>
-      {/* Single trigger */}
-      <label className="block text-xs font-medium text-gray-500 mb-1.5">Termín odjezdu</label>
+      {!noLabel && <label className="block text-xs font-medium text-gray-500 mb-1.5">Termín odjezdu</label>}
       <button
         type="button"
         onClick={() => { setOpen(o => !o); setPicking('from') }}
@@ -229,47 +278,11 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
         )}
       </button>
 
-      {/* Calendar popover */}
       {open && (
         <div ref={popRef}
           className="absolute top-full left-0 mt-2 z-50 bg-white rounded-2xl border border-gray-200 shadow-2xl p-5"
           style={{ width: 'min(680px, calc(100vw - 2rem))' }}>
-
-          {/* Navigation header */}
-          <div className="flex items-center justify-between mb-4">
-            <button type="button" onClick={prev} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-              <PiCaretLeft className="w-4 h-4 text-gray-600" />
-            </button>
-            <span className="text-xs text-gray-500 font-medium">
-              {picking === 'from' ? '① Vyberte datum odjezdu' : '② Vyberte datum návratu'}
-              {loading && <span className="ml-2 text-blue-400 animate-pulse">načítám ceny…</span>}
-            </span>
-            <button type="button" onClick={next} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-              <PiCaretRight className="w-4 h-4 text-gray-600" />
-            </button>
-          </div>
-
-          {/* Two months */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onMouseLeave={() => setHover('')}>
-            <MonthGrid year={viewYear} month={viewMonth} priceMap={priceMap} allPrices={allPrices}
-              dateFrom={dateFrom} dateTo={dateTo} hover={hover} picking={picking} today={today}
-              onDayClick={handleDayClick} onDayHover={setHover} />
-            <MonthGrid year={month2.year} month={month2.month} priceMap={priceMap} allPrices={allPrices}
-              dateFrom={dateFrom} dateTo={dateTo} hover={hover} picking={picking} today={today}
-              onDayClick={handleDayClick} onDayHover={setHover} />
-          </div>
-
-          {/* Legend + close */}
-          <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-4 text-[11px] text-gray-500">
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />Levné</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />Průměrné</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-400 inline-block" />Dražší</span>
-            <span className="text-gray-300 text-xs ml-1">Ceny od osoby / 2 os.</span>
-            <button type="button" onClick={() => { setOpen(false); setPicking('from'); setHover('') }}
-              className="ml-auto text-xs text-gray-400 underline underline-offset-2 hover:text-gray-600 transition-colors">
-              Zavřít
-            </button>
-          </div>
+          {calendarContent}
         </div>
       )}
     </div>

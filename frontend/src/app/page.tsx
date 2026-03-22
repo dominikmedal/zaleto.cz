@@ -4,12 +4,12 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { PiSun, PiCalendarStar, PiBuildingApartment, PiAirplane, PiGlobe, PiTag, PiLightning, PiTimer } from 'react-icons/pi'
 import Header from '@/components/Header'
-import FilterBar from '@/components/FilterBar'
 import HotelGrid from '@/components/HotelGrid'
 import DestinationCarousel from '@/components/DestinationCarousel'
 import { fetchHotels, fetchDestinations, fetchFilters, fetchWikiSummary, fetchDestinationPhoto } from '@/lib/api'
 import type { Filters } from '@/lib/types'
 import JsonLd from '@/components/JsonLd'
+import FilteringBar from '@/components/FilteringBar'
 
 export const metadata: Metadata = {
   title: 'Zaleto — Vyhledávač zájezdů | Srovnej ceny CK',
@@ -174,7 +174,7 @@ export default async function HomePage({ searchParams }: PageProps) {
           }} />
           {/* Content — anchored bottom-left inside max-w container */}
           <div className="absolute inset-0 flex items-center">
-            <div className="max-w-[1680px] mx-auto px-6 sm:px-10 w-full pb-6">
+            <div className="max-w-[1680px] mx-auto px-4 sm:px-10 w-full pb-6">
               {breadcrumb.length > 0 && (
                 <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
                   <Link href="/" className="hover:text-[#008afe] transition-colors">Všechny zájezdy</Link>
@@ -200,11 +200,13 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       )}
 
-      <main className="max-w-[1680px] mx-auto px-6 sm:px-8 py-8 space-y-5">
+      <main className="max-w-[1680px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-5">
 
         {/* ── Compact hero (no destination photo) ── */}
         {!(heroPhoto && singleDest) && (
-          <div className="flex items-end justify-between gap-8">
+          <div className="lg:flex lg:items-end lg:justify-between lg:gap-8">
+
+            {/* Title + description */}
             <div className="min-w-0">
               {breadcrumb.length > 0 && (
                 <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
@@ -220,16 +222,16 @@ export default async function HomePage({ searchParams }: PageProps) {
                   ))}
                 </nav>
               )}
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight mb-2">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2">
                 {singleDest
                   ? (wiki ? wiki.title : singleDest)
                   : tourType === 'last_minute'
-                  ? <><span className="text-red-500 inline-flex items-center gap-2"><PiTimer className="w-8 h-8 sm:w-10 sm:h-10" />Last minute 2026</span></>
+                  ? <><span className="text-red-500 inline-flex items-center gap-2"><PiTimer className="w-7 h-7 sm:w-9 sm:h-9" />Last minute 2026</span></>
                   : tourType === 'first_minute'
-                  ? <><span className="text-emerald-500 inline-flex items-center gap-2"><PiCalendarStar className="w-8 h-8 sm:w-10 sm:h-10" />First minute 2026</span> </>
+                  ? <><span className="text-emerald-500 inline-flex items-center gap-2"><PiCalendarStar className="w-7 h-7 sm:w-9 sm:h-9" />First minute 2026</span></>
                   : <>Najdi svůj zájezd <span className="text-[#008afe]">snadno a rychle</span>.</>}
               </h1>
-              <p className="text-gray-500 text-sm sm:text-base max-w-xl leading-relaxed">
+              <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-2xl lg:max-w-xl">
                 {singleDest
                   ? (wiki ? wikiDescription : `Zájezdy do destinace ${singleDest} od předních cestovních kanceláří.`)
                   : tourType === 'last_minute'
@@ -239,29 +241,50 @@ export default async function HomePage({ searchParams }: PageProps) {
                   : 'Porovnejte termíny a ceny od předních cestovních kanceláří na jednom místě.'}
               </p>
             </div>
-            {!singleDest && (
-              <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-                {[
-                  { icon: <PiBuildingApartment className="w-4 h-4" />, value: fmtShort(pagination.total),      label: 'hotelů' },
-                  { icon: <PiAirplane         className="w-4 h-4" />, value: fmtShort(meta.totalTours ?? 0),  label: 'termínů' },
-                  { icon: <PiGlobe            className="w-4 h-4" />, value: String(countryCount),            label: 'zemí' },
-                  { icon: <PiTag              className="w-4 h-4" />, value: `od ${fmtShort(meta.priceRange.min)} Kč`, label: '' },
-                ].map(({ icon, value, label }) => (
-                  <div key={label + value} className="flex items-center gap-1.5 bg-white border border-gray-100 rounded-xl px-3 py-2 shadow-sm">
-                    <span className="text-[#008afe]">{icon}</span>
-                    <span className="text-sm font-semibold text-gray-800">{value}</span>
-                    {label && <span className="text-xs text-gray-400">{label}</span>}
+
+            {/* Stats */}
+            {!singleDest && (() => {
+              const statsArr = [
+                { icon: <PiBuildingApartment className="w-3 h-3" />, value: fmtShort(pagination.total),            label: 'hotelů'  },
+                { icon: <PiAirplane          className="w-3 h-3" />, value: fmtShort(meta.totalTours ?? 0),        label: 'termínů' },
+                { icon: <PiGlobe             className="w-3 h-3" />, value: String(countryCount),                  label: 'zemí'    },
+                { icon: <PiTag               className="w-3 h-3" />, value: `od ${fmtShort(meta.priceRange.min)}`, label: 'Kč'      },
+              ]
+              return (
+                <div className="hidden sm:block lg:flex-shrink-0 mt-5 lg:mt-0">
+
+                  {/* Tablet (sm–lg): full-width card below title */}
+                  <div className="lg:hidden grid grid-cols-4 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                    {statsArr.map(({ icon, value, label }) => (
+                      <div key={label} className="flex flex-col items-center justify-center py-4 px-3 border-r border-gray-100 last:border-r-0">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                          <span className="text-[#008afe]">{icon}</span>
+                          {label}
+                        </div>
+                        <span className="text-xl font-bold text-gray-900 leading-none tabular-nums">{value}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+
+                  {/* Desktop (lg+): inline strip to the right of title */}
+                  <div className="hidden lg:flex items-stretch divide-x divide-gray-100">
+                    {statsArr.map(({ icon, value, label }) => (
+                      <div key={label} className="flex flex-col justify-center px-5 last:pr-0 first:pl-0">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                          <span className="text-[#008afe]">{icon}</span>
+                          {label}
+                        </div>
+                        <span className="text-[22px] font-bold text-gray-900 leading-none tabular-nums">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                </div>
+              )
+            })()}
+
           </div>
         )}
-
-        {/* ── Filters ── */}
-        <Suspense>
-          <FilterBar destinations={destinations} meta={meta} />
-        </Suspense>
 
         {/* ── Popular destination cards (only when no filters active) ── */}
         {noFilters && topRegions.length > 0 && (
@@ -348,12 +371,12 @@ export default async function HomePage({ searchParams }: PageProps) {
           </section>
         )}
 
-        {/* ── Results count when filtered ── */}
-        {hasActiveFilter(filters) && (
-          <p className="text-sm text-gray-500 pt-1">
-            Nalezeno <span className="font-semibold text-gray-900">{fmt(pagination.total)}</span> hotelů
-          </p>
-        )}
+
+
+        {/* ── Filter animation bar ── */}
+        <Suspense>
+          <FilteringBar />
+        </Suspense>
 
         {/* ── Hotel grid ── */}
         <Suspense>

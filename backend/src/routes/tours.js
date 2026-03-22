@@ -8,11 +8,16 @@ router.get('/', (req, res) => {
     const { slug } = req.params
     const { date_from, date_to, adults, duration, meal_plan, sort = 'price_asc' } = req.query
 
-    const hotel = db.prepare('SELECT id FROM hotels WHERE slug = ?').get(slug)
+    const hotel = db.prepare('SELECT id, canonical_slug FROM hotels WHERE slug = ?').get(slug)
     if (!hotel) return res.status(404).json({ error: 'Hotel not found' })
 
-    const conds = ['hotel_id = ?', "departure_date >= date('now')"]
-    const params = [hotel.id]
+    // Multi-agency: pokud canonical_slug existuje, načti termíny od všech CK s tímto slugem.
+    // Fallback na hotel_id pokud canonical_slug ještě není nastaven (před prvním run_all.py).
+    const canonicalSlug = hotel.canonical_slug || null
+    const conds = canonicalSlug
+      ? [`hotel_id IN (SELECT id FROM hotels WHERE canonical_slug = ?)`, "departure_date >= date('now')"]
+      : ['hotel_id = ?', "departure_date >= date('now')"]
+    const params = [canonicalSlug || hotel.id]
 
     if (date_from) { conds.push('departure_date >= ?'); params.push(date_from) }
     if (date_to)   { conds.push('departure_date <= ?'); params.push(date_to) }

@@ -22,6 +22,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Filter bar sweep animation */
+@keyframes filter-bar-sweep {
+  0%   { width: 0%;    opacity: 1; }
+  80%  { width: 100%;  opacity: 1; }
+  100% { width: 100%;  opacity: 0; }
+}
+.animate-filter-bar {
+  animation: filter-bar-sweep 0.9s ease-out forwards;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

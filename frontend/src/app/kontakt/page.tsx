@@ -24,7 +24,7 @@ const contactSchema = {
   email: 'info@zaleto.cz',
   address: {
     '@type': 'PostalAddress',
-    streetAddress: 'Majerského 2032/9',
+    streetAddress: 'Majerského 2032/9, Praha 4 - Chodov, 149 00',
     addressCountry: 'CZ',
   },
   worksFor: {
@@ -73,7 +73,7 @@ export default function KontaktPage() {
             <h2 className="text-[15px] font-semibold text-gray-900 mb-3">Fakturační údaje</h2>
             <address className="not-italic text-sm text-gray-500 leading-relaxed space-y-0.5 text-center">
               <p className="font-semibold text-gray-800">Bc. Dominik Medal</p>
-              <p>Majerského 2032/9</p>
+              <p>Majerského 2032/9, Praha 4 - Chodov, 149 00</p>
               <p className="pt-1"><strong className="text-gray-700">IČO:</strong> 17271541</p>
               <p className="text-xs text-gray-400 pt-2">Zapsán v živnostenském rejstříku v&nbsp;Praze.<br />Nejsem plátce DPH.</p>
             </address>

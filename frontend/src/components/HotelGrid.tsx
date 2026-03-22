@@ -104,7 +104,7 @@ export default function HotelGrid({ hotels: initial, pagination: initialPag, adu
               key={btn.id}
               onClick={() => setView(btn.id)}
               title={btn.label}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`${btn.id === 'list' ? 'hidden sm:flex' : 'flex'} items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 view === btn.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -121,7 +121,7 @@ export default function HotelGrid({ hotels: initial, pagination: initialPag, adu
       {/* Grid view */}
       {view === 'grid' && (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
             {hotels.map(hotel => <HotelCard key={hotel.id} hotel={hotel} adults={adults} />)}
           </div>
           <div ref={sentinelRef} className="h-4 mt-8" />

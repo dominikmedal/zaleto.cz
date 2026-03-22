@@ -18,10 +18,10 @@ const addDays = (dateStr, n) => {
   return d.toISOString().slice(0, 10)
 }
 
-// GET /api/redirect/:slug?date=YYYY-MM-DD&nights=7&adults=2
+// GET /api/redirect/:slug?date=YYYY-MM-DD&nights=7&adults=2&tour_url=...
 router.get('/:slug', (req, res) => {
   const { slug } = req.params
-  const { date, nights, adults = '2' } = req.query
+  const { date, nights, adults = '2', tour_url } = req.query
 
   if (!date) return res.status(400).json({ error: 'date required' })
 
@@ -31,39 +31,47 @@ router.get('/:slug', (req, res) => {
   const nightsNum = parseInt(nights) || 7
   const adultsNum = Math.max(1, parseInt(adults) || 2)
 
-  let tour = db.prepare(
-    'SELECT url FROM tours WHERE hotel_id = ? AND departure_date = ? AND duration = ? ORDER BY price ASC LIMIT 1'
-  ).get(hotel.id, date, nightsNum)
-
-  if (!tour) {
-    tour = db.prepare(
-      'SELECT url FROM tours WHERE hotel_id = ? AND departure_date = ? ORDER BY price ASC LIMIT 1'
-    ).get(hotel.id, date)
+  // Čedok: URL already contains deeplink — redirect directly (tour_url takes precedence)
+  if (hotel.agency === 'Čedok') {
+    const destUrl = tour_url || (() => {
+      const t = db.prepare(
+        'SELECT url FROM tours WHERE hotel_id = ? AND departure_date = ? ORDER BY price ASC LIMIT 1'
+      ).get(hotel.id, date)
+      return t?.url
+    })()
+    if (!destUrl) return res.status(404).json({ error: `Termín ${date} nenalezen` })
+    console.log(`[redirect] cedok ${slug} ${date} → ${destUrl}`)
+    return res.redirect(302, destUrl)
   }
 
-  if (!tour || !tour.url) {
-    return res.status(404).json({ error: `Termín ${date} nenalezen` })
+  // Prefer exact tour_url from frontend (avoids wrong-airport fallback)
+  let tourUrl = tour_url || null
+
+  if (!tourUrl) {
+    let tour = db.prepare(
+      'SELECT url FROM tours WHERE hotel_id = ? AND departure_date = ? AND duration = ? ORDER BY price ASC LIMIT 1'
+    ).get(hotel.id, date, nightsNum)
+    if (!tour) {
+      tour = db.prepare(
+        'SELECT url FROM tours WHERE hotel_id = ? AND departure_date = ? ORDER BY price ASC LIMIT 1'
+      ).get(hotel.id, date)
+    }
+    if (!tour?.url) return res.status(404).json({ error: `Termín ${date} nenalezen` })
+    tourUrl = tour.url
   }
 
   // Fischer URL parametry (odvozeno z pozorování chování jejich webu):
   //   DF  = sezónní rozsah hotelu — NEMĚNÍ se, zůstává z tourFilterQuery
   //   DD  = datum odjezdu (stejné jako date param, NE departure+nights)
   //   RD  = datum odjezdu (alias k DD)
-  //   TO  = letiště|letiště (zdvojené pro odlet|přilet)
+  //   TO  = letiště|letiště (zdvojené pro odlet|přilet) — zachováváme z tour URL!
   //   NN  = počet nocí
   //   MNN = počet nocí (alias)
   //   NNM = počet nocí (další alias)
   //   MT  = typ dopravy (2 = letecky)
 
-  // Čedok: URL již obsahuje ?id= (deeplink na konkrétní nabídku), přesměrujeme přímo
-  if (hotel.agency === 'Čedok') {
-    const destUrl = tour.url
-    console.log(`[redirect] cedok ${slug} ${date} → ${destUrl}`)
-    return res.redirect(302, destUrl)
-  }
-
   try {
-    const urlObj = new URL(tour.url)
+    const urlObj = new URL(tourUrl)
     const p = urlObj.searchParams
 
     // Datum odjezdu — DF necháváme z tourFilterQuery beze změny
@@ -100,7 +108,7 @@ router.get('/:slug', (req, res) => {
     console.log(`[redirect] ${slug} ${date} → ${destUrl}`)
     res.redirect(302, destUrl)
   } catch {
-    const destUrl = affiliateUrl(tour.url, hotel.agency)
+    const destUrl = affiliateUrl(tourUrl, hotel.agency)
     console.log(`[redirect] fallback ${slug} ${date} → ${destUrl}`)
     res.redirect(302, destUrl)
   }

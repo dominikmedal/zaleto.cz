@@ -384,9 +384,19 @@ router.get('/:slug', (req, res) => {
     const hotel = db.prepare('SELECT * FROM hotels WHERE slug = ?').get(req.params.slug)
     if (!hotel) return res.status(404).json({ error: 'Hotel not found' })
 
-    const stats = db.prepare(
-      'SELECT MIN(price) AS min_price, MAX(price) AS max_price, COUNT(*) AS total_dates FROM tours WHERE hotel_id = ?'
-    ).get(hotel.id)
+    // Multi-agency: agreguj přes canonical_slug pokud je nastaven,
+    // jinak fallback na hotel_id (před prvním run_all.py).
+    const canonicalSlug = hotel.canonical_slug || null
+    const stats = canonicalSlug
+      ? db.prepare(`
+          SELECT MIN(t.price) AS min_price, MAX(t.price) AS max_price, COUNT(*) AS total_dates
+          FROM tours t JOIN hotels h ON h.id = t.hotel_id
+          WHERE h.canonical_slug = ? AND t.departure_date >= date('now')
+        `).get(canonicalSlug)
+      : db.prepare(`
+          SELECT MIN(price) AS min_price, MAX(price) AS max_price, COUNT(*) AS total_dates
+          FROM tours WHERE hotel_id = ? AND departure_date >= date('now')
+        `).get(hotel.id)
 
     res.json({ ...hotel, ...stats })
   } catch (err) {

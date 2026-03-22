@@ -248,6 +248,49 @@ export default async function HotelDetailPage({ params }: Props) {
         {/* Gallery */}
         <HotelGallery photos={photos} name={hotel.name} />
 
+        {/* ── Cena zájezdu — mobile only, right after gallery ── */}
+        <div className="lg:hidden mt-4 bg-[#e1f2f3] rounded-2xl p-4 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs text-[#4d8a8c] mb-0.5">Nejnižší cena od osoby</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-extrabold text-[#0d4f52]">{formatPriceShort(minTourPrice)}</span>
+                <span className="text-sm font-medium text-[#4d8a8c]">Kč</span>
+              </div>
+              {maxTourPrice && maxTourPrice !== minTourPrice && (
+                <p className="text-xs text-[#4d8a8c]">max. {formatPriceShort(maxTourPrice)} Kč / os.</p>
+              )}
+            </div>
+            <ScrollToButton
+              targetId="terminy"
+              className="flex-shrink-0 bg-[#008afe] hover:bg-[#0079e5] active:scale-[0.98] text-white font-bold py-3 px-5 rounded-xl flex items-center gap-2 text-sm whitespace-nowrap shadow-md shadow-[#008afe]/25 transition-all"
+            >
+              <PiCalendarBlank className="w-4 h-4" />
+              Vybrat termín
+            </ScrollToButton>
+          </div>
+          <div className="grid grid-cols-3 gap-3 pt-3 border-t border-[#b8dfe1]">
+            <div>
+              <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Termíny</p>
+              <p className="text-lg font-extrabold text-[#0d4f52]">{tours.length}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Délka</p>
+              <p className="text-lg font-extrabold text-[#0d4f52]">
+                {durations.length === 0 ? '—' : durations.length === 1 ? durations[0] : `${durations[0]}–${durations[durations.length - 1]}`}
+                {durations.length > 0 && <span className="text-xs font-normal text-[#4d8a8c] ml-0.5">nocí</span>}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Stravování</p>
+              <p className="text-xs font-semibold text-[#0d4f52] leading-tight">
+                {mealPlans.length === 0 ? '—' : mealPlans[0]}
+                {mealPlans.length > 1 && <span className="text-[10px] text-[#4d8a8c] ml-1">+{mealPlans.length - 1}</span>}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Sticky bar — sentinel right after gallery so it's visible on page load */}
         <HotelStickyBar
           name={hotel.name}
@@ -362,8 +405,8 @@ export default async function HotelDetailPage({ params }: Props) {
           <div className="lg:col-span-1">
             <div className="lg:sticky lg:top-[116px] space-y-3 lg:max-h-[calc(100vh-132px)] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
-              {/* Booking widget */}
-              <div className="bg-[#e1f2f3] rounded-2xl p-5 space-y-5">
+              {/* Booking widget — hidden on mobile (shown above gallery instead) */}
+              <div className="hidden lg:block bg-[#e1f2f3] rounded-2xl p-5 space-y-5">
 
                 {/* Header */}
                 <h3 className="flex items-center gap-2.5 text-[17px] font-semibold text-[#0d4f52]">

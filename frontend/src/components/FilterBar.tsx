@@ -31,16 +31,16 @@ const SORT_OPTIONS = [
   { value: 'name_asc',   label: 'Název A–Z' },
 ]
 
-const select = "w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer"
-const label  = "block text-xs font-medium text-gray-500 mb-1.5"
+const microLabel = "text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block"
+const advSelect  = "w-full text-sm text-gray-700 border border-gray-100 bg-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#008afe]/40 transition-all appearance-none cursor-pointer shadow-sm"
 
 function PillToggle({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick}
-      className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all whitespace-nowrap ${
+      className={`px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap ${
         active
           ? 'bg-[#008afe] text-white border-[#008afe] shadow-sm'
-          : 'bg-white text-gray-600 border-gray-200 hover:border-[#008afe]'
+          : 'bg-white text-gray-600 border-gray-200 hover:border-[#008afe]/50 hover:text-[#008afe]'
       }`}>
       {children}
     </button>
@@ -67,7 +67,6 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
   const [depCity,     setDepCity]     = useState<string[]>(sp.get('departure_city')?.split(',').filter(Boolean) ?? [])
   const [sort,        setSort]        = useState(sp.get('sort') || 'price_asc')
 
-  // Open advanced panel if any advanced filter is active on mount
   const hasAdvanced = !!(duration || minPrice || maxPrice || stars.length || mealPlan.length || transport || tourType || depCity.length)
   const [showAdvanced, setShowAdvanced] = useState(hasAdvanced)
 
@@ -92,7 +91,6 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
     return params
   }, [destination, dateFrom, dateTo, adults, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, depCity, sort])
 
-  // Sync state when URL changes externally (e.g. breadcrumb clicks)
   useEffect(() => {
     const next = {
       destination: sp.get('destination')?.split(',').filter(Boolean) ?? [],
@@ -122,7 +120,6 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
     setTourType(next.tourType)
     setDepCity(next.depCity)
     setSort(next.sort)
-    // Mark URL's current state as already synced to avoid re-pushing it
     lastPushedKey.current = JSON.stringify(next)
   }, [sp]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -160,26 +157,34 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
     ...depCity.map(c => ({ label: `Odlet: ${c}`, clear: () => setDepCity(p => p.filter(x => x !== c)) })),
   ]
 
-  // Count active advanced filters for badge
   const advancedCount = [duration, minPrice, maxPrice, transport, tourType].filter(Boolean).length + stars.length + mealPlan.length + depCity.length
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-[0_4px_24px_-2px_rgba(0,100,255,0.08),0_1px_4px_rgba(0,0,0,0.04)] mb-6 relative">
+    <div className="bg-white rounded-2xl shadow-[0_4px_28px_rgba(0,0,0,0.07),0_1px_8px_rgba(0,0,0,0.04)] relative overflow-hidden mb-6">
+
+      {/* Loading bar */}
       {isPending && (
-        <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl overflow-hidden">
-          <div className="h-full bg-blue-500 animate-pulse w-full" />
+        <div className="absolute top-0 left-0 right-0 h-0.5 overflow-hidden z-10">
+          <div className="h-full bg-[#008afe] animate-pulse w-full" />
         </div>
       )}
 
-      <div className="p-5 space-y-4">
-        {/* Main row: Destinace | Termín | Cestující | Řadit podle | Filtry */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto_auto] gap-3 items-end">
+      {/* ── Main search row ── */}
+      <div className="flex flex-col sm:flex-row sm:items-stretch divide-y divide-gray-100 sm:divide-y-0 sm:divide-x sm:divide-gray-100">
+
+        {/* Destinace */}
+        <div className="flex-1 min-w-0 px-5 pt-4 pb-4">
+          <span className={microLabel}>Destinace</span>
           <DestinationAutocomplete
             destinations={destinations}
             value={destination}
             onChange={setDestination}
           />
+        </div>
 
+        {/* Termín odjezdu */}
+        <div className="sm:w-60 flex-shrink-0 px-5 pt-4 pb-4">
+          <span className={microLabel}>Termín odjezdu</span>
           <DateRangePicker
             dateFrom={dateFrom}
             dateTo={dateTo}
@@ -187,201 +192,208 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
             onDateFromChange={setDateFrom}
             onDateToChange={setDateTo}
           />
+        </div>
 
-          {/* Adults stepper */}
-          <div>
-            <label className={label}>Cestující</label>
-            <div className="flex items-center gap-1 h-[42px] px-2 border border-gray-200 rounded-xl bg-white">
-              <button type="button" onClick={() => setAdults(a => Math.max(1, a - 1))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-[#008afe] hover:bg-[#008afe]/8 transition-all disabled:opacity-30"
-                disabled={adults <= 1}>
-                <PiUserMinus className="w-4 h-4" />
-              </button>
-              <span className="w-6 text-center text-sm font-semibold text-gray-800 select-none">{adults}</span>
-              <button type="button" onClick={() => setAdults(a => Math.min(6, a + 1))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-[#008afe] hover:bg-[#008afe]/8 transition-all disabled:opacity-30"
-                disabled={adults >= 6}>
-                <PiUserPlus className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="relative">
-            <label className={label}>Řadit podle</label>
-            <div className="relative">
-              <select value={sort} onChange={e => setSort(e.target.value)} className={`${select} pr-8`}>
-                {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-              <PiArrowsDownUp className="absolute right-3 top-[calc(50%+6px)] -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-end">
-            <div className="h-[18px] mb-1.5" /> {/* spacer to align with labeled inputs */}
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(v => !v)}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all whitespace-nowrap ${
-                showAdvanced || advancedCount > 0
-                  ? 'bg-[#008afe] text-white border-[#008afe] shadow-sm'
-                  : 'bg-white text-gray-700 border-gray-200 hover:border-[#008afe]'
-              }`}>
-              <PiSliders className="w-4 h-4" />
-              Filtry
-              {advancedCount > 0 && (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
-                  showAdvanced ? 'bg-white/25 text-white' : 'bg-[#008afe]/10 text-[#008afe]'
-                }`}>
-                  {advancedCount}
-                </span>
-              )}
+        {/* Cestující */}
+        <div className="flex-shrink-0 px-5 pt-4 pb-4">
+          <span className={microLabel}>Cestující</span>
+          <div className="flex items-center gap-2.5 h-[42px]">
+            <button type="button" onClick={() => setAdults(a => Math.max(1, a - 1))}
+              disabled={adults <= 1}
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-[#008afe]/10 hover:text-[#008afe] transition-all disabled:opacity-30">
+              <PiUserMinus className="w-3.5 h-3.5" />
+            </button>
+            <span className="text-sm font-semibold text-gray-800 tabular-nums w-10 text-center select-none">
+              {adults} os.
+            </span>
+            <button type="button" onClick={() => setAdults(a => Math.min(6, a + 1))}
+              disabled={adults >= 6}
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-[#008afe]/10 hover:text-[#008afe] transition-all disabled:opacity-30">
+              <PiUserPlus className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Advanced panel */}
-        {showAdvanced && (
-          <div className="border-t border-gray-100 pt-4 space-y-4">
-            <div className="flex flex-wrap gap-x-8 gap-y-4 items-start">
+        {/* Řadit podle */}
+        <div className="flex-shrink-0 px-5 pt-4 pb-4">
+          <span className={microLabel}>Řadit podle</span>
+          <div className="relative flex items-center h-[42px]">
+            <select value={sort} onChange={e => setSort(e.target.value)}
+              className="text-sm font-medium text-gray-700 bg-transparent focus:outline-none appearance-none pr-6 cursor-pointer max-w-[148px]">
+              {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <PiCaretDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          </div>
+        </div>
 
-              {/* Tour type */}
-              <div>
-                <p className={label}>Typ nabídky</p>
-                <div className="flex gap-1.5 flex-wrap">
-                  <button type="button" onClick={() => setTourType(t => t === 'last_minute' ? '' : 'last_minute')}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all whitespace-nowrap ${
-                      tourType === 'last_minute'
-                        ? 'bg-red-500 text-white border-red-500 shadow-sm'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-red-400 hover:text-red-500'
-                    }`}>
-                    <PiTimer className="w-3.5 h-3.5 flex-shrink-0" />
-                    Last minute
-                  </button>
-                  <button type="button" onClick={() => setTourType(t => t === 'first_minute' ? '' : 'first_minute')}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all whitespace-nowrap ${
-                      tourType === 'first_minute'
-                        ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600'
-                    }`}>
-                    <PiCalendarStar className="w-3.5 h-3.5 flex-shrink-0" />
-                    First minute
-                  </button>
-                </div>
-              </div>
+        {/* Filtry */}
+        <div className="flex-shrink-0 px-5 pt-4 pb-4 flex flex-col justify-end">
+          <span className={microLabel}>&nbsp;</span>
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(v => !v)}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap ${
+              showAdvanced || advancedCount > 0
+                ? 'bg-[#008afe] text-white border-[#008afe] shadow-[0_4px_14px_rgba(0,138,254,0.28)]'
+                : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+            }`}>
+            <PiSliders className="w-4 h-4" />
+            Filtry
+            {advancedCount > 0 && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
+                showAdvanced ? 'bg-white/25 text-white' : 'bg-[#008afe]/10 text-[#008afe]'
+              }`}>
+                {advancedCount}
+              </span>
+            )}
+          </button>
+        </div>
 
-              {/* Stars */}
-              {meta.stars.length > 0 && (
-                <div>
-                  <p className={label}>Hvězdičky</p>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {meta.stars.map(s => (
-                      <PillToggle key={s.stars} active={stars.includes(String(s.stars))} onClick={() => toggleStar(String(s.stars))}>
-                        <span className="text-amber-400">{'★'.repeat(s.stars)}</span>
-                      </PillToggle>
-                    ))}
-                  </div>
-                </div>
-              )}
+      </div>
 
-              {/* Meal plan */}
-              {meta.mealPlans.length > 0 && (
-                <div>
-                  <p className={label}>Stravování</p>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {meta.mealPlans.map(m => (
-                      <PillToggle key={m.meal_plan} active={mealPlan.includes(m.meal_plan)} onClick={() => toggleMeal(m.meal_plan)}>
-                        {MEAL_LABELS[m.meal_plan] ?? m.meal_plan}
-                      </PillToggle>
-                    ))}
-                  </div>
-                </div>
-              )}
+      {/* ── Rozšířené filtry ── */}
+      {showAdvanced && (
+        <div className="bg-gray-50/40 border-t border-gray-100 px-5 py-5 space-y-5">
+          <div className="flex flex-wrap gap-x-8 gap-y-5 items-start">
 
-              {/* Duration */}
-              {meta.durations.length > 0 && (
-                <div className="min-w-[130px]">
-                  <label className={label}>Délka pobytu</label>
-                  <div className="relative">
-                    <select value={duration} onChange={e => setDuration(e.target.value)} className={`${select} pr-8`}>
-                      <option value="">Libovolná</option>
-                      {meta.durations.map(d => (
-                        <option key={d.duration} value={d.duration}>{d.duration} nocí</option>
-                      ))}
-                    </select>
-                    <PiCaretDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-              )}
-
-              {/* Transport */}
-              {(meta.transports ?? []).length > 1 && (
-                <div className="min-w-[140px]">
-                  <label className={label}>Doprava</label>
-                  <div className="relative">
-                    <select value={transport} onChange={e => setTransport(e.target.value)} className={`${select} pr-8`}>
-                      <option value="">Libovolná</option>
-                      {(meta.transports ?? []).map(t => (
-                        <option key={t.transport} value={t.transport}>{t.transport}</option>
-                      ))}
-                    </select>
-                    <PiCaretDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-              )}
-
-              {/* Departure city */}
-              {(meta.departureCities ?? []).length > 1 && (
-                <div>
-                  <p className={label}>Místo odletu</p>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {(meta.departureCities ?? []).map(c => (
-                      <PillToggle key={c.departure_city} active={depCity.includes(c.departure_city)}
-                        onClick={() => setDepCity(p => p.includes(c.departure_city) ? p.filter(x => x !== c.departure_city) : [...p, c.departure_city])}>
-                        {c.departure_city}
-                      </PillToggle>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Price */}
-              <div>
-                <p className={label}>Cena (Kč / os.)</p>
-                <div className="flex items-center gap-2">
-                  <input type="number" placeholder="Od" value={minPrice}
-                    onChange={e => setMinPrice(e.target.value)}
-                    className="w-28 px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    min={0} step={1000} />
-                  <span className="text-gray-400 text-sm">–</span>
-                  <input type="number" placeholder="Do" value={maxPrice}
-                    onChange={e => setMaxPrice(e.target.value)}
-                    className="w-28 px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    min={0} step={1000} />
-                </div>
+            {/* Typ nabídky */}
+            <div>
+              <p className={microLabel}>Typ nabídky</p>
+              <div className="flex gap-1.5 flex-wrap">
+                <button type="button" onClick={() => setTourType(t => t === 'last_minute' ? '' : 'last_minute')}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    tourType === 'last_minute'
+                      ? 'bg-red-500 text-white border-red-500 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-red-300 hover:text-red-500'
+                  }`}>
+                  <PiTimer className="w-3.5 h-3.5 flex-shrink-0" />
+                  Last minute
+                </button>
+                <button type="button" onClick={() => setTourType(t => t === 'first_minute' ? '' : 'first_minute')}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    tourType === 'first_minute'
+                      ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-600'
+                  }`}>
+                  <PiCalendarStar className="w-3.5 h-3.5 flex-shrink-0" />
+                  First minute
+                </button>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Active filter chips */}
-        {chips.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-50">
-            <span className="text-xs text-gray-400 font-medium">Aktivní filtry:</span>
-            {chips.map((chip, i) => (
-              <button key={i} type="button" onClick={chip.clear}
-                className="inline-flex items-center gap-1.5 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors">
-                {chip.label}
-                <PiX className="w-3 h-3" />
-              </button>
-            ))}
-            <button type="button" onClick={clearAll}
-              className="text-xs text-gray-400 hover:text-red-500 transition-colors ml-1 underline underline-offset-2">
-              Smazat vše
-            </button>
-            {isPending && <PiSpinner className="w-3.5 h-3.5 text-blue-500 animate-spin ml-auto" />}
+            {/* Hvězdičky */}
+            {meta.stars.length > 0 && (
+              <div>
+                <p className={microLabel}>Hvězdičky</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {meta.stars.map(s => (
+                    <PillToggle key={s.stars} active={stars.includes(String(s.stars))} onClick={() => toggleStar(String(s.stars))}>
+                      <span className="text-amber-400">{'★'.repeat(s.stars)}</span>
+                    </PillToggle>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Stravování */}
+            {meta.mealPlans.length > 0 && (
+              <div>
+                <p className={microLabel}>Stravování</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {meta.mealPlans.map(m => (
+                    <PillToggle key={m.meal_plan} active={mealPlan.includes(m.meal_plan)} onClick={() => toggleMeal(m.meal_plan)}>
+                      {MEAL_LABELS[m.meal_plan] ?? m.meal_plan}
+                    </PillToggle>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Délka pobytu */}
+            {meta.durations.length > 0 && (
+              <div className="min-w-[130px]">
+                <label className={microLabel}>Délka pobytu</label>
+                <div className="relative">
+                  <select value={duration} onChange={e => setDuration(e.target.value)} className={`${advSelect} pr-8`}>
+                    <option value="">Libovolná</option>
+                    {meta.durations.map(d => (
+                      <option key={d.duration} value={d.duration}>{d.duration} nocí</option>
+                    ))}
+                  </select>
+                  <PiCaretDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+            )}
+
+            {/* Doprava */}
+            {(meta.transports ?? []).length > 1 && (
+              <div className="min-w-[140px]">
+                <label className={microLabel}>Doprava</label>
+                <div className="relative">
+                  <select value={transport} onChange={e => setTransport(e.target.value)} className={`${advSelect} pr-8`}>
+                    <option value="">Libovolná</option>
+                    {(meta.transports ?? []).map(t => (
+                      <option key={t.transport} value={t.transport}>{t.transport}</option>
+                    ))}
+                  </select>
+                  <PiCaretDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+            )}
+
+            {/* Místo odletu */}
+            {(meta.departureCities ?? []).length > 1 && (
+              <div>
+                <p className={microLabel}>Místo odletu</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {(meta.departureCities ?? []).map(c => (
+                    <PillToggle key={c.departure_city} active={depCity.includes(c.departure_city)}
+                      onClick={() => setDepCity(p => p.includes(c.departure_city) ? p.filter(x => x !== c.departure_city) : [...p, c.departure_city])}>
+                      {c.departure_city}
+                    </PillToggle>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Cena */}
+            <div>
+              <p className={microLabel}>Cena (Kč / os.)</p>
+              <div className="flex items-center gap-2">
+                <input type="number" placeholder="Od" value={minPrice}
+                  onChange={e => setMinPrice(e.target.value)}
+                  className="w-28 px-3 py-2.5 text-sm border border-gray-100 rounded-xl bg-white focus:outline-none focus:border-[#008afe]/40 transition-all shadow-sm"
+                  min={0} step={1000} />
+                <span className="text-gray-300 text-sm">–</span>
+                <input type="number" placeholder="Do" value={maxPrice}
+                  onChange={e => setMaxPrice(e.target.value)}
+                  className="w-28 px-3 py-2.5 text-sm border border-gray-100 rounded-xl bg-white focus:outline-none focus:border-[#008afe]/40 transition-all shadow-sm"
+                  min={0} step={1000} />
+              </div>
+            </div>
+
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* ── Aktivní filtry ── */}
+      {chips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 px-5 py-3 border-t border-gray-100">
+          {chips.map((chip, i) => (
+            <button key={i} type="button" onClick={chip.clear}
+              className="inline-flex items-center gap-1.5 text-xs font-medium bg-[#008afe]/8 text-[#008afe] border border-[#008afe]/15 px-3 py-1.5 rounded-full hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-colors">
+              {chip.label}
+              <PiX className="w-3 h-3" />
+            </button>
+          ))}
+          <button type="button" onClick={clearAll}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors ml-1 underline underline-offset-2">
+            Smazat vše
+          </button>
+          {isPending && <PiSpinner className="w-3.5 h-3.5 text-[#008afe] animate-spin ml-auto" />}
+        </div>
+      )}
+
     </div>
   )
 }
