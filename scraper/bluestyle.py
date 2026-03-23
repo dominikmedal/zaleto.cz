@@ -263,18 +263,37 @@ def _make_session() -> requests.Session:
     return s
 
 
+_blocked = False  # globální flag — IP je zablokovaná, přestaň posílat požadavky
+
 def gql(session: requests.Session, query: str, variables: dict = None) -> dict | None:
+    global _blocked
+    if _blocked:
+        return None
+
     payload = {"query": query}
     if variables:
         payload["variables"] = variables
     try:
         r = session.post(GQL_URL, json=payload, timeout=30)
+        if r.status_code == 429 or r.status_code == 403:
+            logger.error(f"GraphQL HTTP {r.status_code} — IP pravděpodobně zablokována Blue Style")
+            _blocked = True
+            return None
         if r.status_code != 200:
             logger.warning(f"GraphQL HTTP {r.status_code}")
             return None
         data = r.json()
         if "errors" in data:
-            logger.warning(f"GraphQL errors: {data['errors'][:2]}")
+            errs = data["errors"]
+            # Detekuj blokaci v error zprávě (vracejí 200 s HTML v message)
+            for e in errs:
+                msg = str(e.get("message", ""))
+                code = e.get("code")
+                if code == 429 or "zablokovali" in msg or "odblokovani@" in msg:
+                    logger.error("GraphQL: IP zablokována Blue Style — zastavuji scraper")
+                    _blocked = True
+                    return None
+            logger.warning(f"GraphQL errors: {errs[:2]}")
             return None
         return data.get("data")
     except Exception as e:
@@ -744,6 +763,11 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
     if dep_cities is None:
         dep_cities = list(dep_city_names.keys()) or [DEP_CITY]
 
+    if _blocked:
+        logger.error("IP zablokována Blue Style — přeskakuji celý scrape (pošli email na odblokovani@blue-style.cz)")
+        db.close()
+        sys.exit(1)
+
     if not arr_cities:
         logger.error("Žádné destinace ze SearchForm — zkontroluj GraphQL")
         db.close()
@@ -778,9 +802,13 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
         logger.info(f"== Dep city: {dep_city} ({dep_city_name}) ==")
         for date in dates:
             for arr_city in arr_cities:
+                if _blocked:
+                    break
                 page = 1
                 while True:
                     result = search_hotels(session, arr_city, date, page, dep_city)
+                    if _blocked:
+                        break
                     if not result:
                         break
 
