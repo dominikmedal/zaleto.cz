@@ -73,6 +73,13 @@ addIfMissing('distances',           'TEXT')
 addIfMissing('place_id',            'TEXT')
 addIfMissing('reviews_fetched_at',  'TEXT')
 addIfMissing('api_config',          'TEXT')
+addIfMissing('canonical_slug',      'TEXT')
+
+// Indexes added after column migrations so canonical_slug exists
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_hotels_canonical_slug ON hotels(canonical_slug);
+  CREATE INDEX IF NOT EXISTS idx_tours_hotel_date      ON tours(hotel_id, departure_date);
+`)
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS destination_photos (

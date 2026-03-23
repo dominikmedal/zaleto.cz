@@ -23,7 +23,7 @@ export async function fetchHotels(filters: Filters & { page?: number; limit?: nu
 }
 
 export async function fetchHotel(slug: string): Promise<Hotel> {
-  const res = await fetch(`${API}/api/hotels/${slug}`, { next: { revalidate: 300 } })
+  const res = await fetch(`${API}/api/hotels/${slug}`, { next: { revalidate: 3600 } })
   if (!res.ok) throw new Error('Hotel not found')
   return res.json()
 }
@@ -31,7 +31,7 @@ export async function fetchHotel(slug: string): Promise<Hotel> {
 export async function fetchHotelTours(slug: string, filters: Partial<Filters> = {}): Promise<{ tours: Tour[] }> {
   const qs = buildParams(filters)
   const res = await fetch(`${API}/api/hotels/${slug}/tours${qs ? `?${qs}` : ''}`, {
-    next: { revalidate: 300 },
+    next: { revalidate: 3600 },
   })
   if (!res.ok) throw new Error('Failed to fetch tours')
   return res.json()

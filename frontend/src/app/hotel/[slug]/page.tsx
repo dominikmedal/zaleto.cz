@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
+import { fetchAllHotelSlugs } from '@/lib/api'
 import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar } from 'react-icons/pi'
 import ScrollToButton from '@/components/ScrollToButton'
 import ViewersBadge from '@/components/ViewersBadge'
@@ -18,6 +19,18 @@ import JsonLd from '@/components/JsonLd'
 
 // Leaflet needs browser APIs → dynamic import, no SSR
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false })
+
+export const revalidate = 3600          // ISR — regeneruj stránku na pozadí každou hodinu
+export const dynamicParams = true       // stránky mimo generateStaticParams fungují jako ISR on-demand
+
+export async function generateStaticParams() {
+  try {
+    const slugs = await fetchAllHotelSlugs()
+    return slugs.map(({ slug }) => ({ slug }))
+  } catch {
+    return []
+  }
+}
 
 interface Props { params: { slug: string } }
 
