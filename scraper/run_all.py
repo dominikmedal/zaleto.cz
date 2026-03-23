@@ -63,6 +63,7 @@ BASE_DIR   = Path(__file__).resolve().parent
 DEFAULT_DB = str(BASE_DIR.parent / "data" / "zaleto.db")
 DB_PATH    = os.environ.get("DATABASE_PATH", DEFAULT_DB)
 
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 SMTP_HOST    = os.environ.get("SMTP_HOST", "")
 SMTP_PORT    = int(os.environ.get("SMTP_PORT", "587"))
 SMTP_USER    = os.environ.get("SMTP_USER", "")
@@ -426,32 +427,53 @@ def _invalidate_api_cache():
 
 
 def send_email(subject: str, html: str, text: str):
-    """Odešle report email přes SMTP s TLS."""
-    if not SMTP_HOST or not REPORT_TO:
-        logger.info("Email: přeskakuji (SMTP_HOST nebo REPORT_TO není nastaven)")
+    """Odešle report — Resend HTTP API (primární) nebo SMTP (fallback)."""
+    if not REPORT_TO:
+        logger.info("Email: přeskakuji (REPORT_TO není nastaven)")
         return
+    if RESEND_API_KEY:
+        _send_via_resend(subject, html, text)
+    elif SMTP_HOST:
+        _send_via_smtp(subject, html, text)
+    else:
+        logger.info("Email: přeskakuji (není nastaven RESEND_API_KEY ani SMTP_HOST)")
 
+
+def _send_via_resend(subject: str, html: str, text: str):
+    """Resend.com HTTP API — funguje na Railway (SMTP je tam blokováno)."""
+    sender = REPORT_FROM or "scraper@zaleto.cz"
+    try:
+        resp = requests.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+            json={"from": sender, "to": REPORT_TO, "subject": subject, "html": html, "text": text},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        logger.info(f"Email (Resend): odeslán na {', '.join(REPORT_TO)}")
+    except Exception as e:
+        logger.warning(f"Email (Resend): chyba — {e}")
+
+
+def _send_via_smtp(subject: str, html: str, text: str):
+    """SMTP fallback — funguje lokálně, na Railway je port 587/465 blokován."""
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"]    = REPORT_FROM or SMTP_USER
         msg["To"]      = ", ".join(REPORT_TO)
-        msg.attach(MIMEText(text, "plain",  "utf-8"))
-        msg.attach(MIMEText(html, "html",   "utf-8"))
-
+        msg.attach(MIMEText(text, "plain", "utf-8"))
+        msg.attach(MIMEText(html, "html",  "utf-8"))
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as s:
-            s.ehlo()
-            s.starttls()
-            s.ehlo()
+            s.ehlo(); s.starttls(); s.ehlo()
             if SMTP_USER:
                 s.login(SMTP_USER, SMTP_PASS)
             s.sendmail(msg["From"], REPORT_TO, msg.as_bytes())
-
-        logger.info(f"Email: odeslán na {', '.join(REPORT_TO)}")
+        logger.info(f"Email (SMTP): odeslán na {', '.join(REPORT_TO)}")
     except OSError as e:
-        logger.warning(f"Email: síťová chyba — {e} (na Railway použij RESEND_API_KEY)")
+        logger.warning(f"Email (SMTP): síťová chyba — {e}")
     except Exception as e:
-        logger.warning(f"Email: chyba — {e}")
+        logger.warning(f"Email (SMTP): chyba — {e}")
 
 
 def build_report(
