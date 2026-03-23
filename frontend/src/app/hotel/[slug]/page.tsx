@@ -398,10 +398,7 @@ export default async function HotelDetailPage({ params }: Props) {
 
               {hotel.latitude && hotel.longitude && (
                 <Section title="Poloha na mapě" icon={<PiMapTrifold className="w-5 h-5" />}>
-                  <HotelMap hotel={hotel} nearby={nearby} />
-                  {nearby.length > 0 && (
-                    <p className="mt-2 text-xs text-gray-400">Na mapě jsou vyznačeny i nejbližší hotely v okolí.</p>
-                  )}
+                  <HotelMap hotel={hotel} nearby={[]} />
                 </Section>
               )}
 
