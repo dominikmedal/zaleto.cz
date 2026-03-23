@@ -27,6 +27,7 @@ export interface Hotel {
   has_first_minute?: number  // 1 pokud má alespoň jeden FM termín
   distance_km?: number       // vyplněno u výsledků nearby hotelů
   updated_at?: string | null
+  tours_updated_at?: string | null
 }
 
 export interface NearbyHotel {

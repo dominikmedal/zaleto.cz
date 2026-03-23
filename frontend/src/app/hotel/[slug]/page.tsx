@@ -495,11 +495,17 @@ export default async function HotelDetailPage({ params }: Props) {
           <div className="flex items-center gap-3 mb-6 flex-wrap">
             <h2 className="text-xl font-bold text-gray-900">Dostupné termíny</h2>
             <span className="text-sm font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">{tours.length}</span>
-            {hotel.updated_at && (
-              <span className="text-xs text-gray-400 ml-auto">
-                Aktualizováno {new Date(hotel.updated_at).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' })}
-              </span>
-            )}
+            {(hotel.tours_updated_at || hotel.updated_at) && (() => {
+              const raw = (hotel.tours_updated_at || hotel.updated_at)!
+              // SQLite vrací "YYYY-MM-DD HH:MM:SS" — nahraď mezeru za T pro ISO 8601
+              const d = new Date(raw.replace(' ', 'T'))
+              if (isNaN(d.getTime())) return null
+              return (
+                <span className="text-xs text-gray-400 ml-auto">
+                  Aktualizováno {d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              )
+            })()}
           </div>
           <TourDatesList tours={tours} slug={params.slug} />
         </div>

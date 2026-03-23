@@ -72,11 +72,11 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
     }
   })()
 
-  const [activeIdx,   setActiveIdx]   = useState(0)
-  const [hovered,     setHovered]     = useState(false)
-  const [modalOpen,   setModalOpen]   = useState(false)
-  const [navigating,  setNavigating]  = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [activeIdx,  setActiveIdx]  = useState(0)
+  const [hovered,    setHovered]    = useState(false)
+  const [modalOpen,  setModalOpen]  = useState(false)
+  const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null)
+  const overlayRef   = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!hovered || photos.length <= 1) return
@@ -93,7 +93,11 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
 
   return (
     <>
-    <Link href={`/hotel/${hotel.slug}`} className="group block" onClick={() => setNavigating(true)}>
+    <Link
+      href={`/hotel/${hotel.slug}`}
+      className="group block"
+      onClick={() => { if (overlayRef.current) overlayRef.current.style.display = 'flex' }}
+    >
       <article
         className="bg-white border border-gray-100 hover:border-[#008afe]/25 hover:shadow-md rounded-2xl overflow-hidden transition-all duration-200 flex flex-col sm:flex-row sm:min-h-[200px]"
         onMouseEnter={() => setHovered(true)}
@@ -121,12 +125,14 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
             </div>
           )}
 
-          {/* Navigation loader overlay */}
-          {navigating && (
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-20">
-              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            </div>
-          )}
+          {/* Navigation loader overlay — zobrazí se přes přímou DOM manipulaci, ne React state */}
+          <div
+            ref={overlayRef}
+            style={{ display: 'none' }}
+            className="absolute inset-0 bg-black/30 items-center justify-center z-20"
+          >
+            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">

@@ -463,16 +463,27 @@ router.get('/:slug', (req, res) => {
     const canonicalSlug = hotel.canonical_slug || null
     const stats = canonicalSlug
       ? db.prepare(`
-          SELECT MIN(t.price) AS min_price, MAX(t.price) AS max_price, COUNT(*) AS total_dates
+          SELECT MIN(t.price) AS min_price, MAX(t.price) AS max_price, COUNT(*) AS total_dates,
+                 MAX(t.updated_at) AS tours_updated_at
           FROM tours t JOIN hotels h ON h.id = t.hotel_id
           WHERE h.canonical_slug = ? AND t.departure_date >= date('now')
         `).get(canonicalSlug)
       : db.prepare(`
-          SELECT MIN(price) AS min_price, MAX(price) AS max_price, COUNT(*) AS total_dates
+          SELECT MIN(price) AS min_price, MAX(price) AS max_price, COUNT(*) AS total_dates,
+                 MAX(updated_at) AS tours_updated_at
           FROM tours WHERE hotel_id = ? AND departure_date >= date('now')
         `).get(hotel.id)
 
-    res.json({ ...hotel, ...stats })
+    // Pokud hotel není od Fischeru, preferuj Fischerův popis (bývá kvalitnější)
+    let description = hotel.description
+    if (canonicalSlug && hotel.agency !== 'Fischer') {
+      const fischer = db.prepare(
+        `SELECT description FROM hotels WHERE canonical_slug = ? AND agency = 'Fischer' AND description IS NOT NULL LIMIT 1`
+      ).get(canonicalSlug)
+      if (fischer?.description) description = fischer.description
+    }
+
+    res.json({ ...hotel, description, ...stats })
   } catch (err) {
     res.status(500).json({ error: 'Database error' })
   }

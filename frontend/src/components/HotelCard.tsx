@@ -64,11 +64,11 @@ export default function HotelCard({ hotel, adults = 2 }: { hotel: Hotel; adults?
     }
   })()
 
-  const [activeIdx,   setActiveIdx]   = useState(0)
-  const [hovered,     setHovered]     = useState(false)
-  const [modalOpen,   setModalOpen]   = useState(false)
-  const [navigating,  setNavigating]  = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [activeIdx,  setActiveIdx]  = useState(0)
+  const [hovered,    setHovered]    = useState(false)
+  const [modalOpen,  setModalOpen]  = useState(false)
+  const intervalRef   = useRef<ReturnType<typeof setInterval> | null>(null)
+  const overlayRef    = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!hovered || photos.length <= 1) return
@@ -87,7 +87,11 @@ export default function HotelCard({ hotel, adults = 2 }: { hotel: Hotel; adults?
 
   return (
     <>
-    <Link href={`/hotel/${hotel.slug}`} className="group block" onClick={() => setNavigating(true)}>
+    <Link
+      href={`/hotel/${hotel.slug}`}
+      className="group block"
+      onClick={() => { if (overlayRef.current) overlayRef.current.style.display = 'flex' }}
+    >
       <article onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
 
         {/* ── Image ── */}
@@ -113,12 +117,14 @@ export default function HotelCard({ hotel, adults = 2 }: { hotel: Hotel; adults?
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
 
-          {/* Navigation loader overlay */}
-          {navigating && (
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-20 rounded-2xl">
-              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            </div>
-          )}
+          {/* Navigation loader overlay — zobrazí se přes přímou DOM manipulaci, ne React state */}
+          <div
+            ref={overlayRef}
+            style={{ display: 'none' }}
+            className="absolute inset-0 bg-black/30 items-center justify-center z-20 rounded-2xl"
+          >
+            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
 
           {/* Top-left: LM/FM badge + dates badge stacked */}
           <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
