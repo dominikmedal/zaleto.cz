@@ -40,6 +40,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
 
+import requests
+
 # Načti .env lokálně (Railway používá env vars přímo, .env jen pro vývoj)
 _env_file = Path(__file__).resolve().parent / ".env"
 if _env_file.exists():
@@ -446,8 +448,10 @@ def send_email(subject: str, html: str, text: str):
             s.sendmail(msg["From"], REPORT_TO, msg.as_bytes())
 
         logger.info(f"Email: odeslán na {', '.join(REPORT_TO)}")
-    except Exception:
-        logger.exception("Email: chyba při odesílání")
+    except OSError as e:
+        logger.warning(f"Email: síťová chyba — {e} (na Railway použij RESEND_API_KEY)")
+    except Exception as e:
+        logger.warning(f"Email: chyba — {e}")
 
 
 def build_report(
