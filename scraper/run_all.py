@@ -598,6 +598,45 @@ def build_report(
 
 
 # ---------------------------------------------------------------------------
+# Materializovaná tabulka hotel_stats
+# ---------------------------------------------------------------------------
+
+def refresh_hotel_stats(conn: sqlite3.Connection):
+    """
+    Přepočítá hotel_stats ze všech aktuálních termínů.
+    Voláno po každém cyklu scraperů, aby fast-path v API měl aktuální data.
+    """
+    conn.execute("""
+        INSERT OR REPLACE INTO hotel_stats
+            (hotel_id, min_price, max_price, available_dates, next_departure,
+             has_last_minute, has_first_minute, updated_at)
+        SELECT
+            hotel_id,
+            MIN(price),
+            MAX(price),
+            COUNT(*),
+            MIN(departure_date),
+            MAX(COALESCE(is_last_minute, 0)),
+            MAX(COALESCE(is_first_minute, 0)),
+            datetime('now')
+        FROM tours
+        WHERE price > 0 AND departure_date >= date('now')
+        GROUP BY hotel_id
+    """)
+    # Smaž záznamy pro hotely, které nemají žádné aktuální termíny
+    conn.execute("""
+        DELETE FROM hotel_stats
+        WHERE hotel_id NOT IN (
+            SELECT DISTINCT hotel_id FROM tours
+            WHERE price > 0 AND departure_date >= date('now')
+        )
+    """)
+    conn.commit()
+    n = conn.execute("SELECT COUNT(*) FROM hotel_stats").fetchone()[0]
+    logger.info(f"  hotel_stats: {n} hotelů aktualizováno")
+
+
+# ---------------------------------------------------------------------------
 # Graceful shutdown
 # ---------------------------------------------------------------------------
 
@@ -636,7 +675,9 @@ def run_cycle(cycle: int, skip_email: bool = False):
     for scraper in SCRAPERS:
         if _shutdown:
             break
-        if scraper["agency"] in already_done:
+        agency_counts = get_counts(conn, scraper["agency"])
+        # Pokud má CK 0 hotelů, vždy znovu scrapeuj (bez ohledu na checkpoint)
+        if scraper["agency"] in already_done and agency_counts["hotels"] > 0:
             logger.info(f"✓ {scraper['agency']} — přeskočeno (checkpoint z dnešního cyklu)")
             # Přidej do výsledků jako "skipped" pro report
             before = get_counts(conn, scraper["agency"])
@@ -667,6 +708,12 @@ def run_cycle(cycle: int, skip_email: bool = False):
             matched = match_hotels(conn)
         except Exception:
             logger.exception("Chyba při párování hotelů")
+
+        logger.info("Post-processing: aktualizace hotel_stats...")
+        try:
+            refresh_hotel_stats(conn)
+        except Exception:
+            logger.exception("Chyba při aktualizaci hotel_stats")
 
     conn.close()
 

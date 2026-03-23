@@ -28,77 +28,12 @@ router.get('/', (req, res) => {
     const knownTotal = known_total ? parseInt(known_total) : null
     const offset = (pageNum - 1) * limitNum
 
-    // Build filter conditions
-    const hotelConds = []
-    const tourConds = ['t.price > 0']
-    const mainParams = []
-    const tourParams = []
+    // Určí, zda lze použít fast path (hotel_stats) — bez filtrů na úrovni termínů
+    const hasTourFilters = date_from || date_to || duration || meal_plan || transport || departure_city
 
-    if (destination) {
-      const dests = String(destination).split(',').map(s => s.trim()).filter(Boolean)
-      if (dests.length === 1) {
-        hotelConds.push('(h.destination LIKE ? OR h.resort_town LIKE ? OR h.country LIKE ?)')
-        mainParams.push(`%${dests[0]}%`, `%${dests[0]}%`, `%${dests[0]}%`)
-      } else if (dests.length > 1) {
-        const orClauses = dests.map(() => '(h.destination LIKE ? OR h.resort_town LIKE ? OR h.country LIKE ?)').join(' OR ')
-        hotelConds.push(`(${orClauses})`)
-        for (const d of dests) mainParams.push(`%${d}%`, `%${d}%`, `%${d}%`)
-      }
-    }
-
-    if (stars) {
-      const arr = String(stars).split(',').map(Number).filter(Boolean)
-      if (arr.length) {
-        hotelConds.push(`h.stars IN (${arr.map(() => '?').join(',')})`)
-        mainParams.push(...arr)
-      }
-    }
-
-    if (date_from) { tourConds.push('t.departure_date >= ?'); tourParams.push(date_from) }
-    if (date_to)   { tourConds.push('t.departure_date <= ?'); tourParams.push(date_to) }
-
-    if (duration) {
-      const arr = String(duration).split(',').map(Number).filter(Boolean)
-      if (arr.length) {
-        tourConds.push(`t.duration IN (${arr.map(() => '?').join(',')})`)
-        tourParams.push(...arr)
-      }
-    }
-
-    if (meal_plan) {
-      const arr = String(meal_plan).split(',').filter(Boolean)
-      if (arr.length) {
-        tourConds.push(`t.meal_plan IN (${arr.map(() => '?').join(',')})`)
-        tourParams.push(...arr)
-      }
-    }
-
-    if (transport) {
-      tourConds.push('t.transport LIKE ?')
-      tourParams.push(`%${transport}%`)
-    }
-
-    if (departure_city) {
-      const cities = String(departure_city).split(',').filter(Boolean)
-      if (cities.length === 1) {
-        tourConds.push('t.departure_city = ?')
-        tourParams.push(cities[0])
-      } else if (cities.length > 1) {
-        tourConds.push(`t.departure_city IN (${cities.map(() => '?').join(',')})`)
-        tourParams.push(...cities)
-      }
-    }
-
-    if (tour_type === 'last_minute')  { tourConds.push('t.is_last_minute = 1') }
-    if (tour_type === 'first_minute') { tourConds.push('t.is_first_minute = 1') }
-
-    const havingConds = []
-    if (min_price) { havingConds.push('min_price >= ?') }
-    if (max_price) { havingConds.push('min_price <= ?') }
-
-    const hotelWhere = hotelConds.length ? `AND ${hotelConds.join(' AND ')}` : ''
-    const tourWhere  = tourConds.length  ? `AND ${tourConds.join(' AND ')}`  : ''
-    const having     = havingConds.length ? `HAVING ${havingConds.join(' AND ')}` : ''
+    const extraFields = view === 'list'
+      ? ', h.description, h.amenities, h.distances, h.food_options, h.price_includes'
+      : ', h.food_options, h.amenities'
 
     const orderMap = {
       price_asc:  'min_price ASC',
@@ -108,52 +43,154 @@ router.get('/', (req, res) => {
     }
     const orderBy = orderMap[sort] || 'min_price ASC'
 
-    // tourParams must come BEFORE mainParams: JOIN clause (tourWhere) appears before WHERE (hotelWhere) in SQL
-    const allParams = [...tourParams, ...mainParams]
-    const havingParams = []
-    if (min_price) havingParams.push(parseFloat(min_price))
-    if (max_price) havingParams.push(parseFloat(max_price))
+    let total, hotels
 
-    const extraFields = view === 'list'
-      ? ', h.description, h.amenities, h.distances, h.food_options, h.price_includes'
-      : ', h.food_options, h.amenities'
+    if (!hasTourFilters) {
+      // ── FAST PATH: hotel_stats JOIN (bez GROUP BY na tours) ──────────────
+      const whereConds = ['s.min_price IS NOT NULL']
+      const params = []
 
-    const sql = `
-      SELECT
-        h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
-        h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
-        ${extraFields},
-        MIN(t.price) AS min_price,
-        COUNT(t.id) AS available_dates,
-        MIN(t.departure_date) AS next_departure,
-        MAX(t.is_last_minute) AS has_last_minute,
-        MAX(t.is_first_minute) AS has_first_minute
-      FROM hotels h
-      INNER JOIN tours t ON t.hotel_id = h.id ${tourWhere}
-      WHERE 1=1 ${hotelWhere}
-      GROUP BY h.id
-      ${having}
-      ORDER BY ${orderBy}
-      LIMIT ? OFFSET ?
-    `
+      if (destination) {
+        const dests = String(destination).split(',').map(s => s.trim()).filter(Boolean)
+        if (dests.length === 1) {
+          whereConds.push('(h.destination LIKE ? OR h.resort_town LIKE ? OR h.country LIKE ?)')
+          params.push(`%${dests[0]}%`, `%${dests[0]}%`, `%${dests[0]}%`)
+        } else {
+          const orClauses = dests.map(() => '(h.destination LIKE ? OR h.resort_town LIKE ? OR h.country LIKE ?)').join(' OR ')
+          whereConds.push(`(${orClauses})`)
+          for (const d of dests) params.push(`%${d}%`, `%${d}%`, `%${d}%`)
+        }
+      }
 
-    const countSql = `
-      SELECT COUNT(*) AS total FROM (
-        SELECT h.id, MIN(t.price) AS min_price
+      if (stars) {
+        const arr = String(stars).split(',').map(Number).filter(Boolean)
+        if (arr.length) { whereConds.push(`h.stars IN (${arr.map(() => '?').join(',')})`); params.push(...arr) }
+      }
+
+      if (tour_type === 'last_minute')  { whereConds.push('s.has_last_minute = 1') }
+      if (tour_type === 'first_minute') { whereConds.push('s.has_first_minute = 1') }
+
+      if (min_price) { whereConds.push('s.min_price >= ?'); params.push(parseFloat(min_price)) }
+      if (max_price) { whereConds.push('s.min_price <= ?'); params.push(parseFloat(max_price)) }
+
+      const where = `WHERE ${whereConds.join(' AND ')}`
+
+      const fastSql = `
+        SELECT
+          h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
+          h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
+          ${extraFields},
+          s.min_price, s.available_dates, s.next_departure,
+          s.has_last_minute, s.has_first_minute
+        FROM hotels h
+        INNER JOIN hotel_stats s ON s.hotel_id = h.id
+        ${where}
+        ORDER BY ${orderBy}
+        LIMIT ? OFFSET ?
+      `
+
+      total = (knownTotal !== null && pageNum > 1)
+        ? knownTotal
+        : db.prepare(`SELECT COUNT(*) AS total FROM hotels h INNER JOIN hotel_stats s ON s.hotel_id = h.id ${where}`).get(params).total
+
+      hotels = db.prepare(fastSql).all([...params, limitNum, offset])
+
+    } else {
+      // ── SLOW PATH: GROUP BY přes tours (tour-level filtry) ───────────────
+      const hotelConds = []
+      const tourConds = ['t.price > 0', "t.departure_date >= date('now')"]
+      const mainParams = []
+      const tourParams = []
+
+      if (destination) {
+        const dests = String(destination).split(',').map(s => s.trim()).filter(Boolean)
+        if (dests.length === 1) {
+          hotelConds.push('(h.destination LIKE ? OR h.resort_town LIKE ? OR h.country LIKE ?)')
+          mainParams.push(`%${dests[0]}%`, `%${dests[0]}%`, `%${dests[0]}%`)
+        } else {
+          const orClauses = dests.map(() => '(h.destination LIKE ? OR h.resort_town LIKE ? OR h.country LIKE ?)').join(' OR ')
+          hotelConds.push(`(${orClauses})`)
+          for (const d of dests) mainParams.push(`%${d}%`, `%${d}%`, `%${d}%`)
+        }
+      }
+
+      if (stars) {
+        const arr = String(stars).split(',').map(Number).filter(Boolean)
+        if (arr.length) { hotelConds.push(`h.stars IN (${arr.map(() => '?').join(',')})`); mainParams.push(...arr) }
+      }
+
+      if (date_from) { tourConds.push('t.departure_date >= ?'); tourParams.push(date_from) }
+      if (date_to)   { tourConds.push('t.departure_date <= ?'); tourParams.push(date_to) }
+
+      if (duration) {
+        const arr = String(duration).split(',').map(Number).filter(Boolean)
+        if (arr.length) { tourConds.push(`t.duration IN (${arr.map(() => '?').join(',')})`); tourParams.push(...arr) }
+      }
+
+      if (meal_plan) {
+        const arr = String(meal_plan).split(',').filter(Boolean)
+        if (arr.length) { tourConds.push(`t.meal_plan IN (${arr.map(() => '?').join(',')})`); tourParams.push(...arr) }
+      }
+
+      if (transport) { tourConds.push('t.transport LIKE ?'); tourParams.push(`%${transport}%`) }
+
+      if (departure_city) {
+        const cities = String(departure_city).split(',').filter(Boolean)
+        if (cities.length === 1) { tourConds.push('t.departure_city = ?'); tourParams.push(cities[0]) }
+        else if (cities.length > 1) { tourConds.push(`t.departure_city IN (${cities.map(() => '?').join(',')})`); tourParams.push(...cities) }
+      }
+
+      if (tour_type === 'last_minute')  { tourConds.push('t.is_last_minute = 1') }
+      if (tour_type === 'first_minute') { tourConds.push('t.is_first_minute = 1') }
+
+      const havingConds = []
+      const havingParams = []
+      if (min_price) { havingConds.push('min_price >= ?'); havingParams.push(parseFloat(min_price)) }
+      if (max_price) { havingConds.push('min_price <= ?'); havingParams.push(parseFloat(max_price)) }
+
+      const hotelWhere = hotelConds.length ? `AND ${hotelConds.join(' AND ')}` : ''
+      const tourWhere  = `AND ${tourConds.join(' AND ')}`
+      const having     = havingConds.length ? `HAVING ${havingConds.join(' AND ')}` : ''
+
+      const allParams = [...tourParams, ...mainParams]
+      const allParamsWithHaving = [...allParams, ...havingParams]
+
+      const slowSql = `
+        SELECT
+          h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
+          h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
+          ${extraFields},
+          MIN(t.price) AS min_price,
+          COUNT(t.id) AS available_dates,
+          MIN(t.departure_date) AS next_departure,
+          MAX(t.is_last_minute) AS has_last_minute,
+          MAX(t.is_first_minute) AS has_first_minute
         FROM hotels h
         INNER JOIN tours t ON t.hotel_id = h.id ${tourWhere}
         WHERE 1=1 ${hotelWhere}
         GROUP BY h.id
         ${having}
-      )
-    `
+        ORDER BY ${orderBy}
+        LIMIT ? OFFSET ?
+      `
 
-    const allParamsWithHaving = [...allParams, ...havingParams]
-    // Přeskočit COUNT na stránkách 2+ pokud frontend posílá known_total
-    const total = (knownTotal !== null && pageNum > 1)
-      ? knownTotal
-      : db.prepare(countSql).get(allParamsWithHaving).total
-    const hotels = db.prepare(sql).all([...allParamsWithHaving, limitNum, offset])
+      const countSql = `
+        SELECT COUNT(*) AS total FROM (
+          SELECT h.id, MIN(t.price) AS min_price
+          FROM hotels h
+          INNER JOIN tours t ON t.hotel_id = h.id ${tourWhere}
+          WHERE 1=1 ${hotelWhere}
+          GROUP BY h.id
+          ${having}
+        )
+      `
+
+      total = (knownTotal !== null && pageNum > 1)
+        ? knownTotal
+        : db.prepare(countSql).get(allParamsWithHaving).total
+
+      hotels = db.prepare(slowSql).all([...allParamsWithHaving, limitNum, offset])
+    }
 
     const result = {
       hotels,

@@ -79,11 +79,49 @@ addIfMissing('reviews_fetched_at',  'TEXT')
 addIfMissing('api_config',          'TEXT')
 addIfMissing('canonical_slug',      'TEXT')
 
+addIfMissing('is_last_minute',  'INTEGER DEFAULT 0')
+addIfMissing('is_first_minute', 'INTEGER DEFAULT 0')
+
 // Indexes added after column migrations so canonical_slug exists
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_hotels_canonical_slug ON hotels(canonical_slug);
   CREATE INDEX IF NOT EXISTS idx_tours_hotel_date      ON tours(hotel_id, departure_date);
 `)
+
+// Předpočítaná statistická tabulka — základ pro rychlé dotazy bez GROUP BY
+db.exec(`
+  CREATE TABLE IF NOT EXISTS hotel_stats (
+    hotel_id        INTEGER PRIMARY KEY REFERENCES hotels(id) ON DELETE CASCADE,
+    min_price       REAL,
+    max_price       REAL,
+    available_dates INTEGER DEFAULT 0,
+    next_departure  TEXT,
+    has_last_minute  INTEGER DEFAULT 0,
+    has_first_minute INTEGER DEFAULT 0,
+    updated_at      TEXT DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_hotel_stats_price ON hotel_stats(min_price);
+`)
+
+// Inicializace hotel_stats při prvním spuštění
+const statsEmpty = db.prepare('SELECT COUNT(*) AS n FROM hotel_stats').get().n === 0
+if (statsEmpty) {
+  db.exec(`
+    INSERT OR REPLACE INTO hotel_stats
+      (hotel_id, min_price, max_price, available_dates, next_departure, has_last_minute, has_first_minute)
+    SELECT
+      hotel_id,
+      MIN(price),
+      MAX(price),
+      COUNT(*),
+      MIN(departure_date),
+      MAX(COALESCE(is_last_minute, 0)),
+      MAX(COALESCE(is_first_minute, 0))
+    FROM tours
+    WHERE price > 0 AND departure_date >= date('now')
+    GROUP BY hotel_id
+  `)
+}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS destination_photos (

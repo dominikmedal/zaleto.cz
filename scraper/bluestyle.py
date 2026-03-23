@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import re
+import sys
 import time
 import unicodedata
 import urllib.parse
@@ -746,7 +747,7 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
     if not arr_cities:
         logger.error("Žádné destinace ze SearchForm — zkontroluj GraphQL")
         db.close()
-        return
+        sys.exit(1)
 
     if not dates:
         # Fallback: scrapuj bez data (default termin pro každou destinaci)
@@ -864,6 +865,9 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
 
     db.close()
     logger.info(f"Hotovo. Uloženo: {hotel_count} hotelů, {tour_count} termínů.")
+    if hotel_count == 0:
+        logger.error("Scraper dokončen s 0 hotely — signalizuji chybu (exit 1)")
+        sys.exit(1)
     return hotel_count
 
 
