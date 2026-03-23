@@ -25,7 +25,9 @@ export const dynamicParams = true       // stránky mimo generateStaticParams fu
 
 export async function generateStaticParams() {
   try {
-    const slugs = await fetchAllHotelSlugs()
+    // Pregeneruj jen top 200 hotelů (nejlevnější) — zbytek se vygeneruje ISR on-demand při první návštěvě.
+    // dynamicParams = true zajišťuje, že ostatní stránky fungují normálně.
+    const slugs = await fetchAllHotelSlugs(200)
     return slugs.map(({ slug }) => ({ slug }))
   } catch {
     return []

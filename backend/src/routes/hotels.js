@@ -328,15 +328,18 @@ router.get('/nearby', (req, res) => {
 })
 
 // GET /api/hotels/slugs — lightweight endpoint pro sitemap (všechny hotely s termíny)
+// ?limit=N omezí počet výsledků (pro generateStaticParams), bez limitu vrátí vše (pro sitemap)
 router.get('/slugs', (req, res) => {
   try {
-    const rows = db.prepare(`
+    const limitNum = req.query.limit ? Math.max(1, parseInt(req.query.limit) || 0) : 0
+    const sql = `
       SELECT h.slug, h.updated_at
       FROM hotels h
-      INNER JOIN tours t ON t.hotel_id = h.id AND t.price > 0
-      GROUP BY h.id
-      ORDER BY h.id ASC
-    `).all()
+      INNER JOIN hotel_stats s ON s.hotel_id = h.id
+      ORDER BY s.min_price ASC
+      ${limitNum ? `LIMIT ${limitNum}` : ''}
+    `
+    const rows = db.prepare(sql).all()
     res.json(rows)
   } catch (err) {
     console.error('GET /api/hotels/slugs error:', err)
