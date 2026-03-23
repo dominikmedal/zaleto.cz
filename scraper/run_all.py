@@ -749,6 +749,14 @@ def main():
         if args.once or _shutdown:
             break
 
+        # Smaž dnešní checkpointy — cyklus dokončen, příští cyklus musí znovu
+        # scrapeovat všechny CK. Checkpointy slouží jen pro crash recovery uvnitř cyklu.
+        _conn = open_db()
+        _conn.execute("DELETE FROM scraper_checkpoints WHERE cycle_date = date('now')")
+        _conn.commit()
+        _conn.close()
+        logger.info("Checkpointy dnešního cyklu smazány — příští cyklus scrapeuje vše znovu")
+
         wait_sec = INTERVAL_H * 3600
         next_run = datetime.fromtimestamp(time.time() + wait_sec)
         logger.info(f"Příští cyklus: {next_run.strftime('%Y-%m-%d %H:%M')} (za {INTERVAL_H:.0f} h)")
