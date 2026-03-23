@@ -171,6 +171,31 @@ class ZaletoDB:
                 self.conn.commit()
             except Exception:
                 pass
+
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS hotel_checkpoints (
+                agency     TEXT NOT NULL,
+                key        TEXT NOT NULL,
+                cycle_date TEXT NOT NULL,
+                PRIMARY KEY (agency, key, cycle_date)
+            )
+        """)
+        self.conn.commit()
+
+    def get_done_keys(self, agency: str) -> set:
+        today = datetime.now().strftime("%Y-%m-%d")
+        rows = self.conn.execute(
+            "SELECT key FROM hotel_checkpoints WHERE agency = ? AND cycle_date = ?",
+            (agency, today),
+        ).fetchall()
+        return {r[0] for r in rows}
+
+    def mark_done(self, agency: str, key: str):
+        today = datetime.now().strftime("%Y-%m-%d")
+        self.conn.execute(
+            "INSERT OR IGNORE INTO hotel_checkpoints (agency, key, cycle_date) VALUES (?, ?, ?)",
+            (agency, key, today),
+        )
         self.conn.commit()
 
     def upsert_hotel(self, slug: str, data: dict) -> int:
@@ -734,7 +759,12 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
 
     total_hotels = 0
     total_tours  = 0
-    global_seen_codes: set[str] = set()
+
+    # Načti checkpoint — hotely zpracované dnes v předchozím běhu
+    done_slugs = db.get_done_keys(AGENCY)
+    if done_slugs:
+        logger.info(f"Checkpoint: přeskakuji {len(done_slugs)} již zpracovaných hotelů z dnešního cyklu")
+    global_seen_codes: set[str] = set(done_slugs)  # hotely z checkpointu = už viděné
 
     for i, dest_slug in enumerate(slugs):
         logger.info(f"[{i+1}/{len(slugs)}] Destinace: {dest_slug}")
@@ -788,6 +818,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
                                 f"{tour_dict['departure_city']} {tour_dict['departure_date']} "
                                 f"{tour_dict['price']:.0f} Kč (1 termín)")
 
+                db.mark_done(AGENCY, slug)
                 new += 1
                 total_hotels += 1
                 total_tours  += len(detail_tours) if detail_tours else 1

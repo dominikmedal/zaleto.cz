@@ -61,11 +61,15 @@ router.get('/:name', async (req, res) => {
   }
 
   // Upsert cache (even if null — avoids re-fetching missing keys)
-  db.prepare(`
-    INSERT INTO destination_photos (name, photo_url, updated_at)
-    VALUES (?, ?, datetime('now'))
-    ON CONFLICT(name) DO UPDATE SET photo_url = excluded.photo_url, updated_at = excluded.updated_at
-  `).run(name, url)
+  try {
+    db.prepare(`
+      INSERT INTO destination_photos (name, photo_url, updated_at)
+      VALUES (?, ?, datetime('now'))
+      ON CONFLICT(name) DO UPDATE SET photo_url = excluded.photo_url, updated_at = excluded.updated_at
+    `).run(name, url)
+  } catch (e) {
+    console.error('destination_photos cache write failed:', e.message)
+  }
 
   res.json({ url })
 })

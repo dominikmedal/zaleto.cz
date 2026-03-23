@@ -261,6 +261,31 @@ class ZaletoDB:
                 self.conn.commit()
             except Exception:
                 pass
+
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS hotel_checkpoints (
+                agency     TEXT NOT NULL,
+                key        TEXT NOT NULL,
+                cycle_date TEXT NOT NULL,
+                PRIMARY KEY (agency, key, cycle_date)
+            )
+        """)
+        self.conn.commit()
+
+    def get_done_keys(self, agency: str) -> set:
+        today = datetime.now().strftime("%Y-%m-%d")
+        rows = self.conn.execute(
+            "SELECT key FROM hotel_checkpoints WHERE agency = ? AND cycle_date = ?",
+            (agency, today),
+        ).fetchall()
+        return {r[0] for r in rows}
+
+    def mark_done(self, agency: str, key: str):
+        today = datetime.now().strftime("%Y-%m-%d")
+        self.conn.execute(
+            "INSERT OR IGNORE INTO hotel_checkpoints (agency, key, cycle_date) VALUES (?, ?, ?)",
+            (agency, key, today),
+        )
         self.conn.commit()
 
     def upsert_hotel(self, slug: str, data: dict) -> int:
@@ -1487,6 +1512,11 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False):
 
     logger.info(f"Celkem nalezeno {len(hotel_tours)} unikátních hotelů")
 
+    # Načti checkpoint — hotely zpracované dnes v předchozím běhu
+    done_paths = db.get_done_keys(AGENCY)
+    if done_paths:
+        logger.info(f"Checkpoint: přeskakuji {len(done_paths)} již zpracovaných hotelů z dnešního cyklu")
+
     # Ulož hotely + termíny, fetchni detail stránky
     slug_used:   set[str] = set()
     hotel_count  = 0
@@ -1496,6 +1526,10 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False):
         if limit and hotel_count >= limit:
             logger.info(f"Dosažen limit {limit} hotelů")
             break
+
+        if hp in done_paths:
+            logger.info(f"  ✓ checkpoint: {hp}")
+            continue
 
         meta      = hotel_meta[hp]
         hotel_url = meta["hotel_url"]
@@ -1561,6 +1595,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False):
                 logger.debug(f"    Tour skip: {e}")
 
         db.commit()
+        db.mark_done(AGENCY, hp)
         hotel_count += 1
         tour_count  += saved
 

@@ -143,6 +143,30 @@ class ZaletoDB:
             except Exception:
                 pass
 
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS hotel_checkpoints (
+                agency     TEXT NOT NULL,
+                key        TEXT NOT NULL,
+                cycle_date TEXT NOT NULL,
+                PRIMARY KEY (agency, key, cycle_date)
+            )
+        """)
+        self.conn.commit()
+
+    def get_done_keys(self, agency: str) -> set:
+        today = datetime.now().strftime("%Y-%m-%d")
+        rows = self.conn.execute(
+            "SELECT key FROM hotel_checkpoints WHERE agency = ? AND cycle_date = ?",
+            (agency, today),
+        ).fetchall()
+        return {r[0] for r in rows}
+
+    def mark_done(self, agency: str, key: str):
+        today = datetime.now().strftime("%Y-%m-%d")
+        self.conn.execute(
+            "INSERT OR IGNORE INTO hotel_checkpoints (agency, key, cycle_date) VALUES (?, ?, ?)",
+            (agency, key, today),
+        )
         self.conn.commit()
 
     def upsert_hotel(self, slug: str, data: dict) -> int:
@@ -779,13 +803,31 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
     total_saved = 0
     slug_counter: dict = {}
 
+    # Pre-populate slug_counter z DB — zabrání kolizím slugů při resumování
+    for (s,) in db.conn.execute("SELECT slug FROM hotels WHERE agency = ?", (AGENCY,)).fetchall():
+        parts = s.rsplit("-", 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            base, n = parts[0], int(parts[1]) + 1
+        else:
+            base, n = s, 1
+        slug_counter[base] = max(slug_counter.get(base, 0), n)
+
+    # Načti checkpoint — hotely zpracované dnes v předchozím běhu
+    done_urls = db.get_done_keys(AGENCY)
+    if done_urls:
+        logger.info(f"Checkpoint: přeskakuji {len(done_urls)} již zpracovaných hotelů z dnešního cyklu")
+
     logger.info(f"Letiště: {airports}")
 
     for i, url in enumerate(hotel_urls, 1):
+        if url in done_urls:
+            logger.info(f"[{i}/{len(hotel_urls)}] ✓ checkpoint: {url.split('?')[0]}")
+            continue
         logger.info(f"[{i}/{len(hotel_urls)}] {url.split('?')[0]}")
         try:
             saved = scrape_hotel(session, db, url, slug_counter, airports)
             total_saved += saved
+            db.mark_done(AGENCY, url)
         except Exception as e:
             logger.error(f"Chyba u {url}: {e}")
 

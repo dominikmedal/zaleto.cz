@@ -2,14 +2,16 @@ const express = require('express')
 const router  = express.Router()
 const db      = require('../db')
 
-const FISCHER_AFFILIATE   = 'https://www.kqzyfj.com/click-101468674-15041945'
-const BLUESTYLE_AFFILIATE = 'https://www.tkqlhce.com/click-101468674-14358779'
+const AFFILIATE = {
+  'fischer':    'https://www.anrdoezrs.net/click-101468674-15736055',
+  'čedok':      'https://www.jdoqocy.com/click-101468674-15686662',
+  'blue style': 'https://www.tkqlhce.com/click-101468674-14358779',
+  'tui':        'https://www.kqzyfj.com/click-101468674-15704921',
+}
 
 function affiliateUrl(url, agency) {
-  const a = (agency || '').toLowerCase()
-  if (a === 'fischer')    return `${FISCHER_AFFILIATE}?url=${encodeURIComponent(url)}`
-  if (a === 'blue style') return `${BLUESTYLE_AFFILIATE}?url=${encodeURIComponent(url)}`
-  return url
+  const base = AFFILIATE[(agency || '').toLowerCase()]
+  return base ? `${base}?url=${encodeURIComponent(url)}` : url
 }
 
 const addDays = (dateStr, n) => {
@@ -31,15 +33,16 @@ router.get('/:slug', (req, res) => {
   const nightsNum = parseInt(nights) || 7
   const adultsNum = Math.max(1, parseInt(adults) || 2)
 
-  // Čedok: URL already contains deeplink — redirect directly (tour_url takes precedence)
+  // Čedok: URL already contains deeplink — wrap with affiliate, tour_url takes precedence
   if (hotel.agency === 'Čedok') {
-    const destUrl = tour_url || (() => {
+    const rawUrl = tour_url || (() => {
       const t = db.prepare(
         'SELECT url FROM tours WHERE hotel_id = ? AND departure_date = ? ORDER BY price ASC LIMIT 1'
       ).get(hotel.id, date)
       return t?.url
     })()
-    if (!destUrl) return res.status(404).json({ error: `Termín ${date} nenalezen` })
+    if (!rawUrl) return res.status(404).json({ error: `Termín ${date} nenalezen` })
+    const destUrl = affiliateUrl(rawUrl, hotel.agency)
     console.log(`[redirect] cedok ${slug} ${date} → ${destUrl}`)
     return res.redirect(302, destUrl)
   }

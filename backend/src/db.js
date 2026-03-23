@@ -11,6 +11,7 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
 
 const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
+db.pragma('busy_timeout = 10000')
 db.pragma('foreign_keys = ON')
 
 db.exec(`

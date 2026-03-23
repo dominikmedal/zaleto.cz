@@ -167,6 +167,13 @@ def clear_checkpoints(conn: sqlite3.Connection):
     conn.execute(
         "DELETE FROM scraper_checkpoints WHERE cycle_date < date('now', '-2 days')"
     )
+    # hotel_checkpoints tvoří scrapers samy — promazáváme je taky
+    try:
+        conn.execute(
+            "DELETE FROM hotel_checkpoints WHERE cycle_date < date('now', '-2 days')"
+        )
+    except Exception:
+        pass  # tabulka ještě neexistuje při prvním běhu
     conn.commit()
 
 
@@ -368,6 +375,13 @@ def run_scraper(scraper: dict, conn: sqlite3.Connection) -> dict:
             result["stale_removed"] = stale
             if stale:
                 logger.info(f"  Stale cleanup: smazáno {stale} zastaralých termínů ({agency})")
+            # Smaž hotel_checkpoints pro tuto CK — cyklus dokončen, pro příští cyklus
+            # musíme začít od začátku (checkpointy slouží jen pro crash recovery uvnitř cyklu)
+            try:
+                conn.execute("DELETE FROM hotel_checkpoints WHERE agency = ?", (agency,))
+                conn.commit()
+            except Exception:
+                pass  # tabulka ještě nemusí existovat při prvním běhu
             # Ulož checkpoint — přežije restart kontejneru
             mark_completed(conn, agency)
 

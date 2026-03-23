@@ -9,9 +9,9 @@ function formatPrice(p: number) {
   return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(p)
 }
 
-function formatDate(s: string | null) {
+function formatDateShort(s: string | null) {
   if (!s) return '—'
-  return new Date(s).toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date(s).toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric' })
 }
 
 function bookingUrl(slug: string, tour: Tour, adults: number) {
@@ -20,7 +20,125 @@ function bookingUrl(slug: string, tour: Tour, adults: number) {
     nights: String(tour.duration || 7),
     adults: String(adults),
   })
+  if (tour.url) params.set('tour_url', tour.url)
   return `${API}/api/redirect/${slug}?${params}`
+}
+
+function parseRoute(transport: string | null): { dep: string; arr: string } | null {
+  if (!transport) return null
+  const m = transport.match(/([A-Z]{3})[→>-]([A-Z]{3})/)
+  if (!m) return null
+  return { dep: m[1], arr: m[2] }
+}
+
+const IATA_CITIES: Record<string, string> = {
+  PRG: 'Praha', BRQ: 'Brno', OSR: 'Ostrava', PED: 'Pardubice',
+  AYT: 'Antalya', DLM: 'Dalaman', BJV: 'Bodrum', ADB: 'İzmir',
+  HRG: 'Hurghada', SSH: 'Sharm el-Sheikh', CAI: 'Káhira',
+  RHO: 'Rhodos', HER: 'Kréta', CFU: 'Korfu', ZTH: 'Zakynthos', KGS: 'Kos',
+  ACE: 'Lanzarote', TFS: 'Tenerife', LPA: 'Gran Canaria', FUE: 'Fuerteventura',
+  PMI: 'Mallorca', AGP: 'Málaga', ALC: 'Alicante', BCN: 'Barcelona',
+  SOF: 'Sofia', VAR: 'Varna', BOJ: 'Burgas',
+  PFO: 'Paphos', LCA: 'Larnaka',
+  TUN: 'Tunis', DJE: 'Djerba',
+  OPO: 'Porto', FNC: 'Funchal', FAO: 'Faro',
+  MLE: 'Malé', DPS: 'Bali', BKK: 'Bangkok', CMB: 'Colombo',
+  DXB: 'Dubaj', AUH: 'Abú Dhabí',
+  ZNZ: 'Zanzibar', HAV: 'Havana', CUN: 'Cancún',
+}
+
+const CITY_TO_IATA: Record<string, string> = Object.fromEntries(
+  Object.entries(IATA_CITIES).map(([code, city]) => [city, code])
+)
+
+function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: number }) {
+  const route = parseRoute(tour.transport)
+  const depIata = CITY_TO_IATA[tour.departure_city ?? ''] ?? route?.dep ?? null
+  const arrIata = route?.arr ?? null
+  const depCityName = depIata ? (IATA_CITIES[depIata] ?? tour.departure_city) : (tour.departure_city ?? null)
+  const arrCity = arrIata ? (IATA_CITIES[arrIata] ?? arrIata) : null
+
+  return (
+    <a href={bookingUrl(slug, tour, adults)} target="_blank" rel="noopener noreferrer" className="block group">
+      <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden transition-all group-hover:border-[#008afe]/30 group-hover:shadow-md">
+
+        {/* Horní část: trasa */}
+        <div className="px-5 pt-4 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 min-w-[52px]">
+              {depIata ? (
+                <>
+                  <div className="text-[22px] font-bold text-gray-900 leading-none">{depIata}</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5 truncate">{depCityName}</div>
+                </>
+              ) : (
+                <div className="text-xs text-gray-400">{depCityName ?? '—'}</div>
+              )}
+            </div>
+            <div className="flex-1 flex items-center gap-1.5 min-w-0">
+              <div className="flex-1 border-t border-dashed border-gray-200" />
+              <Plane className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+              <div className="flex-1 border-t border-dashed border-gray-200" />
+            </div>
+            <div className="flex-shrink-0 min-w-[52px] text-right">
+              {arrIata ? (
+                <>
+                  <div className="text-[22px] font-bold text-gray-900 leading-none">{arrIata}</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5 truncate">{arrCity}</div>
+                </>
+              ) : tour.transport ? (
+                <div className="text-xs text-gray-400">{tour.transport}</div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        {/* Tear line */}
+        <div className="relative flex items-center mx-0">
+          <div className="absolute -left-2.5 w-5 h-5 rounded-full bg-gray-50 border border-gray-100 flex-shrink-0 z-10" />
+          <div className="flex-1 border-t border-dashed border-gray-200 mx-2.5" />
+          <div className="absolute -right-2.5 w-5 h-5 rounded-full bg-gray-50 border border-gray-100 flex-shrink-0 z-10" />
+        </div>
+
+        {/* Dolní část: datum, detaily, cena */}
+        <div className="px-5 pt-3 pb-4 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
+            <span className="flex items-center gap-1.5 font-medium text-gray-800">
+              <Calendar className="w-3.5 h-3.5 text-gray-400" />
+              {formatDateShort(tour.departure_date)}
+            </span>
+            {tour.duration && (
+              <span className="flex items-center gap-1.5">
+                <Moon className="w-3.5 h-3.5 text-gray-400" />
+                {tour.duration} nocí
+              </span>
+            )}
+            {tour.meal_plan && (
+              <span className="flex items-center gap-1.5">
+                <Utensils className="w-3.5 h-3.5 text-gray-400" />
+                {tour.meal_plan}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
+            <div className="text-right">
+              <div className="flex items-baseline gap-1 justify-end">
+                <span className="text-lg font-bold text-emerald-600">{formatPrice(tour.price)}</span>
+                <span className="text-xs text-gray-400">/ os.</span>
+              </div>
+              {adults > 1 && (
+                <p className="text-[11px] text-gray-400">celkem {formatPrice(tour.price * adults)}</p>
+              )}
+            </div>
+            <span className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-white bg-[#008afe] group-hover:bg-[#0079e5] px-4 py-2 rounded-xl transition-colors">
+              Rezervovat <ExternalLink className="w-3.5 h-3.5" />
+            </span>
+          </div>
+        </div>
+
+      </div>
+    </a>
+  )
 }
 
 interface Props {
@@ -140,9 +258,9 @@ export default function ToursModal({ slug, name, onClose }: Props) {
         {/* Content */}
         <div className="overflow-y-auto flex-1 px-5 py-4">
           {loading ? (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-16 bg-gray-100 rounded-2xl animate-pulse" />
+                <div key={i} className="h-[108px] bg-gray-100 rounded-2xl animate-pulse" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
@@ -151,57 +269,9 @@ export default function ToursModal({ slug, name, onClose }: Props) {
               <p className="text-gray-500 font-medium">Žádné dostupné termíny</p>
             </div>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {filtered.map(tour => (
-                <a key={tour.id} href={bookingUrl(slug, tour, adults)} target="_blank" rel="noopener noreferrer"
-                  className="block group bg-white border border-gray-100 hover:border-[#008afe]/30 rounded-2xl p-4 transition-all hover:shadow-sm">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                        <span className="font-medium text-gray-900">{formatDate(tour.departure_date)}</span>
-                      </div>
-                      {tour.duration && (
-                        <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                          <Moon className="w-3.5 h-3.5 text-gray-400" />
-                          {tour.duration} nocí
-                        </div>
-                      )}
-                      {tour.meal_plan && (
-                        <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                          <Utensils className="w-3.5 h-3.5 text-gray-400" />
-                          {tour.meal_plan}
-                        </div>
-                      )}
-                      {tour.transport && (
-                        <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                          <Plane className="w-3.5 h-3.5 text-gray-400" />
-                          {tour.transport}
-                        </div>
-                      )}
-                      {tour.departure_city && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#008afe] bg-[#008afe]/8 px-2 py-0.5 rounded-lg">
-                          <Plane className="w-3 h-3" />
-                          {tour.departure_city}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <div className="text-right">
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-xl font-bold text-emerald-600">{formatPrice(tour.price)}</span>
-                          <span className="text-xs text-gray-400">/ os.</span>
-                        </div>
-                        {adults > 1 && (
-                          <p className="text-[11px] text-gray-400">celkem {formatPrice(tour.price * adults)}</p>
-                        )}
-                      </div>
-                      <span className="hidden sm:flex items-center gap-1 text-sm font-medium text-white bg-[#008afe] hover:bg-[#0079e5] px-4 py-2 rounded-xl transition-colors">
-                        Rezervovat <ExternalLink className="w-3.5 h-3.5" />
-                      </span>
-                    </div>
-                  </div>
-                </a>
+                <TourTicket key={tour.id} tour={tour} slug={slug} adults={adults} />
               ))}
             </div>
           )}

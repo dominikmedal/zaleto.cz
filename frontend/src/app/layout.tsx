@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import './globals.css'
 import ScrollToTop from '@/components/ScrollToTop'
 import Footer from '@/components/Footer'
@@ -62,6 +63,15 @@ const orgSchema = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="cs">
+      <head>
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-HPE9HH5VG3" strategy="afterInteractive" />
+        <Script id="ga-init" strategy="afterInteractive">{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-HPE9HH5VG3');
+        `}</Script>
+      </head>
       <body>
         <JsonLd data={orgSchema} />
         {children}

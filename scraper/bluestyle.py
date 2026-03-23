@@ -148,6 +148,31 @@ class ZaletoDB:
                 self.conn.commit()
             except Exception:
                 pass
+
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS hotel_checkpoints (
+                agency     TEXT NOT NULL,
+                key        TEXT NOT NULL,
+                cycle_date TEXT NOT NULL,
+                PRIMARY KEY (agency, key, cycle_date)
+            )
+        """)
+        self.conn.commit()
+
+    def get_done_keys(self, agency: str) -> set:
+        today = datetime.now().strftime("%Y-%m-%d")
+        rows = self.conn.execute(
+            "SELECT key FROM hotel_checkpoints WHERE agency = ? AND cycle_date = ?",
+            (agency, today),
+        ).fetchall()
+        return {r[0] for r in rows}
+
+    def mark_done(self, agency: str, key: str):
+        today = datetime.now().strftime("%Y-%m-%d")
+        self.conn.execute(
+            "INSERT OR IGNORE INTO hotel_checkpoints (agency, key, cycle_date) VALUES (?, ?, ?)",
+            (agency, key, today),
+        )
         self.conn.commit()
 
     def upsert_hotel(self, slug: str, data: dict) -> int:
@@ -739,8 +764,16 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
     logger.info(f"Ukázka arrCity IDs: {arr_cities[:5]}")
     logger.info(f"Ukázka dat: {dates[:5]}")
 
+    # Načti checkpoint — dep_cities zpracované dnes v předchozím běhu
+    done_dep_cities = db.get_done_keys(AGENCY)
+    if done_dep_cities:
+        logger.info(f"Checkpoint: přeskakuji dep_cities {done_dep_cities} z dnešního cyklu")
+
     for dep_city in dep_cities:
         dep_city_name = dep_city_names.get(dep_city, str(dep_city))
+        if str(dep_city) in done_dep_cities:
+            logger.info(f"== ✓ checkpoint: dep_city {dep_city} ({dep_city_name}) ==")
+            continue
         logger.info(f"== Dep city: {dep_city} ({dep_city_name}) ==")
         for date in dates:
             for arr_city in arr_cities:
@@ -822,6 +855,9 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
                     time.sleep(delay)
 
                 time.sleep(delay)
+
+        # Všechny date × arr_city kombinace pro tento dep_city hotovy
+        db.mark_done(AGENCY, str(dep_city))
 
     if limit and hotel_count >= limit:
         logger.info(f"Dosažen limit {limit} hotelů")
