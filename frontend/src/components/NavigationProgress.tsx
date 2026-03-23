@@ -9,9 +9,14 @@ export default function NavigationProgress() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const hideRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prevPathname = useRef(pathname)
+  // Track whether we started the animation for current navigation
+  const pendingRef = useRef(false)
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
+      // Skip clicks on buttons (FavoriteButton, ToursModal, dots, etc.)
+      if ((e.target as HTMLElement).closest('button')) return
+
       const link = (e.target as HTMLElement).closest('a')
       if (!link?.href) return
       let url: URL
@@ -22,23 +27,26 @@ export default function NavigationProgress() {
       if (timerRef.current) clearInterval(timerRef.current)
       if (hideRef.current) clearTimeout(hideRef.current)
 
+      pendingRef.current = true
       setVisible(true)
-      setProgress(8)
+      setProgress(15)
 
-      // Ease toward 85% — never reaches it naturally
       timerRef.current = setInterval(() => {
         setProgress(p => p + (85 - p) * 0.07)
       }, 120)
     }
 
-    document.addEventListener('click', handleClick)
-    return () => document.removeEventListener('click', handleClick)
+    // Capture phase — fires before any child stopPropagation()
+    document.addEventListener('click', handleClick, true)
+    return () => document.removeEventListener('click', handleClick, true)
   }, [])
 
   // Complete when pathname changes
   useEffect(() => {
     if (pathname === prevPathname.current) return
     prevPathname.current = pathname
+    if (!pendingRef.current) return
+    pendingRef.current = false
 
     if (timerRef.current) clearInterval(timerRef.current)
     setProgress(100)

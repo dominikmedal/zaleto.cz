@@ -114,6 +114,14 @@ export async function fetchNearbyHotels(lat: number, lon: number, exclude: strin
   } catch { return [] }
 }
 
+export async function fetchAllHotelSlugs(): Promise<{ slug: string; updated_at: string | null }[]> {
+  try {
+    const res = await fetch(`${API}/api/hotels/slugs`, { next: { revalidate: 3600 } })
+    if (!res.ok) return []
+    return res.json()
+  } catch { return [] }
+}
+
 export async function fetchHotelSearch(q: string): Promise<{
   slug: string; name: string; country: string; resort_town: string | null; stars: number | null; thumbnail_url: string | null
 }[]> {

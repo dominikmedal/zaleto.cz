@@ -270,6 +270,23 @@ router.get('/nearby', (req, res) => {
   }
 })
 
+// GET /api/hotels/slugs — lightweight endpoint pro sitemap (všechny hotely s termíny)
+router.get('/slugs', (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT h.slug, h.updated_at
+      FROM hotels h
+      INNER JOIN tours t ON t.hotel_id = h.id AND t.price > 0
+      GROUP BY h.id
+      ORDER BY h.id ASC
+    `).all()
+    res.json(rows)
+  } catch (err) {
+    console.error('GET /api/hotels/slugs error:', err)
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
 // GET /api/hotels/search?q=...
 router.get('/search', (req, res) => {
   try {
