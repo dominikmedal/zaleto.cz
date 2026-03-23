@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiBuildings, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar } from 'react-icons/pi'
+import { Suspense } from 'react'
+import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar } from 'react-icons/pi'
 import ScrollToButton from '@/components/ScrollToButton'
 import ViewersBadge from '@/components/ViewersBadge'
 import Header from '@/components/Header'
@@ -11,8 +12,8 @@ import FavoriteButton from '@/components/FavoriteButton'
 import TourDatesList from '@/components/TourDatesList'
 import HotelGallery from '@/components/HotelGallery'
 import ReviewsSection from '@/components/ReviewsSection'
-import { fetchHotel, fetchHotelTours, fetchNearbyHotels } from '@/lib/api'
-import type { NearbyHotel } from '@/lib/types'
+import NearbyHotels from '@/components/NearbyHotels'
+import { fetchHotel, fetchHotelTours } from '@/lib/api'
 import JsonLd from '@/components/JsonLd'
 
 // Leaflet needs browser APIs → dynamic import, no SSR
@@ -110,10 +111,6 @@ export default async function HotelDetailPage({ params }: Props) {
   }
 
   const tours = toursData.tours
-
-  const nearby: NearbyHotel[] = hotel.latitude && hotel.longitude
-    ? await fetchNearbyHotels(hotel.latitude, hotel.longitude, params.slug, 8)
-    : []
 
   // Parse photos
   const photos: string[] = (() => {
@@ -469,41 +466,11 @@ export default async function HotelDetailPage({ params }: Props) {
                 </div>
               </div>
 
-              {/* Nearby hotels */}
-              {nearby.length > 0 && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                  <h3 className="flex items-center gap-2.5 text-[17px] font-semibold text-gray-900 mb-4">
-                    <span className="text-[#008afe] flex-shrink-0"><PiMapPin className="w-5 h-5" /></span>
-                    Hotely v okolí
-                  </h3>
-                  <div className="divide-y divide-gray-50">
-                    {nearby.slice(0, 5).map(n => (
-                      <Link
-                        key={n.slug}
-                        href={`/hotel/${n.slug}`}
-                        className="flex items-center gap-3 py-2.5 group"
-                      >
-                        <div className="w-10 h-8 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                          {n.thumbnail_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={n.thumbnail_url} alt={n.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <PiBuildings className="w-4 h-4 text-gray-300" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-[#008afe] transition-colors">{n.name}</p>
-                          <p className="text-[11px] text-gray-400">
-                            {n.stars ? '★'.repeat(n.stars) : ''}{n.distance_km != null ? ` · ${n.distance_km.toFixed(1)} km` : ''}
-                          </p>
-                        </div>
-                        <span className="text-xs font-bold text-emerald-600 flex-shrink-0 tabular-nums">{formatPriceShort(n.min_price)} Kč</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
+              {/* Nearby hotels — streamed, neblokuje render hlavního obsahu */}
+              {hotel.latitude && hotel.longitude && (
+                <Suspense fallback={null}>
+                  <NearbyHotels lat={hotel.latitude} lon={hotel.longitude} exclude={params.slug} />
+                </Suspense>
               )}
 
             </div>
