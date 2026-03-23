@@ -13,6 +13,16 @@ const HotelsMapView = dynamic(() => import('./HotelsMapView'), { ssr: false })
 
 type PageResult = { hotels: Hotel[]; pagination: Pagination }
 
+function preloadImages(hotels: Hotel[]) {
+  if (typeof window === 'undefined') return
+  hotels.forEach(h => {
+    const src = h.thumbnail_url
+    if (!src) return
+    const img = new window.Image()
+    img.src = src
+  })
+}
+
 async function fetchPage(
   sp: URLSearchParams,
   page: number,
@@ -43,9 +53,11 @@ export default function HotelGrid({ hotels: initial, pagination: initialPag, adu
   useEffect(() => {
     setHotels(initial)
     setPagination(initialPag)
-    prefetchRef.current = initialPag.hasMore
-      ? fetchPage(sp, 2, initialPag.limit, view, initialPag.total).catch(() => null) as Promise<PageResult>
-      : null
+    if (!initialPag.hasMore) { prefetchRef.current = null; return }
+    const p = fetchPage(sp, 2, initialPag.limit, view, initialPag.total)
+      .then(res => { preloadImages(res.hotels); return res })
+      .catch(() => null) as Promise<PageResult>
+    prefetchRef.current = p
   }, [initial, initialPag]) // sp a view záměrně vynechány — mění se spolu s initial/initialPag
 
   const prevViewRef = useRef(view)
@@ -81,9 +93,10 @@ export default function HotelGrid({ hotels: initial, pagination: initialPag, adu
       )
       setHotels(prev => [...prev, ...next])
       setPagination(nextPag)
-      // Okamžitě prefetchni další stránku
+      // Okamžitě prefetchni další stránku a preloaduj obrázky
       if (nextPag.hasMore) {
         prefetchRef.current = fetchPage(sp, nextPag.page + 1, nextPag.limit, view, nextPag.total)
+          .then(res => { preloadImages(res.hotels); return res })
           .catch(() => null) as Promise<PageResult>
       }
     } catch { /* ignore */ } finally {

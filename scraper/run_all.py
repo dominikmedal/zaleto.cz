@@ -451,6 +451,9 @@ def _send_via_resend(subject: str, html: str, text: str):
         )
         resp.raise_for_status()
         logger.info(f"Email (Resend): odeslán na {', '.join(REPORT_TO)}")
+    except requests.HTTPError as e:
+        body = e.response.text[:300] if e.response is not None else ""
+        logger.warning(f"Email (Resend): HTTP chyba — {e} | {body}")
     except Exception as e:
         logger.warning(f"Email (Resend): chyba — {e}")
 
