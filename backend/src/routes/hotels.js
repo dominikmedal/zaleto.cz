@@ -1,15 +1,26 @@
 const express = require('express')
 const router = express.Router()
 const db = require('../db')
+const { hotelsCache } = require('../cache')
 
 // GET /api/hotels
 router.get('/', (req, res) => {
   try {
+    // Cache lookup — klíč bez known_total (ten neovlivňuje výsledek, jen COUNT skip)
+    const { known_total, ...queryForKey } = req.query
+    const cacheKey = JSON.stringify(queryForKey)
+    const cached = hotelsCache.get(cacheKey)
+    if (cached) {
+      res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+      res.set('X-Cache', 'HIT')
+      return res.json(cached)
+    }
+
     const {
       destination, date_from, date_to,
       adults, duration, min_price, max_price,
       stars, meal_plan, transport, tour_type, departure_city,
-      sort = 'price_asc', page = '1', limit = '24', view, known_total,
+      sort = 'price_asc', page = '1', limit = '24', view,
     } = req.query
 
     const pageNum  = Math.max(1, parseInt(page) || 1)
@@ -144,7 +155,7 @@ router.get('/', (req, res) => {
       : db.prepare(countSql).get(allParamsWithHaving).total
     const hotels = db.prepare(sql).all([...allParamsWithHaving, limitNum, offset])
 
-    res.json({
+    const result = {
       hotels,
       pagination: {
         total,
@@ -153,7 +164,12 @@ router.get('/', (req, res) => {
         totalPages: Math.ceil(total / limitNum),
         hasMore: pageNum < Math.ceil(total / limitNum),
       },
-    })
+    }
+
+    hotelsCache.set(cacheKey, result)
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+    res.set('X-Cache', 'MISS')
+    res.json(result)
   } catch (err) {
     console.error('GET /api/hotels error:', err)
     res.status(500).json({ error: 'Database error', details: err.message })

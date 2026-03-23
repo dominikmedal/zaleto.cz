@@ -13,6 +13,10 @@ const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 db.pragma('busy_timeout = 10000')
 db.pragma('foreign_keys = ON')
+db.pragma('cache_size = -32000')      // 32 MB page cache (default ~2 MB)
+db.pragma('temp_store = MEMORY')      // temp tabulky v RAM místo na disku
+db.pragma('mmap_size = 268435456')    // 256 MB memory-mapped I/O
+db.pragma('synchronous = NORMAL')     // bezpečné s WAL, rychlejší než FULL
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS hotels (

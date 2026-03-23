@@ -39,6 +39,14 @@ app.use('/api', metaRouter)
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
+// Invalidace cache po dokončení scrapingu (volá run_all.py)
+app.post('/api/cache/invalidate', (req, res) => {
+  const { hotelsCache, metaCache } = require('./cache')
+  hotelsCache.invalidate()
+  metaCache.invalidate()
+  res.json({ ok: true })
+})
+
 app.use((req, res) => res.status(404).json({ error: 'Not found' }))
 app.use((err, req, res, next) => {
   console.error(err)

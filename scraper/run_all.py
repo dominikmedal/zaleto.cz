@@ -410,6 +410,19 @@ def run_scraper(scraper: dict, conn: sqlite3.Connection) -> dict:
 # Email report
 # ---------------------------------------------------------------------------
 
+def _invalidate_api_cache():
+    """Zavolá backend endpoint pro invalidaci in-memory cache po dokončení scrapingu."""
+    backend = os.environ.get("BACKEND_URL", "http://localhost:3001")
+    try:
+        resp = requests.post(f"{backend}/api/cache/invalidate", timeout=5)
+        if resp.ok:
+            logger.info("Cache: invalidována")
+        else:
+            logger.warning(f"Cache: invalidace selhala ({resp.status_code})")
+    except Exception as e:
+        logger.warning(f"Cache: invalidace selhala — {e}")
+
+
 def send_email(subject: str, html: str, text: str):
     """Odešle report email přes SMTP s TLS."""
     if not SMTP_HOST or not REPORT_TO:
@@ -627,6 +640,9 @@ def run_cycle(cycle: int, skip_email: bool = False):
             logger.exception("Chyba při párování hotelů")
 
     conn.close()
+
+    # Invalidace API cache — nová data jsou v DB
+    _invalidate_api_cache()
 
     # Sestav a odešli report
     subject, html, text = build_report(cycle, started, results, expired, matched)
