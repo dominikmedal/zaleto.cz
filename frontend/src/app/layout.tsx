@@ -3,6 +3,7 @@ import Script from 'next/script'
 import './globals.css'
 import ScrollToTop from '@/components/ScrollToTop'
 import Footer from '@/components/Footer'
+import NavigationProgress from '@/components/NavigationProgress'
 import JsonLd from '@/components/JsonLd'
 
 export const metadata: Metadata = {
@@ -73,6 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         `}</Script>
       </head>
       <body>
+        <NavigationProgress />
         <JsonLd data={orgSchema} />
         {children}
         <Footer />

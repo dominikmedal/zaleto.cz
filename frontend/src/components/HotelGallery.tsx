@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import { X, ChevronLeft, ChevronRight, Grid2x2 } from 'lucide-react'
 
@@ -10,6 +10,8 @@ interface Props {
 
 export default function HotelGallery({ photos, name }: Props) {
   const [lightbox, setLightbox] = useState<number | null>(null)
+  const [activeIdx, setActiveIdx] = useState(0)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const open  = (i: number) => setLightbox(i)
   const close = () => setLightbox(null)
@@ -22,10 +24,73 @@ export default function HotelGallery({ photos, name }: Props) {
 
   if (photos.length === 0) return null
 
+  const scrollTo = (i: number) => {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTo({ left: el.offsetWidth * i, behavior: 'smooth' })
+    setActiveIdx(i)
+  }
+
+  const handleScroll = () => {
+    const el = scrollRef.current
+    if (!el) return
+    const i = Math.round(el.scrollLeft / el.offsetWidth)
+    setActiveIdx(i)
+  }
+
   return (
     <>
-      {/* Gallery grid */}
-      <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[420px] sm:h-[520px] rounded-2xl overflow-hidden mb-8">
+      {/* ── Mobile: horizontal snap carousel ── */}
+      <div className="sm:hidden relative mb-6">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide rounded-2xl"
+          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+        >
+          {photos.map((photo, i) => (
+            <div
+              key={photo}
+              className="relative flex-none w-full snap-center cursor-pointer"
+              style={{ aspectRatio: '16/10' }}
+              onClick={() => open(i)}
+            >
+              <Image
+                src={photo}
+                alt={`${name} ${i + 1}`}
+                fill
+                className="object-cover"
+                sizes="100vw"
+                priority={i === 0}
+              />
+              {/* Counter badge */}
+              <span className="absolute top-3 right-3 text-[11px] font-semibold text-white bg-black/40 backdrop-blur-sm px-2 py-1 rounded-lg leading-none">
+                {i + 1} / {photos.length}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Dot indicators */}
+        {photos.length > 1 && (
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 pointer-events-none">
+            {photos.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`pointer-events-auto w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                  i === activeIdx ? 'bg-white scale-125' : 'bg-white/50'
+                }`}
+                onClick={() => scrollTo(i)}
+                aria-label={`Fotka ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Desktop: 2+4 grid ── */}
+      <div className="hidden sm:grid grid-cols-4 grid-rows-2 gap-2 h-[420px] sm:h-[520px] rounded-2xl overflow-hidden mb-8">
         {/* Main large photo */}
         <div
           className="col-span-2 row-span-2 relative cursor-pointer group"
@@ -45,7 +110,6 @@ export default function HotelGallery({ photos, name }: Props) {
             <Image src={photo} alt={`${name} ${i + 2}`} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.05]" sizes="25vw" />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
 
-            {/* "Show all" overlay on last visible thumb */}
             {i === 3 && hidden > 0 && (
               <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-1">
                 <Grid2x2 className="w-6 h-6 text-white" />
@@ -55,20 +119,18 @@ export default function HotelGallery({ photos, name }: Props) {
           </div>
         ))}
 
-        {/* Fewer than 5 photos — fill empty slots */}
         {thumbs.length < 4 && Array.from({ length: 4 - thumbs.length }).map((_, i) => (
           <div key={`empty-${i}`} className="bg-gray-100" />
         ))}
       </div>
 
 
-      {/* Lightbox */}
+      {/* ── Lightbox ── */}
       {lightbox !== null && (
         <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
           onClick={close}
         >
-          {/* Close */}
           <button
             onClick={close}
             className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
@@ -76,12 +138,10 @@ export default function HotelGallery({ photos, name }: Props) {
             <X className="w-6 h-6" />
           </button>
 
-          {/* Counter */}
           <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium">
             {lightbox + 1} / {photos.length}
           </div>
 
-          {/* Prev */}
           <button
             onClick={e => { e.stopPropagation(); prev() }}
             className="absolute left-4 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
@@ -89,7 +149,6 @@ export default function HotelGallery({ photos, name }: Props) {
             <ChevronLeft className="w-6 h-6" />
           </button>
 
-          {/* Image */}
           <div
             className="relative w-full max-w-5xl max-h-[85vh] mx-16"
             style={{ aspectRatio: '16/10' }}
@@ -105,7 +164,6 @@ export default function HotelGallery({ photos, name }: Props) {
             />
           </div>
 
-          {/* Next */}
           <button
             onClick={e => { e.stopPropagation(); next() }}
             className="absolute right-4 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
@@ -113,22 +171,19 @@ export default function HotelGallery({ photos, name }: Props) {
             <ChevronRight className="w-6 h-6" />
           </button>
 
-          {/* Thumbnail strip */}
-          {photos.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 max-w-[80vw] overflow-x-auto px-2 pb-1">
-              {photos.map((p, i) => (
-                <button
-                  key={p}
-                  onClick={e => { e.stopPropagation(); setLightbox(i) }}
-                  className={`relative flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${
-                    i === lightbox ? 'border-white' : 'border-transparent opacity-60 hover:opacity-90'
-                  }`}
-                >
-                  <Image src={p} alt="" fill className="object-cover" sizes="56px" />
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 max-w-[80vw] overflow-x-auto px-2 pb-1">
+            {photos.map((p, i) => (
+              <button
+                key={p}
+                onClick={e => { e.stopPropagation(); setLightbox(i) }}
+                className={`relative flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${
+                  i === lightbox ? 'border-white' : 'border-transparent opacity-60 hover:opacity-90'
+                }`}
+              >
+                <Image src={p} alt="" fill className="object-cover" sizes="56px" />
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </>

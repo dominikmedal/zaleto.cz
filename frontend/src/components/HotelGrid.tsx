@@ -68,7 +68,7 @@ export default function HotelGrid({ hotels: initial, pagination: initialPag, adu
     if (!el || view === 'map') return
     const obs = new IntersectionObserver(
       entries => { if (entries[0].isIntersecting) loadMore() },
-      { rootMargin: '300px' }
+      { rootMargin: '900px' }
     )
     obs.observe(el)
     return () => obs.disconnect()
