@@ -9,11 +9,12 @@ router.get('/', (req, res) => {
       destination, date_from, date_to,
       adults, duration, min_price, max_price,
       stars, meal_plan, transport, tour_type, departure_city,
-      sort = 'price_asc', page = '1', limit = '24', view,
+      sort = 'price_asc', page = '1', limit = '24', view, known_total,
     } = req.query
 
-    const pageNum = Math.max(1, parseInt(page) || 1)
+    const pageNum  = Math.max(1, parseInt(page) || 1)
     const limitNum = Math.min(96, Math.max(1, parseInt(limit) || 24))
+    const knownTotal = known_total ? parseInt(known_total) : null
     const offset = (pageNum - 1) * limitNum
 
     // Build filter conditions
@@ -137,7 +138,10 @@ router.get('/', (req, res) => {
     `
 
     const allParamsWithHaving = [...allParams, ...havingParams]
-    const { total } = db.prepare(countSql).get(allParamsWithHaving)
+    // Přeskočit COUNT na stránkách 2+ pokud frontend posílá known_total
+    const total = (knownTotal !== null && pageNum > 1)
+      ? knownTotal
+      : db.prepare(countSql).get(allParamsWithHaving).total
     const hotels = db.prepare(sql).all([...allParamsWithHaving, limitNum, offset])
 
     res.json({

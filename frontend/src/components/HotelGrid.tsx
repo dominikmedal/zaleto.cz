@@ -11,11 +11,20 @@ import { API } from '@/lib/api'
 
 const HotelsMapView = dynamic(() => import('./HotelsMapView'), { ssr: false })
 
-async function fetchPage(sp: URLSearchParams, page: number, limit: number, view?: string): Promise<{ hotels: Hotel[]; pagination: Pagination }> {
+type PageResult = { hotels: Hotel[]; pagination: Pagination }
+
+async function fetchPage(
+  sp: URLSearchParams,
+  page: number,
+  limit: number,
+  view?: string,
+  knownTotal?: number,
+): Promise<PageResult> {
   const params = new URLSearchParams(sp)
   params.set('page', String(page))
   params.set('limit', String(limit))
   if (view === 'list') params.set('view', 'list')
+  if (knownTotal !== undefined && page > 1) params.set('known_total', String(knownTotal))
   const res = await fetch(`${API}/api/hotels?${params.toString()}`)
   if (!res.ok) throw new Error('Failed to fetch hotels')
   return res.json()
@@ -27,25 +36,33 @@ export default function HotelGrid({ hotels: initial, pagination: initialPag, adu
   const [hotels, setHotels]         = useState(initial)
   const [pagination, setPagination] = useState(initialPag)
   const [loading, setLoading]       = useState(false)
-  const sentinelRef = useRef<HTMLDivElement>(null)
+  const sentinelRef  = useRef<HTMLDivElement>(null)
+  const prefetchRef  = useRef<Promise<PageResult> | null>(null)
 
+  // Když přijdou nová data (změna filtrů/URL), resetuj a prefetchni stránku 2
   useEffect(() => {
     setHotels(initial)
     setPagination(initialPag)
-  }, [initial, initialPag])
+    prefetchRef.current = initialPag.hasMore
+      ? fetchPage(sp, 2, initialPag.limit, view, initialPag.total).catch(() => null) as Promise<PageResult>
+      : null
+  }, [initial, initialPag]) // sp a view záměrně vynechány — mění se spolu s initial/initialPag
 
   const prevViewRef = useRef(view)
   useEffect(() => {
     const prev = prevViewRef.current
     prevViewRef.current = view
     if (view === prev) return
-    // Re-fetch only when switching to/from list (extra fields needed)
     if (view !== 'list' && prev !== 'list') return
+    prefetchRef.current = null
     setLoading(true)
     fetchPage(sp, 1, initialPag.limit, view)
       .then(({ hotels: next, pagination: nextPag }) => {
         setHotels(next)
         setPagination(nextPag)
+        prefetchRef.current = nextPag.hasMore
+          ? fetchPage(sp, 2, nextPag.limit, view, nextPag.total).catch(() => null) as Promise<PageResult>
+          : null
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -55,9 +72,20 @@ export default function HotelGrid({ hotels: initial, pagination: initialPag, adu
     if (loading || !pagination.hasMore) return
     setLoading(true)
     try {
-      const { hotels: next, pagination: nextPag } = await fetchPage(sp, pagination.page + 1, pagination.limit, view)
+      const nextPage = pagination.page + 1
+      // Použij prefetchovaná data pokud jsou k dispozici
+      const pending = prefetchRef.current
+      prefetchRef.current = null
+      const { hotels: next, pagination: nextPag } = await (
+        pending ?? fetchPage(sp, nextPage, pagination.limit, view, pagination.total)
+      )
       setHotels(prev => [...prev, ...next])
       setPagination(nextPag)
+      // Okamžitě prefetchni další stránku
+      if (nextPag.hasMore) {
+        prefetchRef.current = fetchPage(sp, nextPag.page + 1, nextPag.limit, view, nextPag.total)
+          .catch(() => null) as Promise<PageResult>
+      }
     } catch { /* ignore */ } finally {
       setLoading(false)
     }
