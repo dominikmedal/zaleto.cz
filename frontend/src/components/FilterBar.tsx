@@ -127,6 +127,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
     if (stateKey === lastPushedKey.current) return
     const timer = setTimeout(() => {
       lastPushedKey.current = stateKey
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       startTransition(() => router.push(`${pathname}?${buildParams().toString()}`))
     }, 350)
     return () => clearTimeout(timer)

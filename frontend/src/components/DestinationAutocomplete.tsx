@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Check, Globe, Hotel } from 'lucide-react'
 import { PiMagnifyingGlass } from 'react-icons/pi'
@@ -128,6 +128,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
   const [hotelResults, setHotelResults] = useState<HotelResult[]>([])
   const [phIdx,        setPhIdx]        = useState(0)
   const [phVisible,    setPhVisible]    = useState(true)
+  const [, startDropdownTransition] = useTransition()
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef     = useRef<HTMLInputElement>(null)
   const listRef      = useRef<HTMLDivElement>(null)
@@ -313,7 +314,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
             ? 'border-[#008afe] ring-2 ring-[#008afe]/12 shadow-[0_0_0_4px_rgba(0,138,254,0.06)]'
             : 'border-gray-200 hover:border-[#008afe]/40'
         }`}
-        onClick={() => { setOpen(true); inputRef.current?.focus() }}
+        onClick={() => { inputRef.current?.focus(); startDropdownTransition(() => setOpen(true)) }}
       >
         <PiMagnifyingGlass className={`w-4 h-4 flex-shrink-0 ml-0.5 transition-colors ${open ? 'text-[#008afe]' : 'text-gray-400'}`} />
 
@@ -341,8 +342,8 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
             type="text"
             value={query}
             placeholder=""
-            onChange={e => { setQuery(e.target.value); setOpen(true); setHighlighted(-1) }}
-            onFocus={() => setOpen(true)}
+            onChange={e => { setQuery(e.target.value); startDropdownTransition(() => setOpen(true)); setHighlighted(-1) }}
+            onFocus={() => startDropdownTransition(() => setOpen(true))}
             onKeyDown={handleKeyDown}
             className="absolute inset-0 w-full text-sm outline-none bg-transparent py-0.5"
           />

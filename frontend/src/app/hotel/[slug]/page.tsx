@@ -492,9 +492,14 @@ export default async function HotelDetailPage({ params }: Props) {
 
         {/* ── Available dates — full width ── */}
         <div id="terminy" className="mt-12 scroll-mt-[140px]">
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-6 flex-wrap">
             <h2 className="text-xl font-bold text-gray-900">Dostupné termíny</h2>
             <span className="text-sm font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">{tours.length}</span>
+            {hotel.updated_at && (
+              <span className="text-xs text-gray-400 ml-auto">
+                Aktualizováno {new Date(hotel.updated_at).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+            )}
           </div>
           <TourDatesList tours={tours} slug={params.slug} />
         </div>

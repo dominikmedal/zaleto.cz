@@ -72,9 +72,10 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
     }
   })()
 
-  const [activeIdx,  setActiveIdx]  = useState(0)
-  const [hovered,    setHovered]    = useState(false)
-  const [modalOpen,  setModalOpen]  = useState(false)
+  const [activeIdx,   setActiveIdx]   = useState(0)
+  const [hovered,     setHovered]     = useState(false)
+  const [modalOpen,   setModalOpen]   = useState(false)
+  const [navigating,  setNavigating]  = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -92,7 +93,7 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
 
   return (
     <>
-    <Link href={`/hotel/${hotel.slug}`} className="group block">
+    <Link href={`/hotel/${hotel.slug}`} className="group block" onClick={() => setNavigating(true)}>
       <article
         className="bg-white border border-gray-100 hover:border-[#008afe]/25 hover:shadow-md rounded-2xl overflow-hidden transition-all duration-200 flex flex-col sm:flex-row sm:min-h-[200px]"
         onMouseEnter={() => setHovered(true)}
@@ -117,6 +118,13 @@ export default function HotelListRow({ hotel, adults = 2 }: { hotel: Hotel; adul
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
               <PiBuildings className="w-12 h-12 text-blue-200" />
+            </div>
+          )}
+
+          {/* Navigation loader overlay */}
+          {navigating && (
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-20">
+              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             </div>
           )}
 
