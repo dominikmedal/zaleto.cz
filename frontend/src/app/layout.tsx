@@ -36,6 +36,9 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     images: ['/img/og-image.png'],
   },
+  other: {
+    'seznam-wmt': 'Df94Kp7QclEF2TM20GiaoZke9NSmOCCb',
+  },
   robots: {
     index: true,
     follow: true,
