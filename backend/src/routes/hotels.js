@@ -380,13 +380,22 @@ router.get('/search', (req, res) => {
   try {
     const q = String(req.query.q || '').trim()
     if (q.length < 2) return res.json([])
+    // Deduplikace: hotely se stejným canonical_slug jsou jeden hotel od více CK.
+    // Vrátíme canonical_slug jako slug (pokud existuje), jinak vlastní slug.
+    // MIN(h.stars DESC) = preferujeme záznam s nejvyšším počtem hvězd pro metadata.
     const rows = db.prepare(`
-      SELECT h.slug, h.name, h.country, h.resort_town, h.stars, h.thumbnail_url
+      SELECT
+        COALESCE(h.canonical_slug, h.slug) AS slug,
+        MIN(h.name)          AS name,
+        MIN(h.country)       AS country,
+        MIN(h.resort_town)   AS resort_town,
+        MAX(h.stars)         AS stars,
+        MIN(h.thumbnail_url) AS thumbnail_url
       FROM hotels h
       INNER JOIN tours t ON t.hotel_id = h.id AND t.price > 0
       WHERE h.name LIKE ?
-      GROUP BY h.id
-      ORDER BY h.name ASC
+      GROUP BY COALESCE(h.canonical_slug, h.slug)
+      ORDER BY name ASC
       LIMIT 6
     `).all(`%${q}%`)
     res.json(rows)
