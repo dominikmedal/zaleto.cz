@@ -3,6 +3,7 @@ const express = require('express')
 const cors = require('cors')
 const helmet = require('helmet')
 const compression = require('compression')
+const rateLimit = require('express-rate-limit')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -34,7 +35,14 @@ const contactRouter        = require('./routes/contact')
 
 app.use('/api/hotels', hotelsRouter)
 app.use('/api/hotels/:slug/tours', toursRouter)
-app.use('/api/redirect', redirectRouter)
+const redirectLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minut
+  max: 30,                   // max 30 redirectů na IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Příliš mnoho požadavků, zkuste to za chvíli.' },
+})
+app.use('/api/redirect', redirectLimiter, redirectRouter)
 app.use('/api/destination-photo', destPhotosRouter)
 app.use('/api/contact', contactRouter)
 app.use('/api', metaRouter)

@@ -818,7 +818,12 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
 
     logger.info(f"Letiště: {airports}")
 
+    SKIP_PATTERNS = ("vikend", "weekend", "letecky-vikend")
+
     for i, url in enumerate(hotel_urls, 1):
+        if any(p in url.lower() for p in SKIP_PATTERNS):
+            logger.debug(f"[{i}/{len(hotel_urls)}] přeskakuji (víkend): {url.split('?')[0]}")
+            continue
         if url in done_urls:
             logger.info(f"[{i}/{len(hotel_urls)}] ✓ checkpoint: {url.split('?')[0]}")
             continue
