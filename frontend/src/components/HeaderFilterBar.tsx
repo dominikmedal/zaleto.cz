@@ -21,6 +21,7 @@ const PLACEHOLDER_CYCLE = [
   'Kam chcete letět?',
   'Zkuste Egypt…',
   'Zkuste Řecko…',
+  'Zadejte název hotelu…',
   'Zkuste Turecko…',
   'Zkuste Španělsko…',
   'Zkuste Chorvatsko…',
@@ -252,6 +253,9 @@ export default function HeaderFilterBar() {
     }
   }, [meta])
 
+  // Pre-fetch destinations on mount so they're ready when user clicks
+  useEffect(() => { loadDest() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const openPanel = useCallback((panel: 'dest' | 'date' | 'adv') => {
     setActivePanel(p => p === panel ? null : panel)
     if (panel === 'dest') loadDest()
@@ -451,19 +455,14 @@ export default function HeaderFilterBar() {
       {/* ══ Destination dropdown ══ */}
       {activePanel === 'dest' && (
         <div className="absolute top-full left-0 right-0 mt-2.5 bg-white rounded-2xl border border-gray-100 shadow-2xl shadow-black/8 z-50 p-3">
-          {!destLoaded ? (
-            <div className="flex justify-center py-8">
-              <PiSpinner className="w-5 h-5 text-[#008afe] animate-spin" />
-            </div>
-          ) : (
-            <DestinationAutocomplete
-              destinations={destRows}
-              value={destination}
-              onChange={setDestination}
-              noLabel
-              defaultOpen
-            />
-          )}
+          <DestinationAutocomplete
+            destinations={destRows}
+            value={destination}
+            onChange={setDestination}
+            noLabel
+            defaultOpen
+            loading={!destLoaded}
+          />
         </div>
       )}
 

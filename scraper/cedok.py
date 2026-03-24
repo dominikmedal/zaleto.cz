@@ -52,19 +52,53 @@ logger = logging.getLogger("cedok")
 
 # Výchozí destinační slugy pro vyhledávání
 DEFAULT_DEST_SLUGS = [
-    "egypt", "kreta", "rhodos", "korfu", "kos", "zakynthos", "thassos",
-    "lesbos", "atheny", "kanarske-ostrovy", "fuerteventura", "tenerife",
-    "gran-canaria", "lanzarote", "thajsko", "bulharsko", "tunisko",
+    # Egypt
+    "egypt",
+    # Turecko
+    "turecko", "turecko-egejska-riviera", "turecko-stredozemni-riviera",
+    "turecko-bodrum", "turecko-istanbul",
+    # Španělsko + ostrovy
+    "spanelsko", "mallorca", "ibiza", "menorca", "costa-brava", "costa-del-sol",
+    # Řecko — ostrovy + pevnina
+    "recko", "kreta", "rhodos", "korfu", "kos", "zakynthos", "thassos",
+    "lesbos", "atheny", "mykonos", "santorini", "kefalonie",
+    # Kypr
+    "kypr",
+    # Chorvatsko
+    "chorvatsko",
+    # Itálie
+    "italie",
+    # Kanárské ostrovy
+    "kanarske-ostrovy", "fuerteventura", "tenerife", "gran-canaria", "lanzarote",
+    # Ostatní oblíbené
+    "thajsko", "bulharsko", "tunisko",
     "dominikanska-republika", "albanie", "kena", "maledivy", "zanzibar",
     "mexiko", "kuba", "mauricius", "kapverdske-ostrovy", "madeira",
     "maroko", "jordansko", "bali", "srilanka", "vietnam",
 ]
 
 COUNTRY_MAP = {
-    "egypt": "Egypt", "recko": "Řecko", "kreta": "Řecko/Kréta",
+    "egypt": "Egypt",
+    "turecko": "Turecko",
+    "turecko-egejska-riviera": "Turecko/Egejská riviéra",
+    "turecko-stredozemni-riviera": "Turecko/Středomořská riviéra",
+    "turecko-bodrum": "Turecko/Bodrum",
+    "turecko-istanbul": "Turecko/Istanbul",
+    "spanelsko": "Španělsko",
+    "mallorca": "Španělsko/Mallorca",
+    "ibiza": "Španělsko/Ibiza",
+    "menorca": "Španělsko/Menorca",
+    "costa-brava": "Španělsko/Costa Brava",
+    "costa-del-sol": "Španělsko/Costa del Sol",
+    "recko": "Řecko", "kreta": "Řecko/Kréta",
     "rhodos": "Řecko/Rhodos", "korfu": "Řecko/Korfu", "kos": "Řecko/Kos",
     "zakynthos": "Řecko/Zakynthos", "thassos": "Řecko/Thassos",
     "lesbos": "Řecko/Lesbos", "atheny": "Řecko/Athény",
+    "mykonos": "Řecko/Mykonos", "santorini": "Řecko/Santorini",
+    "kefalonie": "Řecko/Kefalonie",
+    "kypr": "Kypr",
+    "chorvatsko": "Chorvatsko",
+    "italie": "Itálie",
     "kanarske-ostrovy": "Kanárské ostrovy", "fuerteventura": "Kanárské ostrovy/Fuerteventura",
     "tenerife": "Kanárské ostrovy/Tenerife", "gran-canaria": "Kanárské ostrovy/Gran Canaria",
     "lanzarote": "Kanárské ostrovy/Lanzarote", "thajsko": "Thajsko",
@@ -165,7 +199,9 @@ class ZaletoDB:
                 pass
         for col, typ in [("is_last_minute", "INTEGER DEFAULT 0"),
                          ("is_first_minute", "INTEGER DEFAULT 0"),
-                         ("departure_city", "TEXT")]:
+                         ("departure_city", "TEXT"),
+                         ("price_single", "REAL"),
+                         ("url_single", "TEXT")]:
             try:
                 self.conn.execute(f"ALTER TABLE tours ADD COLUMN {col} {typ}")
                 self.conn.commit()
@@ -255,6 +291,13 @@ class ZaletoDB:
             int(t.get("is_first_minute", False)),
             t.get("departure_city", ""),
         ))
+
+    def update_single_price(self, two_adult_url: str, price_single: float, url_single: str):
+        """Aktualizuje cenu pro 1 dospělého na existujícím termínu (matchuje dle 2-adult URL)."""
+        self.conn.execute(
+            "UPDATE tours SET price_single = ?, url_single = ?, updated_at = datetime('now') WHERE url = ?",
+            (price_single, url_single, two_adult_url),
+        )
 
     def commit(self):
         self.conn.commit()
@@ -664,7 +707,7 @@ def _parse_hotel_info(html: str) -> dict:
     return info
 
 
-def _parse_hotel_dates(html: str, hotel_url: str) -> list[dict]:
+def _parse_hotel_dates(html: str, hotel_url: str, adults: int = ADULTS) -> list[dict]:
     """
     Extrahuje všechny dostupné termíny z hotelové detail stránky.
     Data jsou v RSC chunks v sekci "dates":{...}.
@@ -691,7 +734,7 @@ def _parse_hotel_dates(html: str, hotel_url: str) -> list[dict]:
 
         for m in matches:
             offer_id, begin_date, end_date, days_str, nights_str, dep_id, dep_title, meal, room_code, price_str = m
-            price = float(price_str) / ADULTS  # RSC vrací celkovou cenu za skupinu
+            price = float(price_str) / adults  # RSC vrací celkovou cenu za skupinu
             nights = int(nights_str) or max(1, int(days_str) - 1)
 
             dep_city = _clean_city(dep_title)
@@ -705,7 +748,7 @@ def _parse_hotel_dates(html: str, hotel_url: str) -> list[dict]:
 
             hotel_base = hotel_url.rstrip("/") + "/"
             encoded_id = urllib.parse.quote(offer_id, safe="")
-            tour_url = f"{hotel_base}?id={encoded_id}&participants[0][adults]={ADULTS}"
+            tour_url = f"{hotel_base}?id={encoded_id}&participants[0][adults]={adults}"
             is_lm, is_fm = _detect_tour_type(begin_date, [])
 
             tours.append({
@@ -715,7 +758,7 @@ def _parse_hotel_dates(html: str, hotel_url: str) -> list[dict]:
                 "price":          price,
                 "transport":      f"letecky {dep_id}",
                 "meal_plan":      meal,
-                "adults":         ADULTS,
+                "adults":         adults,
                 "room_code":      room_code,
                 "url":            tour_url,
                 "departure_city": dep_city,
@@ -809,6 +852,18 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
                         except Exception:
                             pass
                     db.commit()
+
+                    # Fetch ceny pro 1 dospělého
+                    single_html = _get(session, hotel_url + "?participants[0][adults]=1")
+                    if single_html:
+                        single_tours = _parse_hotel_dates(single_html, hotel_url, adults=1)
+                        for st in single_tours:
+                            # Odvoď 2-adult URL (klíč) z 1-adult URL
+                            two_url = st["url"].replace("participants[0][adults]=1", f"participants[0][adults]={ADULTS}")
+                            db.update_single_price(two_url, st["price"], st["url"])
+                        db.commit()
+                        time.sleep(delay / 3)
+
                     logger.info(f"  ✓ {hotel_dict['name']} ⭐{hotel_dict['stars']} — {saved} termínů")
                 else:
                     # Fallback: ulož aspoň best offer z výsledků hledání

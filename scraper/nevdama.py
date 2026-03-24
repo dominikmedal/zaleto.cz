@@ -1,16 +1,19 @@
 """
-Fischer.cz scraper — píše přímo do zaleto.db (normalizované schéma hotels + tours).
+Nev-Dama scraper — píše přímo do zaleto.db (normalizované schéma hotels + tours).
+
+Stejná platforma jako Fischer / Exim Tours (derTouristik / abnbHotelDetail),
+liší se BASE_URL, AGENCY a tím, že embedded JSON má wrapper hotelDetailInfo.
 
 Pipeline na hotel:
-  1. GET hotel URL → embedded JSON (server-side rendered)
+  1. GET hotel URL + ?TO={airport} → embedded JSON (server-side rendered)
   2. Extrakce: hotelDataKey, destinationIds, transportOrigin, sezóna, ...
   3. POST /api/SearchOffer/GetOfferWithOptions → všechny dostupné termíny
   4. Upsert hotel → zaleto.hotels, upsert termíny → zaleto.tours
 
 Použití:
-  python fischer.py                  # stáhne všechny hotely ze sitemapy
-  python fischer.py --limit 20       # jen prvních 20 hotelů (test)
-  python fischer.py --delay 2.0      # pauza 2s mezi hotely
+  python nevdama.py                  # stáhne všechny hotely ze sitemapy
+  python nevdama.py --limit 20       # jen prvních 20 hotelů (test)
+  python nevdama.py --delay 2.0      # pauza 2s mezi hotely
 """
 
 import argparse
@@ -32,8 +35,8 @@ import requests
 # Konfigurace
 # ---------------------------------------------------------------------------
 
-BASE_URL = "https://www.fischer.cz"
-AGENCY   = "Fischer"
+BASE_URL = "https://www.nev-dama.cz"
+AGENCY   = "Nev-Dama"
 
 DEFAULT_DB = str(Path(__file__).resolve().parent.parent / "data" / "zaleto.db")
 DB_PATH    = os.environ.get("DATABASE_PATH", DEFAULT_DB)
@@ -43,7 +46,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
     datefmt="%H:%M:%S",
 )
-logger = logging.getLogger("fischer")
+logger = logging.getLogger("nevdama")
 
 
 # ---------------------------------------------------------------------------
@@ -51,42 +54,39 @@ logger = logging.getLogger("fischer")
 # ---------------------------------------------------------------------------
 
 def slugify(text: str) -> str:
-    text = unicodedata.normalize("NFD", text.lower())
-    text = "".join(c for c in text if unicodedata.category(c) != "Mn")
-    text = re.sub(r"[^a-z0-9\s-]", "", text)
-    text = re.sub(r"[\s]+", "-", text.strip())
-    text = re.sub(r"-+", "-", text)
-    return text
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    text = re.sub(r"[^\w\s-]", "", text).strip().lower()
+    return re.sub(r"[\s_-]+", "-", text)
 
 
 # ---------------------------------------------------------------------------
-# DB — přímá práce se zaleto.db
+# DB helpers (stejné schéma jako Fischer / Exim Tours)
 # ---------------------------------------------------------------------------
 
 class ZaletoDB:
-    def __init__(self, path: str = DB_PATH):
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        self.conn = sqlite3.connect(path, check_same_thread=False)
+    def __init__(self):
+        Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
+        self.conn = sqlite3.connect(DB_PATH, timeout=30)
         self.conn.execute("PRAGMA journal_mode = WAL")
         self.conn.execute("PRAGMA foreign_keys = ON")
-        self._ensure_schema()
-        logger.info(f"DB: {path}")
+        self.conn.row_factory = sqlite3.Row
+        self._migrate()
 
-    def _ensure_schema(self):
-        self.conn.executescript("""
+    def _migrate(self):
+        self.conn.execute("""
             CREATE TABLE IF NOT EXISTS hotels (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 slug TEXT UNIQUE NOT NULL,
-                agency TEXT NOT NULL DEFAULT 'Fischer',
+                agency TEXT NOT NULL,
                 name TEXT NOT NULL,
                 country TEXT,
                 destination TEXT,
                 resort_town TEXT,
                 stars INTEGER,
+                review_score REAL,
                 description TEXT,
                 thumbnail_url TEXT,
                 photos TEXT,
-                review_score REAL,
                 amenities TEXT,
                 tags TEXT,
                 distances TEXT,
@@ -94,15 +94,17 @@ class ZaletoDB:
                 price_includes TEXT,
                 latitude REAL,
                 longitude REAL,
+                api_config TEXT,
+                canonical_slug TEXT,
                 created_at TEXT DEFAULT (datetime('now')),
                 updated_at TEXT DEFAULT (datetime('now'))
-            );
-
-
+            )
+        """)
+        self.conn.execute("""
             CREATE TABLE IF NOT EXISTS tours (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 hotel_id INTEGER NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
-                agency TEXT NOT NULL DEFAULT 'Fischer',
+                agency TEXT NOT NULL,
                 departure_date TEXT,
                 return_date TEXT,
                 duration INTEGER,
@@ -114,101 +116,84 @@ class ZaletoDB:
                 url TEXT UNIQUE NOT NULL,
                 is_last_minute INTEGER DEFAULT 0,
                 is_first_minute INTEGER DEFAULT 0,
+                departure_city TEXT,
+                price_single REAL,
+                url_single TEXT,
                 created_at TEXT DEFAULT (datetime('now')),
                 updated_at TEXT DEFAULT (datetime('now'))
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_tours_hotel      ON tours(hotel_id);
-            CREATE INDEX IF NOT EXISTS idx_tours_departure  ON tours(departure_date);
-            CREATE INDEX IF NOT EXISTS idx_tours_price      ON tours(price);
-            CREATE INDEX IF NOT EXISTS idx_hotels_slug      ON hotels(slug);
-            CREATE INDEX IF NOT EXISTS idx_hotels_destination ON hotels(destination);
-            CREATE INDEX IF NOT EXISTS idx_hotels_country   ON hotels(country);
+            )
         """)
-        # Migration: přidej nové sloupce do existující DB
-        for col, typ in [("photos", "TEXT"), ("review_score", "REAL"),
-                         ("tags", "TEXT"), ("distances", "TEXT"),
-                         ("api_config", "TEXT")]:
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS hotel_stats (
+                hotel_id INTEGER PRIMARY KEY REFERENCES hotels(id) ON DELETE CASCADE,
+                min_price REAL,
+                max_price REAL,
+                available_dates INTEGER DEFAULT 0,
+                next_departure TEXT,
+                has_last_minute INTEGER DEFAULT 0,
+                has_first_minute INTEGER DEFAULT 0,
+                updated_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS hotel_checkpoints (
+                agency TEXT NOT NULL,
+                hotel_url TEXT NOT NULL,
+                cycle_date TEXT NOT NULL,
+                PRIMARY KEY (agency, hotel_url)
+            )
+        """)
+        for idx in [
+            "CREATE INDEX IF NOT EXISTS idx_tours_hotel   ON tours(hotel_id)",
+            "CREATE INDEX IF NOT EXISTS idx_tours_dep     ON tours(departure_date)",
+            "CREATE INDEX IF NOT EXISTS idx_tours_price   ON tours(price)",
+            "CREATE INDEX IF NOT EXISTS idx_hotels_slug   ON hotels(slug)",
+            "CREATE INDEX IF NOT EXISTS idx_hotel_stats_p ON hotel_stats(min_price)",
+        ]:
             try:
-                self.conn.execute(f"ALTER TABLE hotels ADD COLUMN {col} {typ}")
-                self.conn.commit()
-            except Exception:
-                pass  # sloupec už existuje
-        for col, typ in [("is_last_minute", "INTEGER DEFAULT 0"),
-                         ("is_first_minute", "INTEGER DEFAULT 0"),
-                         ("departure_city", "TEXT"),
-                         ("price_single", "REAL"),
-                         ("url_single", "TEXT")]:
-            try:
-                self.conn.execute(f"ALTER TABLE tours ADD COLUMN {col} {typ}")
-                self.conn.commit()
+                self.conn.execute(idx)
             except Exception:
                 pass
 
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS hotel_checkpoints (
-                agency     TEXT NOT NULL,
-                key        TEXT NOT NULL,
-                cycle_date TEXT NOT NULL,
-                PRIMARY KEY (agency, key, cycle_date)
-            )
-        """)
+        # Runtime migrations pro starší DB
+        existing = {r[1] for r in self.conn.execute("PRAGMA table_info(tours)")}
+        for col, typ in [("price_single", "REAL"), ("url_single", "TEXT"),
+                         ("departure_city", "TEXT"), ("is_last_minute", "INTEGER DEFAULT 0"),
+                         ("is_first_minute", "INTEGER DEFAULT 0")]:
+            if col not in existing:
+                try:
+                    self.conn.execute(f"ALTER TABLE tours ADD COLUMN {col} {typ}")
+                except Exception:
+                    pass
         self.conn.commit()
 
-    def get_done_keys(self, agency: str) -> set:
-        today = datetime.now().strftime("%Y-%m-%d")
-        rows = self.conn.execute(
-            "SELECT key FROM hotel_checkpoints WHERE agency = ? AND cycle_date = ?",
-            (agency, today),
-        ).fetchall()
-        return {r[0] for r in rows}
-
-    def mark_done(self, agency: str, key: str):
-        today = datetime.now().strftime("%Y-%m-%d")
-        self.conn.execute(
-            "INSERT OR IGNORE INTO hotel_checkpoints (agency, key, cycle_date) VALUES (?, ?, ?)",
-            (agency, key, today),
-        )
-        self.conn.commit()
-
-    def upsert_hotel(self, slug: str, data: dict) -> int:
-        """Vloží nebo aktualizuje hotel. Vrací hotel_id."""
+    def upsert_hotel(self, slug: str, h: dict) -> int:
         self.conn.execute("""
             INSERT INTO hotels (slug, agency, name, country, destination, resort_town,
-                                stars, review_score, description, thumbnail_url, photos,
-                                amenities, tags, distances, food_options, price_includes,
-                                latitude, longitude, api_config, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                stars, review_score, description, thumbnail_url, photos, amenities, tags,
+                distances, food_options, price_includes, latitude, longitude, api_config,
+                canonical_slug, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, datetime('now'))
             ON CONFLICT(slug) DO UPDATE SET
-                agency        = excluded.agency,
-                name          = excluded.name,
-                country       = excluded.country,
-                destination   = excluded.destination,
-                resort_town   = excluded.resort_town,
-                stars         = excluded.stars,
-                review_score  = excluded.review_score,
-                description   = excluded.description,
-                thumbnail_url = excluded.thumbnail_url,
-                photos        = excluded.photos,
-                amenities     = excluded.amenities,
-                tags          = excluded.tags,
-                distances     = excluded.distances,
-                food_options  = excluded.food_options,
-                price_includes = excluded.price_includes,
-                latitude      = excluded.latitude,
-                longitude     = excluded.longitude,
-                api_config    = excluded.api_config,
-                updated_at    = datetime('now')
+                agency=excluded.agency, name=excluded.name, country=excluded.country,
+                destination=excluded.destination, resort_town=excluded.resort_town,
+                stars=excluded.stars, review_score=excluded.review_score,
+                description=excluded.description, thumbnail_url=excluded.thumbnail_url,
+                photos=excluded.photos, amenities=excluded.amenities, tags=excluded.tags,
+                distances=excluded.distances, food_options=excluded.food_options,
+                price_includes=excluded.price_includes, latitude=excluded.latitude,
+                longitude=excluded.longitude, api_config=excluded.api_config,
+                updated_at=datetime('now')
         """, (
-            slug, AGENCY, data["name"], data["country"], data["destination"],
-            data["resort_town"], data["stars"], data["review_score"],
-            data["description"], data["thumbnail_url"], data["photos"],
-            data["amenities"], data["tags"], data["distances"],
-            data["food_options"], data["price_includes"],
-            data["latitude"], data["longitude"], data["api_config"],
+            slug, AGENCY,
+            h["name"], h["country"], h["destination"], h["resort_town"],
+            h["stars"], h["review_score"], h["description"],
+            h["thumbnail_url"], h["photos"], h["amenities"], h.get("tags", ""),
+            h.get("distances", ""), h.get("food_options", ""), h.get("price_includes", ""),
+            h["latitude"], h["longitude"], h.get("api_config"),
+            slug,
         ))
-        row = self.conn.execute("SELECT id FROM hotels WHERE slug = ?", (slug,)).fetchone()
-        return row[0]
+        return self.conn.execute("SELECT id FROM hotels WHERE slug = ?", (slug,)).fetchone()[0]
 
     def upsert_tour(self, hotel_id: int, t: dict):
         self.conn.execute("""
@@ -216,23 +201,19 @@ class ZaletoDB:
                                price, transport, meal_plan, adults, room_code, url,
                                is_last_minute, is_first_minute, departure_city,
                                price_single, url_single, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, datetime('now'))
             ON CONFLICT(url) DO UPDATE SET
                 price           = excluded.price,
-                transport       = excluded.transport,
                 meal_plan       = excluded.meal_plan,
-                return_date     = excluded.return_date,
+                departure_city  = excluded.departure_city,
                 is_last_minute  = excluded.is_last_minute,
                 is_first_minute = excluded.is_first_minute,
-                departure_city  = excluded.departure_city,
-                price_single    = excluded.price_single,
-                url_single      = excluded.url_single,
                 updated_at      = datetime('now')
         """, (
             hotel_id, AGENCY,
             t["departure_date"], t["return_date"], t["duration"],
             t["price"], t["transport"], t["meal_plan"],
-            t["adults"], t["room_code"], t["url"],
+            t.get("adults", 2), t.get("room_code"), t["url"],
             int(t.get("is_last_minute", False)),
             int(t.get("is_first_minute", False)),
             t.get("departure_city", ""),
@@ -240,10 +221,32 @@ class ZaletoDB:
             t.get("url_single"),
         ))
 
+    def mark_done(self, url: str):
+        today = datetime.now().strftime("%Y-%m-%d")
+        try:
+            self.conn.execute(
+                "INSERT OR IGNORE INTO hotel_checkpoints (agency, hotel_url, cycle_date) VALUES (?,?,?)",
+                (AGENCY, url, today),
+            )
+        except Exception:
+            pass
+
+    def get_done_keys(self) -> set:
+        today = datetime.now().strftime("%Y-%m-%d")
+        try:
+            rows = self.conn.execute(
+                "SELECT hotel_url FROM hotel_checkpoints WHERE agency = ? AND cycle_date = ?",
+                (AGENCY, today),
+            ).fetchall()
+            return {r[0] for r in rows}
+        except Exception:
+            return set()
+
     def commit(self):
         self.conn.commit()
 
     def close(self):
+        self.conn.commit()
         self.conn.close()
 
 
@@ -254,49 +257,43 @@ class ZaletoDB:
 def _make_session() -> requests.Session:
     s = requests.Session()
     s.headers.update({
-        "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                           "(KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
-        "Accept":          "text/html,application/xhtml+xml,*/*;q=0.8",
-        "Accept-Language": "cs,en;q=0.9",
-        "Referer":         "https://www.fischer.cz/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept-Language": "cs-CZ,cs;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Referer": BASE_URL,
     })
-    try:
-        s.get(BASE_URL, timeout=15)
-    except Exception:
-        pass
     return s
 
 
 # ---------------------------------------------------------------------------
-# Sitemap — seznam hotelů
+# Sitemap
 # ---------------------------------------------------------------------------
 
 def get_hotel_urls(session: requests.Session, limit: int = 0) -> list[str]:
     hdrs = {"Accept": "application/xml,text/xml,*/*", "Content-Type": ""}
     urls = []
 
-    # Stáhni sitemap-hotel-0.xml, sitemap-hotel-1.xml, ... dokud HTTP 200
-    for idx in range(20):  # max 20 souborů
+    for idx in range(20):
         sitemap_url = f"{BASE_URL}/sitemap-hotel-{idx}.xml"
         try:
             r = session.get(sitemap_url, headers=hdrs, timeout=20)
             if r.status_code == 404:
-                break  # žádné další sitemap soubory
+                break
             if r.status_code != 200:
-                logger.debug(f"Fischer sitemap-hotel-{idx}.xml: HTTP {r.status_code}")
+                logger.debug(f"sitemap-hotel-{idx}.xml: HTTP {r.status_code}")
                 break
             found = re.findall(
-                r"<loc>(https://www\.fischer\.cz/(?!sitemap)[^<]+)</loc>", r.text
+                r"<loc>(https://www\.nev-dama\.cz/(?!sitemap)[^<]+)</loc>", r.text
             )
             if not found:
-                break  # prázdný soubor = konec
+                break
             urls.extend(found)
             logger.info(f"  sitemap-hotel-{idx}.xml: {len(found)} URL")
         except Exception as e:
-            logger.debug(f"Fischer sitemap-hotel-{idx}.xml error: {e}")
+            logger.debug(f"sitemap-hotel-{idx}.xml error: {e}")
             break
 
-    # Deduplikace
     seen, result = set(), []
     for u in urls:
         if u not in seen:
@@ -311,7 +308,7 @@ def get_hotel_urls(session: requests.Session, limit: int = 0) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# Embedded JSON parser
+# Embedded JSON parser — stejný div jako Fischer (abnbHotelDetail)
 # ---------------------------------------------------------------------------
 
 class _HotelJsonParser(HTMLParser):
@@ -346,7 +343,6 @@ class _HotelJsonParser(HTMLParser):
                 self._in_target = False
 
 
-# Praha jako výchozí letiště — zajistí že offerFilter.transportOrigin bude vyplněný
 DEFAULT_AIRPORT = 4312  # Praha Václav Havel
 
 AIRPORT_NAMES: dict[int, str] = {
@@ -357,12 +353,11 @@ AIRPORT_NAMES: dict[int, str] = {
 
 
 def _fetch_embedded(session: requests.Session, url: str, airport: int = DEFAULT_AIRPORT) -> dict | None:
-    # Přidej letiště pokud URL nemá TO= parametr
     if "TO=" not in url:
         sep = "&" if "?" in url else "?"
         url = f"{url}{sep}TO={airport}"
     try:
-        r = session.get(url, timeout=20)
+        r = session.get(url, timeout=25)
         if r.status_code != 200:
             logger.warning(f"HTTP {r.status_code}: {url}")
             return None
@@ -373,34 +368,37 @@ def _fetch_embedded(session: requests.Session, url: str, airport: int = DEFAULT_
         logger.debug(f"Embedded JSON nenalezen: {url}")
         return None
     except Exception as e:
-        logger.error(f"Fetch error: {e}")
+        logger.error(f"Fetch error {url}: {e}")
         return None
 
 
 # ---------------------------------------------------------------------------
-# Extrakce parametrů
+# Extrakce parametrů z embedded JSON
 # ---------------------------------------------------------------------------
 
 def _parse_embedded(embedded: dict) -> dict | None:
     try:
-        data_new     = embedded.get("dataNew", {})
-        hotel        = data_new.get("hotel", {})
-        identifiers  = hotel.get("identifiers", {})
-        offer_filter = data_new.get("offerFilter", {})
+        # Nev-Dama (stejně jako Exim) obaluje data do hotelDetailInfo
+        info     = embedded.get("hotelDetailInfo", embedded)
+        data_new = info.get("dataNew") or embedded.get("dataNew") or {}
+        hotel    = data_new.get("hotel", {})
+        identifiers = hotel.get("identifiers", {})
 
         if not identifiers.get("hotelId"):
             return None
 
-        # hotelDataKey — přednostně z offerFilter (nová struktura), fallback na identifiers
-        hotel_data_key = offer_filter.get("hotelDataKey") or {
+        hotel_data_key = {
             "hotelId":    identifiers["hotelId"],
             "giata":      identifiers.get("giata"),
-            "dataSource": identifiers.get("dataSource", 2),
+            "dataSource": identifiers.get("dataSource", 8192),
             "bedBank":    identifiers.get("bedBank"),
             "bedBankID":  identifiers.get("bedBankID"),
         }
 
-        # Parametry zájezdu z offerFilter (nová struktura)
+        offer_filter = info.get("offerFilter") or data_new.get("offerFilter") or {}
+        if not offer_filter:
+            offer_filter = {}
+
         destination_ids  = offer_filter.get("destinationIds", [])
         transport_origin = offer_filter.get("transportOrigin", [])
         meal_code        = offer_filter.get("mealCode", "")
@@ -413,23 +411,38 @@ def _parse_embedded(embedded: dict) -> dict | None:
                                 if t.get("type") == 0]) or 2
         tour_filter_query = offer_filter.get("tourFilterQuery", "")
 
-        # Fallback: destIDs a TO z tourFilterQuery
+        # Fallback přes termsFilter / tourTip
         if not destination_ids or not transport_origin:
-            tip = dict(urllib.parse.parse_qsl(tour_filter_query))
-            if not destination_ids:
-                destination_ids = [int(d) for d in tip.get("D", "").split("|") if d.isdigit()]
-            if not transport_origin and tip.get("TO", "").isdigit():
-                transport_origin = [int(tip["TO"])]
+            terms = info.get("termsFilter") or info.get("tourTip") or tour_filter_query
+            if terms:
+                tip = dict(urllib.parse.parse_qsl(terms))
+                if not destination_ids:
+                    destination_ids = [int(d) for d in tip.get("D", "").split("|") if d.isdigit()]
+                if not transport_origin and tip.get("TO", "").isdigit():
+                    transport_origin = [int(tip["TO"])]
 
-        mfd = offer_filter.get("offerDate", {}).get("mainFilterDates", [])
+        mfd = (offer_filter.get("offerDate") or {}).get("mainFilterDates", [])
         main_from = mfd[0][:10] if len(mfd) > 0 else ""
         main_to   = mfd[1][:10] if len(mfd) > 1 else ""
 
-        package_id = offer_filter.get("packageId", "") or (
-            f"{nights}-{main_from}" if main_from else ""
-        )
+        # Fallback dat z filterParametersDefault
+        if not main_from or not main_to:
+            fp = info.get("filterParametersDefault", "")
+            if fp:
+                fp_params = dict(urllib.parse.parse_qsl(fp))
+                df = fp_params.get("DF", "")
+                if "|" in df:
+                    main_from, main_to = df.split("|", 1)
+                    main_from = main_from[:10]
+                    main_to   = main_to[:10]
+
+        package_id = offer_filter.get("packageId", "")
 
         breadcrumbs = hotel.get("breadcrumbs", [])
+        if not breadcrumbs:
+            dest_list = info.get("destination", [])
+            breadcrumbs = [{"name": d["name"]} for d in dest_list if d.get("name")]
+
         destination = " / ".join(b["name"] for b in breadcrumbs) if breadcrumbs else ""
         resort_town = breadcrumbs[-1]["name"] if breadcrumbs else ""
         country     = breadcrumbs[0]["name"] if breadcrumbs else ""
@@ -437,29 +450,41 @@ def _parse_embedded(embedded: dict) -> dict | None:
         desc_obj    = hotel.get("description", {})
         description = desc_obj.get("mainDescription", "") if desc_obj else ""
         images      = [img["large"] for img in hotel.get("availableImages", []) if img.get("large")]
-        benefits    = [b["title"] for b in hotel.get("mainBenefits", []) if b.get("title")]
 
-        # Geo coordinates — primárně z geoLocation, fallback do detailDescriptions[].map.pins
-        geo      = hotel.get("geoLocation") or hotel.get("geolocation") or {}
+        # Fallback obrázky přes gallery + imageIds
+        if not images:
+            gallery    = hotel.get("gallery", {})
+            image_ids  = gallery.get("imageIds", [])
+            hotel_slug = info.get("url", "").rstrip("/").split("/")[-1] if info.get("url") else ""
+            for iid in image_ids[:10]:
+                images.append(f"https://img.nev-dama.cz/hotels/720/{hotel_slug}/{iid}.jpg")
+
+        benefits = [b["title"] for b in hotel.get("mainBenefits", []) if b.get("title")]
+
+        hotel_equipment = hotel.get("hotelEquipment", {})
+        if isinstance(hotel_equipment, dict):
+            equip_items = hotel_equipment.get("items", []) or []
+            amenities_list = [e.get("name", "") for e in equip_items if e.get("name")]
+        elif isinstance(hotel_equipment, list):
+            amenities_list = [e if isinstance(e, str) else e.get("name", "") for e in hotel_equipment]
+        else:
+            amenities_list = benefits
+
+        geo       = hotel.get("geoLocation") or hotel.get("geolocation") or {}
         latitude  = geo.get("latitude") or geo.get("lat")
         longitude = geo.get("longitude") or geo.get("lng") or geo.get("lon")
-        if not latitude or not longitude:
-            for detail in (hotel.get("description") or {}).get("detailDescriptions", []):
-                pins = (detail.get("map") or {}).get("pins", [])
-                if pins:
-                    latitude  = pins[0].get("latitude")
-                    longitude = pins[0].get("longitude")
-                    break
 
-        # Rating score (Fischer může mít reviewScore nebo ratingValue)
+        if not latitude or not longitude:
+            loc = hotel.get("hotelLocation", {}) or {}
+            latitude  = loc.get("latitude") or loc.get("lat")
+            longitude = loc.get("longitude") or loc.get("lng")
+
         rating_obj   = hotel.get("hotelRating", {}) or {}
-        stars        = rating_obj.get("count")
+        stars        = rating_obj.get("count") or info.get("star")
         review_score = rating_obj.get("ratingValue") or rating_obj.get("reviewScore")
 
-        # Tagy / kategorie hotelu
         tags = [t.get("name", "") for t in hotel.get("tags", []) if t.get("name")]
 
-        # Vzdálenost od pláže / centra
         distances = hotel.get("distances", []) or []
         dist_text = " | ".join(
             f"{d.get('name','')}: {d.get('value','')} {d.get('unit','')}".strip()
@@ -469,12 +494,12 @@ def _parse_embedded(embedded: dict) -> dict | None:
         return {
             "hotel_data_key":    hotel_data_key,
             "hotel_id":          identifiers["hotelId"],
-            "hotel_name":        hotel.get("name", ""),
+            "hotel_name":        hotel.get("name", "") or info.get("identifier", ""),
             "stars":             stars,
             "review_score":      review_score,
             "description":       description,
             "images":            images,
-            "amenities":         ", ".join(benefits),
+            "amenities":         ", ".join(amenities_list),
             "tags":              ", ".join(tags),
             "distances":         dist_text,
             "latitude":          latitude,
@@ -502,16 +527,15 @@ def _parse_embedded(embedded: dict) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
-# API call
+# API call — identický s Fischerem / Exim Tours
 # ---------------------------------------------------------------------------
 
 def _get_offer(session: requests.Session, p: dict,
                date_from: str, date_to: str,
-               adults_count: int | None = None,
                nights_override: int | None = None) -> dict | None:
-    mf_from = f"{p['main_filter_from']}T00:00:00"
-    mf_to   = f"{p['main_filter_to']}T00:00:00"
-    adults  = adults_count if adults_count is not None else p["adults"]
+    mf_from = f"{p['main_filter_from']}T00:00:00" if p['main_filter_from'] else f"{date_from}T00:00:00"
+    mf_to   = f"{p['main_filter_to']}T00:00:00"   if p['main_filter_to']   else f"{date_to}T00:00:00"
+    adults  = p["adults"]
     nights  = nights_override if nights_override is not None else p["nights"]
 
     payload = {
@@ -558,54 +582,21 @@ def _get_offer(session: requests.Session, p: dict,
 # Detekce last minute / first minute
 # ---------------------------------------------------------------------------
 
-LAST_MINUTE_DAYS  = 21   # odjezd do 21 dní → last minute
-FIRST_MINUTE_DAYS = 180  # odjezd za 180+ dní → first minute
+LAST_MINUTE_DAYS  = 21
+FIRST_MINUTE_DAYS = 180
 
-def _detect_tour_type(d: dict, dep_dt: datetime) -> tuple[bool, bool]:
-    """
-    Vrátí (is_last_minute, is_first_minute).
 
-    1) Zkusí Fischer-nativní pole (badges / labels / offerType / tags).
-    2) Fallback: výpočet z dnů do odjezdu v momentu scrape.
-    """
-    today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+def _detect_tour_type(dep_dt: datetime) -> tuple[bool, bool]:
+    today      = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
     days_until = (dep_dt - today).days
-
-    # --- 1) Fischer API pole ---
-    # Fischer občas vrací badges/labels jako seznam objektů nebo stringů
-    raw_badges = (
-        d.get("badges") or d.get("labels") or d.get("tags") or
-        d.get("offerBadges") or d.get("specialOffers") or []
-    )
-    badge_texts: list[str] = []
-    for b in raw_badges:
-        if isinstance(b, dict):
-            badge_texts.append(b.get("name", "") + " " + b.get("type", "") + " " + b.get("code", ""))
-        elif isinstance(b, str):
-            badge_texts.append(b)
-    combined = " ".join(badge_texts).lower()
-
-    offer_type = str(d.get("offerType", "") or "").lower()
-    combined += " " + offer_type
-
-    if "last" in combined or "lastminute" in combined:
-        return True, False
-    if "first" in combined or "early" in combined or "firstminute" in combined:
-        return False, True
-
-    # --- 2) Výpočet z data ---
-    is_last_minute  = 0 <= days_until <= LAST_MINUTE_DAYS
-    is_first_minute = days_until >= FIRST_MINUTE_DAYS
-    return is_last_minute, is_first_minute
+    return 0 <= days_until <= LAST_MINUTE_DAYS, days_until >= FIRST_MINUTE_DAYS
 
 
 # ---------------------------------------------------------------------------
-# Sestavení záznamů pro DB
+# Sestavení záznamů
 # ---------------------------------------------------------------------------
 
-def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name: str = "",
-                           single_price_map: dict | None = None):
-    """Vrátí (hotel_dict, [tour_dict, ...])"""
+def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name: str = ""):
     offer     = api_data.get("offer", {})
     meal_name = offer.get("mealName", p["meal_code"])
     nights    = offer.get("nights", p["nights"])
@@ -622,33 +613,33 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
     flight_opts = api_data.get("flightOptions", [])
     transport   = "letecky"
     if flight_opts:
-        segs    = flight_opts[0].get("outbound", {}).get("flightSegments", [{}])
-        seg     = segs[0] if segs else {}
+        segs     = flight_opts[0].get("outbound", {}).get("flightSegments", [{}])
+        seg      = segs[0] if segs else {}
         dep_code = seg.get("departureAirport", {}).get("code", "?")
         arr_code = seg.get("arrivalAirport", {}).get("code", "?")
         fn       = seg.get("flightNumber", "")
         transport = f"letecky {dep_code}→{arr_code} {fn}".strip()
 
     hotel = {
-        "name":          p["hotel_name"],
-        "country":       p["country"],
-        "destination":   p["destination"],
-        "resort_town":   p["resort_town"],
-        "stars":         int(p["stars"]) if p["stars"] else None,
-        "review_score":  float(p["review_score"]) if p.get("review_score") else None,
-        "description":   p["description"],
-        "thumbnail_url": p["images"][0] if p["images"] else "",
-        "photos":        json.dumps(p["images"]) if p["images"] else "[]",
-        "amenities":     p["amenities"],
-        "tags":          p.get("tags", ""),
-        "distances":     p.get("distances", ""),
-        "food_options":  food_options,
+        "name":           p["hotel_name"],
+        "country":        p["country"],
+        "destination":    p["destination"],
+        "resort_town":    p["resort_town"],
+        "stars":          int(p["stars"]) if p["stars"] else None,
+        "review_score":   float(p["review_score"]) if p.get("review_score") else None,
+        "description":    p["description"],
+        "thumbnail_url":  p["images"][0] if p["images"] else "",
+        "photos":         json.dumps(p["images"]) if p["images"] else "[]",
+        "amenities":      p["amenities"],
+        "tags":           p.get("tags", ""),
+        "distances":      p.get("distances", ""),
+        "food_options":   food_options,
         "price_includes": price_includes,
-        "latitude":      p.get("latitude"),
-        "longitude":     p.get("longitude"),
-        "api_config":    json.dumps({                     # pro live redirect
+        "latitude":       p.get("latitude"),
+        "longitude":      p.get("longitude"),
+        "api_config":     json.dumps({
             **p["_offer_filter"],
-            "_hotelPath": "/" + hotel_url.split("fischer.cz/", 1)[-1].split("?")[0],
+            "_hotelPath": "/" + hotel_url.split("nev-dama.cz/", 1)[-1].split("?")[0],
         }),
     }
 
@@ -656,8 +647,7 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
     tours = []
     for d in api_data.get("availableDates", []):
         raw_date = d.get("date", "")[:10]
-        # pricePerPerson je cena za osobu — to co Fischer zobrazuje na webu
-        price = d.get("pricePerPerson") or d.get("price", 0.0)
+        price    = d.get("pricePerPerson") or d.get("price", 0.0)
         if not raw_date or price <= 0:
             continue
         try:
@@ -666,45 +656,36 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
         except ValueError:
             continue
 
-        # Začni od tourFilterQuery, který Fischer sám používá — má D=, TO=, HID=, RC=, MC=, ...
         params = dict(urllib.parse.parse_qsl(
             p.get("tour_filter_query", ""), keep_blank_values=False
         ))
-
-        # Odstraň časově omezené cache kódy — PC/IFC/OFC kódují konkrétní cenu
-        # platnou v moment scrape a po čase expirují; Fischer pak zobrazí jinou
-        # cenu. Bez nich Fischer vždy spočítá aktuální cenu pro danou konfiguraci.
         for _ep in ("PC", "IFC", "OFC", "DPR", "PID", "GIATA", "ERM", "DS", "TrustYou"):
             params.pop(_ep, None)
 
-        # Přidej / přepiš parametry specifické pro tento termín
         params["DD"]  = raw_date
         params["NN"]  = str(nights)
         params["AC1"] = str(p["adults"])
         params["KC1"] = "0"
         params["TT"]  = "1"
 
-        # Zálohy — pokud tourFilterQuery parametr neměl
         if "D" not in params and p.get("destination_ids"):
-            params["D"] = "|".join(str(d) for d in p["destination_ids"])
+            params["D"] = "|".join(str(x) for x in p["destination_ids"])
         if "TO" not in params and p.get("transport_origin"):
-            params["TO"] = "|".join(str(t) for t in p["transport_origin"])
+            params["TO"] = "|".join(str(x) for x in p["transport_origin"])
         if "HID" not in params and p.get("hotel_id"):
             params["HID"] = str(p["hotel_id"])
-        # Meal code a room code — klíčové pro správnou cenu
         if p.get("meal_code"):
             params["MC"] = p["meal_code"]
         if p.get("room_code"):
             params["RC"] = p["room_code"]
 
-        # Sestav query string — | a , zůstanou nekódované (Fischer to tak očekává)
         qs = "&".join(
             f"{k}={urllib.parse.quote(str(v), safe='|,')}"
             for k, v in params.items() if v
         )
         tour_url = f"{base_url}?{qs}"
 
-        is_lm, is_fm = _detect_tour_type(d, dep_dt)
+        is_lm, is_fm = _detect_tour_type(dep_dt)
 
         tours.append({
             "departure_date":  raw_date,
@@ -727,18 +708,17 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
 
 
 # ---------------------------------------------------------------------------
-# Hlavní scraper
+# Scraping jednoho hotelu
 # ---------------------------------------------------------------------------
 
 def scrape_hotel(session: requests.Session, db: ZaletoDB,
                  hotel_url: str, slug_counter: dict,
                  airports: list[int] | None = None) -> int:
-    """Scrapuje jeden hotel pro všechna zadaná letiště. Vrací počet uložených termínů."""
     if airports is None:
         airports = [DEFAULT_AIRPORT]
 
-    all_tours: list = []
-    hotel_dict = None
+    all_tours:  list = []
+    hotel_dict       = None
 
     for airport in airports:
         embedded = _fetch_embedded(session, hotel_url, airport)
@@ -750,36 +730,34 @@ def scrape_hotel(session: requests.Session, db: ZaletoDB,
             logger.debug(f"Neúplná data pro letiště {airport}: {hotel_url}")
             continue
 
-        airport_name = AIRPORT_NAMES.get(airport, str(airport))
+        airport_name  = AIRPORT_NAMES.get(airport, str(airport))
         airport_tours: list = []
+
         for nights_val in p.get("all_nights", [p["nights"]]):
-            # Full-season request pro daný počet nocí
-            api_data = _get_offer(session, p, p["main_filter_from"], p["main_filter_to"],
+            api_data = _get_offer(session, p, p["main_filter_from"] or "", p["main_filter_to"] or "",
                                   nights_override=nights_val)
 
-            # Fallback na konkrétní datum
             if (not api_data or not api_data.get("availableDates")) and p.get("departure_date"):
                 api_data = _get_offer(session, p, p["departure_date"], p["departure_date"],
                                       nights_override=nights_val)
 
             if not api_data or not api_data.get("availableDates"):
-                logger.debug(f"Žádné termíny pro letiště {airport} ({nights_val} nocí): {p.get('hotel_name', hotel_url)}")
+                logger.debug(f"Žádné termíny pro letiště {airport} ({nights_val} nocí): {hotel_url}")
                 continue
 
             hd, tour_list = _build_hotel_and_tours(hotel_url, p, api_data, airport_name)
             if hotel_dict is None:
-                hotel_dict = hd  # metadata z prvního letiště s daty
+                hotel_dict = hd
             airport_tours.extend(tour_list)
 
         if airport_tours:
             all_tours.extend(airport_tours)
-            logger.debug(f"  Letiště {airport} ({airport_name}): {len(airport_tours)} termínů")
+            logger.debug(f"  Letiště {airport}: {len(airport_tours)} termínů")
 
     if hotel_dict is None:
         logger.warning(f"Žádné termíny ani data: {hotel_url}")
         return 0
 
-    # Unikátní slug
     base_slug = slugify(hotel_dict["name"])
     slug = base_slug
     n = slug_counter.get(base_slug, 0)
@@ -788,27 +766,31 @@ def scrape_hotel(session: requests.Session, db: ZaletoDB,
     slug_counter[base_slug] = n + 1
 
     hotel_id = db.upsert_hotel(slug, hotel_dict)
-    # Smaž staré termíny tohoto hotelu — při re-scrape chceme jen aktuálně dostupné
     db.conn.execute("DELETE FROM tours WHERE hotel_id = ?", (hotel_id,))
     for t in all_tours:
         db.upsert_tour(hotel_id, t)
     db.commit()
 
-    logger.info(f"  {hotel_dict['name']} ⭐{hotel_dict['stars']} — {len(all_tours)} termínů uloženo ({len(airports)} letiště)")
+    logger.info(f"  {hotel_dict['name']} ⭐{hotel_dict['stars']} — {len(all_tours)} termínů")
     return len(all_tours)
 
 
-def delete_all(db: ZaletoDB):
-    """Smaže všechny hotely a termíny (kaskádově). Zachová schéma."""
-    hotels_count = db.conn.execute("SELECT COUNT(*) FROM hotels").fetchone()[0]
-    tours_count  = db.conn.execute("SELECT COUNT(*) FROM tours").fetchone()[0]
-    db.conn.execute("DELETE FROM tours")
-    db.conn.execute("DELETE FROM hotels")
-    db.conn.execute("DELETE FROM reviews")
-    db.conn.execute("DELETE FROM sqlite_sequence WHERE name IN ('hotels','tours','reviews')")
-    db.conn.commit()
-    logger.info(f"Smazáno: {hotels_count} hotelů, {tours_count} termínů, recenze.")
+# ---------------------------------------------------------------------------
+# Smazání dat
+# ---------------------------------------------------------------------------
 
+def delete_all(db: ZaletoDB):
+    h = db.conn.execute("SELECT COUNT(*) FROM hotels WHERE agency=?", (AGENCY,)).fetchone()[0]
+    t = db.conn.execute("SELECT COUNT(*) FROM tours  WHERE agency=?", (AGENCY,)).fetchone()[0]
+    db.conn.execute("DELETE FROM tours  WHERE agency=?", (AGENCY,))
+    db.conn.execute("DELETE FROM hotels WHERE agency=?", (AGENCY,))
+    db.commit()
+    logger.info(f"Smazáno: {h} hotelů, {t} termínů (Nev-Dama).")
+
+
+# ---------------------------------------------------------------------------
+# Hlavní run
+# ---------------------------------------------------------------------------
 
 def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
         airports: list[int] | None = None):
@@ -819,26 +801,16 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
     db      = ZaletoDB()
 
     if delete:
-        logger.info("--delete: mažu všechna stávající data...")
+        logger.info("--delete: mažu stávající Nev-Dama data...")
         delete_all(db)
 
-    hotel_urls  = get_hotel_urls(session, limit)
-    total_saved = 0
+    hotel_urls   = get_hotel_urls(session, limit)
+    total_saved  = 0
     slug_counter: dict = {}
 
-    # Pre-populate slug_counter z DB — zabrání kolizím slugů při resumování
-    for (s,) in db.conn.execute("SELECT slug FROM hotels WHERE agency = ?", (AGENCY,)).fetchall():
-        parts = s.rsplit("-", 1)
-        if len(parts) == 2 and parts[1].isdigit():
-            base, n = parts[0], int(parts[1]) + 1
-        else:
-            base, n = s, 1
-        slug_counter[base] = max(slug_counter.get(base, 0), n)
-
-    # Načti checkpoint — hotely zpracované dnes v předchozím běhu
-    done_urls = db.get_done_keys(AGENCY)
+    done_urls = db.get_done_keys()
     if done_urls:
-        logger.info(f"Checkpoint: přeskakuji {len(done_urls)} již zpracovaných hotelů z dnešního cyklu")
+        logger.info(f"Checkpoint: přeskakuji {len(done_urls)} hotely z dnešního cyklu")
 
     logger.info(f"Letiště: {airports}")
 
@@ -850,7 +822,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
         try:
             saved = scrape_hotel(session, db, url, slug_counter, airports)
             total_saved += saved
-            db.mark_done(AGENCY, url)
+            db.mark_done(url)
         except Exception as e:
             logger.error(f"Chyba u {url}: {e}")
 
@@ -858,7 +830,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
             time.sleep(delay)
 
     db.close()
-    logger.info(f"Hotovo. Celkem uloženo: {total_saved} termínů z {len(hotel_urls)} hotelů.")
+    logger.info(f"Hotovo. Celkem: {total_saved} termínů z {len(hotel_urls)} hotelů.")
     return total_saved
 
 
@@ -867,18 +839,12 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Fischer.cz scraper → zaleto.db")
-    parser.add_argument("--limit", type=int, default=0,
-                        help="Max počet hotelů (0 = všechny)")
-    parser.add_argument("--delay", type=float, default=1.5,
-                        help="Pauza mezi hotely v sekundách")
-    parser.add_argument("--delete", action="store_true",
-                        help="Před stažením smaže všechny stávající záznamy a začne od nuly")
-    parser.add_argument("--airports", type=str, default='',
-                        help=f"ID letišť oddělená čárkou (default: všechna = {','.join(str(k) for k in AIRPORT_NAMES)}). Př: --airports 4312,4313")
+    parser = argparse.ArgumentParser(description="Nev-Dama scraper")
+    parser.add_argument("--limit",    type=int,   default=0,   help="Max počet hotelů (0 = vše)")
+    parser.add_argument("--delay",    type=float, default=1.5, help="Pauza mezi hotely (s)")
+    parser.add_argument("--delete",   action="store_true",     help="Smaž Nev-Dama data před startem")
+    parser.add_argument("--airports", type=str,   default="",  help="Čárkou oddělená ID letišť")
     args = parser.parse_args()
-    if args.airports:
-        airports = [int(x.strip()) for x in args.airports.split(",") if x.strip()]
-    else:
-        airports = None  # použij výchozí = všechna letiště
+
+    airports = [int(x) for x in args.airports.split(",") if x.strip().isdigit()] or None
     run(limit=args.limit, delay=args.delay, delete=args.delete, airports=airports)

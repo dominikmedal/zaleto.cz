@@ -46,8 +46,10 @@ router.get('/', (req, res) => {
     let total, hotels
 
     if (!hasTourFilters) {
-      // ── FAST PATH: hotel_stats JOIN (bez GROUP BY na tours) ──────────────
-      const whereConds = ['s.min_price IS NOT NULL']
+      // ── FAST PATH: hotel_stats JOIN s fallbackem na tours ─────────────────
+      // Pokud hotel_stats není naplněna (scrapers běžely přímo, ne přes run_all.py),
+      // COALESCE zajistí fallback na live subquery z tours.
+      const whereConds = ['(s.min_price IS NOT NULL OR sub.min_price IS NOT NULL)']
       const params = []
 
       if (destination) {
@@ -67,11 +69,11 @@ router.get('/', (req, res) => {
         if (arr.length) { whereConds.push(`h.stars IN (${arr.map(() => '?').join(',')})`); params.push(...arr) }
       }
 
-      if (tour_type === 'last_minute')  { whereConds.push('s.has_last_minute = 1') }
-      if (tour_type === 'first_minute') { whereConds.push('s.has_first_minute = 1') }
+      if (tour_type === 'last_minute')  { whereConds.push('COALESCE(s.has_last_minute, sub.has_last_minute) = 1') }
+      if (tour_type === 'first_minute') { whereConds.push('COALESCE(s.has_first_minute, sub.has_first_minute) = 1') }
 
-      if (min_price) { whereConds.push('s.min_price >= ?'); params.push(parseFloat(min_price)) }
-      if (max_price) { whereConds.push('s.min_price <= ?'); params.push(parseFloat(max_price)) }
+      if (min_price) { whereConds.push('COALESCE(s.min_price, sub.min_price) >= ?'); params.push(parseFloat(min_price)) }
+      if (max_price) { whereConds.push('COALESCE(s.min_price, sub.min_price) <= ?'); params.push(parseFloat(max_price)) }
 
       const where = `WHERE ${whereConds.join(' AND ')}`
 
@@ -80,10 +82,24 @@ router.get('/', (req, res) => {
           h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
           h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
           ${extraFields},
-          s.min_price, s.available_dates, s.next_departure,
-          s.has_last_minute, s.has_first_minute
+          COALESCE(s.min_price,        sub.min_price)        AS min_price,
+          COALESCE(s.available_dates,  sub.available_dates)  AS available_dates,
+          COALESCE(s.next_departure,   sub.next_departure)   AS next_departure,
+          COALESCE(s.has_last_minute,  sub.has_last_minute)  AS has_last_minute,
+          COALESCE(s.has_first_minute, sub.has_first_minute) AS has_first_minute
         FROM hotels h
-        INNER JOIN hotel_stats s ON s.hotel_id = h.id
+        LEFT JOIN hotel_stats s ON s.hotel_id = h.id
+        LEFT JOIN (
+          SELECT hotel_id,
+            MIN(price)           AS min_price,
+            COUNT(*)             AS available_dates,
+            MIN(departure_date)  AS next_departure,
+            MAX(COALESCE(is_last_minute,  0)) AS has_last_minute,
+            MAX(COALESCE(is_first_minute, 0)) AS has_first_minute
+          FROM tours
+          WHERE price > 0 AND departure_date >= date('now')
+          GROUP BY hotel_id
+        ) sub ON sub.hotel_id = h.id
         ${where}
         ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
@@ -91,7 +107,16 @@ router.get('/', (req, res) => {
 
       total = (knownTotal !== null && pageNum > 1)
         ? knownTotal
-        : db.prepare(`SELECT COUNT(*) AS total FROM hotels h INNER JOIN hotel_stats s ON s.hotel_id = h.id ${where}`).get(params).total
+        : db.prepare(`
+            SELECT COUNT(*) AS total FROM hotels h
+            LEFT JOIN hotel_stats s ON s.hotel_id = h.id
+            LEFT JOIN (
+              SELECT hotel_id, MIN(price) AS min_price
+              FROM tours WHERE price > 0 AND departure_date >= date('now')
+              GROUP BY hotel_id
+            ) sub ON sub.hotel_id = h.id
+            ${where}
+          `).get(params).total
 
       hotels = db.prepare(fastSql).all([...params, limitNum, offset])
 

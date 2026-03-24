@@ -11,16 +11,71 @@ import type { Filters } from '@/lib/types'
 import JsonLd from '@/components/JsonLd'
 import FilteringBar from '@/components/FilteringBar'
 
-export const metadata: Metadata = {
-  title: 'Zaleto — Vyhledávač zájezdů | Srovnej ceny CK',
-  description: 'Porovnejte tisíce leteckých zájezdů od předních českých cestovních kanceláří. Egypt, Řecko, Turecko, Chorvatsko a další. Filtrujte podle termínu, stravování a ceny.',
-  alternates: { canonical: 'https://zaleto.cz' },
-  openGraph: {
-    title: 'Zaleto — Srovnávač leteckých zájezdů',
-    description: 'Najděte nejlevnější zájezdy do Egypta, Řecka, Turecka a dalších destinací. Porovnání cen všech CK na jednom místě.',
-    url: 'https://zaleto.cz',
-    type: 'website',
-  },
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const destination = Array.isArray(searchParams.destination)
+    ? searchParams.destination[0]
+    : searchParams.destination
+
+  const tourType = Array.isArray(searchParams.tour_type)
+    ? searchParams.tour_type[0]
+    : searchParams.tour_type
+
+  if (destination && !destination.includes(',')) {
+    const wiki = await fetchWikiSummary(destination).catch(() => null)
+    const name = wiki?.title ?? destination
+    const description = wiki
+      ? wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ')
+      : `Porovnejte zájezdy do destinace ${name} od předních českých cestovních kanceláří.`
+    return {
+      title: `Zájezdy ${name} 2026 — Srovnej ceny CK | Zaleto`,
+      description,
+      alternates: { canonical: `https://zaleto.cz/?destination=${encodeURIComponent(destination)}` },
+      openGraph: {
+        title: `Zájezdy ${name} 2026 | Zaleto`,
+        description,
+        url: `https://zaleto.cz/?destination=${encodeURIComponent(destination)}`,
+        type: 'website',
+      },
+    }
+  }
+
+  if (tourType === 'last_minute') {
+    return {
+      title: 'Last minute zájezdy 2026 — Srovnej ceny CK | Zaleto',
+      description: 'Nejlepší last minute zájezdy s odletem v nejbližších dnech. Porovnejte ceny od předních českých cestovních kanceláří.',
+      openGraph: {
+        title: 'Last minute zájezdy 2026 | Zaleto',
+        description: 'Nejlepší last minute zájezdy za zvýhodněné ceny. Vyber, rezervuj a jeď.',
+        url: 'https://zaleto.cz/?tour_type=last_minute',
+        type: 'website',
+      },
+    }
+  }
+
+  if (tourType === 'first_minute') {
+    return {
+      title: 'First minute zájezdy 2026 — Srovnej ceny CK | Zaleto',
+      description: 'Nejlepší first minute zájezdy pro ty, kdo plánují s předstihem. Porovnejte ceny od předních českých cestovních kanceláří.',
+      openGraph: {
+        title: 'First minute zájezdy 2026 | Zaleto',
+        description: 'Výhodné zájezdy pro včasné rezervace. Nejlepší ceny first minute.',
+        url: 'https://zaleto.cz/?tour_type=first_minute',
+        type: 'website',
+      },
+    }
+  }
+
+  return {
+    title: 'Zaleto — Vyhledávač zájezdů | Srovnej ceny CK',
+    description: 'Porovnejte tisíce leteckých zájezdů od předních českých cestovních kanceláří. Egypt, Řecko, Turecko, Chorvatsko a další. Filtrujte podle termínu, stravování a ceny.',
+    alternates: { canonical: 'https://zaleto.cz' },
+    openGraph: {
+      title: 'Zaleto — Srovnávač leteckých zájezdů',
+      description: 'Najděte nejlevnější zájezdy do Egypta, Řecka, Turecka a dalších destinací. Porovnání cen všech CK na jednom místě.',
+      url: 'https://zaleto.cz',
+      type: 'website',
+    },
+  }
 }
 
 const websiteSchema = {

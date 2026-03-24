@@ -30,11 +30,13 @@ const toursRouter          = require('./routes/tours')
 const metaRouter           = require('./routes/meta')
 const redirectRouter       = require('./routes/redirect')
 const destPhotosRouter     = require('./routes/destinationPhotos')
+const contactRouter        = require('./routes/contact')
 
 app.use('/api/hotels', hotelsRouter)
 app.use('/api/hotels/:slug/tours', toursRouter)
 app.use('/api/redirect', redirectRouter)
 app.use('/api/destination-photo', destPhotosRouter)
+app.use('/api/contact', contactRouter)
 app.use('/api', metaRouter)
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))

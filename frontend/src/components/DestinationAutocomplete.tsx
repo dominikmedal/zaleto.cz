@@ -1,8 +1,8 @@
 'use client'
-import { useState, useRef, useEffect, useCallback, useMemo, useTransition } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Check, Globe, Hotel } from 'lucide-react'
-import { PiMagnifyingGlass } from 'react-icons/pi'
+import { PiMagnifyingGlass, PiSpinner } from 'react-icons/pi'
 import { fetchHotelSearch } from '@/lib/api'
 
 const PLACEHOLDER_CYCLE = [
@@ -30,6 +30,7 @@ interface Props {
   onChange: (value: string[]) => void
   noLabel?: boolean
   defaultOpen?: boolean
+  loading?: boolean
 }
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -45,7 +46,6 @@ interface Resort { label: string; count: number }
 interface Dest   { label: string; count: number; resorts: Resort[] }
 interface Country{ label: string; flag: string; destinations: Dest[] }
 
-// Selectable item (countries, destinations, and resorts)
 interface Item {
   value: string
   label: string
@@ -56,15 +56,12 @@ interface Item {
   flag?: string
 }
 
-// destination field in DB is e.g. "Španělsko / Gran Canaria / Playa del Inglés"
-// Extract the region (island/area) — the middle part after the country
 function parseRegion(destination: string): string {
   const parts = destination.split('/').map(s => s.trim())
   return parts.length >= 2 ? parts[1] : parts[0]
 }
 
 function buildHierarchy(rows: DestRow[]): Country[] {
-  // group: country → region → resorts
   const cm = new Map<string, Map<string, { count: number; resorts: Map<string, number> }>>()
 
   for (const r of rows) {
@@ -120,7 +117,7 @@ interface HotelResult {
   slug: string; name: string; country: string; resort_town: string | null; stars: number | null; thumbnail_url: string | null
 }
 
-export default function DestinationAutocomplete({ destinations, value, onChange, noLabel, defaultOpen }: Props) {
+export default function DestinationAutocomplete({ destinations, value, onChange, noLabel, defaultOpen, loading }: Props) {
   const router = useRouter()
   const [query,        setQuery]        = useState('')
   const [open,         setOpen]         = useState(false)
@@ -128,17 +125,14 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
   const [hotelResults, setHotelResults] = useState<HotelResult[]>([])
   const [phIdx,        setPhIdx]        = useState(0)
   const [phVisible,    setPhVisible]    = useState(true)
-  const [, startDropdownTransition] = useTransition()
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef     = useRef<HTMLInputElement>(null)
   const listRef      = useRef<HTMLDivElement>(null)
 
-  // Auto-open when used as embedded component
   useEffect(() => {
     if (defaultOpen) { setOpen(true); setTimeout(() => inputRef.current?.focus(), 50) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Cycle placeholder text when idle
   useEffect(() => {
     if (open || query || value.length > 0) return
     const timer = setInterval(() => {
@@ -234,38 +228,43 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
         onMouseDown={e => { e.preventDefault(); toggle(item.value); setQuery('') }}
         onMouseEnter={() => setHighlighted(idx)}
         className={`w-full flex items-center justify-between pr-4 transition-colors text-left ${
-          isCountry ? 'py-2 pl-4' : isResort ? 'py-1.5 pl-10' : 'py-2 pl-5'
-        } ${selected ? 'bg-[#008afe]/6' : isHighlighted ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
+          isCountry ? 'py-2 pl-3' : isResort ? 'py-1.5 pl-11' : 'py-2 pl-7'
+        } ${
+          selected
+            ? 'bg-[#008afe]/[0.06]'
+            : isHighlighted
+            ? 'bg-[#008afe]/[0.04]'
+            : isCountry
+            ? 'bg-gray-50/80 hover:bg-gray-100/60'
+            : 'hover:bg-gray-50'
+        }`}
       >
-        <span className={`flex items-center gap-2 ${
-          isCountry ? 'text-[11px] font-semibold text-gray-500 uppercase tracking-wider'
-          : isResort ? 'text-[13px] text-gray-600'
-          : 'text-sm font-medium text-gray-800'
+        <span className={`flex items-center gap-2.5 min-w-0 ${
+          isCountry
+            ? 'text-[10px] font-bold text-gray-400 uppercase tracking-widest'
+            : isResort
+            ? 'text-[13px] text-gray-500'
+            : 'text-sm font-medium text-gray-700'
         }`}>
-          {isCountry && <span className="text-base leading-none">{item.flag}</span>}
+          {isCountry && <span className="text-base leading-none flex-shrink-0">{item.flag}</span>}
           {isResort && <span className="w-1 h-1 rounded-full bg-gray-300 flex-shrink-0" />}
-          <span className={selected ? 'text-[#008afe]' : ''}>{item.label}</span>
-          {/* Search mode: show context */}
+          <span className={`truncate ${selected ? 'text-[#008afe]' : ''}`}>{item.label}</span>
           {query && isResort && (
-            <span className="text-[11px] text-gray-400 font-normal">{item.destination}</span>
+            <span className="text-[11px] text-gray-400 font-normal flex-shrink-0">{item.destination}</span>
           )}
           {query && !isResort && !isCountry && (
-            <span className="text-[11px] text-gray-400 font-normal">{item.country}</span>
+            <span className="text-[11px] text-gray-400 font-normal flex-shrink-0">{item.country}</span>
           )}
         </span>
-        <span className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-xs text-gray-400">{item.count} h.</span>
-          <span className={`w-4 h-4 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
-            selected ? 'bg-[#008afe]' : 'border-2 border-gray-200'
-          }`}>
-            {selected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
-          </span>
+        <span className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ml-3 transition-all ${
+          selected ? 'bg-[#008afe]' : 'border-2 border-gray-200'
+        }`}>
+          {selected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
         </span>
       </button>
     )
   }
 
-  // Full hierarchy with country as selectable section headers
   const renderHierarchy = () => {
     let idx = 0
     return hierarchy.map((country, ci) => {
@@ -308,13 +307,14 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
     <div ref={containerRef} className="relative">
       {!noLabel && <label className="block text-xs font-medium text-gray-500 mb-1.5">Destinace</label>}
 
+      {/* Input trigger */}
       <div
         className={`relative min-h-[42px] w-full px-2.5 py-1.5 flex flex-wrap items-center gap-1.5 border rounded-xl bg-white cursor-text transition-all duration-150 ${
           open
             ? 'border-[#008afe] ring-2 ring-[#008afe]/12 shadow-[0_0_0_4px_rgba(0,138,254,0.06)]'
             : 'border-gray-200 hover:border-[#008afe]/40'
         }`}
-        onClick={() => { inputRef.current?.focus(); startDropdownTransition(() => setOpen(true)) }}
+        onClick={() => { inputRef.current?.focus(); setOpen(true) }}
       >
         <PiMagnifyingGlass className={`w-4 h-4 flex-shrink-0 ml-0.5 transition-colors ${open ? 'text-[#008afe]' : 'text-gray-400'}`} />
 
@@ -328,7 +328,6 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
         ))}
 
         <div className="relative flex-1 min-w-[80px] h-[22px]">
-          {/* Animated placeholder */}
           {showAnimatedPh && (
             <span
               className="absolute inset-0 flex items-center text-sm text-gray-400 pointer-events-none select-none transition-all duration-300"
@@ -342,8 +341,8 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
             type="text"
             value={query}
             placeholder=""
-            onChange={e => { setQuery(e.target.value); startDropdownTransition(() => setOpen(true)); setHighlighted(-1) }}
-            onFocus={() => startDropdownTransition(() => setOpen(true))}
+            onChange={e => { setQuery(e.target.value); setOpen(true); setHighlighted(-1) }}
+            onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
             className="absolute inset-0 w-full text-sm outline-none bg-transparent py-0.5"
           />
@@ -357,6 +356,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
         )}
       </div>
 
+      {/* Dropdown */}
       {open && (
         <div ref={listRef}
           className="absolute z-50 left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden"
@@ -372,7 +372,13 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
             </div>
           )}
 
-          {filtered.length === 0 && hotelResults.length === 0 ? (
+          {/* Loading skeleton */}
+          {loading && allItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-2">
+              <PiSpinner className="w-5 h-5 text-[#008afe] animate-spin" />
+              <span className="text-xs text-gray-400">Načítám destinace…</span>
+            </div>
+          ) : filtered.length === 0 && hotelResults.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <Globe className="w-8 h-8 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-gray-400">Žádné výsledky pro „{query}"</p>
@@ -383,7 +389,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
               {hotelResults.length > 0 && (
                 <>
                   {filtered.length > 0 && <div className="border-t border-gray-100 my-1" />}
-                  <div className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
                     <Hotel className="w-3 h-3" />
                     Hotely
                   </div>
@@ -397,15 +403,15 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
                         type="button"
                         onMouseDown={e => { e.preventDefault(); handleHotelClick(hotel.slug) }}
                         onMouseEnter={() => setHighlighted(idx)}
-                        className={`w-full flex items-center justify-between px-5 py-2 transition-colors text-left ${isHighlighted ? 'bg-[#008afe]/6' : 'hover:bg-gray-50'}`}
+                        className={`w-full flex items-center justify-between px-5 py-2.5 transition-colors text-left ${isHighlighted ? 'bg-[#008afe]/[0.06]' : 'hover:bg-gray-50'}`}
                       >
                         <span className="flex flex-col min-w-0">
-                          <span className="text-sm font-medium text-gray-800 truncate">{hotel.name}</span>
-                          <span className="text-[11px] text-gray-400">{hotel.resort_town ? `${hotel.resort_town}, ` : ''}{hotel.country}</span>
+                          <span className="text-sm font-medium text-gray-700 truncate">{hotel.name}</span>
+                          <span className="text-[11px] text-gray-400 mt-0.5">{hotel.resort_town ? `${hotel.resort_town}, ` : ''}{hotel.country}</span>
                         </span>
                         <span className="flex items-center gap-2 flex-shrink-0 ml-3">
                           {hotel.stars ? <span className="text-xs text-amber-400">{'★'.repeat(hotel.stars)}</span> : null}
-                          <span className="text-[10px] text-[#008afe] font-medium">→ detail</span>
+                          <span className="text-[10px] text-[#008afe] font-semibold">→ detail</span>
                         </span>
                       </button>
                     )

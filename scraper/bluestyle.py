@@ -37,7 +37,8 @@ CDN_BASE   = "https://cdn.siteone.io/img.siteone.cz/o_jpeg/www.blue-style.cz"
 AGENCY     = "Blue Style"
 DEP_CITY   = 2      # Praha Václav Havel (default, pokud není --dep-cities)
 ADULTS     = 2
-DURATION   = 7      # nocí — nejběžnější
+# Délky pobytů k vyhledávání — [7] by vynechalo hotely nabízející jen 10 nebo 14 nocí
+DURATIONS  = [7, 10, 14]
 
 LAST_MINUTE_DAYS  = 21
 FIRST_MINUTE_DAYS = 180
@@ -143,7 +144,9 @@ class ZaletoDB:
                 pass
         for col, typ in [("is_last_minute", "INTEGER DEFAULT 0"),
                          ("is_first_minute", "INTEGER DEFAULT 0"),
-                         ("departure_city", "TEXT")]:
+                         ("departure_city", "TEXT"),
+                         ("price_single", "REAL"),
+                         ("url_single", "TEXT")]:
             try:
                 self.conn.execute(f"ALTER TABLE tours ADD COLUMN {col} {typ}")
                 self.conn.commit()
@@ -237,6 +240,13 @@ class ZaletoDB:
             int(t.get("is_first_minute", False)),
             t.get("departure_city", ""),
         ))
+
+    def update_single_price(self, two_adult_url: str, price_single: float, url_single: str):
+        """Aktualizuje cenu pro 1 dospělého na existujícím termínu (matchuje dle 2-adult URL)."""
+        self.conn.execute(
+            "UPDATE tours SET price_single = ?, url_single = ?, updated_at = datetime('now') WHERE url = ?",
+            (price_single, url_single, two_adult_url),
+        )
 
     def commit(self):
         self.conn.commit()
@@ -436,7 +446,7 @@ def _detect_tour_type(dep_date: str, is_lm_native: bool = False, is_fm_native: b
 
 def _build_tour_url(hotel_url: str, dep_city: int, arr_city: int, date: str,
                     nights: int, flight_no: str,
-                    room_key: str, board_key: str) -> str:
+                    room_key: str, board_key: str, adults: int = ADULTS) -> str:
     """Sestaví booking URL pro Bluestyle."""
     base = f"{BASE_URL}{hotel_url.rstrip('/')}/"
     params = {
@@ -448,7 +458,7 @@ def _build_tour_url(hotel_url: str, dep_city: int, arr_city: int, date: str,
     if flight_no:
         params["flightNo"] = flight_no
     # room1=adults|roomCode|boardCode
-    room_part = f"{ADULTS}"
+    room_part = f"{adults}"
     if room_key:
         room_part += f"|{room_key}"
     if board_key:
@@ -525,7 +535,7 @@ def _process_hotel(h: dict) -> dict:
     }
 
 
-def _process_tours(h: dict, dep_city_name: str = "") -> list[dict]:
+def _process_tours(h: dict, dep_city_name: str = "", adults: int = ADULTS) -> list[dict]:
     """Sestaví seznam tour_dict z GraphQL hotel objektu."""
     tours = []
     term = h.get("defaultSearchTerm") or {}
@@ -534,7 +544,7 @@ def _process_tours(h: dict, dep_city_name: str = "") -> list[dict]:
 
     dep_date   = (term.get("flightDate") or "")[:10]
     ret_date   = (term.get("returnDate") or "")[:10]
-    nights     = int(term.get("nights") or DURATION)
+    nights     = int(term.get("nights") or DURATIONS[0])
     arr_city   = int(term.get("arrCity") or 0)
     dep_city   = int(term.get("depCity") or DEP_CITY)
     flight_no  = term.get("flightNumber") or ""
@@ -570,7 +580,7 @@ def _process_tours(h: dict, dep_city_name: str = "") -> list[dict]:
 
             tour_url = _build_tour_url(
                 hotel_url, dep_city, arr_city, dep_date,
-                nights, flight_no, room_key, board_key
+                nights, flight_no, room_key, board_key, adults
             )
 
             if tour_url in seen_urls:
@@ -586,7 +596,7 @@ def _process_tours(h: dict, dep_city_name: str = "") -> list[dict]:
                 "price":           price,
                 "transport":       transport,
                 "meal_plan":       board_name,
-                "adults":          ADULTS,
+                "adults":          adults,
                 "room_code":       room_key,
                 "url":             tour_url,
                 "is_last_minute":  is_lm,
@@ -600,7 +610,7 @@ def _process_tours(h: dict, dep_city_name: str = "") -> list[dict]:
         if price > 0:
             tour_url = _build_tour_url(
                 hotel_url, dep_city, arr_city, dep_date,
-                nights, flight_no, "", ""
+                nights, flight_no, "", "", adults
             )
             is_lm, is_fm = _detect_tour_type(dep_date, discounts=discounts)
             tours.append({
@@ -610,7 +620,7 @@ def _process_tours(h: dict, dep_city_name: str = "") -> list[dict]:
                 "price":           price,
                 "transport":       transport,
                 "meal_plan":       "",
-                "adults":          ADULTS,
+                "adults":          adults,
                 "room_code":       "",
                 "url":             tour_url,
                 "is_last_minute":  is_lm,
@@ -704,13 +714,14 @@ def get_search_form(session: requests.Session) -> dict:
 # ---------------------------------------------------------------------------
 
 def search_hotels(session: requests.Session, arr_city: str, date: str,
-                  page: int = 1, dep_city: int = DEP_CITY) -> dict | None:
+                  page: int = 1, dep_city: int = DEP_CITY,
+                  adults: int = ADULTS) -> dict | None:
     """Vrátí data ze SearchResults pro danou destinaci a datum."""
     request: dict = {
         "depCity":  dep_city,
         "arrCity":  [int(arr_city)],
-        "durations": [DURATION],
-        "rooms":    [{"adults": ADULTS, "children": []}],
+        "durations": DURATIONS,
+        "rooms":    [{"adults": adults, "children": []}],
         "page":     page,
     }
     if date:
@@ -890,6 +901,75 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
 
     if limit and hotel_count >= limit:
         logger.info(f"Dosažen limit {limit} hotelů")
+
+    # ---------------------------------------------------------------------------
+    # Druhý průchod: ceny pro 1 dospělého (price_single / url_single)
+    # ---------------------------------------------------------------------------
+    logger.info("Druhý průchod: stahuju ceny pro 1 dospělého (price_single)...")
+    single_updated = 0
+    for dep_city in dep_cities:
+        dep_city_name = dep_city_names.get(dep_city, str(dep_city))
+        logger.info(f"== [1-adult] Dep city: {dep_city} ({dep_city_name}) ==")
+        for date in dates:
+            for arr_city in arr_cities:
+                if _blocked:
+                    break
+                page = 1
+                while True:
+                    result = search_hotels(session, arr_city, date, page, dep_city, adults=1)
+                    if _blocked:
+                        break
+                    if not result:
+                        break
+                    hotels_raw = result.get("hotels") or []
+                    pagination = result.get("pagination") or {}
+                    page_count = pagination.get("pageCount") or 1
+
+                    for h in hotels_raw:
+                        hotel_url_path = (h.get("url") or "").split("?")[0].strip("/")
+                        if not hotel_url_path:
+                            continue
+                        term = h.get("defaultSearchTerm") or {}
+                        dep_date  = (term.get("flightDate") or "")[:10]
+                        nights    = int(term.get("nights") or DURATIONS[0])
+                        arr_city_id = int(term.get("arrCity") or 0)
+                        dep_city_id = int(term.get("depCity") or dep_city)
+                        flight_no   = term.get("flightNumber") or ""
+                        if not dep_date:
+                            continue
+                        rooms = h.get("rooms") or []
+                        for room in rooms:
+                            for variant in (room.get("variants") or []):
+                                board      = variant.get("board") or {}
+                                room_type  = variant.get("room") or {}
+                                board_key  = board.get("key") or ""
+                                room_key   = room_type.get("key") or ""
+                                price_s    = float(variant.get("pricePerPerson") or 0)
+                                if price_s <= 0:
+                                    price_s = float(term.get("minPrice") or 0)
+                                if price_s <= 0:
+                                    continue
+                                two_url    = _build_tour_url(hotel_url_path, dep_city_id, arr_city_id, dep_date, nights, flight_no, room_key, board_key, adults=ADULTS)
+                                single_url = _build_tour_url(hotel_url_path, dep_city_id, arr_city_id, dep_date, nights, flight_no, room_key, board_key, adults=1)
+                                db.update_single_price(two_url, price_s, single_url)
+                                single_updated += 1
+                        # Fallback: prázdné rooms
+                        if not rooms:
+                            price_s = float(term.get("minPrice") or 0)
+                            if price_s > 0:
+                                two_url    = _build_tour_url(hotel_url_path, dep_city_id, arr_city_id, dep_date, nights, flight_no, "", "", adults=ADULTS)
+                                single_url = _build_tour_url(hotel_url_path, dep_city_id, arr_city_id, dep_date, nights, flight_no, "", "", adults=1)
+                                db.update_single_price(two_url, price_s, single_url)
+                                single_updated += 1
+
+                    db.commit()
+                    if page >= page_count or not hotels_raw:
+                        break
+                    page += 1
+                    time.sleep(delay)
+                time.sleep(delay)
+
+    logger.info(f"price_single aktualizováno: {single_updated} termínů")
 
     db.close()
     logger.info(f"Hotovo. Uloženo: {hotel_count} hotelů, {tour_count} termínů.")

@@ -2,11 +2,13 @@
 TUI scraper — stahuje hotely a termíny do zaleto.db.
 
 Strategie:
-  1. Procházení předem definovaných stránek destinací (TUI sitemap neobsahuje hotely)
-  2. Z každé stránky: __NEXT_DATA__ → initialTopOffersData → hotel URL + offer kód
-  3. Offer kód → dekódování: datum odjezdu/návratu, letiště odletu/příletu
-  4. Hotel detail stránka → name, stars, popis, fotky, GPS, vybavenost, hodnocení
-  5. Upsert hotel + tours do zaleto.db (sdílená DB s Fischer, Čedok, Blue Style)
+  1. Discovery: TUI sitemap → hotelové URL → odvození destinačních stránek;
+     doplněno statickými DISCOVERY_PAGES (PRG/BRQ/OSR/PED odletové stránky).
+  2. Z každé stránky: __NEXT_DATA__ → initialTopOffersData / initialOffersData → hotel URL + offer kód
+  3. Paginace (initialOffersData stránky): ?page=N
+  4. Offer kód → dekódování: datum odjezdu/návratu, letiště odletu/příletu
+  5. Hotel detail stránka → name, stars, popis, fotky, GPS, vybavenost, hodnocení
+  6. Upsert hotel + tours do zaleto.db (sdílená DB s Fischer, Čedok, Blue Style)
 
 URL formát termínu:
   {hotel_url}/OfferCodeWS/{DEPCODE}{ARRCODE}{DEP_DATE8}{DEP_TIME4}{???8}{RET_DATE8}{RET_TIME4}...
@@ -65,75 +67,37 @@ AIRPORT_NAMES: dict[str, str] = {
     "BUD": "Budapešť",
 }
 
-# Stránky k procházení — pouze country a region stránky s initialTopOffersData (3 hotely + ceny).
-# Filtrační/odletové stránky (nabidky-*, odlety-z-*) ceny nenačítají server-side, proto jsou vynechány.
+# Záložní seznam destinačních a odletových stránek.
+# Používá se jen pokud TUI sitemap nevrátí hotelové URL.
+# Odletové stránky (odlety-z-*) mají paginaci a vracejí VŠECHNY hotely dané destinace/letiště.
 DISCOVERY_PAGES: list[str] = [
     # ------------------------------------------------------------------
-    # Hlavní destinační stránky (Praha / PRG) — initialTopOffersData
+    # Odlety z Prahy (PRG) — největší letiště, nejvíce hotelů
     # ------------------------------------------------------------------
-    # Turecko
-    "/dovolena/turecko/",
-    "/dovolena/turecko/turecka-riviera/",
-    "/dovolena/turecko/egejska-riviera/",
-    # Egypt
-    "/dovolena/egypt/",
-    "/dovolena/egypt/hurghada/",
-    "/dovolena/egypt/marsa-alam/",
-    # Řecko
-    "/dovolena/recko/",
-    "/dovolena/recko/kreta/",
-    "/dovolena/recko/rhodos/",
-    "/dovolena/recko/korfu/",
-    "/dovolena/recko/kos/",
-    "/dovolena/recko/zakynthos/",
-    # Kanárské ostrovy
-    "/dovolena/kanarske-ostrovy/",
-    "/dovolena/kanarske-ostrovy/tenerife/",
-    "/dovolena/kanarske-ostrovy/lanzarote/",
-    "/dovolena/kanarske-ostrovy/gran-canaria/",
-    "/dovolena/kanarske-ostrovy/fuerteventura/",
-    # Kypr
-    "/dovolena/kypr/",
-    # Bulharsko
-    "/dovolena/bulharsko/",
-    # Albánie
-    "/dovolena/albanie/",
-    # Chorvatsko
-    "/dovolena/chorvatsko/",
-    # Černá hora
-    "/dovolena/cerna-hora/",
-    # Portugalsko / Madeira / Azory
-    "/dovolena/portugal/",
-    "/dovolena/portugal/madeira/",
-    "/dovolena/portugal/azory/",
-    # Dominikánská republika
-    "/dovolena/dominikanska-republika/",
-    # Mauricius
-    "/dovolena/mauricius/",
-    # Srí Lanka
-    "/dovolena/sri-lanka/",
-    # Tunisko
-    "/dovolena/tunisko/",
-    # Malta
-    "/dovolena/malta/",
-    # Španělsko
-    "/dovolena/spanelsko/",
-    # Thajsko
-    "/dovolena/thajsko/",
-    # Spojené arabské emiráty
-    "/dovolena/spojene-arabske-emiraty/",
-    # Zanzibar
-    "/dovolena/zanzibar/",
-    # Kuba
-    "/dovolena/kuba/",
-    # Mexiko
-    "/dovolena/mexiko/",
-
+    "/dovolena/turecko/odlety-z-prahy/",
+    "/dovolena/recko/odlety-z-prahy/",
+    "/dovolena/egypt/odlety-z-prahy/",
+    "/dovolena/kanarske-ostrovy/odlety-z-prahy/",
+    "/dovolena/spanelsko/odlety-z-prahy/",
+    "/dovolena/kypr/odlety-z-prahy/",
+    "/dovolena/bulharsko/odlety-z-prahy/",
+    "/dovolena/tunisko/odlety-z-prahy/",
+    "/dovolena/chorvatsko/odlety-z-prahy/",
+    "/dovolena/malta/odlety-z-prahy/",
+    "/dovolena/portugal/odlety-z-prahy/",
+    "/dovolena/dominikanska-republika/odlety-z-prahy/",
+    "/dovolena/mauricius/odlety-z-prahy/",
+    "/dovolena/sri-lanka/odlety-z-prahy/",
+    "/dovolena/thajsko/odlety-z-prahy/",
+    "/dovolena/spojene-arabske-emiraty/odlety-z-prahy/",
+    "/dovolena/zanzibar/odlety-z-prahy/",
+    "/dovolena/kuba/odlety-z-prahy/",
+    "/dovolena/mexiko/odlety-z-prahy/",
+    "/dovolena/albanie/odlety-z-prahy/",
+    "/dovolena/cerna-hora/odlety-z-prahy/",
     # ------------------------------------------------------------------
-    # Odletové stránky — initialOffersData se stránkováním, ceny dostupné
-    # server-side v discountPerPersonPrice. URL pro stránku N: {base}?page=N
+    # Odlety z Brna (BRQ)
     # ------------------------------------------------------------------
-    # Brno (BRQ)
     "/dovolena/turecko/odlety-z-brna/",
     "/dovolena/recko/odlety-z-brna/",
     "/dovolena/egypt/odlety-z-brna/",
@@ -144,7 +108,9 @@ DISCOVERY_PAGES: list[str] = [
     "/dovolena/kypr/odlety-z-brna/",
     "/dovolena/chorvatsko/odlety-z-brna/",
     "/dovolena/malta/odlety-z-brna/",
-    # Ostrava (OSR)
+    # ------------------------------------------------------------------
+    # Odlety z Ostravy (OSR)
+    # ------------------------------------------------------------------
     "/dovolena/turecko/odlety-z-ostravy/",
     "/dovolena/recko/odlety-z-ostravy/",
     "/dovolena/egypt/odlety-z-ostravy/",
@@ -152,13 +118,68 @@ DISCOVERY_PAGES: list[str] = [
     "/dovolena/tunisko/odlety-z-ostravy/",
     "/dovolena/kanarske-ostrovy/odlety-z-ostravy/",
     "/dovolena/spanelsko/odlety-z-ostravy/",
-    # Pardubice (PED)
+    # ------------------------------------------------------------------
+    # Odlety z Pardubic (PED)
+    # ------------------------------------------------------------------
     "/dovolena/turecko/odlety-z-pardubic/",
     "/dovolena/recko/odlety-z-pardubic/",
     "/dovolena/egypt/odlety-z-pardubic/",
     "/dovolena/bulharsko/odlety-z-pardubic/",
-
+    # ------------------------------------------------------------------
+    # Záložní hlavní destinační stránky (top 3 hotely, bez paginace)
+    # Použijí se pro hotely, které nejsou v odletových stránkách.
+    # ------------------------------------------------------------------
+    "/dovolena/turecko/",
+    "/dovolena/turecko/turecka-riviera/",
+    "/dovolena/turecko/egejska-riviera/",
+    "/dovolena/turecko/bodrum/",
+    "/dovolena/turecko/antalya/",
+    "/dovolena/egypt/",
+    "/dovolena/egypt/hurghada/",
+    "/dovolena/egypt/marsa-alam/",
+    "/dovolena/egypt/sharm-el-sheikh/",
+    "/dovolena/recko/",
+    "/dovolena/recko/kreta/",
+    "/dovolena/recko/rhodos/",
+    "/dovolena/recko/korfu/",
+    "/dovolena/recko/kos/",
+    "/dovolena/recko/zakynthos/",
+    "/dovolena/recko/mykonos/",
+    "/dovolena/recko/santorini/",
+    "/dovolena/recko/thassos/",
+    "/dovolena/recko/lesbos/",
+    "/dovolena/recko/kefalonie/",
+    "/dovolena/kanarske-ostrovy/",
+    "/dovolena/kanarske-ostrovy/tenerife/",
+    "/dovolena/kanarske-ostrovy/lanzarote/",
+    "/dovolena/kanarske-ostrovy/gran-canaria/",
+    "/dovolena/kanarske-ostrovy/fuerteventura/",
+    "/dovolena/spanelsko/",
+    "/dovolena/spanelsko/mallorca/",
+    "/dovolena/spanelsko/ibiza/",
+    "/dovolena/spanelsko/costa-del-sol/",
+    "/dovolena/kypr/",
+    "/dovolena/bulharsko/",
+    "/dovolena/albanie/",
+    "/dovolena/chorvatsko/",
+    "/dovolena/cerna-hora/",
+    "/dovolena/portugal/",
+    "/dovolena/portugal/madeira/",
+    "/dovolena/portugal/azory/",
+    "/dovolena/dominikanska-republika/",
+    "/dovolena/mauricius/",
+    "/dovolena/sri-lanka/",
+    "/dovolena/tunisko/",
+    "/dovolena/malta/",
+    "/dovolena/thajsko/",
+    "/dovolena/spojene-arabske-emiraty/",
+    "/dovolena/zanzibar/",
+    "/dovolena/kuba/",
+    "/dovolena/mexiko/",
 ]
+
+# Keywords odletových stránek — mají paginaci a vracejí všechny hotely
+_DEPARTURE_PAGE_KEYWORDS = ("odlety-z-", "odlety-prg", "odlety-brq", "odlety-osr")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -255,7 +276,9 @@ class ZaletoDB:
                 pass
         for col, typ in [("is_last_minute", "INTEGER DEFAULT 0"),
                          ("is_first_minute", "INTEGER DEFAULT 0"),
-                         ("departure_city", "TEXT")]:
+                         ("departure_city", "TEXT"),
+                         ("price_single", "REAL"),
+                         ("url_single", "TEXT")]:
             try:
                 self.conn.execute(f"ALTER TABLE tours ADD COLUMN {col} {typ}")
                 self.conn.commit()
@@ -521,8 +544,8 @@ def _fetch_filters(
         "tripType":          "WS",
         "airportCode":       airport,
         "startDate":         start_date,
-        "durationFrom":      "7",
-        "durationTo":        "14",
+        "durationFrom":      "1",
+        "durationTo":        "21",
         "boardCode":         board_code,
         "adultsCount":       "2",
         "childrenBirthdays": [],
@@ -628,8 +651,8 @@ def _fetch_tours_from_api(
             "tripType":          "WS",
             "airportCode":       airport,
             "startDate":         date,
-            "durationFrom":      "7",
-            "durationTo":        "14",
+            "durationFrom":      "1",
+            "durationTo":        "21",
             "boardCode":         board_code_api,
             "adultsCount":       "2",
             "childrenBirthdays": [],
@@ -660,8 +683,8 @@ def _fetch_tours_from_api(
         "tripType":          "WS",
         "airportCode":       airport,
         "startDate":         start_date,
-        "durationFrom":      "7",
-        "durationTo":        "14",
+        "durationFrom":      "1",
+        "durationTo":        "21",
         "boardCode":         board_code_api,
         "adultsCount":       "2",
         "childrenBirthdays": [],
@@ -1437,6 +1460,69 @@ def _slug_from_hotel_path(hotel_path: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Sitemap discovery — hotelové URL → odvozené destinační stránky
+# ---------------------------------------------------------------------------
+
+def discover_pages_from_sitemap(session: requests.Session) -> list[str]:
+    """
+    Stáhne TUI hotels.xml (přímé hotelové URL) a destinations.xml (destinační stránky)
+    a vrátí deduplikovaný seznam listing stránek pro `scrape_listing_page()`.
+
+    hotels.xml    → přímé hotelové URL → odvodí country/region listing stránky
+    destinations.xml → destinační stránky → použije přímo jako listing stránky
+    """
+    hdrs = {"Accept": "application/xml,text/xml,*/*", "Content-Type": ""}
+    SKIP = ("odlety-z-", "nabidky-", "last-minute", "first-minute", "akce",
+            "aktualni-nabidky", "?", "#", "dovolena-a-", "filtr", "zima", "jaro", "leto")
+
+    dest_pages: set[str] = set()
+
+    # 1. hotels.xml — přímé hotelové URL → odvozuj listing stránky (country/region)
+    try:
+        r = session.get(f"{BASE_URL}/hotels.xml", headers=hdrs, timeout=30)
+        if r.status_code == 200:
+            hotel_urls = re.findall(r"<loc>(https://www\.tui\.cz/dovolena/[^<]+)</loc>", r.text)
+            for url in hotel_urls:
+                path = url.replace(BASE_URL, "").rstrip("/")
+                parts = [p for p in path.strip("/").split("/") if p]
+                # dovolena / country / region / hotel-slug → ≥4 části
+                if len(parts) >= 4 and not any(kw in path for kw in SKIP):
+                    dest_pages.add("/" + "/".join(parts[:3]) + "/")  # country/region
+                    dest_pages.add("/" + "/".join(parts[:2]) + "/")  # country
+            logger.info(f"TUI hotels.xml: {len(hotel_urls)} hotelů → {len(dest_pages)} listing stránek")
+        else:
+            logger.warning(f"TUI hotels.xml: HTTP {r.status_code}")
+    except Exception as e:
+        logger.warning(f"TUI hotels.xml error: {e}")
+
+    # 2. destinations.xml — destinační stránky (přímé listing stránky s paginací)
+    try:
+        r = session.get(f"{BASE_URL}/destinations.xml", headers=hdrs, timeout=30)
+        if r.status_code == 200:
+            dest_urls = re.findall(r"<loc>(https://www\.tui\.cz/dovolena/[^<]+)</loc>", r.text)
+            added = 0
+            for url in dest_urls:
+                path = url.replace(BASE_URL, "").rstrip("/") + "/"
+                if not any(kw in path for kw in SKIP):
+                    dest_pages.add(path)
+                    added += 1
+            logger.info(f"TUI destinations.xml: {added} destinačních stránek přidáno")
+        else:
+            logger.warning(f"TUI destinations.xml: HTTP {r.status_code}")
+    except Exception as e:
+        logger.warning(f"TUI destinations.xml error: {e}")
+
+    if not dest_pages:
+        logger.info("TUI sitemap: žádné stránky — použiji DISCOVERY_PAGES")
+        return []
+
+    # Seřaď: nejkonkrétnější (více segmentů) první
+    result = sorted(dest_pages, key=lambda p: (-p.count("/"), p))
+    logger.info(f"TUI sitemap discovery → {len(result)} stránek ke zpracování")
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Smazání TUI dat
 # ---------------------------------------------------------------------------
 
@@ -1465,9 +1551,26 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False):
     hotel_tours:  dict[str, list[dict]] = {}  # hotel_path → list of tour dicts
     hotel_meta:   dict[str, dict]       = {}  # hotel_path → základní metadata z listingu
 
-    logger.info(f"Procházím {len(DISCOVERY_PAGES)} discovery stránek...")
-    for i, path in enumerate(DISCOVERY_PAGES, 1):
-        logger.info(f"[{i}/{len(DISCOVERY_PAGES)}] {path}")
+    # Zkus sitemap discovery — vrátí destinační stránky odvozené z hotelových URL v sitemapě
+    sitemap_pages = discover_pages_from_sitemap(session)
+
+    # Kombinuj: sitemap stránky (kompletní pokrytí) + DISCOVERY_PAGES (záloha / odletové stránky)
+    # Odletové stránky (odlety-z-*) mají paginaci → vždy je přidej pro úplné pokrytí
+    departure_pages = [p for p in DISCOVERY_PAGES if any(kw in p for kw in _DEPARTURE_PAGE_KEYWORDS)]
+    fallback_pages  = [p for p in DISCOVERY_PAGES if not any(kw in p for kw in _DEPARTURE_PAGE_KEYWORDS)]
+
+    if sitemap_pages:
+        # Sitemap dává kompletní destinační stránky; přidáme odletové stránky pro všechna letiště
+        all_pages = list(dict.fromkeys(sitemap_pages + departure_pages))
+        logger.info(f"Discovery: {len(sitemap_pages)} ze sitemapy + {len(departure_pages)} odletových = {len(all_pages)} stránek")
+    else:
+        # Sitemap nepomohl — použij celý DISCOVERY_PAGES seznam
+        all_pages = list(dict.fromkeys(departure_pages + fallback_pages))
+        logger.info(f"Discovery: sitemap prázdná, používám {len(all_pages)} záložních stránek")
+
+    logger.info(f"Procházím {len(all_pages)} discovery stránek...")
+    for i, path in enumerate(all_pages, 1):
+        logger.info(f"[{i}/{len(all_pages)}] {path}")
         entries = scrape_listing_page(session, path)
 
         for entry in entries:
@@ -1507,7 +1610,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False):
             if not any(t["url"] == tour["url"] for t in hotel_tours[hp]):
                 hotel_tours[hp].append(tour)
 
-        if i < len(DISCOVERY_PAGES):
+        if i < len(all_pages):
             time.sleep(delay / 2)
 
     logger.info(f"Celkem nalezeno {len(hotel_tours)} unikátních hotelů")

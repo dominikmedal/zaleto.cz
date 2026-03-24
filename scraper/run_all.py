@@ -33,6 +33,7 @@ import smtplib
 import sqlite3
 import subprocess
 import sys
+import threading
 import time
 import traceback
 from datetime import datetime
@@ -98,6 +99,16 @@ SCRAPERS: list[dict] = [
     {
         "agency":  "Fischer",
         "module":  "fischer.py",
+        "args":    ["--delay", str(SCRAPER_DELAY)],
+    },
+    {
+        "agency":  "Exim Tours",
+        "module":  "eximtours.py",
+        "args":    ["--delay", str(SCRAPER_DELAY)],
+    },
+    {
+        "agency":  "Nev-Dama",
+        "module":  "nevdama.py",
         "args":    ["--delay", str(SCRAPER_DELAY)],
     },
     {
@@ -341,6 +352,21 @@ def run_scraper(scraper: dict, conn: sqlite3.Connection) -> dict:
         "log_tail":       "",
     }
 
+    # Background thread — refreshuje hotel_stats každé 2 min během scrape
+    _stop_refresh = threading.Event()
+
+    def _bg_refresh():
+        while not _stop_refresh.wait(120):
+            try:
+                bg_conn = open_db()
+                refresh_hotel_stats(bg_conn)
+                bg_conn.close()
+            except Exception:
+                pass
+
+    _refresh_thread = threading.Thread(target=_bg_refresh, daemon=True)
+    _refresh_thread.start()
+
     try:
         logger.info(f"{'─'*55}")
         logger.info(f"Spouštím: {agency}  ({' '.join(cmd[-2:])})")
@@ -393,6 +419,9 @@ def run_scraper(scraper: dict, conn: sqlite3.Connection) -> dict:
         result["error"] = tb.splitlines()[-1][:200]
         result["log_tail"] = tb[-2000:]
         logger.exception(f"Chyba při spuštění {agency}")
+    finally:
+        _stop_refresh.set()
+        _refresh_thread.join(timeout=5)
 
     result["duration_sec"] = time.time() - started
     after = get_counts(conn, agency)
@@ -691,6 +720,11 @@ def run_cycle(cycle: int, skip_email: bool = False):
             continue
         result = run_scraper(scraper, conn)
         results.append(result)
+        # Obnov hotel_stats po každém scraperu — frontend zobrazuje hotely z této tabulky
+        try:
+            refresh_hotel_stats(conn)
+        except Exception:
+            logger.exception("Chyba při průběžné aktualizaci hotel_stats")
 
     # Post-processing
     expired = 0
@@ -729,11 +763,37 @@ def run_cycle(cycle: int, skip_email: bool = False):
         logger.info("Email: přeskočen (--skip-email)")
 
 
+def delete_all_data():
+    """Smaže všechny záznamy v DB (hotels, tours, checkpointy). Zachová schéma."""
+    conn = open_db()
+    for table in ("tours", "hotels", "hotel_stats", "hotel_checkpoints", "scraper_checkpoints"):
+        try:
+            count = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            conn.execute(f"DELETE FROM {table}")
+            logger.info(f"  {table}: smazáno {count} záznamů")
+        except Exception:
+            pass  # tabulka nemusí existovat
+    # Reset auto-increment sekvencí
+    for table in ("hotels", "tours"):
+        try:
+            conn.execute(f"DELETE FROM sqlite_sequence WHERE name = '{table}'")
+        except Exception:
+            pass
+    conn.commit()
+    conn.close()
+    logger.info("--delete: všechna data smazána")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Zaleto scraper orchestrátor")
     parser.add_argument("--once",       action="store_true", help="Jednorázový běh a konec")
     parser.add_argument("--skip-email", action="store_true", help="Neodesílat report email")
+    parser.add_argument("--delete",     action="store_true", help="Smaže všechna data v DB a spustí scraping znovu")
     args = parser.parse_args()
+
+    if args.delete:
+        logger.info("--delete: mažu všechna data v DB...")
+        delete_all_data()
 
     logger.info("Zaleto scraper orchestrátor spuštěn")
     logger.info(f"  DB:       {DB_PATH}")

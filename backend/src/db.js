@@ -84,8 +84,12 @@ addIfMissing('is_first_minute', 'INTEGER DEFAULT 0')
 
 // Indexes added after column migrations so canonical_slug exists
 db.exec(`
-  CREATE INDEX IF NOT EXISTS idx_hotels_canonical_slug ON hotels(canonical_slug);
-  CREATE INDEX IF NOT EXISTS idx_tours_hotel_date      ON tours(hotel_id, departure_date);
+  CREATE INDEX IF NOT EXISTS idx_hotels_canonical_slug  ON hotels(canonical_slug);
+  CREATE INDEX IF NOT EXISTS idx_tours_hotel_date       ON tours(hotel_id, departure_date);
+  CREATE INDEX IF NOT EXISTS idx_tours_meal_plan        ON tours(meal_plan);
+  CREATE INDEX IF NOT EXISTS idx_tours_transport        ON tours(transport);
+  CREATE INDEX IF NOT EXISTS idx_tours_departure_city   ON tours(departure_city);
+  CREATE INDEX IF NOT EXISTS idx_tours_duration         ON tours(duration);
 `)
 
 // Předpočítaná statistická tabulka — základ pro rychlé dotazy bez GROUP BY

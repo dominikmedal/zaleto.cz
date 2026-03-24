@@ -6,6 +6,7 @@ import Footer from '@/components/Footer'
 import NavigationProgress from '@/components/NavigationProgress'
 import ServiceWorkerSetup from '@/components/ServiceWorkerSetup'
 import JsonLd from '@/components/JsonLd'
+import ChatWidget from '@/components/ChatWidget'
 
 export const metadata: Metadata = {
   title: {
@@ -84,6 +85,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <Footer />
         <ScrollToTop />
+        <ChatWidget />
       </body>
     </html>
   )
