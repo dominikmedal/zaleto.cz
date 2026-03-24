@@ -111,7 +111,10 @@ router.get('/', (req, res) => {
             SELECT COUNT(*) AS total FROM hotels h
             LEFT JOIN hotel_stats s ON s.hotel_id = h.id
             LEFT JOIN (
-              SELECT hotel_id, MIN(price) AS min_price
+              SELECT hotel_id,
+                MIN(price)                            AS min_price,
+                MAX(COALESCE(is_last_minute,  0))     AS has_last_minute,
+                MAX(COALESCE(is_first_minute, 0))     AS has_first_minute
               FROM tours WHERE price > 0 AND departure_date >= date('now')
               GROUP BY hotel_id
             ) sub ON sub.hotel_id = h.id
