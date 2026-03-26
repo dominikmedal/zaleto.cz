@@ -6,44 +6,44 @@ const { metaCache } = require('../cache')
 const STALE_DAYS = 90
 
 /**
- * Generates AI description + excursions for a destination via OpenAI.
+ * Generates AI description + excursions for a destination via Google Gemini.
  * Returns { description, excursions } or throws.
  */
 async function generateAI(name) {
-  const apiKey = process.env.OPENAI_API_KEY
+  const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return null
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      response_format: { type: 'json_object' },
-      max_tokens: 1200,
-      temperature: 0.7,
-      messages: [
-        {
-          role: 'system',
-          content: 'Jsi průvodce cestovního portálu zaleto.cz. Generuješ obsah v češtině pro turisty.',
-        },
-        {
-          role: 'user',
-          content:
-            `Vytvoř obsah pro destinaci "${name}" pro cestovní portál zaleto.cz.\n` +
-            `Vrať JSON objekt se dvěma poli:\n` +
-            `1. "description": string — 2 odstavce oddělené \\n\\n, celkem 150–250 slov. Piš lákavě a přirozeně: proč jet, co zažít, podnebí, nejlepší roční doba.\n` +
-            `2. "excursions": pole 8 objektů { "name": string, "emoji": string, "description": string } — doporučené výlety nebo aktivity v destinaci, každý s 1 větou popisu.\n` +
-            `Příklad objektu excursions: { "name": "Safari v NP Amboseli", "emoji": "🦁", "description": "Nezapomenutelné setkání s africkou divočinou s výhledem na Kilimandžáro." }`,
-        },
-      ],
-    }),
-    signal: AbortSignal.timeout(25_000),
-  })
+  const prompt =
+    `Jsi průvodce cestovního portálu zaleto.cz. Generuješ obsah v češtině pro turisty.\n\n` +
+    `Vytvoř obsah pro destinaci "${name}" pro cestovní portál zaleto.cz.\n` +
+    `Vrať JSON objekt se dvěma poli:\n` +
+    `1. "description": string — 2 odstavce oddělené \\n\\n, celkem 150–250 slov. Piš lákavě a přirozeně: proč jet, co zažít, podnebí, nejlepší roční doba.\n` +
+    `2. "excursions": pole 8 objektů { "name": string, "emoji": string, "description": string } — doporučené výlety nebo aktivity v destinaci, každý s 1 větou popisu.\n` +
+    `Příklad objektu excursions: { "name": "Safari v NP Amboseli", "emoji": "🦁", "description": "Nezapomenutelné setkání s africkou divočinou s výhledem na Kilimandžáro." }`
 
-  if (!response.ok) throw new Error(`OpenAI HTTP ${response.status}`)
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          maxOutputTokens: 1200,
+          temperature: 0.7,
+        },
+      }),
+      signal: AbortSignal.timeout(25_000),
+    }
+  )
+
+  if (!response.ok) throw new Error(`Gemini HTTP ${response.status}`)
 
   const data = await response.json()
-  const parsed = JSON.parse(data.choices[0].message.content)
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!text) throw new Error('Gemini empty response')
+  const parsed = JSON.parse(text)
   return {
     description: parsed.description || null,
     excursions:  Array.isArray(parsed.excursions) ? parsed.excursions.slice(0, 8) : [],
