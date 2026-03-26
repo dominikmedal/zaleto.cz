@@ -9,10 +9,13 @@ interface AgencyDesc {
 
 interface Props {
   descriptions: AgencyDesc[]
-  stripHtml: (html: string) => string
 }
 
-export default function AgencyDescriptionSwitcher({ descriptions, stripHtml }: Props) {
+function stripHtml(html: string) {
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim()
+}
+
+export default function AgencyDescriptionSwitcher({ descriptions }: Props) {
   const [active, setActive] = useState(0)
 
   if (!descriptions || descriptions.length === 0) return null

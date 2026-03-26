@@ -313,7 +313,6 @@ export default async function HotelDetailPage({ params }: Props) {
                       ? hotel.agencyDescriptions!
                       : hotel.description ? [{ agency: hotel.agency, description: hotel.description }] : []
                     }
-                    stripHtml={stripHtml}
                   />
                 </Section>
               )}
