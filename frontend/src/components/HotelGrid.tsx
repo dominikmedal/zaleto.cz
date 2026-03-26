@@ -59,11 +59,23 @@ export default function HotelGrid({ adults = 2 }: { adults?: number }) {
   // spStr tracks the "effective" search string — updated immediately by filterchange
   // events (before Next.js navigation commits) and also by useSearchParams changes
   const [spStr, setSpStr] = useState(() => spBase.toString())
-
-  useEffect(() => { setSpStr(spBase.toString()) }, [spBase])
+  // Tracks when the last filterchange event fired — guards against stale navigation commits
+  // overwriting a newer filterchange (race: nav1 commits after filterchange2 fired)
+  const lastFilterTs = useRef(0)
 
   useEffect(() => {
-    const handler = (e: Event) => setSpStr((e as CustomEvent<string>).detail)
+    // Only override with URL params if no filterchange fired in the last 10s.
+    // This prevents a slow navigation (railway ~5-15s) from overwriting a newer filter.
+    if (Date.now() - lastFilterTs.current > 10_000) {
+      setSpStr(spBase.toString())
+    }
+  }, [spBase])
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      lastFilterTs.current = Date.now()
+      setSpStr((e as CustomEvent<string>).detail)
+    }
     window.addEventListener('filterchange', handler)
     return () => window.removeEventListener('filterchange', handler)
   }, [])
@@ -87,6 +99,7 @@ export default function HotelGrid({ adults = 2 }: { adults?: number }) {
     abortRef.current = controller
 
     setLoading(true)
+    setInitialDone(false)   // reset skeleton on every filter change
     prefetchRef.current = null
 
     const params = new URLSearchParams(sp)
