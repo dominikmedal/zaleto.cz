@@ -5,6 +5,27 @@ import { PiUserMinus, PiUserPlus } from 'react-icons/pi'
 import type { Tour } from '@/lib/types'
 import { API } from '@/lib/api'
 
+function TourSkeleton() {
+  return (
+    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden animate-pulse">
+      <div className="px-5 pt-4 pb-3 flex items-center gap-3">
+        <div className="h-8 w-14 bg-gray-100 rounded" />
+        <div className="flex-1 h-px bg-gray-100" />
+        <div className="h-8 w-14 bg-gray-100 rounded" />
+      </div>
+      <div className="h-px mx-5 bg-gray-100" />
+      <div className="px-5 pt-3 pb-4 flex items-center justify-between gap-3">
+        <div className="flex gap-4">
+          <div className="h-4 w-28 bg-gray-100 rounded" />
+          <div className="h-4 w-16 bg-gray-100 rounded" />
+          <div className="h-4 w-20 bg-gray-100 rounded" />
+        </div>
+        <div className="h-8 w-24 bg-gray-100 rounded-xl" />
+      </div>
+    </div>
+  )
+}
+
 const PAGE_SIZE = 20
 
 function formatPrice(p: number) {
@@ -178,7 +199,9 @@ function getStoredFilter(key: string, fallback = '') {
   return fallback
 }
 
-export default function TourDatesList({ tours, slug }: { tours: Tour[]; slug: string }) {
+export default function TourDatesList({ slug }: { slug: string }) {
+  const [tours,      setTours]      = useState<Tour[]>([])
+  const [loading,    setLoading]    = useState(true)
   const [sortBy,     setSortBy]     = useState<'date_asc' | 'price_asc'>('date_asc')
   const [adults,     setAdults]     = useState(() => parseInt(getStoredFilter('adults', '2')))
   const [cityFilter, setCityFilter] = useState<string[]>(() => {
@@ -192,6 +215,15 @@ export default function TourDatesList({ tours, slug }: { tours: Tour[]; slug: st
   const [dateTo,     setDateTo]     = useState(() => getStoredFilter('date_to'))
   const [page,       setPage]       = useState(1)
   const sentinelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch(`${API}/api/hotels/${slug}/tours`)
+      .then(r => r.ok ? r.json() : { tours: [] })
+      .then(data => setTours(data.tours ?? []))
+      .catch(() => setTours([]))
+      .finally(() => setLoading(false))
+  }, [slug])
 
   const availableCities = Array.from(new Set(tours.map(t => t.departure_city).filter(Boolean) as string[]))
 
@@ -230,6 +262,14 @@ export default function TourDatesList({ tours, slug }: { tours: Tour[]; slug: st
   }, [loadMore])
 
   const hasActiveFilters = cityFilter.length > 0 || dateFrom || dateTo
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => <TourSkeleton key={i} />)}
+      </div>
+    )
+  }
 
   if (tours.length === 0) {
     return (

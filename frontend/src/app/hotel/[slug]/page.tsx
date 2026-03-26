@@ -14,7 +14,7 @@ import TourDatesList from '@/components/TourDatesList'
 import HotelGallery from '@/components/HotelGallery'
 import ReviewsSection from '@/components/ReviewsSection'
 import NearbyHotels from '@/components/NearbyHotels'
-import { fetchHotel, fetchHotelTours } from '@/lib/api'
+import { fetchHotel } from '@/lib/api'
 import JsonLd from '@/components/JsonLd'
 
 // Leaflet needs browser APIs → dynamic import, no SSR
@@ -25,9 +25,9 @@ export const dynamicParams = true       // stránky mimo generateStaticParams fu
 
 export async function generateStaticParams() {
   try {
-    // Pregeneruj jen top 200 hotelů (nejlevnější) — zbytek se vygeneruje ISR on-demand při první návštěvě.
+    // Pregeneruj jen top 50 hotelů — zbytek se vygeneruje ISR on-demand při první návštěvě.
     // dynamicParams = true zajišťuje, že ostatní stránky fungují normálně.
-    const slugs = await fetchAllHotelSlugs(200)
+    const slugs = await fetchAllHotelSlugs(50)
     return slugs.map(({ slug }) => ({ slug }))
   } catch {
     return []
@@ -118,18 +118,12 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 
 export default async function HotelDetailPage({ params }: Props) {
   let hotel: Awaited<ReturnType<typeof fetchHotel>>
-  let toursData: Awaited<ReturnType<typeof fetchHotelTours>>
 
   try {
-    ;[hotel, toursData] = await Promise.all([
-      fetchHotel(params.slug),
-      fetchHotelTours(params.slug),
-    ])
+    hotel = await fetchHotel(params.slug)
   } catch {
     notFound()
   }
-
-  const tours = toursData.tours
 
   // Parse photos
   const photos: string[] = (() => {
@@ -167,16 +161,8 @@ export default async function HotelDetailPage({ params }: Props) {
     ? hotel.price_includes.split('|').map((s: string) => s.trim()).filter(Boolean)
     : []
 
-  // Unique meal plans from tours
-  const mealPlans = [...new Set(tours.map(t => t.meal_plan).filter(Boolean))] as string[]
-
-  // Price range from tours
-  const prices = tours.map(t => t.price).filter(p => p > 0)
-  const minTourPrice = prices.length ? Math.min(...prices) : hotel.min_price
-  const maxTourPrice = prices.length ? Math.max(...prices) : null
-
-  // Durations available
-  const durations = [...new Set(tours.map(t => t.duration).filter(Boolean))].sort((a, b) => (a ?? 0) - (b ?? 0)) as number[]
+  const minTourPrice = hotel.min_price
+  const tourCount    = hotel.available_dates ?? 0
 
   const hotelSchema = {
     '@context': 'https://schema.org',
@@ -248,12 +234,12 @@ export default async function HotelDetailPage({ params }: Props) {
           )}
           <div className="flex flex-wrap items-center gap-2 mt-2 mb-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">{hotel.name}</h1>
-            {tours.some((t: any) => t.is_last_minute === 1) ? (
+            {hotel.has_last_minute === 1 ? (
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-red-500 px-2.5 py-1 rounded-lg shadow-sm">
                 <PiTimer className="w-3.5 h-3.5 flex-shrink-0" />
                 Last minute
               </span>
-            ) : tours.some((t: any) => t.is_first_minute === 1) ? (
+            ) : hotel.has_first_minute === 1 ? (
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-500 px-2.5 py-1 rounded-lg shadow-sm">
                 <PiCalendarStar className="w-3.5 h-3.5 flex-shrink-0" />
                 First minute
@@ -284,9 +270,6 @@ export default async function HotelDetailPage({ params }: Props) {
                 <span className="text-3xl font-extrabold text-[#0d4f52]">{formatPriceShort(minTourPrice)}</span>
                 <span className="text-sm font-medium text-[#4d8a8c]">Kč</span>
               </div>
-              {maxTourPrice && maxTourPrice !== minTourPrice && (
-                <p className="text-xs text-[#4d8a8c]">max. {formatPriceShort(maxTourPrice)} Kč / os.</p>
-              )}
             </div>
             <ScrollToButton
               targetId="terminy"
@@ -296,23 +279,15 @@ export default async function HotelDetailPage({ params }: Props) {
               Vybrat termín
             </ScrollToButton>
           </div>
-          <div className="grid grid-cols-3 gap-3 pt-3 border-t border-[#b8dfe1]">
+          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#b8dfe1]">
             <div>
               <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Termíny</p>
-              <p className="text-lg font-extrabold text-[#0d4f52]">{tours.length}</p>
+              <p className="text-lg font-extrabold text-[#0d4f52]">{tourCount}</p>
             </div>
             <div>
-              <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Délka</p>
-              <p className="text-lg font-extrabold text-[#0d4f52]">
-                {durations.length === 0 ? '—' : durations.length === 1 ? durations[0] : `${durations[0]}–${durations[durations.length - 1]}`}
-                {durations.length > 0 && <span className="text-xs font-normal text-[#4d8a8c] ml-0.5">nocí</span>}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Stravování</p>
+              <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Nejbližší odjezd</p>
               <p className="text-xs font-semibold text-[#0d4f52] leading-tight">
-                {mealPlans.length === 0 ? '—' : mealPlans[0]}
-                {mealPlans.length > 1 && <span className="text-[10px] text-[#4d8a8c] ml-1">+{mealPlans.length - 1}</span>}
+                {hotel.next_departure ? new Date(hotel.next_departure).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' }) : '—'}
               </p>
             </div>
           </div>
@@ -375,17 +350,8 @@ export default async function HotelDetailPage({ params }: Props) {
                 </Section>
               )}
 
-              {(mealPlans.length > 0 || hotel.food_options) && (
+              {hotel.food_options && (
                 <Section title="Stravování" icon={<PiForkKnife className="w-5 h-5" />}>
-                  {mealPlans.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {mealPlans.map(m => (
-                        <span key={m} className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full">
-                          <PiForkKnife className="w-3.5 h-3.5" /> {m}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                   {hotel.food_options && (
                     <div className="divide-y divide-gray-50">
                       {parseFoodOptions(hotel.food_options).map((row, i) => (
@@ -445,32 +411,21 @@ export default async function HotelDetailPage({ params }: Props) {
                     <span className="text-4xl font-extrabold text-[#0d4f52]">{formatPriceShort(minTourPrice)}</span>
                     <span className="text-base font-medium text-[#4d8a8c]">Kč</span>
                   </div>
-                  {maxTourPrice && maxTourPrice !== minTourPrice && (
-                    <p className="text-xs text-[#4d8a8c] mt-0.5">max. {formatPriceShort(maxTourPrice)} Kč / os.</p>
-                  )}
                 </div>
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-1 border-t border-[#b8dfe1]">
                   <div>
                     <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Termíny</p>
-                    <p className="text-lg font-extrabold text-[#0d4f52]">{tours.length}</p>
+                    <p className="text-lg font-extrabold text-[#0d4f52]">{tourCount}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Délka pobytu</p>
-                    <p className="text-lg font-extrabold text-[#0d4f52]">
-                      {durations.length === 0 ? '—' : durations.length === 1 ? durations[0] : `${durations[0]}–${durations[durations.length - 1]}`}
-                      {durations.length > 0 && <span className="text-xs font-normal text-[#4d8a8c] ml-1">nocí</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Stravování</p>
+                    <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Nejbližší odjezd</p>
                     <p className="text-sm font-semibold text-[#0d4f52] leading-tight">
-                      {mealPlans.length === 0 ? '—' : mealPlans[0]}
-                      {mealPlans.length > 1 && <span className="text-xs text-[#4d8a8c] ml-1">+{mealPlans.length - 1}</span>}
+                      {hotel.next_departure ? new Date(hotel.next_departure).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                     </p>
                   </div>
-                  <div>
+                  <div className="col-span-2">
                     <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Lokalita</p>
                     <p className="text-xs font-medium text-[#0d4f52] leading-tight">
                       {[hotel.resort_town, hotel.country].filter(Boolean).join(', ') || '—'}
@@ -507,7 +462,7 @@ export default async function HotelDetailPage({ params }: Props) {
         <div id="terminy" className="mt-12 scroll-mt-[140px]">
           <div className="flex items-center gap-3 mb-6 flex-wrap">
             <h2 className="text-xl font-bold text-gray-900">Dostupné termíny</h2>
-            <span className="text-sm font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">{tours.length}</span>
+            <span className="text-sm font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">{tourCount}</span>
             {(hotel.tours_updated_at || hotel.updated_at) && (() => {
               const raw = (hotel.tours_updated_at || hotel.updated_at)!
               // SQLite vrací "YYYY-MM-DD HH:MM:SS" — nahraď mezeru za T pro ISO 8601
@@ -520,7 +475,7 @@ export default async function HotelDetailPage({ params }: Props) {
               )
             })()}
           </div>
-          <TourDatesList tours={tours} slug={params.slug} />
+          <TourDatesList slug={params.slug} />
         </div>
       </div>
     </div>

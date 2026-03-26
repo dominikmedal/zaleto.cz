@@ -92,7 +92,7 @@ function MonthGrid({ year, month, priceMap, allPrices, dateFrom, dateTo, hover, 
   const cells: (number | null)[] = [...Array(offset).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)]
   while (cells.length % 7) cells.push(null)
 
-  // Effective range end for highlight (use hover when picking second date)
+  // Efektivní konec rozsahu — při výběru druhého data používáme hover pro živý náhled
   const rangeEnd = (picking === 'to' && hover && dateFrom)
     ? (cmpYMD(hover, dateFrom) >= 0 ? hover : dateFrom)
     : dateTo
@@ -109,34 +109,39 @@ function MonthGrid({ year, month, priceMap, allPrices, dateFrom, dateTo, hover, 
           const ymd  = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
           const info = priceMap.get(ymd)
           const past = cmpYMD(ymd, today) < 0
+          // Libovolný budoucí den je klikatelný — ceny se zobrazí až se načtou
+          const clickable = !past
           const isFrom = ymd === dateFrom
           const isTo   = ymd === dateTo
           const sel    = isFrom || isTo
-          const inRange = dateFrom && rangeEnd && cmpYMD(ymd, dateFrom) > 0 && cmpYMD(ymd, rangeEnd) < 0
-          const clickable = !past && !!info
+
+          // Zvýraznění rozsahu — včetně dnů bez ceny (aby byl rozsah vizuálně celý)
+          const inRange = !!(dateFrom && rangeEnd && cmpYMD(ymd, dateFrom) > 0 && cmpYMD(ymd, rangeEnd) < 0)
 
           let bg = ''
-          if (sel) bg = 'bg-[#008afe] text-white rounded-xl z-10'
-          else if (inRange) {
-            bg = 'bg-[#008afe]/8'
-            if (ymd === dateFrom) bg += ' rounded-l-xl'
-            if (ymd === rangeEnd) bg += ' rounded-r-xl'
+          if (sel) {
+            bg = 'bg-[#008afe] rounded-xl z-10'
+          } else if (inRange) {
+            bg = 'bg-[#008afe]/10'
           }
+
+          const hoverClass = !past && !sel && !inRange ? 'hover:bg-[#008afe]/10 hover:rounded-xl' : ''
 
           return (
             <div
               key={ymd}
-              className={`flex flex-col items-center justify-center h-12 text-xs select-none transition-colors ${bg}
-                ${past ? 'opacity-25 cursor-not-allowed' : clickable ? 'cursor-pointer' : 'cursor-default opacity-35'}
-                ${!sel && !inRange && clickable ? 'hover:bg-[#008afe]/10 hover:rounded-xl' : ''}
+              className={`flex flex-col items-center justify-center h-12 text-xs select-none transition-colors ${bg} ${hoverClass}
+                ${past ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'}
               `}
-              onClick={() => clickable && onDayClick(ymd)}
+              onClick={() => !past && onDayClick(ymd)}
               onMouseEnter={() => !past && onDayHover(ymd)}
             >
-              <span className={`font-medium text-[13px] leading-none ${sel ? 'text-white' : 'text-gray-800'}`}>{day}</span>
+              <span className={`font-medium text-[13px] leading-none ${sel ? 'text-white' : past ? 'text-gray-400' : 'text-gray-800'}`}>
+                {day}
+              </span>
               {info
-                ? <span className={`text-[9px] leading-none mt-0.5 font-medium ${sel ? 'text-white/70' : priceColor(info.min_price, allPrices)}`}>{fmtPrice(info.min_price)}</span>
-                : <span className="text-[9px] leading-none mt-0.5 text-gray-200">–</span>
+                ? <span className={`text-[9px] leading-none mt-0.5 font-medium ${sel ? 'text-white/75' : priceColor(info.min_price, allPrices)}`}>{fmtPrice(info.min_price)}</span>
+                : <span className="text-[9px] leading-none mt-0.5">&nbsp;</span>
               }
             </div>
           )
@@ -228,14 +233,6 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
           <PiCaretRight className="w-4 h-4 text-gray-600" />
         </button>
       </div>
-      {loading && (
-        <div className="absolute inset-0 bg-white/60 rounded-2xl flex items-center justify-center z-10 pointer-events-none">
-          <div className="flex flex-col items-center gap-2">
-            <Loader2 className="w-6 h-6 text-[#008afe] animate-spin" />
-            <span className="text-xs text-gray-500">Načítám ceny…</span>
-          </div>
-        </div>
-      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onMouseLeave={() => setHover('')}>
         <MonthGrid year={viewYear} month={viewMonth} priceMap={priceMap} allPrices={allPrices}
           dateFrom={dateFrom} dateTo={dateTo} hover={hover} picking={picking} today={today}
