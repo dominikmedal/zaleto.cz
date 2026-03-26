@@ -70,6 +70,11 @@ app.use((err, req, res, next) => {
 })
 
 async function start() {
+  app.listen(PORT, () => {
+    console.log(`\n🚀 Zaleto Backend`)
+    console.log(`   http://localhost:${PORT}/api/health\n`)
+  })
+
   try {
     await require('./db').initSchema()
   } catch (e) {
@@ -77,13 +82,9 @@ async function start() {
     process.exit(1)
   }
 
-  app.listen(PORT, () => {
-    console.log(`\n🚀 Zaleto Backend`)
-    console.log(`   http://localhost:${PORT}/api/health\n`)
-    setTimeout(() => {
-      require('./db').runMaintenance().catch(e => console.error('[maintenance]', e.message))
-    }, 5000)
-  })
+  setTimeout(() => {
+    require('./db').runMaintenance().catch(e => console.error('[maintenance]', e.message))
+  }, 5000)
 }
 
 start()
