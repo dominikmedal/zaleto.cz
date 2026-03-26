@@ -3,7 +3,6 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
-import { fetchAllHotelSlugs } from '@/lib/api'
 import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar } from 'react-icons/pi'
 import ScrollToButton from '@/components/ScrollToButton'
 import ViewersBadge from '@/components/ViewersBadge'
@@ -24,14 +23,11 @@ export const revalidate = 3600          // ISR — regeneruj stránku na pozadí
 export const dynamicParams = true       // stránky mimo generateStaticParams fungují jako ISR on-demand
 
 export async function generateStaticParams() {
-  try {
-    // Pregeneruj jen top 50 hotelů — zbytek se vygeneruje ISR on-demand při první návštěvě.
-    // dynamicParams = true zajišťuje, že ostatní stránky fungují normálně.
-    const slugs = await fetchAllHotelSlugs(50)
-    return slugs.map(({ slug }) => ({ slug }))
-  } catch {
-    return []
-  }
+  // Nevygenerujeme žádné stránky při buildu — Railway nedokáže obsloužit desítky
+  // paralelních requestů během Vercel buildu bez timeoutů.
+  // dynamicParams = true zajišťuje ISR on-demand: stránka se vygeneruje při první
+  // návštěvě a pak je cachována (revalidate = 3600). Pro SEO ekvivalentní.
+  return []
 }
 
 interface Props { params: { slug: string } }

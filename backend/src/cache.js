@@ -41,7 +41,13 @@ class TTLCache {
 }
 
 // Sdílené instance pro jednotlivé endpointy
-const hotelsCache = new TTLCache(5 * 60 * 1000, 500)    // 5 min, max 500 queries
-const metaCache   = new TTLCache(5 * 60 * 1000, 500)    // 5 min, max 500 (zahrnuje calendar-prices klíče)
+// Popis hotelu, fotky, amenities se prakticky nemění → dlouhé TTL
+// Ceny a termíny se mění denně → kratší TTL
+// Po každém scrapingu se volá /api/cache/invalidate — TTL slouží jen jako pojistka,
+// ne jako limit čerstvosti. Lze nastavit agresivně.
+const hotelsCache      = new TTLCache( 2 * 60 * 60 * 1000,  500)   //  2 hod — výpisy hotelů, filtrování
+const hotelDetailCache = new TTLCache(24 * 60 * 60 * 1000, 1000)   // 24 hod — detail hotelu, nearby, slugs (statická data)
+const toursCache       = new TTLCache( 4 * 60 * 60 * 1000,  300)   //  4 hod — termíny na detailu hotelu
+const metaCache        = new TTLCache( 4 * 60 * 60 * 1000,  500)   //  4 hod — destinations, filters, calendar-prices
 
-module.exports = { hotelsCache, metaCache }
+module.exports = { hotelsCache, hotelDetailCache, toursCache, metaCache }

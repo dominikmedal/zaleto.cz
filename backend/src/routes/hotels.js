@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const db = require('../db')
-const { hotelsCache } = require('../cache')
+const { hotelsCache, hotelDetailCache } = require('../cache')
 
 // Používáme hotel_stats jako primární zdroj (bez drahého GROUP BY na 3.9M termínech).
 // Hodnota se zkontroluje při startu a po invalidaci cache.
@@ -342,6 +342,10 @@ router.get('/nearby', (req, res) => {
   try {
     const { lat, lon, exclude, limit = '6' } = req.query
     if (!lat || !lon) return res.status(400).json({ error: 'lat and lon required' })
+
+    const cacheKey = `nearby_${lat}_${lon}_${exclude || ''}_${limit}`
+    const cached = hotelDetailCache.get(cacheKey)
+    if (cached) return res.json(cached)
     const limitNum = Math.min(12, Math.max(1, parseInt(limit) || 6))
     // Haversine approx in SQL using bounding box + distance sort
     const latF = parseFloat(lat)
@@ -374,6 +378,7 @@ router.get('/nearby', (req, res) => {
       lonF - 2, lonF + 2,
       limitNum
     )
+    hotelDetailCache.set(cacheKey, rows)
     res.json(rows)
   } catch (err) {
     console.error('GET /api/hotels/nearby error:', err)
@@ -386,6 +391,10 @@ router.get('/nearby', (req, res) => {
 router.get('/slugs', (req, res) => {
   try {
     const limitNum = req.query.limit ? Math.max(1, parseInt(req.query.limit) || 0) : 0
+    const cacheKey = `slugs_${limitNum}`
+    const cached = hotelDetailCache.get(cacheKey)
+    if (cached) return res.json(cached)
+
     const sql = `
       SELECT h.slug, h.updated_at
       FROM hotels h
@@ -394,6 +403,7 @@ router.get('/slugs', (req, res) => {
       ${limitNum ? `LIMIT ${limitNum}` : ''}
     `
     const rows = db.prepare(sql).all()
+    hotelDetailCache.set(cacheKey, rows)
     res.json(rows)
   } catch (err) {
     console.error('GET /api/hotels/slugs error:', err)
@@ -406,6 +416,11 @@ router.get('/search', (req, res) => {
   try {
     const q = String(req.query.q || '').trim()
     if (q.length < 2) return res.json([])
+
+    const cacheKey = `search_${q.toLowerCase()}`
+    const cached = hotelsCache.get(cacheKey)
+    if (cached) return res.json(cached)
+
     // Deduplikace: hotely se stejným canonical_slug jsou jeden hotel od více CK.
     // Používáme INNER JOIN hotel_stats místo tours — 13K vs 3.9M řádků, ~10× rychlejší.
     const rows = db.prepare(`
@@ -423,6 +438,7 @@ router.get('/search', (req, res) => {
       ORDER BY name ASC
       LIMIT 6
     `).all(`%${q}%`)
+    hotelsCache.set(cacheKey, rows)
     res.json(rows)
   } catch (err) {
     console.error('GET /api/hotels/search error:', err)
@@ -520,7 +536,11 @@ router.get('/:slug/reviews', async (req, res) => {
 // GET /api/hotels/:slug
 router.get('/:slug', (req, res) => {
   try {
-    const hotel = db.prepare('SELECT * FROM hotels WHERE slug = ?').get(req.params.slug)
+    const { slug } = req.params
+    const cached = hotelDetailCache.get(`hotel_${slug}`)
+    if (cached) return res.set('X-Cache', 'HIT').json(cached)
+
+    const hotel = db.prepare('SELECT * FROM hotels WHERE slug = ?').get(slug)
     if (!hotel) return res.status(404).json({ error: 'Hotel not found' })
 
     // Multi-agency: agreguj přes canonical_slug pokud je nastaven,
@@ -548,7 +568,9 @@ router.get('/:slug', (req, res) => {
       if (fischer?.description) description = fischer.description
     }
 
-    res.json({ ...hotel, description, ...stats })
+    const result = { ...hotel, description, ...stats }
+    hotelDetailCache.set(`hotel_${slug}`, result)
+    res.set('X-Cache', 'MISS').json(result)
   } catch (err) {
     res.status(500).json({ error: 'Database error' })
   }

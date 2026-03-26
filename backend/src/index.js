@@ -53,8 +53,10 @@ app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date(
 
 // Invalidace cache po dokončení scrapingu (volá run_all.py)
 app.post('/api/cache/invalidate', (req, res) => {
-  const { hotelsCache, metaCache } = require('./cache')
+  const { hotelsCache, hotelDetailCache, toursCache, metaCache } = require('./cache')
   hotelsCache.invalidate()
+  hotelDetailCache.invalidate()
+  toursCache.invalidate()
   metaCache.invalidate()
   // Resetujeme statsPopulated — scraper mohl aktualizovat hotel_stats
   try { require('./routes/hotels').resetStats() } catch {}

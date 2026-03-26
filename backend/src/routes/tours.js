@@ -1,12 +1,17 @@
 const express = require('express')
 const router = express.Router({ mergeParams: true })
 const db = require('../db')
+const { toursCache } = require('../cache')
 
 // GET /api/hotels/:slug/tours  — available dates for a hotel
 router.get('/', (req, res) => {
   try {
     const { slug } = req.params
     const { date_from, date_to, duration, meal_plan, sort = 'date_asc', limit, offset } = req.query
+
+    const cacheKey = `${slug}_${JSON.stringify(req.query)}`
+    const cached = toursCache.get(cacheKey)
+    if (cached) return res.set('X-Cache', 'HIT').json(cached)
 
     const hotel = db.prepare('SELECT id, canonical_slug FROM hotels WHERE slug = ?').get(slug)
     if (!hotel) return res.status(404).json({ error: 'Hotel not found' })
@@ -60,7 +65,9 @@ router.get('/', (req, res) => {
       `SELECT ${cols} FROM tours ${where} ORDER BY ${orderBy} ${pagination}`
     ).all(params)
 
-    res.json({ tours, total, hasMore: limitNum ? (offsetNum + tours.length) < total : false })
+    const result = { tours, total, hasMore: limitNum ? (offsetNum + tours.length) < total : false }
+    toursCache.set(cacheKey, result)
+    res.set('X-Cache', 'MISS').json(result)
   } catch (err) {
     console.error('GET /tours error:', err)
     res.status(500).json({ error: 'Database error' })
