@@ -54,7 +54,7 @@ router.get('/', async (req, res) => {
         statsPopulated = parseInt(r.rows[0].n) > 0
       }
 
-      const whereConds = ['s.min_price IS NOT NULL', "s.next_departure >= CURRENT_DATE::text"]
+      const whereConds = ['s.min_price IS NOT NULL', "s.next_departure >= CURRENT_DATE::text", '(h.canonical_slug IS NULL OR h.canonical_slug = h.slug)']
       const params = []
 
       if (destination) {
@@ -163,7 +163,7 @@ router.get('/', async (req, res) => {
       const tourParams = []
       if (date_from) tourParams.push(date_from)
 
-      const hotelConds = []
+      const hotelConds = ['(h.canonical_slug IS NULL OR h.canonical_slug = h.slug)']
       const mainParams = []
 
       if (destination) {
@@ -523,35 +523,41 @@ router.get('/:slug', async (req, res) => {
     if (!hotel) return res.status(404).json({ error: 'Hotel not found' })
 
     const canonicalSlug = hotel.canonical_slug || null
-    let statsR
+    let statsR, descR
     if (canonicalSlug) {
-      statsR = await db.query(`
-        SELECT MIN(t.price) AS min_price, MAX(t.price) AS max_price,
-               COUNT(*)::integer AS total_dates, MAX(t.updated_at) AS tours_updated_at
-        FROM tours t JOIN hotels h ON h.id = t.hotel_id
-        WHERE h.canonical_slug = ? AND t.departure_date >= CURRENT_DATE::text
-      `, [canonicalSlug])
+      ;[statsR, descR] = await Promise.all([
+        db.query(`
+          SELECT MIN(t.price) AS min_price, MAX(t.price) AS max_price,
+                 COUNT(*)::integer AS available_dates, MIN(t.departure_date) AS next_departure,
+                 MAX(t.updated_at) AS tours_updated_at
+          FROM tours t JOIN hotels h ON h.id = t.hotel_id
+          WHERE h.canonical_slug = ? AND t.departure_date >= CURRENT_DATE::text
+        `, [canonicalSlug]),
+        db.query(
+          `SELECT agency, description FROM hotels WHERE canonical_slug = ? AND description IS NOT NULL ORDER BY agency`,
+          [canonicalSlug]
+        ),
+      ])
     } else {
       statsR = await db.query(`
         SELECT MIN(price) AS min_price, MAX(price) AS max_price,
-               COUNT(*)::integer AS total_dates, MAX(updated_at) AS tours_updated_at
+               COUNT(*)::integer AS available_dates, MIN(departure_date) AS next_departure,
+               MAX(updated_at) AS tours_updated_at
         FROM tours WHERE hotel_id = ? AND departure_date >= CURRENT_DATE::text
       `, [hotel.id])
+      descR = { rows: hotel.description ? [{ agency: hotel.agency, description: hotel.description }] : [] }
     }
     const stats = statsR.rows[0]
+    const agencyDescriptions = descR.rows
 
-    // Pokud hotel není od Fischeru, preferuj Fischerův popis
-    let description = hotel.description
-    if (canonicalSlug && hotel.agency !== 'Fischer') {
-      const fr = await db.query(
-        `SELECT description FROM hotels WHERE canonical_slug = ? AND agency = 'Fischer' AND description IS NOT NULL LIMIT 1`,
-        [canonicalSlug]
-      )
-      if (fr.rows[0]?.description) description = fr.rows[0].description
+    // Primární popis: Fischer pokud dostupný, jinak vlastní
+    const fischerDesc = agencyDescriptions.find(r => r.agency === 'Fischer')
+    const description = fischerDesc?.description ?? hotel.description
+
+    const result = { ...hotel, description, agencyDescriptions, ...stats }
+    if (stats.available_dates > 0) {
+      hotelDetailCache.set(`hotel_${slug}`, result)
     }
-
-    const result = { ...hotel, description, ...stats }
-    hotelDetailCache.set(`hotel_${slug}`, result)
     res.set('X-Cache', 'MISS').json(result)
   } catch (err) {
     res.status(500).json({ error: 'Database error' })

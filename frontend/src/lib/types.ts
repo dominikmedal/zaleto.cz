@@ -28,6 +28,7 @@ export interface Hotel {
   distance_km?: number       // vyplněno u výsledků nearby hotelů
   updated_at?: string | null
   tours_updated_at?: string | null
+  agencyDescriptions?: { agency: string; description: string }[]
 }
 
 export interface NearbyHotel {

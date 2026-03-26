@@ -12,8 +12,11 @@ router.get('/destinations', async (req, res) => {
     const r = await db.query(`
       SELECT h.country, h.destination, h.resort_town, COUNT(DISTINCT h.id)::integer AS hotel_count
       FROM hotels h
-      INNER JOIN hotel_stats s ON s.hotel_id = h.id
       WHERE h.destination IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM tours t
+          WHERE t.hotel_id = h.id AND t.price > 0 AND t.departure_date >= CURRENT_DATE::text
+        )
       GROUP BY h.country, h.destination, h.resort_town
       ORDER BY h.country, h.destination, hotel_count DESC
     `)
@@ -33,7 +36,7 @@ router.get('/filters', async (req, res) => {
   try {
     const [mealR, priceR, durR, starsR, transR, totalR, cityR] = await Promise.all([
       db.query(`SELECT meal_plan, COUNT(*)::integer AS count FROM tours WHERE meal_plan IS NOT NULL AND meal_plan != '' GROUP BY meal_plan ORDER BY count DESC`),
-      db.query(`SELECT MIN(min_price) AS min, MAX(max_price) AS max FROM hotel_stats WHERE min_price > 0`),
+      db.query(`SELECT MIN(price) AS min, MAX(price) AS max FROM tours WHERE price > 0`),
       db.query(`SELECT duration, COUNT(*)::integer AS count FROM tours WHERE duration IS NOT NULL GROUP BY duration ORDER BY duration ASC`),
       db.query(`SELECT stars, COUNT(*)::integer AS count FROM hotels WHERE stars IS NOT NULL GROUP BY stars ORDER BY stars ASC`),
       db.query(`SELECT transport, COUNT(*)::integer AS count FROM tours WHERE transport IS NOT NULL AND transport != '' GROUP BY transport ORDER BY count DESC`),

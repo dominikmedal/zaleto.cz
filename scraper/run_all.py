@@ -354,6 +354,7 @@ def run_scraper(scraper: dict, conn) -> dict:
                 bg_conn = open_db()
                 refresh_hotel_stats(bg_conn)
                 bg_conn.close()
+                _invalidate_api_cache()
             except Exception:
                 pass
 

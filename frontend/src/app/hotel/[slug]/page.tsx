@@ -15,6 +15,7 @@ import ReviewsSection from '@/components/ReviewsSection'
 import NearbyHotels from '@/components/NearbyHotels'
 import { fetchHotel } from '@/lib/api'
 import JsonLd from '@/components/JsonLd'
+import AgencyDescriptionSwitcher from '@/components/AgencyDescriptionSwitcher'
 
 // Leaflet needs browser APIs → dynamic import, no SSR
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false })
@@ -305,11 +306,15 @@ export default async function HotelDetailPage({ params }: Props) {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6">
 
-              {hotel.description && (
+              {(hotel.agencyDescriptions?.length > 0 || hotel.description) && (
                 <Section title="O hotelu" icon={<PiHouseSimple className="w-5 h-5" />}>
-                  <p className="text-gray-500 leading-relaxed text-sm whitespace-pre-line">
-                    {stripHtml(hotel.description)}
-                  </p>
+                  <AgencyDescriptionSwitcher
+                    descriptions={hotel.agencyDescriptions?.length > 0
+                      ? hotel.agencyDescriptions
+                      : hotel.description ? [{ agency: hotel.agency, description: hotel.description }] : []
+                    }
+                    stripHtml={stripHtml}
+                  />
                 </Section>
               )}
 
