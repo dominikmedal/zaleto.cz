@@ -123,6 +123,13 @@ async function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_reviews_hotel          ON reviews(hotel_id);
   `)
 
+  // Add columns that may be missing from older schema versions
+  await pool.query(`
+    ALTER TABLE tours ADD COLUMN IF NOT EXISTS price_single REAL;
+    ALTER TABLE tours ADD COLUMN IF NOT EXISTS url_single TEXT;
+    ALTER TABLE hotels ADD COLUMN IF NOT EXISTS review_score REAL;
+  `)
+
   // Populate hotel_stats on first run if empty
   await pool.query(`
     INSERT INTO hotel_stats

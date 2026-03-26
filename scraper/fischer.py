@@ -636,9 +636,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
     slug_counter: dict = {}
 
     # Pre-populate slug_counter z DB — zabrání kolizím slugů při resumování
-    cur = db.conn.cursor()
-    cur.execute("SELECT slug FROM hotels WHERE agency = %s", (AGENCY,))
-    for (s,) in cur.fetchall():
+    for (s,) in db.conn.execute("SELECT slug FROM hotels WHERE agency = ?", (AGENCY,)).fetchall():
         parts = s.rsplit("-", 1)
         if len(parts) == 2 and parts[1].isdigit():
             base, n = parts[0], int(parts[1]) + 1
