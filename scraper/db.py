@@ -73,6 +73,28 @@ def open_db() -> PgConn:
 # ZaletoDB — třída pro individuální scrapery
 # ---------------------------------------------------------------------------
 
+class _ConnWrapper:
+    """
+    Wrapper kolem psycopg2 connection, který napodobuje sqlite3 conn.execute() rozhraní.
+    Používá standardní (tuple) cursor, aby fetchone()[0] a for (x,) in ... fungovaly.
+    """
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def execute(self, sql: str, params=None):
+        sql = sql.replace("?", "%s")
+        cur = self._conn.cursor(cursor_factory=psycopg2.extensions.cursor)
+        cur.execute(sql, params or ())
+        return cur
+
+    def commit(self):
+        self._conn.commit()
+
+    def close(self):
+        self._conn.close()
+
+
 class ZaletoDB:
     """
     Psycopg2 obdoba původní sqlite3 ZaletoDB.
@@ -80,12 +102,13 @@ class ZaletoDB:
     """
 
     def __init__(self, path: str = None):
-        self.conn = _connect()
+        self._pg_conn = _connect()
+        self.conn = _ConnWrapper(self._pg_conn)
         self._ensure_extra_tables()
         logger.info("DB: PostgreSQL")
 
     def _cur(self):
-        return self.conn.cursor()
+        return self._pg_conn.cursor()
 
     def _ensure_extra_tables(self):
         """Checkpoint tabulky — backend je nevytváří, scrapery ano."""
@@ -106,7 +129,7 @@ class ZaletoDB:
                 PRIMARY KEY (agency, cycle_date)
             )
         """)
-        self.conn.commit()
+        self._pg_conn.commit()
 
     # ── Checkpointy ──────────────────────────────────────────────────────
 
@@ -240,7 +263,7 @@ class ZaletoDB:
         self.conn.commit()
 
     def commit(self):
-        self.conn.commit()
+        self._pg_conn.commit()
 
     def close(self):
-        self.conn.close()
+        self._pg_conn.close()

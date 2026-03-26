@@ -619,7 +619,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
     total_saved  = 0
     slug_counter: dict = {}
 
-    done_urls = db.get_done_keys()
+    done_urls = db.get_done_keys(AGENCY)
     if done_urls:
         logger.info(f"Checkpoint: přeskakuji {len(done_urls)} hotely z dnešního cyklu")
 

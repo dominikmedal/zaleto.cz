@@ -615,7 +615,6 @@ def delete_all(db: ZaletoDB):
     db.conn.execute("DELETE FROM tours")
     db.conn.execute("DELETE FROM hotels")
     db.conn.execute("DELETE FROM reviews")
-    db.conn.execute("DELETE FROM sqlite_sequence WHERE name IN ('hotels','tours','reviews')")
     db.conn.commit()
     logger.info(f"Smazáno: {hotels_count} hotelů, {tours_count} termínů, recenze.")
 
@@ -637,7 +636,9 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
     slug_counter: dict = {}
 
     # Pre-populate slug_counter z DB — zabrání kolizím slugů při resumování
-    for (s,) in db.conn.execute("SELECT slug FROM hotels WHERE agency = ?", (AGENCY,)).fetchall():
+    cur = db.conn.cursor()
+    cur.execute("SELECT slug FROM hotels WHERE agency = %s", (AGENCY,))
+    for (s,) in cur.fetchall():
         parts = s.rsplit("-", 1)
         if len(parts) == 2 and parts[1].isdigit():
             base, n = parts[0], int(parts[1]) + 1
