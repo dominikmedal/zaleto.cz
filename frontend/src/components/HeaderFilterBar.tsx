@@ -225,7 +225,9 @@ export default function HeaderFilterBar() {
     // Save to sessionStorage immediately
     try { sessionStorage.setItem(STORAGE_KEY, qs) } catch {}
     const timer = setTimeout(() => {
-      startTransition(() => router.push(`/?${qs}`))
+      // Notify HotelGrid immediately — before router navigation commits
+      window.dispatchEvent(new CustomEvent('filterchange', { detail: qs }))
+      startTransition(() => router.push(qs ? `/?${qs}` : '/'))
     }, 350)
     return () => clearTimeout(timer)
   }, [stateKey]) // eslint-disable-line react-hooks/exhaustive-deps

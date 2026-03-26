@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Loader2, LayoutGrid, List, Map } from 'lucide-react'
 import { PiMagnifyingGlass } from 'react-icons/pi'
@@ -55,7 +55,21 @@ function HotelSkeleton() {
 }
 
 export default function HotelGrid({ adults = 2 }: { adults?: number }) {
-  const sp = useSearchParams()
+  const spBase = useSearchParams()
+  // spStr tracks the "effective" search string — updated immediately by filterchange
+  // events (before Next.js navigation commits) and also by useSearchParams changes
+  const [spStr, setSpStr] = useState(() => spBase.toString())
+
+  useEffect(() => { setSpStr(spBase.toString()) }, [spBase])
+
+  useEffect(() => {
+    const handler = (e: Event) => setSpStr((e as CustomEvent<string>).detail)
+    window.addEventListener('filterchange', handler)
+    return () => window.removeEventListener('filterchange', handler)
+  }, [])
+
+  const sp = useMemo(() => new URLSearchParams(spStr), [spStr])
+
   const [view, setView]             = useState<'grid' | 'list' | 'map'>('grid')
   const [hotels, setHotels]         = useState<Hotel[]>([])
   const [pagination, setPagination] = useState<Pagination>(EMPTY_PAG)
