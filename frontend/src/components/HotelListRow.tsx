@@ -108,7 +108,7 @@ export default function HotelListRow({ hotel, adults = 2, activeTourType }: { ho
         <div className="relative w-full aspect-[16/9] sm:aspect-auto sm:flex-shrink-0 sm:w-[260px] sm:self-stretch">
           {photos.length > 0 ? (
             <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-[1.03]">
-              {photos.map((photo, i) => (
+              {(hovered ? photos : photos.slice(0, 1)).map((photo, i) => (
                 <Image
                   key={photo}
                   src={photo}

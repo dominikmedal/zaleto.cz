@@ -98,7 +98,7 @@ export default function HotelCard({ hotel, adults = 2, activeTourType }: { hotel
         <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-gray-100 mb-3">
           {photos.length > 0 ? (
             <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.04]">
-              {photos.map((photo, i) => (
+              {(hovered ? photos : photos.slice(0, 1)).map((photo, i) => (
                 <Image
                   key={photo}
                   src={photo}
