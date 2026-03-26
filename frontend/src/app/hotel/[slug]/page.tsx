@@ -306,11 +306,11 @@ export default async function HotelDetailPage({ params }: Props) {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6">
 
-              {(hotel.agencyDescriptions?.length > 0 || hotel.description) && (
+              {((hotel.agencyDescriptions?.length ?? 0) > 0 || hotel.description) && (
                 <Section title="O hotelu" icon={<PiHouseSimple className="w-5 h-5" />}>
                   <AgencyDescriptionSwitcher
-                    descriptions={hotel.agencyDescriptions?.length > 0
-                      ? hotel.agencyDescriptions
+                    descriptions={(hotel.agencyDescriptions?.length ?? 0) > 0
+                      ? hotel.agencyDescriptions!
                       : hotel.description ? [{ agency: hotel.agency, description: hotel.description }] : []
                     }
                     stripHtml={stripHtml}
