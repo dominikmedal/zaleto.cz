@@ -80,10 +80,9 @@ async function start() {
   app.listen(PORT, () => {
     console.log(`\n🚀 Zaleto Backend`)
     console.log(`   http://localhost:${PORT}/api/health\n`)
-    // Migrace a maintenance běží na pozadí — healthcheck musí projít dřív
-    require('./migrate_sqlite').runIfNeeded()
-      .then(() => require('./db').runMaintenance())
-      .catch(e => console.error('[migrate]', e.message))
+    setTimeout(() => {
+      require('./db').runMaintenance().catch(e => console.error('[maintenance]', e.message))
+    }, 5000)
   })
 }
 

@@ -30,7 +30,7 @@ import logging
 import os
 import signal
 import smtplib
-import sqlite3
+from db import open_db, DATABASE_URL
 import subprocess
 import sys
 import threading
@@ -61,8 +61,6 @@ if _env_file.exists():
 # ---------------------------------------------------------------------------
 
 BASE_DIR   = Path(__file__).resolve().parent
-DEFAULT_DB = str(BASE_DIR.parent / "data" / "zaleto.db")
-DB_PATH    = os.environ.get("DATABASE_PATH", DEFAULT_DB)
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 SMTP_HOST    = os.environ.get("SMTP_HOST", "")
@@ -132,20 +130,14 @@ SCRAPERS: list[dict] = [
 # DB helpers
 # ---------------------------------------------------------------------------
 
-def open_db() -> sqlite3.Connection:
-    Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, timeout=30)
-    conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("PRAGMA foreign_keys = ON")
-    conn.row_factory = sqlite3.Row
-    return conn
+# open_db() je importováno z db.py
 
 
 # ---------------------------------------------------------------------------
 # Checkpoint — přežije restart kontejneru (deploy)
 # ---------------------------------------------------------------------------
 
-def ensure_checkpoint_table(conn: sqlite3.Connection):
+def ensure_checkpoint_table(conn):
     conn.execute("""
         CREATE TABLE IF NOT EXISTS scraper_checkpoints (
             agency       TEXT NOT NULL,
@@ -154,10 +146,18 @@ def ensure_checkpoint_table(conn: sqlite3.Connection):
             PRIMARY KEY (agency, cycle_date)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS hotel_checkpoints (
+            agency     TEXT NOT NULL,
+            key        TEXT NOT NULL,
+            cycle_date TEXT NOT NULL,
+            PRIMARY KEY (agency, key, cycle_date)
+        )
+    """)
     conn.commit()
 
 
-def get_completed_today(conn: sqlite3.Connection) -> set:
+def get_completed_today(conn) -> set:
     """Vrátí množinu CK, které dnes již úspěšně dokončily stahování."""
     today = datetime.now().strftime("%Y-%m-%d")
     rows = conn.execute(
@@ -166,48 +166,43 @@ def get_completed_today(conn: sqlite3.Connection) -> set:
     return {r["agency"] for r in rows}
 
 
-def mark_completed(conn: sqlite3.Connection, agency: str):
+def mark_completed(conn, agency: str):
     today = datetime.now().strftime("%Y-%m-%d")
     conn.execute(
-        "INSERT OR REPLACE INTO scraper_checkpoints (agency, cycle_date, completed_at) "
-        "VALUES (?, ?, ?)",
+        "INSERT INTO scraper_checkpoints (agency, cycle_date, completed_at) "
+        "VALUES (?, ?, ?) ON CONFLICT (agency, cycle_date) DO UPDATE SET completed_at = EXCLUDED.completed_at",
         (agency, today, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
     )
     conn.commit()
 
 
-def clear_checkpoints(conn: sqlite3.Connection):
-    """Smaže checkpointy starší než 2 dny (údržba tabulky)."""
+def clear_checkpoints(conn):
+    """Smaže checkpointy starší než 2 dny."""
     conn.execute(
-        "DELETE FROM scraper_checkpoints WHERE cycle_date < date('now', '-2 days')"
+        "DELETE FROM scraper_checkpoints WHERE cycle_date < (CURRENT_DATE - INTERVAL '2 days')::text"
     )
-    # hotel_checkpoints tvoří scrapers samy — promazáváme je taky
     try:
         conn.execute(
-            "DELETE FROM hotel_checkpoints WHERE cycle_date < date('now', '-2 days')"
+            "DELETE FROM hotel_checkpoints WHERE cycle_date < (CURRENT_DATE - INTERVAL '2 days')::text"
         )
     except Exception:
-        pass  # tabulka ještě neexistuje při prvním běhu
+        pass
     conn.commit()
 
 
-def get_counts(conn: sqlite3.Connection, agency: str) -> dict:
+def get_counts(conn, agency: str) -> dict:
     """Vrátí počty hotelů a termínů pro danou CK."""
     h = conn.execute(
-        "SELECT COUNT(*) FROM hotels WHERE agency = ?", (agency,)
-    ).fetchone()[0]
+        "SELECT COUNT(*) AS n FROM hotels WHERE agency = ?", (agency,)
+    ).fetchone()["n"]
     t = conn.execute(
-        "SELECT COUNT(*) FROM tours WHERE agency = ?", (agency,)
-    ).fetchone()[0]
+        "SELECT COUNT(*) AS n FROM tours WHERE agency = ?", (agency,)
+    ).fetchone()["n"]
     return {"hotels": h, "tours": t}
 
 
-def ensure_canonical_slug(conn: sqlite3.Connection):
-    """Přidá sloupec canonical_slug (pokud neexistuje) a inicializuje jej."""
-    cols = {row[1] for row in conn.execute("PRAGMA table_info(hotels)")}
-    if "canonical_slug" not in cols:
-        conn.execute("ALTER TABLE hotels ADD COLUMN canonical_slug TEXT")
-        logger.info("DB: přidán sloupec canonical_slug")
+def ensure_canonical_slug(conn):
+    """Inicializuje canonical_slug pro hotely kde chybí."""
     conn.execute(
         "UPDATE hotels SET canonical_slug = slug "
         "WHERE canonical_slug IS NULL OR canonical_slug = ''"
@@ -215,12 +210,10 @@ def ensure_canonical_slug(conn: sqlite3.Connection):
     conn.commit()
 
 
-def purge_expired_tours(conn: sqlite3.Connection) -> int:
+def purge_expired_tours(conn) -> int:
     """Smaže termíny s datem odjezdu v minulosti. Vrátí počet smazaných."""
-    today = datetime.now().strftime("%Y-%m-%d")
     cur = conn.execute(
-        "DELETE FROM tours WHERE departure_date < ? AND departure_date != ''",
-        (today,),
+        "DELETE FROM tours WHERE departure_date < CURRENT_DATE::text AND departure_date != ''"
     )
     conn.commit()
     return cur.rowcount
@@ -230,7 +223,7 @@ def purge_expired_tours(conn: sqlite3.Connection) -> int:
 # Párování hotelů napříč CK (canonical_slug)
 # ---------------------------------------------------------------------------
 
-def match_hotels(conn: sqlite3.Connection) -> int:
+def match_hotels(conn) -> int:
     """
     Spáruje fyzicky totožné hotely od různých CK dle GPS souřadnic.
 
@@ -305,7 +298,7 @@ def match_hotels(conn: sqlite3.Connection) -> int:
 # Spuštění jednoho scraperu
 # ---------------------------------------------------------------------------
 
-def purge_stale_tours(conn: sqlite3.Connection, agency: str, run_started: datetime) -> int:
+def purge_stale_tours(conn, agency: str, run_started: datetime) -> int:
     """
     Smaže termíny dané CK, které nebyly aktualizovány v tomto běhu scraperu.
 
@@ -324,7 +317,7 @@ def purge_stale_tours(conn: sqlite3.Connection, agency: str, run_started: dateti
     return cur.rowcount
 
 
-def run_scraper(scraper: dict, conn: sqlite3.Connection) -> dict:
+def run_scraper(scraper: dict, conn) -> dict:
     """
     Spustí scraper jako subprocess, změří čas, zachytí výstup a chyby.
     Po úspěšném běhu smaže zastaralé termíny (stale price cleanup).
@@ -334,7 +327,7 @@ def run_scraper(scraper: dict, conn: sqlite3.Connection) -> dict:
     script = str(BASE_DIR / scraper["module"])
     cmd    = [sys.executable, "-u", script] + scraper["args"]
 
-    env = {**os.environ, "DATABASE_PATH": DB_PATH}
+    env = {**os.environ, "DATABASE_URL": DATABASE_URL}
 
     before      = get_counts(conn, agency)
     run_started = datetime.now()
@@ -630,13 +623,13 @@ def build_report(
 # Materializovaná tabulka hotel_stats
 # ---------------------------------------------------------------------------
 
-def refresh_hotel_stats(conn: sqlite3.Connection):
+def refresh_hotel_stats(conn):
     """
     Přepočítá hotel_stats ze všech aktuálních termínů.
     Voláno po každém cyklu scraperů, aby fast-path v API měl aktuální data.
     """
     conn.execute("""
-        INSERT OR REPLACE INTO hotel_stats
+        INSERT INTO hotel_stats
             (hotel_id, min_price, max_price, available_dates, next_departure,
              has_last_minute, has_first_minute, updated_at)
         SELECT
@@ -647,21 +640,28 @@ def refresh_hotel_stats(conn: sqlite3.Connection):
             MIN(departure_date),
             MAX(COALESCE(is_last_minute, 0)),
             MAX(COALESCE(is_first_minute, 0)),
-            datetime('now')
+            NOW()
         FROM tours
-        WHERE price > 0 AND departure_date >= date('now')
+        WHERE price > 0 AND departure_date >= CURRENT_DATE::text
         GROUP BY hotel_id
+        ON CONFLICT (hotel_id) DO UPDATE SET
+            min_price       = EXCLUDED.min_price,
+            max_price       = EXCLUDED.max_price,
+            available_dates = EXCLUDED.available_dates,
+            next_departure  = EXCLUDED.next_departure,
+            has_last_minute  = EXCLUDED.has_last_minute,
+            has_first_minute = EXCLUDED.has_first_minute,
+            updated_at      = EXCLUDED.updated_at
     """)
-    # Smaž záznamy pro hotely, které nemají žádné aktuální termíny
     conn.execute("""
         DELETE FROM hotel_stats
         WHERE hotel_id NOT IN (
             SELECT DISTINCT hotel_id FROM tours
-            WHERE price > 0 AND departure_date >= date('now')
+            WHERE price > 0 AND departure_date >= CURRENT_DATE::text
         )
     """)
     conn.commit()
-    n = conn.execute("SELECT COUNT(*) FROM hotel_stats").fetchone()[0]
+    n = conn.execute("SELECT COUNT(*) AS n FROM hotel_stats").fetchone()["n"]
     logger.info(f"  hotel_stats: {n} hotelů aktualizováno")
 
 
@@ -768,15 +768,9 @@ def delete_all_data():
     conn = open_db()
     for table in ("tours", "hotels", "hotel_stats", "hotel_checkpoints", "scraper_checkpoints"):
         try:
-            count = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            count = conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()["n"]
             conn.execute(f"DELETE FROM {table}")
             logger.info(f"  {table}: smazáno {count} záznamů")
-        except Exception:
-            pass  # tabulka nemusí existovat
-    # Reset auto-increment sekvencí
-    for table in ("hotels", "tours"):
-        try:
-            conn.execute(f"DELETE FROM sqlite_sequence WHERE name = '{table}'")
         except Exception:
             pass
     conn.commit()
@@ -796,7 +790,7 @@ def main():
         delete_all_data()
 
     logger.info("Zaleto scraper orchestrátor spuštěn")
-    logger.info(f"  DB:       {DB_PATH}")
+    logger.info(f"  DB:       PostgreSQL")
     logger.info(f"  Interval: {INTERVAL_H} h")
     logger.info(f"  Email:    {REPORT_TO if REPORT_TO else 'není nastaven'}")
     logger.info(f"  Scrapery: {[s['agency'] for s in SCRAPERS]}")
@@ -812,7 +806,7 @@ def main():
         # Smaž dnešní checkpointy — cyklus dokončen, příští cyklus musí znovu
         # scrapeovat všechny CK. Checkpointy slouží jen pro crash recovery uvnitř cyklu.
         _conn = open_db()
-        _conn.execute("DELETE FROM scraper_checkpoints WHERE cycle_date = date('now')")
+        _conn.execute("DELETE FROM scraper_checkpoints WHERE cycle_date = CURRENT_DATE::text")
         _conn.commit()
         _conn.close()
         logger.info("Checkpointy dnešního cyklu smazány — příští cyklus scrapeuje vše znovu")

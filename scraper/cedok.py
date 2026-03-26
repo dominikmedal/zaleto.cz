@@ -19,7 +19,6 @@ import json
 import logging
 import os
 import re
-import sqlite3
 import time
 import unicodedata
 import urllib.parse
@@ -27,6 +26,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
+
+from db import ZaletoDB
 
 # ---------------------------------------------------------------------------
 # Konfigurace
@@ -39,9 +40,6 @@ ADULTS      = 2
 
 LAST_MINUTE_DAYS  = 21
 FIRST_MINUTE_DAYS = 180
-
-DEFAULT_DB = str(Path(__file__).resolve().parent.parent / "data" / "zaleto.db")
-DB_PATH    = os.environ.get("DATABASE_PATH", DEFAULT_DB)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -123,187 +121,6 @@ def slugify(text: str) -> str:
     text = re.sub(r"\s+", "-", text.strip())
     text = re.sub(r"-+", "-", text)
     return text
-
-
-# ---------------------------------------------------------------------------
-# DB
-# ---------------------------------------------------------------------------
-
-class ZaletoDB:
-    def __init__(self, path: str = DB_PATH):
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        self.conn = sqlite3.connect(path, check_same_thread=False)
-        self.conn.execute("PRAGMA journal_mode = WAL")
-        self.conn.execute("PRAGMA foreign_keys = ON")
-        self._ensure_schema()
-        logger.info(f"DB: {path}")
-
-    def _ensure_schema(self):
-        self.conn.executescript("""
-            CREATE TABLE IF NOT EXISTS hotels (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                slug TEXT UNIQUE NOT NULL,
-                agency TEXT NOT NULL,
-                name TEXT NOT NULL,
-                country TEXT,
-                destination TEXT,
-                resort_town TEXT,
-                stars INTEGER,
-                description TEXT,
-                thumbnail_url TEXT,
-                photos TEXT,
-                review_score REAL,
-                amenities TEXT,
-                tags TEXT,
-                distances TEXT,
-                food_options TEXT,
-                price_includes TEXT,
-                latitude REAL,
-                longitude REAL,
-                created_at TEXT DEFAULT (datetime('now')),
-                updated_at TEXT DEFAULT (datetime('now'))
-            );
-            CREATE TABLE IF NOT EXISTS tours (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                hotel_id INTEGER NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
-                agency TEXT NOT NULL,
-                departure_date TEXT,
-                return_date TEXT,
-                duration INTEGER,
-                price REAL NOT NULL,
-                transport TEXT,
-                meal_plan TEXT,
-                adults INTEGER DEFAULT 2,
-                room_code TEXT,
-                url TEXT UNIQUE NOT NULL,
-                is_last_minute INTEGER DEFAULT 0,
-                is_first_minute INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT (datetime('now')),
-                updated_at TEXT DEFAULT (datetime('now'))
-            );
-            CREATE INDEX IF NOT EXISTS idx_tours_hotel      ON tours(hotel_id);
-            CREATE INDEX IF NOT EXISTS idx_tours_departure  ON tours(departure_date);
-            CREATE INDEX IF NOT EXISTS idx_tours_price      ON tours(price);
-            CREATE INDEX IF NOT EXISTS idx_hotels_slug      ON hotels(slug);
-            CREATE INDEX IF NOT EXISTS idx_hotels_destination ON hotels(destination);
-            CREATE INDEX IF NOT EXISTS idx_hotels_country   ON hotels(country);
-        """)
-        for col, typ in [("photos", "TEXT"), ("review_score", "REAL"),
-                         ("tags", "TEXT"), ("distances", "TEXT"),
-                         ("amenities", "TEXT"), ("food_options", "TEXT"),
-                         ("price_includes", "TEXT"), ("api_config", "TEXT")]:
-            try:
-                self.conn.execute(f"ALTER TABLE hotels ADD COLUMN {col} {typ}")
-                self.conn.commit()
-            except Exception:
-                pass
-        for col, typ in [("is_last_minute", "INTEGER DEFAULT 0"),
-                         ("is_first_minute", "INTEGER DEFAULT 0"),
-                         ("departure_city", "TEXT"),
-                         ("price_single", "REAL"),
-                         ("url_single", "TEXT")]:
-            try:
-                self.conn.execute(f"ALTER TABLE tours ADD COLUMN {col} {typ}")
-                self.conn.commit()
-            except Exception:
-                pass
-
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS hotel_checkpoints (
-                agency     TEXT NOT NULL,
-                key        TEXT NOT NULL,
-                cycle_date TEXT NOT NULL,
-                PRIMARY KEY (agency, key, cycle_date)
-            )
-        """)
-        self.conn.commit()
-
-    def get_done_keys(self, agency: str) -> set:
-        today = datetime.now().strftime("%Y-%m-%d")
-        rows = self.conn.execute(
-            "SELECT key FROM hotel_checkpoints WHERE agency = ? AND cycle_date = ?",
-            (agency, today),
-        ).fetchall()
-        return {r[0] for r in rows}
-
-    def mark_done(self, agency: str, key: str):
-        today = datetime.now().strftime("%Y-%m-%d")
-        self.conn.execute(
-            "INSERT OR IGNORE INTO hotel_checkpoints (agency, key, cycle_date) VALUES (?, ?, ?)",
-            (agency, key, today),
-        )
-        self.conn.commit()
-
-    def upsert_hotel(self, slug: str, data: dict) -> int:
-        self.conn.execute("""
-            INSERT INTO hotels (slug, agency, name, country, destination, resort_town,
-                                stars, review_score, description, thumbnail_url, photos,
-                                amenities, tags, distances, food_options, price_includes,
-                                latitude, longitude, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            ON CONFLICT(slug) DO UPDATE SET
-                agency         = excluded.agency,
-                name           = excluded.name,
-                country        = excluded.country,
-                destination    = excluded.destination,
-                resort_town    = excluded.resort_town,
-                stars          = excluded.stars,
-                review_score   = excluded.review_score,
-                description    = excluded.description,
-                thumbnail_url  = excluded.thumbnail_url,
-                photos         = excluded.photos,
-                amenities      = excluded.amenities,
-                tags           = excluded.tags,
-                updated_at     = datetime('now')
-        """, (
-            slug, AGENCY, data["name"], data.get("country"), data.get("destination"),
-            data.get("resort_town"), data.get("stars"), data.get("review_score"),
-            data.get("description"), data.get("thumbnail_url"), data.get("photos"),
-            data.get("amenities"), data.get("tags"), data.get("distances"),
-            data.get("food_options"), data.get("price_includes"),
-            data.get("latitude"), data.get("longitude"),
-        ))
-        row = self.conn.execute("SELECT id FROM hotels WHERE slug = ?", (slug,)).fetchone()
-        return row[0]
-
-    def upsert_tour(self, hotel_id: int, t: dict):
-        self.conn.execute("""
-            INSERT INTO tours (hotel_id, agency, departure_date, return_date, duration,
-                               price, transport, meal_plan, adults, room_code, url,
-                               is_last_minute, is_first_minute, departure_city, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            ON CONFLICT(url) DO UPDATE SET
-                price           = excluded.price,
-                transport       = excluded.transport,
-                meal_plan       = excluded.meal_plan,
-                return_date     = excluded.return_date,
-                departure_date  = excluded.departure_date,
-                is_last_minute  = excluded.is_last_minute,
-                is_first_minute = excluded.is_first_minute,
-                departure_city  = excluded.departure_city,
-                updated_at      = datetime('now')
-        """, (
-            hotel_id, AGENCY,
-            t["departure_date"], t.get("return_date"), t.get("duration"),
-            t["price"], t.get("transport", "letecky"), t.get("meal_plan", ""),
-            t.get("adults", ADULTS), t.get("room_code", ""), t["url"],
-            int(t.get("is_last_minute", False)),
-            int(t.get("is_first_minute", False)),
-            t.get("departure_city", ""),
-        ))
-
-    def update_single_price(self, two_adult_url: str, price_single: float, url_single: str):
-        """Aktualizuje cenu pro 1 dospělého na existujícím termínu (matchuje dle 2-adult URL)."""
-        self.conn.execute(
-            "UPDATE tours SET price_single = ?, url_single = ?, updated_at = datetime('now') WHERE url = ?",
-            (price_single, url_single, two_adult_url),
-        )
-
-    def commit(self):
-        self.conn.commit()
-
-    def close(self):
-        self.conn.close()
 
 
 # ---------------------------------------------------------------------------
