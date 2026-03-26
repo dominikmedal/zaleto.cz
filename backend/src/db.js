@@ -109,20 +109,9 @@ db.exec(`
 `)
 
 db.exec(`
-  CREATE INDEX IF NOT EXISTS idx_tours_dep_price        ON tours(departure_date, price);
-  CREATE INDEX IF NOT EXISTS idx_hotels_stars           ON hotels(stars);
-
-  -- Covering index pro slow-path aggregaci (hotel-first): pro dané hotel_id skenuje
-  -- departure_date range a čte price přímo z indexu bez přístupu do tabulky
-  CREATE INDEX IF NOT EXISTS idx_tours_hotel_date_price ON tours(hotel_id, departure_date, price);
-
-  -- Covering index pro date-first scany (bez destination filtru): skenuje date range,
-  -- vrací hotel_id a price z indexu — eliminuje table lookup při GROUP BY
-  CREATE INDEX IF NOT EXISTS idx_tours_date_hotel_price ON tours(departure_date, hotel_id, price);
+  CREATE INDEX IF NOT EXISTS idx_tours_dep_price ON tours(departure_date, price);
+  CREATE INDEX IF NOT EXISTS idx_hotels_stars    ON hotels(stars);
 `)
-
-// Aktualizace statistik pro query planner — bez toho SQLite nemusí vybrat správný index
-db.pragma('optimize')
 
 // Migrace sloupců v tours (přidány skrz scraper, mohou chybět ve starém DB)
 const tourCols = db.pragma('table_info(tours)').map(c => c.name)
@@ -132,16 +121,6 @@ const addTourIfMissing = (col, def) => {
 addTourIfMissing('departure_city',  'TEXT')
 addTourIfMissing('is_last_minute',  'INTEGER DEFAULT 0')
 addTourIfMissing('is_first_minute', 'INTEGER DEFAULT 0')
-
-// Mazání prošlých termínů — zmenší tabulku, zrychlí GROUP BY i indexy
-// Ponechává 1 den buffer. Spouští se při startu, ale jen pokud je co smazat.
-{
-  const expired = db.prepare("SELECT COUNT(*) AS n FROM tours WHERE departure_date < date('now', '-1 day')").get().n
-  if (expired > 0) {
-    db.prepare("DELETE FROM tours WHERE departure_date < date('now', '-1 day')").run()
-    db.exec('PRAGMA optimize')
-  }
-}
 
 // Inicializace hotel_stats při prvním spuštění
 const statsEmpty = db.prepare('SELECT COUNT(*) AS n FROM hotel_stats').get().n === 0
@@ -187,4 +166,38 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_reviews_hotel ON reviews(hotel_id);
 `)
 
+// Drahé operace které blokují event loop — volat AŽ po app.listen()
+function runMaintenance() {
+  try {
+    // Covering indexy pro slow-path (hotel_id, departure_date, price) a date-first scany.
+    // IF NOT EXISTS → no-op na dalších startech, jen první deploy trvá déle.
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_tours_hotel_date_price ON tours(hotel_id, departure_date, price);
+      CREATE INDEX IF NOT EXISTS idx_tours_date_hotel_price ON tours(departure_date, hotel_id, price);
+    `)
+    console.log('[db] indexes OK')
+  } catch (e) {
+    console.error('[db] index error:', e.message)
+  }
+
+  try {
+    // Smaž prošlé termíny — zmenší tabulku, zrychlí GROUP BY
+    const expired = db.prepare("SELECT COUNT(*) AS n FROM tours WHERE departure_date < date('now', '-1 day')").get().n
+    if (expired > 0) {
+      db.prepare("DELETE FROM tours WHERE departure_date < date('now', '-1 day')").run()
+      console.log(`[db] deleted ${expired} expired tours`)
+    }
+  } catch (e) {
+    console.error('[db] cleanup error:', e.message)
+  }
+
+  try {
+    db.pragma('optimize')
+    console.log('[db] optimize OK')
+  } catch (e) {
+    console.error('[db] optimize error:', e.message)
+  }
+}
+
 module.exports = db
+module.exports.runMaintenance = runMaintenance

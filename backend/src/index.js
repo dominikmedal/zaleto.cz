@@ -72,4 +72,9 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`\n🚀 Zaleto Backend`)
   console.log(`   http://localhost:${PORT}/api/health\n`)
+  // Drahé DB operace (stavba indexů, cleanup) spustit AŽ po startu —
+  // zdravotní kontrola Railway musí projít dříve než se event loop zablokuje
+  setTimeout(() => {
+    try { require('./db').runMaintenance() } catch (e) { console.error('[maintenance]', e.message) }
+  }, 5000)
 })
