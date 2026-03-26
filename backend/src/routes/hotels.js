@@ -208,44 +208,64 @@ router.get('/', (req, res) => {
       const tourWhere  = `AND ${tourConds.join(' AND ')}`
       const having     = havingConds.length ? `HAVING ${havingConds.join(' AND ')}` : ''
 
-      const allParams = [...tourParams, ...mainParams]
-      const allParamsWithHaving = [...allParams, ...havingParams]
+      let slowSql, countSql, slowParams
 
-      const slowSql = `
-        SELECT
-          h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
-          h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
-          ${extraFields},
-          MIN(t.price) AS min_price,
-          COUNT(t.id) AS available_dates,
-          MIN(t.departure_date) AS next_departure,
-          MAX(t.is_last_minute) AS has_last_minute,
-          MAX(t.is_first_minute) AS has_first_minute
-        FROM hotels h
-        INNER JOIN tours t ON t.hotel_id = h.id ${tourWhere}
-        WHERE 1=1 ${hotelWhere}
-        GROUP BY h.id
-        ${having}
-        ORDER BY ${orderBy}
-        LIMIT ? OFFSET ?
-      `
-
-      const countSql = `
-        SELECT COUNT(*) AS total FROM (
-          SELECT h.id, MIN(t.price) AS min_price
+      if (hotelConds.length > 0) {
+        // Hotel-first strategie: subquery materializuje hotel filtr (13K → N hotelů)
+        // a pak pro každý hotel skenuje tours přes idx_tours_hotel_date_price.
+        // SQLite jinak může začít od 3,9M tours (date-first), join hotels a teprve pak filtrovat destination.
+        const hotelSubSql = `
+          SELECT h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
+                 h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
+                 ${extraFields}
+          FROM hotels h WHERE 1=1 ${hotelWhere}
+        `
+        slowSql = `
+          SELECT mh.*,
+            MIN(t.price) AS min_price, COUNT(t.id) AS available_dates,
+            MIN(t.departure_date) AS next_departure,
+            MAX(t.is_last_minute) AS has_last_minute, MAX(t.is_first_minute) AS has_first_minute
+          FROM (${hotelSubSql}) mh
+          INNER JOIN tours t ON t.hotel_id = mh.id ${tourWhere}
+          GROUP BY mh.id ${having} ORDER BY ${orderBy} LIMIT ? OFFSET ?
+        `
+        countSql = `
+          SELECT COUNT(*) AS total FROM (
+            SELECT mh.id FROM (${hotelSubSql}) mh
+            INNER JOIN tours t ON t.hotel_id = mh.id ${tourWhere}
+            GROUP BY mh.id ${having}
+          )
+        `
+        // Pořadí params: nejprve hotel WHERE (inner subquery), pak tour JOIN conditions, pak HAVING
+        slowParams = [...mainParams, ...tourParams, ...havingParams]
+      } else {
+        // Bez hotel filtru: SQLite může použít idx_tours_date_hotel_price pro date-first scan
+        slowSql = `
+          SELECT h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
+                 h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
+                 ${extraFields},
+            MIN(t.price) AS min_price, COUNT(t.id) AS available_dates,
+            MIN(t.departure_date) AS next_departure,
+            MAX(t.is_last_minute) AS has_last_minute, MAX(t.is_first_minute) AS has_first_minute
           FROM hotels h
           INNER JOIN tours t ON t.hotel_id = h.id ${tourWhere}
-          WHERE 1=1 ${hotelWhere}
-          GROUP BY h.id
-          ${having}
-        )
-      `
+          GROUP BY h.id ${having} ORDER BY ${orderBy} LIMIT ? OFFSET ?
+        `
+        countSql = `
+          SELECT COUNT(*) AS total FROM (
+            SELECT h.id, MIN(t.price) AS min_price
+            FROM hotels h INNER JOIN tours t ON t.hotel_id = h.id ${tourWhere}
+            GROUP BY h.id ${having}
+          )
+        `
+        slowParams = [...tourParams, ...havingParams]
+      }
 
       total = (knownTotal !== null && pageNum > 1)
         ? knownTotal
-        : db.prepare(countSql).get(allParamsWithHaving).total
+        : db.prepare(countSql).get(slowParams).total
 
-      hotels = db.prepare(slowSql).all([...allParamsWithHaving, limitNum, offset])
+      hotels = db.prepare(slowSql).all([...slowParams, limitNum, offset])
     }
 
     const result = {
