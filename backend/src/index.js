@@ -38,8 +38,8 @@ const contactRouter        = require('./routes/contact')
 app.use('/api/hotels', hotelsRouter)
 app.use('/api/hotels/:slug/tours', toursRouter)
 const redirectLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minut
-  max: 30,                   // max 30 redirectů na IP
+  windowMs: 10 * 60 * 1000,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Příliš mnoho požadavků, zkuste to za chvíli.' },
@@ -52,14 +52,14 @@ app.use('/api', metaRouter)
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
 // Invalidace cache po dokončení scrapingu (volá run_all.py)
-app.post('/api/cache/invalidate', (req, res) => {
+app.post('/api/cache/invalidate', async (req, res) => {
   const { hotelsCache, hotelDetailCache, toursCache, metaCache } = require('./cache')
   hotelsCache.invalidate()
   hotelDetailCache.invalidate()
   toursCache.invalidate()
   metaCache.invalidate()
   // Resetujeme statsPopulated — scraper mohl aktualizovat hotel_stats
-  try { require('./routes/hotels').resetStats() } catch {}
+  try { await require('./routes/hotels').resetStats() } catch {}
   res.json({ ok: true })
 })
 
@@ -69,12 +69,21 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' })
 })
 
-app.listen(PORT, () => {
-  console.log(`\n🚀 Zaleto Backend`)
-  console.log(`   http://localhost:${PORT}/api/health\n`)
-  // Drahé DB operace (stavba indexů, cleanup) spustit AŽ po startu —
-  // zdravotní kontrola Railway musí projít dříve než se event loop zablokuje
-  setTimeout(() => {
-    try { require('./db').runMaintenance() } catch (e) { console.error('[maintenance]', e.message) }
-  }, 5000)
-})
+async function start() {
+  try {
+    await require('./db').initSchema()
+  } catch (e) {
+    console.error('[db] initSchema failed:', e.message || e)
+    process.exit(1)
+  }
+
+  app.listen(PORT, () => {
+    console.log(`\n🚀 Zaleto Backend`)
+    console.log(`   http://localhost:${PORT}/api/health\n`)
+    setTimeout(() => {
+      try { require('./db').runMaintenance() } catch (e) { console.error('[maintenance]', e.message) }
+    }, 5000)
+  })
+}
+
+start()

@@ -34,7 +34,8 @@ router.get('/:name', async (req, res) => {
   const apiKey = process.env.PEXELS_API_KEY
 
   // Check cache
-  const cached = db.prepare('SELECT photo_url, updated_at FROM destination_photos WHERE name = ?').get(name)
+  const cachedR = await db.query('SELECT photo_url, updated_at FROM destination_photos WHERE name = ?', [name])
+  const cached = cachedR.rows[0]
   if (cached) {
     const age = (Date.now() - new Date(cached.updated_at).getTime()) / 86400000
     if (age < STALE_DAYS) {
@@ -62,11 +63,11 @@ router.get('/:name', async (req, res) => {
 
   // Upsert cache (even if null — avoids re-fetching missing keys)
   try {
-    db.prepare(`
+    await db.query(`
       INSERT INTO destination_photos (name, photo_url, updated_at)
-      VALUES (?, ?, datetime('now'))
-      ON CONFLICT(name) DO UPDATE SET photo_url = excluded.photo_url, updated_at = excluded.updated_at
-    `).run(name, url)
+      VALUES (?, ?, NOW())
+      ON CONFLICT (name) DO UPDATE SET photo_url = EXCLUDED.photo_url, updated_at = EXCLUDED.updated_at
+    `, [name, url])
   } catch (e) {
     console.error('destination_photos cache write failed:', e.message)
   }
