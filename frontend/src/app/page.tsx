@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { PiCalendarStar, PiAirplane, PiGlobe, PiTag, PiTimer } from 'react-icons/pi'
+import { PiCalendarStar, PiAirplane, PiGlobe, PiTag, PiTimer, PiBuildings } from 'react-icons/pi'
 import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import DestinationCarousel from '@/components/DestinationCarousel'
@@ -134,7 +134,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   const [destinations, meta, wiki] = await Promise.all([
     fetchDestinations().catch(() => []),
-    fetchFilters().catch(() => ({ mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], totalTours: 0, departureCities: [] })),
+    fetchFilters().catch(() => ({ mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], totalTours: 0, totalHotels: 0, departureCities: [] })),
     singleDest ? fetchWikiSummary(singleDest).catch(() => null) : Promise.resolve(null),
   ])
 
@@ -286,15 +286,16 @@ export default async function HomePage({ searchParams }: PageProps) {
             {/* Stats */}
             {!singleDest && (() => {
               const statsArr = [
+                { icon: <PiBuildings         className="w-3 h-3" />, value: fmtShort(meta.totalHotels ?? 0),       label: 'hotelů'  },
                 { icon: <PiAirplane          className="w-3 h-3" />, value: fmtShort(meta.totalTours ?? 0),        label: 'termínů' },
                 { icon: <PiGlobe             className="w-3 h-3" />, value: String(countryCount),                  label: 'zemí'    },
-                { icon: <PiTag               className="w-3 h-3" />, value: `od ${fmtShort(meta.priceRange.min)}`, label: 'Kč'      },
+                { icon: <PiTag               className="w-3 h-3" />, value: `od ${fmtShort(meta.priceRange?.min)}`, label: 'Kč'     },
               ]
               return (
                 <div className="hidden sm:block lg:flex-shrink-0 mt-5 lg:mt-0">
 
                   {/* Tablet (sm–lg): full-width card below title */}
-                  <div className="lg:hidden grid grid-cols-3 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="lg:hidden grid grid-cols-4 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
                     {statsArr.map(({ icon, value, label }) => (
                       <div key={label} className="flex flex-col items-center justify-center py-4 px-3 border-r border-gray-100 last:border-r-0">
                         <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">

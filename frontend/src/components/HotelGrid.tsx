@@ -32,6 +32,7 @@ async function fetchPage(
   knownTotal?: number,
 ): Promise<PageResult> {
   const params = new URLSearchParams(sp)
+  params.delete('adults')  // adults is display-only, does not filter hotels
   params.set('page', String(page))
   params.set('limit', String(limit))
   if (view === 'list') params.set('view', 'list')
@@ -81,6 +82,7 @@ export default function HotelGrid({ adults = 2 }: { adults?: number }) {
   }, [])
 
   const sp = useMemo(() => new URLSearchParams(spStr), [spStr])
+  const activeTourType = sp.get('tour_type') ?? undefined
 
   const [view, setView]             = useState<'grid' | 'list' | 'map'>('grid')
   const [hotels, setHotels]         = useState<Hotel[]>([])
@@ -103,6 +105,7 @@ export default function HotelGrid({ adults = 2 }: { adults?: number }) {
     prefetchRef.current = null
 
     const params = new URLSearchParams(sp)
+    params.delete('adults')  // adults is display-only, does not filter hotels
     params.set('page', '1')
     params.set('limit', '24')
     if (view === 'list') params.set('view', 'list')
@@ -220,7 +223,7 @@ export default function HotelGrid({ adults = 2 }: { adults?: number }) {
       {view === 'grid' && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
-            {hotels.map(hotel => <HotelCard key={hotel.id} hotel={hotel} adults={adults} />)}
+            {hotels.map(hotel => <HotelCard key={hotel.id} hotel={hotel} adults={adults} activeTourType={activeTourType} />)}
           </div>
           <div ref={sentinelRef} className="h-4 mt-8" />
           {loading && initialDone && <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 text-[#008afe] animate-spin" /></div>}
@@ -233,7 +236,7 @@ export default function HotelGrid({ adults = 2 }: { adults?: number }) {
       {view === 'list' && (
         <>
           <div className="flex flex-col gap-3">
-            {hotels.map(hotel => <HotelListRow key={hotel.id} hotel={hotel} adults={adults} />)}
+            {hotels.map(hotel => <HotelListRow key={hotel.id} hotel={hotel} adults={adults} activeTourType={activeTourType} />)}
           </div>
           <div ref={sentinelRef} className="h-4 mt-8" />
           {loading && initialDone && <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 text-[#008afe] animate-spin" /></div>}

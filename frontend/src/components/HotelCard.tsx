@@ -50,7 +50,7 @@ function amenityIcon(label: string) {
   return PiCheckCircle
 }
 
-export default function HotelCard({ hotel, adults = 2 }: { hotel: Hotel; adults?: number }) {
+export default function HotelCard({ hotel, adults = 2, activeTourType }: { hotel: Hotel; adults?: number; activeTourType?: string }) {
   const nextDep  = formatDate(hotel.next_departure)
   const meals    = parseMealPlans(hotel.food_options ?? null).slice(0, 2)
   const amenities = parseAmenities(hotel.amenities ?? null).slice(0, 3)
@@ -128,7 +128,12 @@ export default function HotelCard({ hotel, adults = 2 }: { hotel: Hotel; adults?
 
           {/* Top-left: LM/FM badge + dates badge stacked */}
           <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
-            {hotel.has_last_minute ? (
+            {activeTourType === 'first_minute' && hotel.has_first_minute ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-emerald-500 px-2 py-1 rounded-lg leading-none shadow-sm">
+                <PiCalendarStar className="w-3 h-3 flex-shrink-0" />
+                First minute
+              </span>
+            ) : hotel.has_last_minute ? (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-red-500 px-2 py-1 rounded-lg leading-none shadow-sm">
                 <PiTimer className="w-3 h-3 flex-shrink-0" />
                 Last minute

@@ -9,17 +9,29 @@ router.get('/destinations', async (req, res) => {
   if (cached) return res.json(cached)
 
   try {
-    const r = await db.query(`
+    // Fast path: hotel_stats (small materialized table, ~ms)
+    let r = await db.query(`
       SELECT h.country, h.destination, h.resort_town, COUNT(DISTINCT h.id)::integer AS hotel_count
       FROM hotels h
+      INNER JOIN hotel_stats s ON s.hotel_id = h.id
       WHERE h.destination IS NOT NULL
-        AND EXISTS (
-          SELECT 1 FROM tours t
-          WHERE t.hotel_id = h.id AND t.price > 0 AND t.departure_date >= CURRENT_DATE::text
-        )
       GROUP BY h.country, h.destination, h.resort_town
       ORDER BY h.country, h.destination, hotel_count DESC
     `)
+    // Fallback when hotel_stats not yet populated (first scrape cycle)
+    if (r.rows.length === 0) {
+      r = await db.query(`
+        SELECT h.country, h.destination, h.resort_town, COUNT(DISTINCT h.id)::integer AS hotel_count
+        FROM hotels h
+        WHERE h.destination IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM tours t
+            WHERE t.hotel_id = h.id AND t.price > 0 AND t.departure_date >= CURRENT_DATE::text
+          )
+        GROUP BY h.country, h.destination, h.resort_town
+        ORDER BY h.country, h.destination, hotel_count DESC
+      `)
+    }
     metaCache.set('destinations', r.rows)
     res.json(r.rows)
   } catch (err) {
@@ -34,14 +46,25 @@ router.get('/filters', async (req, res) => {
   if (cached) return res.json(cached)
 
   try {
-    const [mealR, priceR, durR, starsR, transR, totalR, cityR] = await Promise.all([
+    const [mealR, priceR, durR, starsR, transR, totalR, cityR, hotelsR] = await Promise.all([
       db.query(`SELECT meal_plan, COUNT(*)::integer AS count FROM tours WHERE meal_plan IS NOT NULL AND meal_plan != '' GROUP BY meal_plan ORDER BY count DESC`),
-      db.query(`SELECT MIN(price) AS min, MAX(price) AS max FROM tours WHERE price > 0`),
+      db.query(`
+        SELECT
+          COALESCE(
+            (SELECT MIN(min_price) FROM hotel_stats WHERE min_price > 0),
+            (SELECT MIN(price) FROM tours WHERE price > 0)
+          ) AS min,
+          COALESCE(
+            (SELECT MAX(max_price) FROM hotel_stats WHERE max_price > 0),
+            (SELECT MAX(price) FROM tours WHERE price > 0)
+          ) AS max
+      `),
       db.query(`SELECT duration, COUNT(*)::integer AS count FROM tours WHERE duration IS NOT NULL GROUP BY duration ORDER BY duration ASC`),
       db.query(`SELECT stars, COUNT(*)::integer AS count FROM hotels WHERE stars IS NOT NULL GROUP BY stars ORDER BY stars ASC`),
       db.query(`SELECT transport, COUNT(*)::integer AS count FROM tours WHERE transport IS NOT NULL AND transport != '' GROUP BY transport ORDER BY count DESC`),
-      db.query(`SELECT COUNT(*)::integer AS total_tours FROM tours`),
+      db.query(`SELECT COUNT(*)::integer AS total_tours FROM tours WHERE price > 0 AND departure_date >= CURRENT_DATE::text`),
       db.query(`SELECT departure_city, COUNT(*)::integer AS count FROM tours WHERE departure_city IS NOT NULL AND departure_city != '' GROUP BY departure_city ORDER BY count DESC`),
+      db.query(`SELECT COUNT(*)::integer AS total_hotels FROM hotel_stats WHERE min_price IS NOT NULL AND next_departure >= CURRENT_DATE::text`),
     ])
 
     const result = {
@@ -52,6 +75,7 @@ router.get('/filters', async (req, res) => {
       transports:     transR.rows,
       totalTours:     totalR.rows[0].total_tours,
       departureCities: cityR.rows,
+      totalHotels:    hotelsR.rows[0].total_hotels,
     }
     metaCache.set('filters', result)
     res.json(result)
