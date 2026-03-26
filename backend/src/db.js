@@ -59,6 +59,7 @@ async function initSchema() {
       meal_plan       TEXT,
       adults          INTEGER DEFAULT 2,
       room_code       TEXT,
+      price_single    REAL,
       url             TEXT UNIQUE NOT NULL,
       departure_city  TEXT,
       is_last_minute  INTEGER DEFAULT 0,

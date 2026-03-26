@@ -77,6 +77,12 @@ async function start() {
     process.exit(1)
   }
 
+  try {
+    await require('./migrate_sqlite').runIfNeeded()
+  } catch (e) {
+    console.error('[migrate] selhala, pokračuji bez dat:', e.message)
+  }
+
   app.listen(PORT, () => {
     console.log(`\n🚀 Zaleto Backend`)
     console.log(`   http://localhost:${PORT}/api/health\n`)
