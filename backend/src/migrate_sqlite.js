@@ -22,6 +22,8 @@ async function getPgCols(client, table) {
   return r.rows.map(r => r.column_name)
 }
 
+const yieldToEventLoop = () => new Promise(resolve => setImmediate(resolve))
+
 async function batchInsert(client, table, cols, rows) {
   if (rows.length === 0) return
   const colList = cols.join(', ')
@@ -37,9 +39,10 @@ async function batchInsert(client, table, cols, rows) {
       values
     )
     done += chunk.length
-    process.stdout.write(`\r  [migrate] ${table}: ${done}/${rows.length}`)
+    if (done % 5000 === 0) process.stdout.write(`\r  [migrate] ${table}: ${done}/${rows.length}`)
+    await yieldToEventLoop()  // uvolní event loop pro healthcheck požadavky
   }
-  console.log()
+  console.log(`  [migrate] ${table}: ${rows.length}/${rows.length}`)
 }
 
 async function resetSeq(client, table) {
@@ -48,6 +51,8 @@ async function resetSeq(client, table) {
   )
 }
 
+const READ_CHUNK = 10000  // čteme SQLite po 10K řádcích — nezablokuje event loop
+
 async function migrateTable(client, sqlite, table, hasSerial) {
   const sqliteCols = sqlite.pragma(`table_info(${table})`).map(c => c.name)
   const pgCols     = await getPgCols(client, table)
@@ -55,9 +60,16 @@ async function migrateTable(client, sqlite, table, hasSerial) {
   const skipped    = sqliteCols.filter(c => !pgCols.includes(c))
   if (skipped.length) console.log(`  [migrate] ${table}: přeskočeny sloupce ${skipped.join(', ')}`)
 
-  const rows = sqlite.prepare(`SELECT * FROM ${table}`).all()
-  process.stdout.write(`  [migrate] ${table}: ${rows.length} řádků\n`)
-  await batchInsert(client, table, cols, rows.map(r => cols.map(c => r[c])))
+  const total = sqlite.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n
+  console.log(`  [migrate] ${table}: ${total} řádků`)
+
+  const stmt = sqlite.prepare(`SELECT * FROM ${table} LIMIT ${READ_CHUNK} OFFSET ?`)
+  for (let offset = 0; offset < total; offset += READ_CHUNK) {
+    const rows = stmt.all(offset)
+    await batchInsert(client, table, cols, rows.map(r => cols.map(c => r[c])))
+    await yieldToEventLoop()
+  }
+
   if (hasSerial) await resetSeq(client, table)
 }
 
