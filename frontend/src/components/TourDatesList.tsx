@@ -217,12 +217,15 @@ export default function TourDatesList({ slug }: { slug: string }) {
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 30_000)
     setLoading(true)
-    fetch(`${API}/api/hotels/${slug}/tours`)
+    fetch(`${API}/api/hotels/${slug}/tours`, { signal: controller.signal })
       .then(r => r.ok ? r.json() : { tours: [] })
       .then(data => setTours(data.tours ?? []))
       .catch(() => setTours([]))
-      .finally(() => setLoading(false))
+      .finally(() => { clearTimeout(timer); setLoading(false) })
+    return () => { controller.abort(); clearTimeout(timer) }
   }, [slug])
 
   const availableCities = Array.from(new Set(tours.map(t => t.departure_city).filter(Boolean) as string[]))

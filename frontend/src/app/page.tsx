@@ -1,6 +1,3 @@
-// Homepage závisí na searchParams a volá Railway API — nesmí se generovat při buildu.
-export const dynamic = 'force-dynamic'
-
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Image from 'next/image'

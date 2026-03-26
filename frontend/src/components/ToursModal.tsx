@@ -164,14 +164,17 @@ export default function ToursModal({ slug, name, onClose }: Props) {
 
   // Načte vše jednou — backend je optimalizovaný (hotel_ids bez subquery, select jen potřebné sloupce)
   useEffect(() => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 30_000)
     setLoading(true)
-    fetch(`${API}/api/hotels/${slug}/tours?sort=${sortBy}`)
+    fetch(`${API}/api/hotels/${slug}/tours?sort=${sortBy}`, { signal: controller.signal })
       .then(r => r.json())
       .then(data => {
         setAllTours(Array.isArray(data?.tours) ? data.tours : Array.isArray(data) ? data : [])
       })
       .catch(() => {})
-      .finally(() => setLoading(false))
+      .finally(() => { clearTimeout(timer); setLoading(false) })
+    return () => { controller.abort(); clearTimeout(timer) }
   }, [slug, sortBy])
 
   // Reset stránky při změně sortBy nebo filtru, scroll nahoru
