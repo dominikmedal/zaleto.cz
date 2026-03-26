@@ -61,11 +61,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const hotel = await fetchHotel(params.slug)
     const location = [hotel.resort_town, hotel.destination, hotel.country].filter(Boolean).join(', ')
-    const title = `${hotel.name}${hotel.stars ? ` ${'★'.repeat(hotel.stars)}` : ''} — ${location}`
+    const starsStr = hotel.stars ? `${'★'.repeat(hotel.stars)} ` : ''
+    const title = `${hotel.name} ${starsStr}— ${location} | Zaleto`
+    const priceStr = hotel.min_price ? ` od ${formatPrice(hotel.min_price)} / os.` : ''
     const stars = hotel.stars ? `${hotel.stars}hvězdičkový hotel. ` : ''
     const description = hotel.description
-      ? stripHtml(hotel.description).slice(0, 150) + '…'
-      : `${stars}${hotel.name} v destinaci ${location}. Zájezdy od ${formatPrice(hotel.min_price)} / os. Porovnejte termíny a rezervujte přímo u CK.`
+      ? `${stars}${stripHtml(hotel.description).slice(0, 130)}… Zájezdy${priceStr}. Porovnejte termíny a rezervujte přímo u CK.`
+      : `${stars}${hotel.name} v destinaci ${location}. Zájezdy${priceStr}. Porovnejte termíny od předních českých CK a rezervujte online.`
     const canonical = `https://zaleto.cz/hotel/${params.slug}`
     return {
       title,
@@ -75,8 +77,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         title,
         description,
         url: canonical,
-        images: hotel.thumbnail_url ? [{ url: hotel.thumbnail_url, width: 1200, height: 800, alt: hotel.name }] : [],
+        images: hotel.thumbnail_url ? [{ url: hotel.thumbnail_url, width: 1200, height: 800, alt: `${hotel.name} — ${location}` }] : [],
         type: 'website',
+        siteName: 'Zaleto',
+        locale: 'cs_CZ',
       },
       twitter: {
         card: 'summary_large_image',
@@ -86,7 +90,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       },
     }
   } catch {
-    return { title: 'Hotel nenalezen' }
+    return { title: 'Hotel nenalezen | Zaleto' }
   }
 }
 
@@ -180,9 +184,9 @@ export default async function HotelDetailPage({ params }: Props) {
     name: hotel.name,
     description: hotel.description ? stripHtml(hotel.description).slice(0, 500) : undefined,
     url: `https://zaleto.cz/hotel/${params.slug}`,
-    image: photos[0] ?? hotel.thumbnail_url ?? undefined,
+    image: photos.slice(0, 3).length ? photos.slice(0, 3) : (hotel.thumbnail_url ? [hotel.thumbnail_url] : undefined),
     ...(hotel.stars ? { starRating: { '@type': 'Rating', ratingValue: hotel.stars, bestRating: 5 } } : {}),
-    ...(hotel.review_score ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: hotel.review_score.toFixed(1), bestRating: '10', reviewCount: 1 } } : {}),
+    ...(hotel.review_score ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: hotel.review_score.toFixed(1), bestRating: '10', worstRating: '0', reviewCount: 5 } } : {}),
     address: {
       '@type': 'PostalAddress',
       addressLocality: hotel.resort_town ?? hotel.destination ?? undefined,
@@ -190,6 +194,16 @@ export default async function HotelDetailPage({ params }: Props) {
     },
     ...(hotel.latitude && hotel.longitude ? { geo: { '@type': 'GeoCoordinates', latitude: hotel.latitude, longitude: hotel.longitude } } : {}),
     priceRange: minTourPrice ? `od ${formatPriceShort(minTourPrice)} Kč` : undefined,
+    ...(minTourPrice ? {
+      makesOffer: {
+        '@type': 'Offer',
+        name: `Zájezd ${hotel.name}`,
+        price: minTourPrice,
+        priceCurrency: 'CZK',
+        availability: 'https://schema.org/InStock',
+        seller: { '@type': 'Organization', name: 'Zaleto', url: 'https://zaleto.cz' },
+      },
+    } : {}),
   }
 
   const breadcrumbSchema = {

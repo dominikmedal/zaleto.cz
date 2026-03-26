@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { PiCaretLeft, PiCaretRight, PiCalendarBlank } from 'react-icons/pi'
+import { Loader2 } from 'lucide-react'
 import { fetchCalendarPrices } from '@/lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -214,19 +215,27 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
 
   // ── Shared calendar content ──────────────────────────────────────────────────
   const calendarContent = (
-    <>
+    <div className="relative">
       <div className="flex items-center justify-between mb-4">
         <button type="button" onClick={prev} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
           <PiCaretLeft className="w-4 h-4 text-gray-600" />
         </button>
-        <span className="text-xs text-gray-500 font-medium">
+        <span className="flex items-center gap-2 text-xs text-gray-500 font-medium">
           {picking === 'from' ? '① Vyberte datum odjezdu' : '② Vyberte datum návratu'}
-          {loading && <span className="ml-2 text-blue-400 animate-pulse">načítám ceny…</span>}
+          {loading && <Loader2 className="w-3.5 h-3.5 text-[#008afe] animate-spin flex-shrink-0" />}
         </span>
         <button type="button" onClick={next} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
           <PiCaretRight className="w-4 h-4 text-gray-600" />
         </button>
       </div>
+      {loading && (
+        <div className="absolute inset-0 bg-white/60 rounded-2xl flex items-center justify-center z-10 pointer-events-none">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="w-6 h-6 text-[#008afe] animate-spin" />
+            <span className="text-xs text-gray-500">Načítám ceny…</span>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onMouseLeave={() => setHover('')}>
         <MonthGrid year={viewYear} month={viewMonth} priceMap={priceMap} allPrices={allPrices}
           dateFrom={dateFrom} dateTo={dateTo} hover={hover} picking={picking} today={today}
@@ -247,7 +256,7 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
           </button>
         )}
       </div>
-    </>
+    </div>
   )
 
   // ── Inline mode — render calendar directly (no trigger button) ────────────

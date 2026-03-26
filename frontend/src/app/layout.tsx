@@ -15,7 +15,13 @@ export const metadata: Metadata = {
   },
   description: 'Srovnejte tisíce leteckých zájezdů od předních českých cestovních kanceláří. Filtrujte podle destinace, termínu, stravování a ceny. Nejlepší dovolená snadno na jednom místě.',
   metadataBase: new URL('https://zaleto.cz'),
-  keywords: ['zájezdy', 'last minute zájezdy', 'dovolená', 'all inclusive', 'letecké zájezdy', 'srovnání zájezdů', 'cestovní kancelář', 'levné zájezdy'],
+  keywords: [
+    'zájezdy', 'last minute zájezdy', 'dovolená', 'all inclusive', 'letecké zájezdy',
+    'srovnání zájezdů', 'cestovní kancelář', 'levné zájezdy', 'first minute zájezdy',
+    'zájezdy Egypt', 'zájezdy Řecko', 'zájezdy Turecko', 'zájezdy Chorvatsko',
+    'zájezdy Španělsko', 'zájezdy Tunisko', 'porovnání CK', 'dovolená u moře',
+    'Fischer', 'Čedok', 'Exim Tours', 'Blue Style', 'TUI zájezdy',
+  ],
   icons: {
     icon: [
       { url: '/img/favicon.ico' },

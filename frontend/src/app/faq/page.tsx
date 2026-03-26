@@ -7,12 +7,12 @@ import JsonLd from '@/components/JsonLd'
 import { PiEnvelope } from 'react-icons/pi'
 
 export const metadata: Metadata = {
-  title: 'Časté otázky (FAQ)',
-  description: 'Odpovědi na nejčastější dotazy o Zaleto — jak rezervovat zájezd, jak funguje vyhledávání, jak jsou aktualizovány ceny a jak kontaktovat cestovní kancelář.',
+  title: 'Časté otázky — jak funguje Zaleto | FAQ',
+  description: 'Jak vyhledat zájezd, porovnat ceny cestovních kanceláří a rezervovat dovolenou. Odpovědi na nejčastější otázky o Zaleto — srovnávači leteckých zájezdů.',
   alternates: { canonical: 'https://zaleto.cz/faq' },
   openGraph: {
     title: 'Časté otázky | Zaleto',
-    description: 'Rychlé odpovědi na nejčastější dotazy o fungování Zaleto — srovnávače zájezdů.',
+    description: 'Jak funguje Zaleto, jak porovnat ceny CK a jak rezervovat zájezd. Odpovědi na vaše otázky.',
     url: 'https://zaleto.cz/faq',
     type: 'website',
   },

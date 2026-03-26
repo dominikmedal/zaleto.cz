@@ -202,9 +202,30 @@ export default async function HomePage({ searchParams }: PageProps) {
     }
   }
 
+  // ItemList schema pro hotely — pomáhá Google zobrazit rich snippets
+  const itemListSchema = hotels.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: singleDest
+      ? `Zájezdy ${singleDest} 2026`
+      : tourType === 'last_minute' ? 'Last minute zájezdy 2026'
+      : tourType === 'first_minute' ? 'First minute zájezdy 2026'
+      : 'Letecké zájezdy 2026',
+    description: 'Porovnání zájezdů od předních českých cestovních kanceláří',
+    url: 'https://zaleto.cz',
+    numberOfItems: pagination.total,
+    itemListElement: hotels.slice(0, 10).map((h, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: `https://zaleto.cz/hotel/${h.slug}`,
+      name: h.name,
+    })),
+  } : null
+
   return (
     <div className="min-h-screen">
       <JsonLd data={websiteSchema} />
+      {itemListSchema && <JsonLd data={itemListSchema} />}
       <Header />
 
       {/* ── Full-bleed hero (destination selected + photo available) ── */}

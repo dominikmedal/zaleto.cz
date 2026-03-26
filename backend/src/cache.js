@@ -41,7 +41,7 @@ class TTLCache {
 }
 
 // Sdílené instance pro jednotlivé endpointy
-const hotelsCache = new TTLCache(5 * 60 * 1000, 500)   // 5 min, max 500 queries
-const metaCache   = new TTLCache(10 * 60 * 1000, 50)   // 10 min
+const hotelsCache = new TTLCache(5 * 60 * 1000, 500)    // 5 min, max 500 queries
+const metaCache   = new TTLCache(5 * 60 * 1000, 500)    // 5 min, max 500 (zahrnuje calendar-prices klíče)
 
 module.exports = { hotelsCache, metaCache }

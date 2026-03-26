@@ -3,6 +3,10 @@ const router = express.Router()
 const db = require('../db')
 const { hotelsCache } = require('../cache')
 
+// Používáme hotel_stats jako primární zdroj (bez drahého GROUP BY na 3.9M termínech).
+// Hodnota se zkontroluje při startu a po invalidaci cache.
+let statsPopulated = db.prepare('SELECT COUNT(*) AS n FROM hotel_stats').get().n > 0
+
 // GET /api/hotels
 router.get('/', (req, res) => {
   try {
@@ -46,10 +50,15 @@ router.get('/', (req, res) => {
     let total, hotels
 
     if (!hasTourFilters) {
-      // ── FAST PATH: hotel_stats JOIN s fallbackem na tours ─────────────────
-      // Pokud hotel_stats není naplněna (scrapers běžely přímo, ne přes run_all.py),
-      // COALESCE zajistí fallback na live subquery z tours.
-      const whereConds = ['(s.min_price IS NOT NULL OR sub.min_price IS NOT NULL)']
+      // ── FAST PATH: pouze hotel_stats (13K řádků) bez JOIN na 3.9M tours ──────
+      // hotel_stats je plněna scrapery. Pokud je prázdná (první spuštění bez run_all.py),
+      // fallback na pomalou cestu.
+      if (!statsPopulated) {
+        const n = db.prepare('SELECT COUNT(*) AS n FROM hotel_stats').get().n
+        statsPopulated = n > 0
+      }
+
+      const whereConds = ['s.min_price IS NOT NULL', "s.next_departure >= date('now')"]
       const params = []
 
       if (destination) {
@@ -69,59 +78,76 @@ router.get('/', (req, res) => {
         if (arr.length) { whereConds.push(`h.stars IN (${arr.map(() => '?').join(',')})`); params.push(...arr) }
       }
 
-      if (tour_type === 'last_minute')  { whereConds.push('COALESCE(s.has_last_minute, sub.has_last_minute) = 1') }
-      if (tour_type === 'first_minute') { whereConds.push('COALESCE(s.has_first_minute, sub.has_first_minute) = 1') }
+      if (tour_type === 'last_minute')  { whereConds.push('s.has_last_minute = 1') }
+      if (tour_type === 'first_minute') { whereConds.push('s.has_first_minute = 1') }
 
-      if (min_price) { whereConds.push('COALESCE(s.min_price, sub.min_price) >= ?'); params.push(parseFloat(min_price)) }
-      if (max_price) { whereConds.push('COALESCE(s.min_price, sub.min_price) <= ?'); params.push(parseFloat(max_price)) }
+      if (min_price) { whereConds.push('s.min_price >= ?'); params.push(parseFloat(min_price)) }
+      if (max_price) { whereConds.push('s.min_price <= ?'); params.push(parseFloat(max_price)) }
 
       const where = `WHERE ${whereConds.join(' AND ')}`
 
-      const fastSql = `
-        SELECT
-          h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
-          h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
-          ${extraFields},
-          COALESCE(s.min_price,        sub.min_price)        AS min_price,
-          COALESCE(s.available_dates,  sub.available_dates)  AS available_dates,
-          COALESCE(s.next_departure,   sub.next_departure)   AS next_departure,
-          COALESCE(s.has_last_minute,  sub.has_last_minute)  AS has_last_minute,
-          COALESCE(s.has_first_minute, sub.has_first_minute) AS has_first_minute
-        FROM hotels h
-        LEFT JOIN hotel_stats s ON s.hotel_id = h.id
-        LEFT JOIN (
+      if (statsPopulated) {
+        // ── Stats-only path: INNER JOIN hotel_stats — žádný subquery přes tours ──
+        const fastSql = `
+          SELECT
+            h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
+            h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
+            ${extraFields},
+            s.min_price, s.available_dates, s.next_departure,
+            s.has_last_minute, s.has_first_minute
+          FROM hotels h
+          INNER JOIN hotel_stats s ON s.hotel_id = h.id
+          ${where}
+          ORDER BY ${orderBy}
+          LIMIT ? OFFSET ?
+        `
+        total = (knownTotal !== null && pageNum > 1)
+          ? knownTotal
+          : db.prepare(`SELECT COUNT(*) AS total FROM hotels h INNER JOIN hotel_stats s ON s.hotel_id = h.id ${where}`).get(params).total
+
+        hotels = db.prepare(fastSql).all([...params, limitNum, offset])
+
+      } else {
+        // ── Fallback (hotel_stats prázdná): COALESCE s live subquery ─────────
+        const coalesceWhere = whereConds.map(c =>
+          c.replace(/\bs\.min_price\b/g, 'COALESCE(s.min_price, sub.min_price)')
+           .replace(/\bs\.has_last_minute\b/g,  'COALESCE(s.has_last_minute,  sub.has_last_minute)')
+           .replace(/\bs\.has_first_minute\b/g, 'COALESCE(s.has_first_minute, sub.has_first_minute)')
+           .replace(/\bs\.next_departure >= date\('now'\)/, "(COALESCE(s.next_departure, sub.next_departure) >= date('now'))")
+           .replace(/\bs\.min_price IS NOT NULL/, '(s.min_price IS NOT NULL OR sub.min_price IS NOT NULL)')
+        ).join(' AND ')
+
+        const liveSub = `(
           SELECT hotel_id,
-            MIN(price)           AS min_price,
-            COUNT(*)             AS available_dates,
-            MIN(departure_date)  AS next_departure,
+            MIN(price) AS min_price, COUNT(*) AS available_dates, MIN(departure_date) AS next_departure,
             MAX(COALESCE(is_last_minute,  0)) AS has_last_minute,
             MAX(COALESCE(is_first_minute, 0)) AS has_first_minute
-          FROM tours
-          WHERE price > 0 AND departure_date >= date('now')
+          FROM tours WHERE price > 0 AND departure_date >= date('now')
           GROUP BY hotel_id
-        ) sub ON sub.hotel_id = h.id
-        ${where}
-        ORDER BY ${orderBy}
-        LIMIT ? OFFSET ?
-      `
+        ) sub`
 
-      total = (knownTotal !== null && pageNum > 1)
-        ? knownTotal
-        : db.prepare(`
-            SELECT COUNT(*) AS total FROM hotels h
-            LEFT JOIN hotel_stats s ON s.hotel_id = h.id
-            LEFT JOIN (
-              SELECT hotel_id,
-                MIN(price)                            AS min_price,
-                MAX(COALESCE(is_last_minute,  0))     AS has_last_minute,
-                MAX(COALESCE(is_first_minute, 0))     AS has_first_minute
-              FROM tours WHERE price > 0 AND departure_date >= date('now')
-              GROUP BY hotel_id
-            ) sub ON sub.hotel_id = h.id
-            ${where}
-          `).get(params).total
+        const fallbackSql = `
+          SELECT h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
+            h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
+            ${extraFields},
+            COALESCE(s.min_price, sub.min_price)               AS min_price,
+            COALESCE(s.available_dates, sub.available_dates)   AS available_dates,
+            COALESCE(s.next_departure, sub.next_departure)     AS next_departure,
+            COALESCE(s.has_last_minute, sub.has_last_minute)   AS has_last_minute,
+            COALESCE(s.has_first_minute, sub.has_first_minute) AS has_first_minute
+          FROM hotels h
+          LEFT JOIN hotel_stats s ON s.hotel_id = h.id
+          LEFT JOIN ${liveSub} ON sub.hotel_id = h.id
+          WHERE ${coalesceWhere}
+          ORDER BY ${orderBy}
+          LIMIT ? OFFSET ?
+        `
+        total = (knownTotal !== null && pageNum > 1)
+          ? knownTotal
+          : db.prepare(`SELECT COUNT(*) AS total FROM hotels h LEFT JOIN hotel_stats s ON s.hotel_id = h.id LEFT JOIN ${liveSub} ON sub.hotel_id = h.id WHERE ${coalesceWhere}`).get(params).total
 
-      hotels = db.prepare(fastSql).all([...params, limitNum, offset])
+        hotels = db.prepare(fallbackSql).all([...params, limitNum, offset])
+      }
 
     } else {
       // ── SLOW PATH: GROUP BY přes tours (tour-level filtry) ───────────────
@@ -381,8 +407,7 @@ router.get('/search', (req, res) => {
     const q = String(req.query.q || '').trim()
     if (q.length < 2) return res.json([])
     // Deduplikace: hotely se stejným canonical_slug jsou jeden hotel od více CK.
-    // Vrátíme canonical_slug jako slug (pokud existuje), jinak vlastní slug.
-    // MIN(h.stars DESC) = preferujeme záznam s nejvyšším počtem hvězd pro metadata.
+    // Používáme INNER JOIN hotel_stats místo tours — 13K vs 3.9M řádků, ~10× rychlejší.
     const rows = db.prepare(`
       SELECT
         COALESCE(h.canonical_slug, h.slug) AS slug,
@@ -392,7 +417,7 @@ router.get('/search', (req, res) => {
         MAX(h.stars)         AS stars,
         MIN(h.thumbnail_url) AS thumbnail_url
       FROM hotels h
-      INNER JOIN tours t ON t.hotel_id = h.id AND t.price > 0
+      INNER JOIN hotel_stats s ON s.hotel_id = h.id AND s.min_price IS NOT NULL
       WHERE h.name LIKE ?
       GROUP BY COALESCE(h.canonical_slug, h.slug)
       ORDER BY name ASC
@@ -529,4 +554,8 @@ router.get('/:slug', (req, res) => {
   }
 })
 
+// Voláno z /api/cache/invalidate — scraper mohl aktualizovat hotel_stats
+function resetStats() { statsPopulated = db.prepare('SELECT COUNT(*) AS n FROM hotel_stats').get().n > 0 }
+
 module.exports = router
+module.exports.resetStats = resetStats

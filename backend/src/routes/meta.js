@@ -64,6 +64,11 @@ router.get('/calendar-prices', (req, res) => {
     const dateRe = /^\d{4}-\d{2}-\d{2}$/
     if (!dateRe.test(date_from) || !dateRe.test(date_to)) return res.status(400).json({ error: 'Invalid date format' })
 
+    // Cache klíč — kalendáře se načítají při každém pohybu, cache výrazně sníží zátěž DB
+    const calKey = `cal_${date_from}_${date_to}_${destination || ''}`
+    const cached = metaCache.get(calKey)
+    if (cached) return res.set('X-Cache', 'HIT').json(cached)
+
     const params = [date_from, date_to]
     const destJoin = destination ? 'INNER JOIN hotels h ON h.id = t.hotel_id' : ''
     const destCond = destination ? 'AND h.destination LIKE ?' : ''
@@ -79,7 +84,8 @@ router.get('/calendar-prices', (req, res) => {
       ORDER BY t.departure_date ASC
     `).all(params)
 
-    res.json(rows)
+    metaCache.set(calKey, rows)
+    res.set('X-Cache', 'MISS').json(rows)
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Database error' })

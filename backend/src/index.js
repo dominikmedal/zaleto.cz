@@ -56,6 +56,8 @@ app.post('/api/cache/invalidate', (req, res) => {
   const { hotelsCache, metaCache } = require('./cache')
   hotelsCache.invalidate()
   metaCache.invalidate()
+  // Resetujeme statsPopulated — scraper mohl aktualizovat hotel_stats
+  try { require('./routes/hotels').resetStats() } catch {}
   res.json({ ok: true })
 })
 

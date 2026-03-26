@@ -104,8 +104,23 @@ db.exec(`
     has_first_minute INTEGER DEFAULT 0,
     updated_at      TEXT DEFAULT (datetime('now'))
   );
-  CREATE INDEX IF NOT EXISTS idx_hotel_stats_price ON hotel_stats(min_price);
+  CREATE INDEX IF NOT EXISTS idx_hotel_stats_price   ON hotel_stats(min_price);
+  CREATE INDEX IF NOT EXISTS idx_hotel_stats_next_dep ON hotel_stats(next_departure);
 `)
+
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_tours_dep_price ON tours(departure_date, price);
+  CREATE INDEX IF NOT EXISTS idx_hotels_stars    ON hotels(stars);
+`)
+
+// Migrace sloupců v tours (přidány skrz scraper, mohou chybět ve starém DB)
+const tourCols = db.pragma('table_info(tours)').map(c => c.name)
+const addTourIfMissing = (col, def) => {
+  if (!tourCols.includes(col)) db.exec(`ALTER TABLE tours ADD COLUMN ${col} ${def}`)
+}
+addTourIfMissing('departure_city',  'TEXT')
+addTourIfMissing('is_last_minute',  'INTEGER DEFAULT 0')
+addTourIfMissing('is_first_minute', 'INTEGER DEFAULT 0')
 
 // Inicializace hotel_stats při prvním spuštění
 const statsEmpty = db.prepare('SELECT COUNT(*) AS n FROM hotel_stats').get().n === 0
