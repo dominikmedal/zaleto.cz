@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const db = require('../db')
+const { metaCache } = require('../cache')
 
 const DEST_EN = {
   'Egypt': 'Egypt beach Red Sea', 'Řecko': 'Greece travel island', 'Turecko': 'Turkey beach resort',
@@ -33,46 +34,67 @@ router.get('/:name', async (req, res) => {
   const name = decodeURIComponent(req.params.name)
   const apiKey = process.env.PEXELS_API_KEY
 
-  // Check cache
-  const cachedR = await db.query('SELECT photo_url, updated_at FROM destination_photos WHERE name = ?', [name])
-  const cached = cachedR.rows[0]
-  if (cached) {
-    const age = (Date.now() - new Date(cached.updated_at).getTime()) / 86400000
-    if (age < STALE_DAYS) {
-      return res.json({ url: cached.photo_url })
-    }
+  // In-memory cache (fast path)
+  const cacheKey = `photo_${name}`
+  const cached = metaCache.get(cacheKey)
+  if (cached !== null && cached !== undefined) {
+    return res.set('X-Cache', 'HIT').json({ url: cached })
   }
 
-  // Fetch from Pexels
-  let url = null
-  if (apiKey) {
-    const query = DEST_EN[name] ?? `${name} travel beach`
-    try {
-      const r = await fetch(
-        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=3&orientation=landscape`,
-        { headers: { Authorization: apiKey } }
-      )
-      if (r.ok) {
-        const data = await r.json()
-        url = data.photos?.[0]?.src?.large2x ?? data.photos?.[0]?.src?.large ?? null
-      }
-    } catch (e) {
-      console.error('Pexels fetch error:', e.message)
-    }
-  }
-
-  // Upsert cache (even if null — avoids re-fetching missing keys)
   try {
-    await db.query(`
-      INSERT INTO destination_photos (name, photo_url, updated_at)
-      VALUES (?, ?, NOW())
-      ON CONFLICT (name) DO UPDATE SET photo_url = EXCLUDED.photo_url, updated_at = EXCLUDED.updated_at
-    `, [name, url])
-  } catch (e) {
-    console.error('destination_photos cache write failed:', e.message)
-  }
+    // DB cache
+    const cachedR = await db.query(
+      'SELECT photo_url, updated_at FROM destination_photos WHERE name = ?',
+      [name]
+    )
+    const row = cachedR.rows[0]
+    if (row) {
+      const ageDays = (Date.now() - new Date(row.updated_at).getTime()) / 86400000
+      if (ageDays < STALE_DAYS) {
+        metaCache.set(cacheKey, row.photo_url)
+        return res.json({ url: row.photo_url })
+      }
+    }
 
-  res.json({ url })
+    // Fetch from Pexels
+    let url = null
+    if (apiKey) {
+      const query = DEST_EN[name] ?? `${name} travel beach`
+      try {
+        const r = await fetch(
+          `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=3&orientation=landscape`,
+          { headers: { Authorization: apiKey } }
+        )
+        if (r.ok) {
+          const data = await r.json()
+          url = data.photos?.[0]?.src?.large2x ?? data.photos?.[0]?.src?.large ?? null
+        }
+      } catch (e) {
+        console.error('Pexels fetch error:', e.message)
+      }
+    }
+
+    // Upsert DB (even if null — avoids re-fetching missing keys)
+    await db.query(
+      `INSERT INTO destination_photos (name, photo_url, updated_at)
+       VALUES (?, ?, NOW())
+       ON CONFLICT (name) DO UPDATE SET photo_url = EXCLUDED.photo_url, updated_at = EXCLUDED.updated_at`,
+      [name, url]
+    )
+
+    metaCache.set(cacheKey, url)
+
+    // Trigger AI description generation in background (fire-and-forget)
+    if (url) {
+      const { generateAndStore } = require('./destinationAI')
+      generateAndStore(name).catch(() => {})
+    }
+
+    res.json({ url })
+  } catch (err) {
+    console.error('GET /destination-photo error:', err.message)
+    res.json({ url: null })
+  }
 })
 
 module.exports = router

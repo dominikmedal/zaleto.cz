@@ -4,10 +4,10 @@ import { useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { API } from '@/lib/api'
 
-interface GeoHotel {
+interface MapHotel {
   id: number; slug: string; name: string
   stars: number | null; resort_town: string | null
-  latitude: number; longitude: number; min_price: number
+  latitude: number | null; longitude: number | null; min_price: number
 }
 
 const fmt = (n: number) => new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(n)
@@ -28,23 +28,31 @@ export default function HotelsMapView() {
       const params = new URLSearchParams(sp)
       params.delete('page')
       params.delete('sort')
+      params.delete('adults')
+      params.set('limit', '500')
 
       try {
-        const res = await fetch(`${API}/api/hotels/geo?${params}`)
+        const res = await fetch(`${API}/api/hotels?${params}`)
         if (!res.ok || cancelled) return
-        const hotels: GeoHotel[] = await res.json()
+        const data = await res.json()
+        const hotels: MapHotel[] = (data.hotels ?? []).filter(
+          (h: MapHotel) => h.latitude != null && h.longitude != null
+        )
         if (cancelled || !containerRef.current) { setLoading(false); return }
 
         const { default: L } = await import('leaflet')
+        // @ts-ignore
+        await import('leaflet.markercluster')
         if (cancelled) return
+
+        // Leaflet default icon fix
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (L.Icon.Default.prototype as any)._getIconUrl
 
         // Clean up previous map instance
         const el = containerRef.current as any
         if (el._leaflet_id) { try { mapRef.current?.remove() } catch { /* ignore */ } }
         delete el._leaflet_id
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        delete (L.Icon.Default.prototype as any)._getIconUrl
 
         const map = L.map(containerRef.current, {
           zoom: 5,
@@ -61,16 +69,33 @@ export default function HotelsMapView() {
           maxZoom: 19,
         }).addTo(map)
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const cluster = (L as any).markerClusterGroup({
+          maxClusterRadius: 60,
+          showCoverageOnHover: false,
+          iconCreateFunction: (c: any) => {
+            const n = c.getChildCount()
+            return L.divIcon({
+              className: '',
+              html: `<div style="background:#0093FF;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,147,255,0.35);border:2px solid #fff;">${n}</div>`,
+              iconSize: [36, 36],
+              iconAnchor: [18, 18],
+            })
+          },
+        })
+
         const bounds: [number, number][] = []
 
         for (const hotel of hotels) {
           if (cancelled) return
+          const lat = hotel.latitude!
+          const lng = hotel.longitude!
           try {
-            bounds.push([hotel.latitude, hotel.longitude])
+            bounds.push([lat, lng])
             const stars = hotel.stars ? '★'.repeat(hotel.stars) : ''
             const loc   = hotel.resort_town || ''
 
-            L.marker([hotel.latitude, hotel.longitude], {
+            const marker = L.marker([lat, lng], {
               icon: L.divIcon({
                 className: '',
                 html: `<div style="background:white;border:2px solid #e5e7eb;border-radius:10px;padding:3px 8px;font-size:11px;font-weight:700;color:#374151;box-shadow:0 2px 8px rgba(0,0,0,0.12);white-space:nowrap;cursor:pointer;">${fmt(hotel.min_price)} Kč</div>`,
@@ -78,7 +103,7 @@ export default function HotelsMapView() {
                 iconAnchor: [50, 13],
                 popupAnchor: [0, -16],
               }),
-            }).addTo(map).bindPopup(`
+            }).bindPopup(`
               <div style="font-family:system-ui,sans-serif;min-width:170px;padding:2px 0">
                 ${stars ? `<p style="color:#f59e0b;font-size:11px;margin:0 0 2px;line-height:1">${stars}</p>` : ''}
                 <p style="font-weight:700;font-size:13px;margin:0 0 2px;line-height:1.3">${hotel.name}</p>
@@ -87,8 +112,11 @@ export default function HotelsMapView() {
                 <a href="/hotel/${hotel.slug}" style="display:inline-block;background:#0093FF;color:white;font-size:11px;font-weight:600;padding:5px 12px;border-radius:8px;text-decoration:none">Zobrazit →</a>
               </div>
             `)
+            cluster.addLayer(marker)
           } catch { /* marker failed — skip */ }
         }
+
+        map.addLayer(cluster)
 
         if (!cancelled && bounds.length > 0) {
           try { map.fitBounds(L.latLngBounds(bounds), { padding: [48, 48], maxZoom: 13 }) } catch { /* ignore */ }

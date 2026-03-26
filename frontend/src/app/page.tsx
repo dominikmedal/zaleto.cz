@@ -6,10 +6,11 @@ import { PiCalendarStar, PiAirplane, PiGlobe, PiTag, PiTimer, PiBuildings } from
 import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import DestinationCarousel from '@/components/DestinationCarousel'
-import { fetchDestinations, fetchFilters, fetchWikiSummary, fetchDestinationPhoto } from '@/lib/api'
+import { fetchDestinations, fetchFilters, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI } from '@/lib/api'
 import type { Filters } from '@/lib/types'
 import JsonLd from '@/components/JsonLd'
 import FilteringBar from '@/components/FilteringBar'
+import DestinationAISection from '@/components/DestinationAISection'
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
   const destination = Array.isArray(searchParams.destination)
@@ -138,10 +139,11 @@ export default async function HomePage({ searchParams }: PageProps) {
     singleDest ? fetchWikiSummary(singleDest).catch(() => null) : Promise.resolve(null),
   ])
 
-  // Hero photo — Pexels
-  const heroPhoto = singleDest
-    ? await fetchDestinationPhoto(singleDest).catch(() => null)
-    : null
+  // Hero photo + AI content — parallel when destination selected
+  const [heroPhoto, destAI] = await Promise.all([
+    singleDest ? fetchDestinationPhoto(singleDest).catch(() => null) : Promise.resolve(null),
+    singleDest ? fetchDestinationAI(singleDest).catch(() => ({ description: null, excursions: [] })) : Promise.resolve(null),
+  ])
 
   // Top unique regions with hotel counts
   const regionMap = new Map<string, number>()
@@ -341,6 +343,15 @@ export default async function HomePage({ searchParams }: PageProps) {
               }))}
             />
           </section>
+        )}
+
+        {/* ── AI destination description + excursions ── */}
+        {singleDest && destAI && (destAI.description || destAI.excursions.length > 0) && (
+          <DestinationAISection
+            destination={singleDest}
+            description={destAI.description}
+            excursions={destAI.excursions}
+          />
         )}
 
         {/* ── Filter animation bar ── */}

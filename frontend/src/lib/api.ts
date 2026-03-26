@@ -140,6 +140,20 @@ export async function fetchHotelSearch(q: string): Promise<{
   } catch { return [] }
 }
 
+export async function fetchDestinationAI(destination: string): Promise<{
+  description: string | null
+  excursions: { name: string; emoji: string; description: string }[]
+}> {
+  try {
+    const res = await fetch(
+      `${API}/api/destination-ai/${encodeURIComponent(destination)}`,
+      { cache: 'no-store', signal: timeout() }
+    )
+    if (!res.ok) return { description: null, excursions: [] }
+    return res.json()
+  } catch { return { description: null, excursions: [] } }
+}
+
 export async function fetchFilters(): Promise<{
   mealPlans: { meal_plan: string; count: number }[]
   priceRange: { min: number; max: number }

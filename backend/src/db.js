@@ -101,6 +101,14 @@ async function initSchema() {
       )
     `)
     await client.query(`
+      CREATE TABLE IF NOT EXISTS destination_ai (
+        name         TEXT PRIMARY KEY,
+        description  TEXT,
+        excursions   TEXT,
+        generated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `)
+    await client.query(`
       CREATE TABLE IF NOT EXISTS reviews (
         id           SERIAL PRIMARY KEY,
         hotel_id     INTEGER NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,

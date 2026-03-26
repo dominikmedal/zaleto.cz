@@ -33,6 +33,7 @@ const toursRouter          = require('./routes/tours')
 const metaRouter           = require('./routes/meta')
 const redirectRouter       = require('./routes/redirect')
 const destPhotosRouter     = require('./routes/destinationPhotos')
+const destAIRouter         = require('./routes/destinationAI')
 const contactRouter        = require('./routes/contact')
 
 app.use('/api/hotels', hotelsRouter)
@@ -46,6 +47,7 @@ const redirectLimiter = rateLimit({
 })
 app.use('/api/redirect', redirectLimiter, redirectRouter)
 app.use('/api/destination-photo', destPhotosRouter)
+app.use('/api/destination-ai', destAIRouter)
 app.use('/api/contact', contactRouter)
 app.use('/api', metaRouter)
 
