@@ -2,11 +2,11 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { PiSun, PiCalendarStar, PiBuildingApartment, PiAirplane, PiGlobe, PiTag, PiLightning, PiTimer } from 'react-icons/pi'
+import { PiCalendarStar, PiAirplane, PiGlobe, PiTag, PiTimer } from 'react-icons/pi'
 import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import DestinationCarousel from '@/components/DestinationCarousel'
-import { fetchHotels, fetchDestinations, fetchFilters, fetchWikiSummary, fetchDestinationPhoto } from '@/lib/api'
+import { fetchDestinations, fetchFilters, fetchWikiSummary, fetchDestinationPhoto } from '@/lib/api'
 import type { Filters } from '@/lib/types'
 import JsonLd from '@/components/JsonLd'
 import FilteringBar from '@/components/FilteringBar'
@@ -102,7 +102,6 @@ function getParam(p: string | string[] | undefined): string | undefined {
   return Array.isArray(p) ? p[0] : p
 }
 
-const fmt = (n: number | null) => n != null ? n.toLocaleString('cs-CZ') : '0'
 const fmtShort = (n: number | null) => {
   if (n == null) return '0'
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')} mil.`
@@ -129,13 +128,11 @@ export default async function HomePage({ searchParams }: PageProps) {
     sort:           getParam(searchParams.sort) || 'price_asc',
   }
 
-  const page = parseInt(getParam(searchParams.page) || '1')
   const singleDest = filters.destination && !filters.destination.includes(',') ? filters.destination : null
   const tourType = filters.tour_type
   const noFilters = !hasActiveFilter(filters)
 
-  const [{ hotels, pagination }, destinations, meta, wiki] = await Promise.all([
-    fetchHotels({ ...filters, page, limit: 24 }).catch(() => ({ hotels: [], pagination: { total: 0, page: 1, limit: 24, totalPages: 0, hasMore: false } })),
+  const [destinations, meta, wiki] = await Promise.all([
     fetchDestinations().catch(() => []),
     fetchFilters().catch(() => ({ mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], totalTours: 0, departureCities: [] })),
     singleDest ? fetchWikiSummary(singleDest).catch(() => null) : Promise.resolve(null),
@@ -164,17 +161,6 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   const countryCount = new Set(destinations.map(d => d.country)).size
 
-  // Daily & weekly tips — deterministic pick by date seed
-  const now = new Date()
-  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
-  const weekOfYear = Math.floor(dayOfYear / 7)
-  const tippable = hotels.filter(h => h.thumbnail_url)
-  const dailyIdx  = tippable.length > 0 ? dayOfYear  % tippable.length : 0
-  let   weeklyIdx = tippable.length > 1 ? (weekOfYear * 7 + 3) % tippable.length : 0
-  if (weeklyIdx === dailyIdx) weeklyIdx = (weeklyIdx + 1) % tippable.length
-  const dailyTip  = tippable[dailyIdx]  ?? null
-  const weeklyTip = tippable[weeklyIdx] ?? null
-
   // Wiki description — up to 3 sentences
   const wikiDescription = wiki
     ? wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 3).join(' ')
@@ -202,30 +188,9 @@ export default async function HomePage({ searchParams }: PageProps) {
     }
   }
 
-  // ItemList schema pro hotely — pomáhá Google zobrazit rich snippets
-  const itemListSchema = hotels.length > 0 ? {
-    '@context': 'https://schema.org',
-    '@type': 'ItemList',
-    name: singleDest
-      ? `Zájezdy ${singleDest} 2026`
-      : tourType === 'last_minute' ? 'Last minute zájezdy 2026'
-      : tourType === 'first_minute' ? 'First minute zájezdy 2026'
-      : 'Letecké zájezdy 2026',
-    description: 'Porovnání zájezdů od předních českých cestovních kanceláří',
-    url: 'https://zaleto.cz',
-    numberOfItems: pagination.total,
-    itemListElement: hotels.slice(0, 10).map((h, i) => ({
-      '@type': 'ListItem',
-      position: i + 1,
-      url: `https://zaleto.cz/hotel/${h.slug}`,
-      name: h.name,
-    })),
-  } : null
-
   return (
     <div className="min-h-screen">
       <JsonLd data={websiteSchema} />
-      {itemListSchema && <JsonLd data={itemListSchema} />}
       <Header />
 
       {/* ── Full-bleed hero (destination selected + photo available) ── */}
@@ -321,7 +286,6 @@ export default async function HomePage({ searchParams }: PageProps) {
             {/* Stats */}
             {!singleDest && (() => {
               const statsArr = [
-                { icon: <PiBuildingApartment className="w-3 h-3" />, value: fmtShort(pagination.total),            label: 'hotelů'  },
                 { icon: <PiAirplane          className="w-3 h-3" />, value: fmtShort(meta.totalTours ?? 0),        label: 'termínů' },
                 { icon: <PiGlobe             className="w-3 h-3" />, value: String(countryCount),                  label: 'zemí'    },
                 { icon: <PiTag               className="w-3 h-3" />, value: `od ${fmtShort(meta.priceRange.min)}`, label: 'Kč'      },
@@ -330,7 +294,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                 <div className="hidden sm:block lg:flex-shrink-0 mt-5 lg:mt-0">
 
                   {/* Tablet (sm–lg): full-width card below title */}
-                  <div className="lg:hidden grid grid-cols-4 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="lg:hidden grid grid-cols-3 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
                     {statsArr.map(({ icon, value, label }) => (
                       <div key={label} className="flex flex-col items-center justify-center py-4 px-3 border-r border-gray-100 last:border-r-0">
                         <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
@@ -378,77 +342,6 @@ export default async function HomePage({ searchParams }: PageProps) {
           </section>
         )}
 
-        {/* ── Tips ── */}
-        {noFilters && (dailyTip || weeklyTip) && (
-          <section>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
-              Tipy pro vás
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {dailyTip && (
-                <Link
-                  href={`/hotel/${dailyTip.slug}`}
-                  className="group relative rounded-2xl overflow-hidden bg-gray-100 block"
-                  style={{ aspectRatio: '16/7' }}
-                >
-                  <Image
-                    src={dailyTip.thumbnail_url!}
-                    alt={dailyTip.name}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    unoptimized
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-                  <div className="absolute top-4 left-4">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold bg-amber-400 text-white px-3 py-1.5 rounded-full shadow-sm">
-                      <PiSun className="w-3.5 h-3.5" /> Tip dne
-                    </span>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <p className="text-white/65 text-xs mb-1">
-                      {dailyTip.stars ? '★'.repeat(dailyTip.stars) + '  ·  ' : ''}
-                      {[dailyTip.resort_town, dailyTip.country].filter(Boolean).join(', ')}
-                    </p>
-                    <p className="text-white font-bold text-xl leading-tight group-hover:underline underline-offset-2 mb-1.5">{dailyTip.name}</p>
-                    <p className="text-emerald-300 font-semibold text-sm">od {fmt(dailyTip.min_price)} Kč / osoba</p>
-                  </div>
-                </Link>
-              )}
-              {weeklyTip && (
-                <Link
-                  href={`/hotel/${weeklyTip.slug}`}
-                  className="group relative rounded-2xl overflow-hidden bg-gray-100 block"
-                  style={{ aspectRatio: '16/7' }}
-                >
-                  <Image
-                    src={weeklyTip.thumbnail_url!}
-                    alt={weeklyTip.name}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    unoptimized
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-                  <div className="absolute top-4 left-4">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold bg-blue-500 text-white px-3 py-1.5 rounded-full shadow-sm">
-                      <PiCalendarStar className="w-3.5 h-3.5" /> Tip týdne
-                    </span>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <p className="text-white/65 text-xs mb-1">
-                      {weeklyTip.stars ? '★'.repeat(weeklyTip.stars) + '  ·  ' : ''}
-                      {[weeklyTip.resort_town, weeklyTip.country].filter(Boolean).join(', ')}
-                    </p>
-                    <p className="text-white font-bold text-xl leading-tight group-hover:underline underline-offset-2 mb-1.5">{weeklyTip.name}</p>
-                    <p className="text-emerald-300 font-semibold text-sm">od {fmt(weeklyTip.min_price)} Kč / osoba</p>
-                  </div>
-                </Link>
-              )}
-            </div>
-          </section>
-        )}
-
-
-
         {/* ── Filter animation bar ── */}
         <Suspense>
           <FilteringBar />
@@ -456,7 +349,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
         {/* ── Hotel grid ── */}
         <Suspense>
-          <HotelGrid hotels={hotels} pagination={pagination} adults={parseInt(getParam(searchParams.adults) || '2')} />
+          <HotelGrid adults={parseInt(getParam(searchParams.adults) || '2')} />
         </Suspense>
 
       </main>
