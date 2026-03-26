@@ -1,6 +1,11 @@
 import type { MetadataRoute } from 'next'
 import { fetchAllHotelSlugs, fetchDestinations } from '@/lib/api'
 
+// Nevygenerovat při buildu — Railway by timeoutovalo.
+// Sitemap se vygeneruje on-demand a Vercel ji cachuje 24 hodin.
+export const dynamic = 'force-dynamic'
+export const revalidate = 86400
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = 'https://zaleto.cz'
   const now = new Date()

@@ -10,6 +10,11 @@ function buildParams(filters: Filters & { page?: number; limit?: number }): stri
   return p.toString()
 }
 
+/** Vrátí AbortSignal s timeoutem — pojistka pro SSR/build, aby Railway neblokoval worker. */
+function timeout(ms = 15_000) {
+  return AbortSignal.timeout(ms)
+}
+
 export async function fetchHotels(filters: Filters & { page?: number; limit?: number } = {}): Promise<{
   hotels: Hotel[]
   pagination: Pagination
@@ -17,13 +22,14 @@ export async function fetchHotels(filters: Filters & { page?: number; limit?: nu
   const qs = buildParams(filters)
   const res = await fetch(`${API}/api/hotels${qs ? `?${qs}` : ''}`, {
     next: { revalidate: 300 },
+    signal: timeout(),
   })
   if (!res.ok) throw new Error('Failed to fetch hotels')
   return res.json()
 }
 
 export async function fetchHotel(slug: string): Promise<Hotel> {
-  const res = await fetch(`${API}/api/hotels/${slug}`, { next: { revalidate: 3600 } })
+  const res = await fetch(`${API}/api/hotels/${slug}`, { next: { revalidate: 3600 }, signal: timeout() })
   if (!res.ok) throw new Error('Hotel not found')
   return res.json()
 }
@@ -38,7 +44,7 @@ export async function fetchHotelTours(slug: string, filters: Partial<Filters> = 
 }
 
 export async function fetchDestinations(): Promise<{ country: string; destination: string; resort_town: string | null; hotel_count: number }[]> {
-  const res = await fetch(`${API}/api/destinations`, { next: { revalidate: 3600 } })
+  const res = await fetch(`${API}/api/destinations`, { next: { revalidate: 3600 }, signal: timeout() })
   if (!res.ok) return []
   return res.json()
 }
@@ -117,7 +123,7 @@ export async function fetchNearbyHotels(lat: number, lon: number, exclude: strin
 export async function fetchAllHotelSlugs(limit?: number): Promise<{ slug: string; updated_at: string | null }[]> {
   try {
     const qs = limit ? `?limit=${limit}` : ''
-    const res = await fetch(`${API}/api/hotels/slugs${qs}`, { next: { revalidate: 3600 } })
+    const res = await fetch(`${API}/api/hotels/slugs${qs}`, { next: { revalidate: 3600 }, signal: timeout(20_000) })
     if (!res.ok) return []
     return res.json()
   } catch { return [] }
@@ -143,7 +149,7 @@ export async function fetchFilters(): Promise<{
   totalTours: number
   departureCities: { departure_city: string; count: number }[]
 }> {
-  const res = await fetch(`${API}/api/filters`, { next: { revalidate: 3600 } })
+  const res = await fetch(`${API}/api/filters`, { next: { revalidate: 3600 }, signal: timeout() })
   if (!res.ok) return { mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], totalTours: 0, departureCities: [] }
   return res.json()
 }
