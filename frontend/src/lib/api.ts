@@ -20,9 +20,10 @@ export async function fetchHotels(filters: Filters & { page?: number; limit?: nu
   pagination: Pagination
 }> {
   const qs = buildParams(filters)
+  // Bez abort signálu — slow path (GROUP BY na tours) může trvat déle než 15s,
+  // timeout by vrátil prázdné výsledky. Backend má vlastní cache (hotelsCache 2h).
   const res = await fetch(`${API}/api/hotels${qs ? `?${qs}` : ''}`, {
     next: { revalidate: 300 },
-    signal: timeout(),
   })
   if (!res.ok) throw new Error('Failed to fetch hotels')
   return res.json()

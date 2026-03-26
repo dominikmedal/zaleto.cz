@@ -152,9 +152,11 @@ router.get('/', (req, res) => {
     } else {
       // ── SLOW PATH: GROUP BY přes tours (tour-level filtry) ───────────────
       const hotelConds = []
-      const tourConds = ['t.price > 0', "t.departure_date >= date('now')"]
+      // date_from supersedes date('now') — neklademe obě podmínky najednou
+      const tourConds = ['t.price > 0', date_from ? 't.departure_date >= ?' : "t.departure_date >= date('now')"]
       const mainParams = []
       const tourParams = []
+      if (date_from) tourParams.push(date_from)  // musí být první (odpovídá výše)
 
       if (destination) {
         const dests = String(destination).split(',').map(s => s.trim()).filter(Boolean)
@@ -173,8 +175,8 @@ router.get('/', (req, res) => {
         if (arr.length) { hotelConds.push(`h.stars IN (${arr.map(() => '?').join(',')})`); mainParams.push(...arr) }
       }
 
-      if (date_from) { tourConds.push('t.departure_date >= ?'); tourParams.push(date_from) }
-      if (date_to)   { tourConds.push('t.departure_date <= ?'); tourParams.push(date_to) }
+      // date_from již přidáno výše do tourParams jako první param
+      if (date_to) { tourConds.push('t.departure_date <= ?'); tourParams.push(date_to) }
 
       if (duration) {
         const arr = String(duration).split(',').map(Number).filter(Boolean)
