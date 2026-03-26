@@ -289,7 +289,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                 { icon: <PiBuildings         className="w-3 h-3" />, value: fmtShort(meta.totalHotels ?? 0),       label: 'hotelů'  },
                 { icon: <PiAirplane          className="w-3 h-3" />, value: fmtShort(meta.totalTours ?? 0),        label: 'termínů' },
                 { icon: <PiGlobe             className="w-3 h-3" />, value: String(countryCount),                  label: 'zemí'    },
-                { icon: <PiTag               className="w-3 h-3" />, value: `od ${fmtShort(meta.priceRange?.min)}`, label: 'Kč'     },
+                { icon: <PiTag               className="w-3 h-3" />, value: `od ${fmtShort(meta.priceRange?.min ?? null)}`, label: 'Kč'     },
               ]
               return (
                 <div className="hidden sm:block lg:flex-shrink-0 mt-5 lg:mt-0">
