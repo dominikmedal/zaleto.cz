@@ -3,12 +3,12 @@ const router = express.Router()
 const db = require('../db')
 const { metaCache } = require('../cache')
 
-// Simple queue — max 1 concurrent Gemini request, 4s between calls (free tier = 15 RPM)
+// Simple queue — max 1 concurrent Gemini request, 6s between calls (~10 RPM, under free tier 15 RPM limit)
 let aiQueue = Promise.resolve()
 function enqueue(fn) {
   aiQueue = aiQueue.then(() => fn()).then(
-    () => new Promise(r => setTimeout(r, 4000)),
-    (err) => { console.error('[ai] queue error:', err?.message ?? err); return new Promise(r => setTimeout(r, 4000)) },
+    () => new Promise(r => setTimeout(r, 6000)),
+    (err) => { console.error('[ai] queue error:', err?.message ?? err); return new Promise(r => setTimeout(r, 6000)) },
   )
   return aiQueue
 }
@@ -46,6 +46,10 @@ async function generateAI(name) {
     }
   )
 
+  if (response.status === 429) {
+    await new Promise(r => setTimeout(r, 15_000))
+    return generateAI(name) // one retry after 15s
+  }
   if (!response.ok) throw new Error(`Gemini HTTP ${response.status}`)
 
   const data = await response.json()

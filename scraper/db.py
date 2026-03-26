@@ -156,6 +156,18 @@ class ZaletoDB:
 
     def upsert_hotel(self, slug: str, data: dict) -> int:
         cur = self._cur()
+        agency = data.get("agency", data.get("_agency", "Fischer"))
+
+        # Deduplicate: if a hotel with the same name+agency already exists under a
+        # different slug, reuse that slug instead of creating a duplicate entry.
+        cur.execute(
+            "SELECT slug FROM hotels WHERE name = %s AND agency = %s AND slug != %s LIMIT 1",
+            (data["name"], agency, slug),
+        )
+        existing = cur.fetchone()
+        if existing:
+            slug = existing["slug"]
+
         cur.execute("""
             INSERT INTO hotels (
                 slug, agency, name, country, destination, resort_town,
