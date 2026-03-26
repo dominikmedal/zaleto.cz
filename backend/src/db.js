@@ -124,11 +124,9 @@ async function initSchema() {
   `)
 
   // Add columns that may be missing from older schema versions
-  await pool.query(`
-    ALTER TABLE tours ADD COLUMN IF NOT EXISTS price_single REAL;
-    ALTER TABLE tours ADD COLUMN IF NOT EXISTS url_single TEXT;
-    ALTER TABLE hotels ADD COLUMN IF NOT EXISTS review_score REAL;
-  `)
+  await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS price_single REAL`)
+  await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS url_single TEXT`)
+  await pool.query(`ALTER TABLE hotels ADD COLUMN IF NOT EXISTS review_score REAL`)
 
   // Populate hotel_stats on first run if empty
   await pool.query(`
