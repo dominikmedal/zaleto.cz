@@ -3,7 +3,15 @@ const router = express.Router()
 const db = require('../db')
 const { metaCache } = require('../cache')
 
-const STALE_DAYS = 90
+// Simple queue — max 1 concurrent Gemini request, 1.5s between calls
+let aiQueue = Promise.resolve()
+function enqueue(fn) {
+  aiQueue = aiQueue.then(() => fn()).then(
+    () => new Promise(r => setTimeout(r, 1500)),
+    () => new Promise(r => setTimeout(r, 1500)),
+  )
+  return aiQueue
+}
 
 /**
  * Generates AI description + excursions for a destination via Google Gemini.
@@ -52,35 +60,59 @@ async function generateAI(name) {
 
 /**
  * Generates and stores AI content for a destination — fire-and-forget safe.
- * Checks DB first so it only generates when truly missing/stale.
+ * Generates only once — if a record exists in DB it is never regenerated.
+ * Uses a global queue to avoid hitting Gemini rate limits.
  */
 async function generateAndStore(name) {
-  // Check if fresh content already exists
+  // Skip if already exists
   const r = await db.query(
-    `SELECT generated_at FROM destination_ai WHERE name = ?
-     AND generated_at > NOW() - INTERVAL '${STALE_DAYS} days'`,
+    'SELECT name FROM destination_ai WHERE name = ?',
     [name]
   )
-  if (r.rows.length > 0) return // already fresh
+  if (r.rows.length > 0) return
 
-  const result = await generateAI(name)
-  if (!result) return
+  enqueue(async () => {
+    // Re-check inside queue — another enqueued call may have already generated it
+    const r2 = await db.query('SELECT name FROM destination_ai WHERE name = ?', [name])
+    if (r2.rows.length > 0) return
 
-  await db.query(
-    `INSERT INTO destination_ai (name, description, excursions, generated_at)
-     VALUES (?, ?, ?, NOW())
-     ON CONFLICT (name) DO UPDATE
-       SET description = EXCLUDED.description,
-           excursions  = EXCLUDED.excursions,
-           generated_at = EXCLUDED.generated_at`,
-    [name, result.description, JSON.stringify(result.excursions)]
-  )
+    const result = await generateAI(name)
+    if (!result) return
 
-  // Update in-memory cache
-  metaCache.set(`ai_${name}`, result)
+    await db.query(
+      `INSERT INTO destination_ai (name, description, excursions, generated_at)
+       VALUES (?, ?, ?, NOW())
+       ON CONFLICT (name) DO NOTHING`,
+      [name, result.description, JSON.stringify(result.excursions)]
+    )
+
+    metaCache.set(`ai_${name}`, result)
+    console.log(`[ai] generated: ${name}`)
+  })
 }
 
-// GET /api/destination-ai/:name
+/**
+ * Finds all distinct destinations in hotels table that have no AI description
+ * and enqueues generation for each. Called after scraping completes.
+ */
+async function generateMissingAI() {
+  try {
+    const r = await db.query(`
+      SELECT DISTINCT destination FROM hotels
+      WHERE destination IS NOT NULL
+        AND destination NOT IN (SELECT name FROM destination_ai WHERE description IS NOT NULL)
+    `)
+    if (r.rows.length === 0) return
+    console.log(`[ai] queuing ${r.rows.length} missing destinations`)
+    for (const row of r.rows) {
+      await generateAndStore(row.destination)
+    }
+  } catch (e) {
+    console.error('[ai] generateMissingAI error:', e.message)
+  }
+}
+
+// GET /api/destination-ai/:name — reads from DB/cache only, never generates on request
 router.get('/:name', async (req, res) => {
   const name = decodeURIComponent(req.params.name)
 
@@ -90,40 +122,22 @@ router.get('/:name', async (req, res) => {
     const cached = metaCache.get(cacheKey)
     if (cached) return res.set('X-Cache', 'HIT').json(cached)
 
-    // DB cache
+    // DB — serve whatever exists
     const dbR = await db.query(
-      'SELECT description, excursions, generated_at FROM destination_ai WHERE name = ?',
+      'SELECT description, excursions FROM destination_ai WHERE name = ?',
       [name]
     )
     const row = dbR.rows[0]
     if (row) {
-      const ageDays = (Date.now() - new Date(row.generated_at).getTime()) / 86400000
-      if (ageDays < STALE_DAYS) {
-        const result = {
-          description: row.description,
-          excursions:  JSON.parse(row.excursions || '[]'),
-        }
-        metaCache.set(cacheKey, result)
-        return res.set('X-Cache', 'HIT').json(result)
+      const result = {
+        description: row.description,
+        excursions:  JSON.parse(row.excursions || '[]'),
       }
+      metaCache.set(cacheKey, result)
+      return res.set('X-Cache', 'HIT').json(result)
     }
 
-    // Generate fresh
-    const result = await generateAI(name)
-    if (!result) return res.json({ description: null, excursions: [] })
-
-    await db.query(
-      `INSERT INTO destination_ai (name, description, excursions, generated_at)
-       VALUES (?, ?, ?, NOW())
-       ON CONFLICT (name) DO UPDATE
-         SET description = EXCLUDED.description,
-             excursions  = EXCLUDED.excursions,
-             generated_at = EXCLUDED.generated_at`,
-      [name, result.description, JSON.stringify(result.excursions)]
-    )
-
-    metaCache.set(cacheKey, result)
-    res.set('X-Cache', 'MISS').json(result)
+    res.json({ description: null, excursions: [] })
   } catch (err) {
     console.error('GET /destination-ai error:', err.message)
     res.json({ description: null, excursions: [] })
@@ -132,3 +146,4 @@ router.get('/:name', async (req, res) => {
 
 module.exports = router
 module.exports.generateAndStore = generateAndStore
+module.exports.generateMissingAI = generateMissingAI

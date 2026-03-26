@@ -84,12 +84,6 @@ router.get('/:name', async (req, res) => {
 
     metaCache.set(cacheKey, url)
 
-    // Trigger AI description generation in background (fire-and-forget)
-    if (url) {
-      const { generateAndStore } = require('./destinationAI')
-      generateAndStore(name).catch(() => {})
-    }
-
     res.json({ url })
   } catch (err) {
     console.error('GET /destination-photo error:', err.message)
