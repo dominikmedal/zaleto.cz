@@ -76,8 +76,9 @@ async function generateAndStore(name) {
     const r2 = await db.query('SELECT name FROM destination_ai WHERE name = ?', [name])
     if (r2.rows.length > 0) return
 
+    console.log(`[ai] generating: ${name}`)
     const result = await generateAI(name)
-    if (!result) return
+    if (!result) { console.log(`[ai] skipped (no result): ${name}`); return }
 
     await db.query(
       `INSERT INTO destination_ai (name, description, excursions, generated_at)
