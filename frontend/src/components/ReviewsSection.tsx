@@ -181,7 +181,6 @@ export default function ReviewsSection({ slug }: { slug: string }) {
       {/* Source attribution */}
       {hasReviews && data?.source !== 'cache' && (
         <p className="text-xs text-gray-400 mt-5 flex items-center gap-1.5">
-          <span className="text-base">🗺️</span>
           Recenze poskytuje Google Maps
         </p>
       )}

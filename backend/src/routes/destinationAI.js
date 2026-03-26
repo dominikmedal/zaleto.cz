@@ -3,12 +3,12 @@ const router = express.Router()
 const db = require('../db')
 const { metaCache } = require('../cache')
 
-// Simple queue — max 1 concurrent Gemini request, 1.5s between calls
+// Simple queue — max 1 concurrent Gemini request, 4s between calls (free tier = 15 RPM)
 let aiQueue = Promise.resolve()
 function enqueue(fn) {
   aiQueue = aiQueue.then(() => fn()).then(
-    () => new Promise(r => setTimeout(r, 1500)),
-    () => new Promise(r => setTimeout(r, 1500)),
+    () => new Promise(r => setTimeout(r, 4000)),
+    (err) => { console.error('[ai] queue error:', err?.message ?? err); return new Promise(r => setTimeout(r, 4000)) },
   )
   return aiQueue
 }

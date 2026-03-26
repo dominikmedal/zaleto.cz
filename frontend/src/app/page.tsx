@@ -2,11 +2,11 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { PiCalendarStar, PiAirplane, PiGlobe, PiTag, PiTimer, PiBuildings } from 'react-icons/pi'
+import { PiCalendarStar, PiAirplane, PiGlobe, PiTag, PiTimer, PiBuildings, PiSun } from 'react-icons/pi'
 import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import DestinationCarousel from '@/components/DestinationCarousel'
-import { fetchDestinations, fetchFilters, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI } from '@/lib/api'
+import { fetchDestinations, fetchFilters, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI, fetchHotels } from '@/lib/api'
 import type { Filters } from '@/lib/types'
 import JsonLd from '@/components/JsonLd'
 import FilteringBar from '@/components/FilteringBar'
@@ -138,6 +138,20 @@ export default async function HomePage({ searchParams }: PageProps) {
     fetchFilters().catch(() => ({ mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], totalTours: 0, totalHotels: 0, departureCities: [] })),
     singleDest ? fetchWikiSummary(singleDest).catch(() => null) : Promise.resolve(null),
   ])
+
+  // Hotels for tips (only on homepage with no filters)
+  const tipHotels = noFilters
+    ? await fetchHotels({ sort: 'price_asc', limit: 60 }).then(r => r.hotels.filter(h => h.thumbnail_url)).catch(() => [])
+    : []
+
+  const now = new Date()
+  const dayOfYear  = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
+  const weekOfYear = Math.floor(dayOfYear / 7)
+  const dailyIdx   = tipHotels.length > 0 ? dayOfYear % tipHotels.length : 0
+  let   weeklyIdx  = tipHotels.length > 1 ? (weekOfYear * 7 + 3) % tipHotels.length : 0
+  if (weeklyIdx === dailyIdx) weeklyIdx = (weeklyIdx + 1) % tipHotels.length
+  const dailyTip  = tipHotels[dailyIdx]  ?? null
+  const weeklyTip = tipHotels[weeklyIdx] ?? null
 
   // Hero photo + AI content — parallel when destination selected
   const [heroPhoto, destAI] = await Promise.all([
@@ -342,6 +356,47 @@ export default async function HomePage({ searchParams }: PageProps) {
                 thumb: regionPhotos[i] ?? null,
               }))}
             />
+          </section>
+        )}
+
+        {/* ── Tips ── */}
+        {noFilters && (dailyTip || weeklyTip) && (
+          <section>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Tipy pro vás</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {dailyTip && (
+                <Link href={`/hotel/${dailyTip.slug}`} className="group relative rounded-2xl overflow-hidden bg-gray-100 block" style={{ aspectRatio: '16/7' }}>
+                  <Image src={dailyTip.thumbnail_url!} alt={dailyTip.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                  <div className="absolute top-4 left-4">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold bg-amber-400 text-white px-3 py-1.5 rounded-full shadow-sm">
+                      <PiSun className="w-3.5 h-3.5" /> Tip dne
+                    </span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-5">
+                    <p className="text-white/65 text-xs mb-1">{dailyTip.stars ? '★'.repeat(dailyTip.stars) + '  ·  ' : ''}{[dailyTip.resort_town, dailyTip.country].filter(Boolean).join(', ')}</p>
+                    <p className="text-white font-bold text-xl leading-tight group-hover:underline underline-offset-2 mb-1.5">{dailyTip.name}</p>
+                    <p className="text-emerald-300 font-semibold text-sm">od {fmtShort(dailyTip.min_price ?? null)} Kč / osoba</p>
+                  </div>
+                </Link>
+              )}
+              {weeklyTip && (
+                <Link href={`/hotel/${weeklyTip.slug}`} className="group relative rounded-2xl overflow-hidden bg-gray-100 block" style={{ aspectRatio: '16/7' }}>
+                  <Image src={weeklyTip.thumbnail_url!} alt={weeklyTip.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                  <div className="absolute top-4 left-4">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold bg-blue-500 text-white px-3 py-1.5 rounded-full shadow-sm">
+                      <PiCalendarStar className="w-3.5 h-3.5" /> Tip týdne
+                    </span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-5">
+                    <p className="text-white/65 text-xs mb-1">{weeklyTip.stars ? '★'.repeat(weeklyTip.stars) + '  ·  ' : ''}{[weeklyTip.resort_town, weeklyTip.country].filter(Boolean).join(', ')}</p>
+                    <p className="text-white font-bold text-xl leading-tight group-hover:underline underline-offset-2 mb-1.5">{weeklyTip.name}</p>
+                    <p className="text-emerald-300 font-semibold text-sm">od {fmtShort(weeklyTip.min_price ?? null)} Kč / osoba</p>
+                  </div>
+                </Link>
+              )}
+            </div>
           </section>
         )}
 
