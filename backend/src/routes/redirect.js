@@ -20,7 +20,7 @@ const addDays = (dateStr, n) => {
   const d = new Date(dateStr + 'T00:00:00')
   d.setDate(d.getDate() + n)
   return d.toISOString().slice(0, 10)
-}.
+}
 
 // GET /api/redirect/:slug?date=YYYY-MM-DD&nights=7&adults=2&tour_url=...
 router.get('/:slug', (req, res) => {
