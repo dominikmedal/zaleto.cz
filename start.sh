@@ -2,24 +2,31 @@
 # Zaleto Railway start script — runs backend + scraper concurrently.
 # If either process exits, the container exits (Railway restarts it).
 
-DB="${DATABASE_PATH:-/data/zaleto.db}"
-
 echo "============================================"
 echo "  Zaleto — Railway Service"
-echo "  Database : $DB"
 echo "  Started  : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 echo "============================================"
 echo ""
 
 # ── Backend (Node.js) ─────────────────────────────────────────────────────
 cd /app/backend
-DATABASE_PATH="$DB" node src/index.js &
+node src/index.js &
 BACKEND_PID=$!
 echo "[backend] started  (PID $BACKEND_PID)"
 
+# Wait for backend to finish schema migrations before starting scraper
+echo "[start.sh] Waiting for backend to be ready..."
+for i in $(seq 1 30); do
+  if wget -q -O /dev/null http://localhost:3001/api/health 2>/dev/null; then
+    echo "[start.sh] Backend ready after ${i}s"
+    break
+  fi
+  sleep 1
+done
+
 # ── Scraper (Python) ──────────────────────────────────────────────────────
 cd /app/scraper
-DATABASE_PATH="$DB" python3 run_all.py &
+python3 run_all.py &
 SCRAPER_PID=$!
 echo "[scraper] started  (PID $SCRAPER_PID)"
 

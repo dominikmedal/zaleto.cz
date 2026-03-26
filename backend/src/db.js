@@ -147,9 +147,13 @@ async function initSchema() {
     }
 
     console.log('[db] running migrations...')
-    await client.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS price_single REAL`)
-    await client.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS url_single TEXT`)
-    await client.query(`ALTER TABLE hotels ADD COLUMN IF NOT EXISTS review_score REAL`)
+    try {
+      await client.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS price_single REAL`)
+      await client.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS url_single TEXT`)
+      await client.query(`ALTER TABLE hotels ADD COLUMN IF NOT EXISTS review_score REAL`)
+    } catch (e) {
+      console.warn('[db] migration warning (will retry on next start):', e.message)
+    }
 
     console.log('[db] schema OK')
   } finally {
