@@ -3,9 +3,13 @@ const { Pool } = require('pg')
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false },
-  max: 10,
+  max: 5,
   idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 5_000,
+  connectionTimeoutMillis: 10_000,
+})
+
+pool.on('error', (err) => {
+  console.error('[pool] idle client error:', err.message)
 })
 
 // Converts ? placeholders → $1, $2, ... for PostgreSQL

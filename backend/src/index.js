@@ -70,6 +70,9 @@ app.use((err, req, res, next) => {
 })
 
 async function start() {
+  const dbUrl = process.env.DATABASE_URL
+  console.log(`[db] DATABASE_URL: ${dbUrl ? dbUrl.replace(/:\/\/[^@]+@/, '://***@') : 'NOT SET'}`)
+
   app.listen(PORT, () => {
     console.log(`\n🚀 Zaleto Backend`)
     console.log(`   http://localhost:${PORT}/api/health\n`)
