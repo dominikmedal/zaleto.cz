@@ -43,7 +43,8 @@ function bookingUrl(slug: string, tour: Tour, adults: number) {
     nights: String(tour.duration || 7),
     adults: String(adults),
   })
-  if (tour.url) params.set('tour_url', tour.url)
+  if (tour.url)    params.set('tour_url', tour.url)
+  if (tour.agency) params.set('agency',   tour.agency)
   return `${API}/api/redirect/${slug}?${params}`
 }
 
