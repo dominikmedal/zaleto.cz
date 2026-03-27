@@ -3,7 +3,7 @@ const { Pool } = require('pg')
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false },
-  max: 5,
+  max: 10,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 10_000,
 })
@@ -145,6 +145,8 @@ async function initSchema() {
       'CREATE INDEX IF NOT EXISTS idx_tours_hotel_date_price ON tours(hotel_id, departure_date, price)',
       'CREATE INDEX IF NOT EXISTS idx_tours_date_hotel_price ON tours(departure_date, hotel_id, price)',
       'CREATE INDEX IF NOT EXISTS idx_reviews_hotel          ON reviews(hotel_id)',
+      // Slow-path composite: GROUP BY hotel_id při filtrování dle data + stravování/dopravy
+      'CREATE INDEX IF NOT EXISTS idx_tours_slow_path ON tours(departure_date, meal_plan, hotel_id, price) WHERE price > 0',
     ]
     for (const sql of indexes) {
       try {

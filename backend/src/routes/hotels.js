@@ -354,21 +354,27 @@ router.get('/nearby', async (req, res) => {
   }
 })
 
-// GET /api/hotels/slugs  — all slugs for sitemap
+// GET /api/hotels/slugs  — slugs for sitemap + generateStaticParams
+// ?limit=N  → vrátí top N hotelů seřazených dle min_price ASC (pro pre-render nejdůležitějších stránek)
+// bez limitu → všechny slugy pro sitemap
 router.get('/slugs', async (req, res) => {
   try {
-    const cached = hotelDetailCache.get('slugs')
+    const limitNum = req.query.limit ? Math.min(500, parseInt(req.query.limit) || 0) : null
+    const cacheKey = limitNum ? `slugs_top_${limitNum}` : 'slugs'
+    const cached = hotelDetailCache.get(cacheKey)
     if (cached) return res.set('X-Cache', 'HIT').json(cached)
 
+    const limitClause = limitNum ? `LIMIT ${limitNum}` : ''
     const r = await db.query(`
       SELECT h.slug, h.updated_at
       FROM hotels h
       INNER JOIN hotel_stats s ON s.hotel_id = h.id
       WHERE s.min_price IS NOT NULL AND s.next_departure >= CURRENT_DATE::text
-      ORDER BY h.slug ASC
+      ORDER BY s.min_price ASC
+      ${limitClause}
     `)
 
-    hotelDetailCache.set('slugs', r.rows)
+    hotelDetailCache.set(cacheKey, r.rows)
     res.set('X-Cache', 'MISS').json(r.rows)
   } catch (err) {
     console.error('GET /hotels/slugs error:', err)

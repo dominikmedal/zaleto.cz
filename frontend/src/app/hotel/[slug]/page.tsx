@@ -24,11 +24,16 @@ export const revalidate = 3600          // ISR — regeneruj stránku na pozadí
 export const dynamicParams = true       // stránky mimo generateStaticParams fungují jako ISR on-demand
 
 export async function generateStaticParams() {
-  // Nevygenerujeme žádné stránky při buildu — Railway nedokáže obsloužit desítky
-  // paralelních requestů během Vercel buildu bez timeoutů.
-  // dynamicParams = true zajišťuje ISR on-demand: stránka se vygeneruje při první
-  // návštěvě a pak je cachována (revalidate = 3600). Pro SEO ekvivalentní.
-  return []
+  // Pre-generujeme top 100 hotelů při buildu — zrychlí první načtení pro Googlebot.
+  // Limit 100 zabraňuje zahlcení Railway backendu souběžnými požadavky.
+  // Ostatní stránky fungují jako ISR on-demand (dynamicParams = true).
+  try {
+    const { fetchAllHotelSlugs } = await import('@/lib/api')
+    const slugs = await fetchAllHotelSlugs(100)
+    return slugs.map(s => ({ slug: s.slug }))
+  } catch {
+    return []
+  }
 }
 
 interface Props { params: { slug: string } }
