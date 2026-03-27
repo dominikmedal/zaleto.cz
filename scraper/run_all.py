@@ -319,7 +319,8 @@ def purge_stale_tours(conn, agency: str, run_started: datetime) -> int:
 
 
 # Scrapery spouštěné paralelně v nočních hodinách (22:00–06:00)
-PARALLEL_NIGHT_AGENCIES = {"Fischer", "Blue Style", "Čedok"}
+# Blue Style má agresivní WAF — vždy sekvenčně
+PARALLEL_NIGHT_AGENCIES = {"Fischer", "Čedok"}
 
 def _is_night() -> bool:
     h = datetime.now().hour
@@ -427,22 +428,24 @@ def run_scraper(scraper: dict, conn=None) -> dict:
         result["log_tail"] = tb[-2000:]
         logger.exception(f"Chyba při spuštění {agency}")
     finally:
+        result["duration_sec"] = time.time() - started
+        try:
+            after = get_counts(conn, agency)
+            result["hotels_after"] = after["hotels"]
+            result["tours_after"]  = after["tours"]
+        except Exception:
+            pass
         _stop_refresh.set()
         _refresh_thread.join(timeout=5)
         if _own_conn:
             try: conn.close()
             except Exception: pass
 
-    result["duration_sec"] = time.time() - started
-    after = get_counts(conn, agency)
-    result["hotels_after"] = after["hotels"]
-    result["tours_after"]  = after["tours"]
-
-    h_diff = after["hotels"] - before["hotels"]
-    t_diff = after["tours"]  - before["tours"]
+    h_diff = result["hotels_after"] - result["hotels_before"]
+    t_diff = result["tours_after"]  - result["tours_before"]
     logger.info(
-        f"{agency}: {after['hotels']} hotelů ({h_diff:+d}), "
-        f"{after['tours']} termínů ({t_diff:+d}), "
+        f"{agency}: {result['hotels_after']} hotelů ({h_diff:+d}), "
+        f"{result['tours_after']} termínů ({t_diff:+d}), "
         f"{result['duration_sec']:.0f} s"
     )
     return result
@@ -746,7 +749,7 @@ def run_cycle(cycle: int, skip_email: bool = False):
         else:
             sequential_group.append(scraper)
 
-    # Paralelní skupina (Fischer + Blue Style + Čedok) — pouze v nočních hodinách
+    # Paralelní skupina (Fischer + Čedok) — pouze v nočních hodinách
     if parallel_group and not _shutdown:
         names = ", ".join(s["agency"] for s in parallel_group)
         logger.info(f"Noční paralelní spuštění: {names}")
@@ -758,7 +761,13 @@ def run_cycle(cycle: int, skip_email: bool = False):
                 except Exception as e:
                     agency = futures[future]["agency"]
                     logger.error(f"Paralelní scraper {agency} selhal: {e}")
-                    results.append({**_make_skipped(agency), "error": str(e)})
+                    results.append({
+                        "agency": agency,
+                        "hotels_before": 0, "tours_before": 0,
+                        "hotels_after": 0, "tours_after": 0,
+                        "stale_removed": 0, "duration_sec": 0.0,
+                        "error": str(e)[:200], "log_tail": "", "skipped": False,
+                    })
         try:
             refresh_hotel_stats(conn)
         except Exception:
