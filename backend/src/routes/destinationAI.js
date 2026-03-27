@@ -3,12 +3,15 @@ const router = express.Router()
 const db = require('../db')
 const { metaCache } = require('../cache')
 
-// Simple queue — max 1 concurrent Gemini request, 6s between calls (~10 RPM, under free tier 15 RPM limit)
+// Queue — max 1 concurrent Gemini request, 6s between calls (~10 RPM)
+// queuedNames prevents the same destination being added multiple times
+const queuedNames = new Set()
 let aiQueue = Promise.resolve()
-function enqueue(fn) {
+function enqueue(name, fn) {
+  queuedNames.add(name)
   aiQueue = aiQueue.then(() => fn()).then(
-    () => new Promise(r => setTimeout(r, 6000)),
-    (err) => { console.error('[ai] queue error:', err?.message ?? err); return new Promise(r => setTimeout(r, 6000)) },
+    () => { queuedNames.delete(name); return new Promise(r => setTimeout(r, 6000)) },
+    (err) => { queuedNames.delete(name); console.error('[ai] queue error:', err?.message ?? err); return new Promise(r => setTimeout(r, 6000)) },
   )
   return aiQueue
 }
@@ -46,11 +49,10 @@ async function generateAI(name) {
     }
   )
 
-  if (response.status === 429) {
-    await new Promise(r => setTimeout(r, 15_000))
-    return generateAI(name) // one retry after 15s
+  if (!response.ok) {
+    if (response.status === 429) throw new Error('Gemini HTTP 429')
+    throw new Error(`Gemini HTTP ${response.status}`)
   }
-  if (!response.ok) throw new Error(`Gemini HTTP ${response.status}`)
 
   const data = await response.json()
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text
@@ -68,20 +70,33 @@ async function generateAI(name) {
  * Uses a global queue to avoid hitting Gemini rate limits.
  */
 async function generateAndStore(name) {
-  // Skip if already exists
-  const r = await db.query(
-    'SELECT name FROM destination_ai WHERE name = ?',
-    [name]
-  )
+  // Skip if already exists in DB
+  const r = await db.query('SELECT name FROM destination_ai WHERE name = ?', [name])
   if (r.rows.length > 0) return
 
-  enqueue(async () => {
+  // Skip if already waiting in queue
+  if (queuedNames.has(name)) return
+
+  enqueue(name, async () => {
     // Re-check inside queue — another enqueued call may have already generated it
     const r2 = await db.query('SELECT name FROM destination_ai WHERE name = ?', [name])
     if (r2.rows.length > 0) return
 
     console.log(`[ai] generating: ${name}`)
-    const result = await generateAI(name)
+    let result = null
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        result = await generateAI(name)
+        break
+      } catch (e) {
+        if (e.message === 'Gemini HTTP 429' && attempt < 3) {
+          console.log(`[ai] 429 rate limit, waiting 20s (attempt ${attempt}/3): ${name}`)
+          await new Promise(r => setTimeout(r, 20_000))
+        } else {
+          throw e
+        }
+      }
+    }
     if (!result) { console.log(`[ai] skipped (no result): ${name}`); return }
 
     await db.query(
