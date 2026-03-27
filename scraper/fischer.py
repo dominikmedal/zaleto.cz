@@ -598,8 +598,8 @@ def scrape_hotel(session: requests.Session, db: ZaletoDB,
     slug_counter[base_slug] = n + 1
 
     hotel_id = db.upsert_hotel(slug, hotel_dict)
-    # Smaž staré termíny tohoto hotelu — při re-scrape chceme jen aktuálně dostupné
-    db.conn.execute("DELETE FROM tours WHERE hotel_id = ?", (hotel_id,))
+    # Smaž jen vlastní (Fischer) termíny — nemažeme termíny jiných CK pod stejným hotel_id
+    db.conn.execute("DELETE FROM tours WHERE hotel_id = %s AND agency = %s", (hotel_id, AGENCY))
     for t in all_tours:
         db.upsert_tour(hotel_id, t)
     db.commit()
