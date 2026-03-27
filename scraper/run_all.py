@@ -36,6 +36,7 @@ import sys
 import threading
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -317,7 +318,15 @@ def purge_stale_tours(conn, agency: str, run_started: datetime) -> int:
     return cur.rowcount
 
 
-def run_scraper(scraper: dict, conn) -> dict:
+# Scrapery spouštěné paralelně v nočních hodinách (22:00–06:00)
+PARALLEL_NIGHT_AGENCIES = {"Fischer", "Blue Style", "Čedok"}
+
+def _is_night() -> bool:
+    h = datetime.now().hour
+    return h >= 22 or h < 6
+
+
+def run_scraper(scraper: dict, conn=None) -> dict:
     """
     Spustí scraper jako subprocess, změří čas, zachytí výstup a chyby.
     Po úspěšném běhu smaže zastaralé termíny (stale price cleanup).
@@ -328,6 +337,10 @@ def run_scraper(scraper: dict, conn) -> dict:
     cmd    = [sys.executable, "-u", script] + scraper["args"]
 
     env = {**os.environ, "DATABASE_URL": DATABASE_URL}
+
+    _own_conn = conn is None
+    if _own_conn:
+        conn = open_db()
 
     before      = get_counts(conn, agency)
     run_started = datetime.now()
@@ -416,6 +429,9 @@ def run_scraper(scraper: dict, conn) -> dict:
     finally:
         _stop_refresh.set()
         _refresh_thread.join(timeout=5)
+        if _own_conn:
+            try: conn.close()
+            except Exception: pass
 
     result["duration_sec"] = time.time() - started
     after = get_counts(conn, agency)
@@ -703,26 +719,57 @@ def run_cycle(cycle: int, skip_email: bool = False):
         logger.info(f"Checkpoint: přeskakuji již dokončené CK: {', '.join(sorted(already_done))}")
 
     results: list[dict] = []
+
+    def _make_skipped(agency: str) -> dict:
+        before = get_counts(conn, agency)
+        return {
+            "agency": agency,
+            "hotels_before": before["hotels"], "tours_before": before["tours"],
+            "hotels_after":  before["hotels"], "tours_after":  before["tours"],
+            "stale_removed": 0, "duration_sec": 0.0,
+            "error": "", "log_tail": "", "skipped": True,
+        }
+
+    # Rozdělení scraperů na paralelní skupinu (v noci) a sekvenční
+    night = _is_night()
+    parallel_group = []
+    sequential_group = []
     for scraper in SCRAPERS:
+        agency = scraper["agency"]
+        agency_counts = get_counts(conn, agency)
+        if agency in already_done and agency_counts["hotels"] > 0:
+            logger.info(f"✓ {agency} — přeskočeno (checkpoint z dnešního cyklu)")
+            results.append(_make_skipped(agency))
+            continue
+        if night and agency in PARALLEL_NIGHT_AGENCIES:
+            parallel_group.append(scraper)
+        else:
+            sequential_group.append(scraper)
+
+    # Paralelní skupina (Fischer + Blue Style + Čedok) — pouze v nočních hodinách
+    if parallel_group and not _shutdown:
+        names = ", ".join(s["agency"] for s in parallel_group)
+        logger.info(f"Noční paralelní spuštění: {names}")
+        with ThreadPoolExecutor(max_workers=len(parallel_group)) as ex:
+            futures = {ex.submit(run_scraper, s): s for s in parallel_group}
+            for future in as_completed(futures):
+                try:
+                    results.append(future.result())
+                except Exception as e:
+                    agency = futures[future]["agency"]
+                    logger.error(f"Paralelní scraper {agency} selhal: {e}")
+                    results.append({**_make_skipped(agency), "error": str(e)})
+        try:
+            refresh_hotel_stats(conn)
+        except Exception:
+            logger.exception("Chyba při aktualizaci hotel_stats po paralelní skupině")
+
+    # Sekvenční skupina
+    for scraper in sequential_group:
         if _shutdown:
             break
-        agency_counts = get_counts(conn, scraper["agency"])
-        # Pokud má CK 0 hotelů, vždy znovu scrapeuj (bez ohledu na checkpoint)
-        if scraper["agency"] in already_done and agency_counts["hotels"] > 0:
-            logger.info(f"✓ {scraper['agency']} — přeskočeno (checkpoint z dnešního cyklu)")
-            # Přidej do výsledků jako "skipped" pro report
-            before = get_counts(conn, scraper["agency"])
-            results.append({
-                "agency": scraper["agency"],
-                "hotels_before": before["hotels"], "tours_before": before["tours"],
-                "hotels_after":  before["hotels"], "tours_after":  before["tours"],
-                "stale_removed": 0, "duration_sec": 0.0,
-                "error": "", "log_tail": "", "skipped": True,
-            })
-            continue
         result = run_scraper(scraper, conn)
         results.append(result)
-        # Obnov hotel_stats po každém scraperu — frontend zobrazuje hotely z této tabulky
         try:
             refresh_hotel_stats(conn)
         except Exception:
