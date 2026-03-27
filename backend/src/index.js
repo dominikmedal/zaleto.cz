@@ -62,8 +62,10 @@ app.post('/api/cache/invalidate', async (req, res) => {
   metaCache.invalidate()
   // Resetujeme statsPopulated — scraper mohl aktualizovat hotel_stats
   try { await require('./routes/hotels').resetStats() } catch {}
-  // Vygeneruj AI popisy pro destinace které je ještě nemají
-  require('./routes/destinationAI').generateMissingAI().catch(() => {})
+  // Vygeneruj AI popisy jen při finální invalidaci (konec celého scraping cyklu)
+  if (req.query.final === '1') {
+    require('./routes/destinationAI').generateMissingAI().catch(() => {})
+  }
   res.json({ ok: true })
 })
 

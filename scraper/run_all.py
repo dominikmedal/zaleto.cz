@@ -436,11 +436,12 @@ def run_scraper(scraper: dict, conn) -> dict:
 # Email report
 # ---------------------------------------------------------------------------
 
-def _invalidate_api_cache():
+def _invalidate_api_cache(final: bool = False):
     """Zavolá backend endpoint pro invalidaci in-memory cache po dokončení scrapingu."""
     backend = os.environ.get("BACKEND_URL", "http://localhost:3001")
+    url = f"{backend}/api/cache/invalidate" + ("?final=1" if final else "")
     try:
-        resp = requests.post(f"{backend}/api/cache/invalidate", timeout=5)
+        resp = requests.post(url, timeout=5)
         if resp.ok:
             logger.info("Cache: invalidována")
         else:
@@ -752,8 +753,8 @@ def run_cycle(cycle: int, skip_email: bool = False):
 
     conn.close()
 
-    # Invalidace API cache — nová data jsou v DB
-    _invalidate_api_cache()
+    # Invalidace API cache — nová data jsou v DB, final=True spustí AI generování
+    _invalidate_api_cache(final=True)
 
     # Sestav a odešli report
     subject, html, text = build_report(cycle, started, results, expired, matched)
