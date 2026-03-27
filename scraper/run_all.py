@@ -36,7 +36,6 @@ import sys
 import threading
 import time
 import traceback
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -317,14 +316,6 @@ def purge_stale_tours(conn, agency: str, run_started: datetime) -> int:
     conn.commit()
     return cur.rowcount
 
-
-# Scrapery spouštěné paralelně v nočních hodinách (22:00–06:00)
-# Blue Style má agresivní WAF — vždy sekvenčně
-PARALLEL_NIGHT_AGENCIES = {"Fischer", "Čedok"}
-
-def _is_night() -> bool:
-    h = datetime.now().hour
-    return h >= 22 or h < 6
 
 
 def run_scraper(scraper: dict, conn=None) -> dict:
@@ -733,10 +724,6 @@ def run_cycle(cycle: int, skip_email: bool = False):
             "error": "", "log_tail": "", "skipped": True,
         }
 
-    # Rozdělení scraperů na paralelní skupinu (v noci) a sekvenční
-    night = _is_night()
-    parallel_group = []
-    sequential_group = []
     for scraper in SCRAPERS:
         agency = scraper["agency"]
         agency_counts = get_counts(conn, agency)
@@ -744,37 +731,6 @@ def run_cycle(cycle: int, skip_email: bool = False):
             logger.info(f"✓ {agency} — přeskočeno (checkpoint z dnešního cyklu)")
             results.append(_make_skipped(agency))
             continue
-        if night and agency in PARALLEL_NIGHT_AGENCIES:
-            parallel_group.append(scraper)
-        else:
-            sequential_group.append(scraper)
-
-    # Paralelní skupina (Fischer + Čedok) — pouze v nočních hodinách
-    if parallel_group and not _shutdown:
-        names = ", ".join(s["agency"] for s in parallel_group)
-        logger.info(f"Noční paralelní spuštění: {names}")
-        with ThreadPoolExecutor(max_workers=len(parallel_group)) as ex:
-            futures = {ex.submit(run_scraper, s): s for s in parallel_group}
-            for future in as_completed(futures):
-                try:
-                    results.append(future.result())
-                except Exception as e:
-                    agency = futures[future]["agency"]
-                    logger.error(f"Paralelní scraper {agency} selhal: {e}")
-                    results.append({
-                        "agency": agency,
-                        "hotels_before": 0, "tours_before": 0,
-                        "hotels_after": 0, "tours_after": 0,
-                        "stale_removed": 0, "duration_sec": 0.0,
-                        "error": str(e)[:200], "log_tail": "", "skipped": False,
-                    })
-        try:
-            refresh_hotel_stats(conn)
-        except Exception:
-            logger.exception("Chyba při aktualizaci hotel_stats po paralelní skupině")
-
-    # Sekvenční skupina
-    for scraper in sequential_group:
         if _shutdown:
             break
         result = run_scraper(scraper, conn)
