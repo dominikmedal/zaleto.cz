@@ -161,8 +161,8 @@ DEFAULT_AIRPORT = 4312  # Praha Václav Havel
 
 AIRPORT_NAMES: dict[int, str] = {
     4312: "Praha",
-    4313: "Brno",
-    4314: "Ostrava",
+    4313: "Ostrava",
+    4305: "Brno",
 }
 
 
