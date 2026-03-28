@@ -72,7 +72,7 @@ export default function DestinationHeroAI({ data }: { data: DestinationAIData })
           <div key={key} className={key === openKey ? 'block' : 'hidden'}>
             <div className="mt-2 bg-white border border-gray-100 rounded-2xl shadow-sm p-4 sm:p-5">
               {text && (
-                <p className="text-sm text-gray-600 leading-relaxed max-w-3xl">
+                <p className="text-sm text-gray-600 leading-relaxed">
                   {text.split(/\n\n+/)[0]}
                 </p>
               )}

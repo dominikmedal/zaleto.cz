@@ -2,35 +2,35 @@
 import { useEffect, useState } from 'react'
 import {
   PiSun, PiCloudSun, PiCloud, PiCloudRain, PiCloudSnow,
-  PiCloudLightning, PiWind, PiDrop, PiThermometerSimple,
+  PiCloudLightning, PiWind, PiDrop,
 } from 'react-icons/pi'
 
 interface WeatherDay { date: string; maxTemp: number; minTemp: number; code: number; precipProb: number }
 interface WeatherData { current: { temp: number; code: number; humidity: number; windSpeed: number }; days: WeatherDay[] }
-type WmoEntry = { label: string; Icon: React.ElementType; color: string; bg: string }
+type WmoEntry = { label: string; Icon: React.ElementType; color: string }
 
 const WMO: Record<number, WmoEntry> = {
-  0:  { label: 'Jasno',            Icon: PiSun,            color: 'text-amber-400',  bg: 'bg-amber-50'  },
-  1:  { label: 'Převážně jasno',   Icon: PiCloudSun,       color: 'text-amber-400',  bg: 'bg-amber-50'  },
-  2:  { label: 'Polojasno',        Icon: PiCloudSun,       color: 'text-amber-300',  bg: 'bg-amber-50'  },
-  3:  { label: 'Zataženo',         Icon: PiCloud,          color: 'text-gray-400',   bg: 'bg-gray-50'   },
-  45: { label: 'Mlha',             Icon: PiCloud,          color: 'text-gray-300',   bg: 'bg-gray-50'   },
-  48: { label: 'Mlha',             Icon: PiCloud,          color: 'text-gray-300',   bg: 'bg-gray-50'   },
-  51: { label: 'Mrholení',         Icon: PiCloudRain,      color: 'text-blue-400',   bg: 'bg-blue-50'   },
-  53: { label: 'Mrholení',         Icon: PiCloudRain,      color: 'text-blue-400',   bg: 'bg-blue-50'   },
-  55: { label: 'Silné mrholení',   Icon: PiCloudRain,      color: 'text-blue-500',   bg: 'bg-blue-50'   },
-  61: { label: 'Déšť',             Icon: PiCloudRain,      color: 'text-blue-500',   bg: 'bg-blue-50'   },
-  63: { label: 'Silný déšť',       Icon: PiCloudRain,      color: 'text-blue-600',   bg: 'bg-blue-50'   },
-  65: { label: 'Průtrž mračen',    Icon: PiCloudRain,      color: 'text-blue-700',   bg: 'bg-blue-50'   },
-  71: { label: 'Sněžení',          Icon: PiCloudSnow,      color: 'text-sky-300',    bg: 'bg-sky-50'    },
-  73: { label: 'Sněžení',          Icon: PiCloudSnow,      color: 'text-sky-400',    bg: 'bg-sky-50'    },
-  75: { label: 'Silné sněžení',    Icon: PiCloudSnow,      color: 'text-sky-500',    bg: 'bg-sky-50'    },
-  80: { label: 'Přeháňky',         Icon: PiCloudRain,      color: 'text-blue-400',   bg: 'bg-blue-50'   },
-  81: { label: 'Přeháňky',         Icon: PiCloudRain,      color: 'text-blue-500',   bg: 'bg-blue-50'   },
-  82: { label: 'Přívalové srážky', Icon: PiCloudRain,      color: 'text-blue-600',   bg: 'bg-blue-50'   },
-  95: { label: 'Bouřka',           Icon: PiCloudLightning, color: 'text-violet-500', bg: 'bg-violet-50' },
-  96: { label: 'Kroupy',           Icon: PiCloudLightning, color: 'text-violet-600', bg: 'bg-violet-50' },
-  99: { label: 'Kroupy',           Icon: PiCloudLightning, color: 'text-violet-700', bg: 'bg-violet-50' },
+  0:  { label: 'Jasno',            Icon: PiSun,            color: 'text-amber-400'  },
+  1:  { label: 'Převážně jasno',   Icon: PiCloudSun,       color: 'text-amber-400'  },
+  2:  { label: 'Polojasno',        Icon: PiCloudSun,       color: 'text-amber-300'  },
+  3:  { label: 'Zataženo',         Icon: PiCloud,          color: 'text-gray-400'   },
+  45: { label: 'Mlha',             Icon: PiCloud,          color: 'text-gray-300'   },
+  48: { label: 'Mlha',             Icon: PiCloud,          color: 'text-gray-300'   },
+  51: { label: 'Mrholení',         Icon: PiCloudRain,      color: 'text-blue-400'   },
+  53: { label: 'Mrholení',         Icon: PiCloudRain,      color: 'text-blue-400'   },
+  55: { label: 'Silné mrholení',   Icon: PiCloudRain,      color: 'text-blue-500'   },
+  61: { label: 'Déšť',             Icon: PiCloudRain,      color: 'text-blue-500'   },
+  63: { label: 'Silný déšť',       Icon: PiCloudRain,      color: 'text-blue-600'   },
+  65: { label: 'Průtrž mračen',    Icon: PiCloudRain,      color: 'text-blue-700'   },
+  71: { label: 'Sněžení',          Icon: PiCloudSnow,      color: 'text-sky-300'    },
+  73: { label: 'Sněžení',          Icon: PiCloudSnow,      color: 'text-sky-400'    },
+  75: { label: 'Silné sněžení',    Icon: PiCloudSnow,      color: 'text-sky-500'    },
+  80: { label: 'Přeháňky',         Icon: PiCloudRain,      color: 'text-blue-400'   },
+  81: { label: 'Přeháňky',         Icon: PiCloudRain,      color: 'text-blue-500'   },
+  82: { label: 'Přívalové srážky', Icon: PiCloudRain,      color: 'text-blue-600'   },
+  95: { label: 'Bouřka',           Icon: PiCloudLightning, color: 'text-violet-500' },
+  96: { label: 'Kroupy',           Icon: PiCloudLightning, color: 'text-violet-600' },
+  99: { label: 'Kroupy',           Icon: PiCloudLightning, color: 'text-violet-700' },
 }
 
 function wmo(code: number): WmoEntry {
@@ -50,6 +50,7 @@ function tempColor(t: number) {
 export default function WeatherWidget({ lat, lon, location, noCard }: { lat: number; lon: number; location: string; noCard?: boolean }) {
   const [data, setData] = useState<WeatherData | null>(null)
   const [error, setError] = useState(false)
+  const [selectedDay, setSelectedDay] = useState(0)
 
   useEffect(() => {
     fetch(
@@ -82,67 +83,95 @@ export default function WeatherWidget({ lat, lon, location, noCard }: { lat: num
 
   if (!data) {
     const skeleton = (
-      <div className="space-y-3 animate-pulse">
-        <div className="h-14 bg-gray-100 rounded-xl" />
-        <div className="grid grid-cols-6 gap-px">
-          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded" />)}
+      <div className="animate-pulse">
+        <div className="h-16 bg-gray-100 rounded-xl m-4 mb-3" />
+        <div className="grid grid-cols-6 gap-px px-4 pb-4">
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-20 bg-gray-100 rounded-xl" />)}
         </div>
       </div>
     )
-    return noCard ? skeleton : <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">{skeleton}</div>
+    return noCard ? skeleton : <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">{skeleton}</div>
   }
 
-  const cur = wmo(data.current.code)
   const today = new Date()
+
+  // Displayed data — either live current (day 0) or selected day's forecast
+  const isToday = selectedDay === 0
+  const activeDay = data.days[selectedDay]
+  const displayCode = isToday ? data.current.code : activeDay.code
+  const displayTemp = isToday ? data.current.temp : activeDay.maxTemp
+  const displayLabel = isToday
+    ? wmo(data.current.code).label
+    : `${activeDay.maxTemp}° / ${activeDay.minTemp}°`
+  const cur = wmo(displayCode)
 
   const inner = (
     <>
-      <div className={'rounded-xl ' + cur.bg + ' px-4 py-3 flex items-center gap-4 mb-4'}>
-        <div className="w-12 h-12 rounded-xl bg-white/70 flex items-center justify-center flex-shrink-0 shadow-sm">
-          <cur.Icon className={'w-7 h-7 ' + cur.color} />
-        </div>
+      {/* Header — updates on day click */}
+      <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+        <cur.Icon className={'w-9 h-9 flex-shrink-0 ' + cur.color} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-0.5 leading-none mb-1">
-            <span className="text-3xl font-extrabold text-gray-900">{data.current.temp}</span>
-            <span className="text-base font-medium text-gray-400">°C</span>
+          <div className="flex items-baseline gap-0.5 leading-none">
+            <span className="text-4xl font-bold leading-none tabular-nums" style={{ color: '#008afe' }}>
+              {displayTemp}
+            </span>
+            <span className="text-xl font-medium text-gray-400">°C</span>
           </div>
-          <p className="text-xs text-gray-500 truncate">{cur.label}</p>
+          <p className="text-xs text-gray-400 mt-0.5 truncate">{displayLabel}</p>
         </div>
-        <div className="flex-shrink-0 space-y-1.5">
-          <div className="flex items-center gap-1 justify-end">
-            <PiWind className="w-3 h-3 text-gray-400" />
-            <span className="text-[11px] font-semibold text-gray-700">{data.current.windSpeed} <span className="font-normal text-gray-400">km/h</span></span>
+        {isToday && (
+          <div className="flex flex-col gap-1.5 items-end flex-shrink-0">
+            <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+              <PiWind className="w-3.5 h-3.5 text-gray-400" />
+              {data.current.windSpeed} km/h
+            </span>
+            <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+              <PiDrop className="w-3.5 h-3.5 text-blue-400" />
+              {data.current.humidity}%
+            </span>
           </div>
-          <div className="flex items-center gap-1 justify-end">
-            <PiDrop className="w-3 h-3 text-blue-400" />
-            <span className="text-[11px] font-semibold text-gray-700">{data.current.humidity}<span className="font-normal text-gray-400">%</span></span>
+        )}
+        {!isToday && (
+          <div className="flex flex-col gap-1.5 items-end flex-shrink-0">
+            <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+              <PiDrop className="w-3.5 h-3.5 text-blue-400" />
+              {activeDay.precipProb}%
+            </span>
           </div>
-        </div>
+        )}
       </div>
 
+      {/* 6-day forecast — clickable */}
       <div className="grid grid-cols-6 border-t border-gray-100">
         {data.days.map((day, i) => {
           const dayName = i === 0 ? 'Dnes' : DAY[(today.getDay() + i) % 7]
           const w = wmo(day.code)
+          const isSelected = selectedDay === i
           return (
-            <div
+            <button
               key={day.date}
-              className={'flex flex-col items-center gap-1 py-3 px-0.5' + (i > 0 ? ' border-l border-gray-100' : '') + (i === 0 ? ' bg-gray-50/50' : '')}
+              type="button"
+              onClick={() => setSelectedDay(i)}
+              className={
+                'flex flex-col items-center gap-1.5 py-3 px-1 transition-colors' +
+                (i > 0 ? ' border-l border-gray-100' : '') +
+                (isSelected ? ' bg-[#008afe]/5' : ' hover:bg-gray-50')
+              }
             >
-              <span className={'text-[10px] font-bold leading-none ' + (i === 0 ? 'text-[#008afe]' : 'text-gray-400')}>{dayName}</span>
-              <div className={'w-7 h-7 rounded-lg flex items-center justify-center' + (i === 0 ? ' ' + w.bg : '')}>
-                <w.Icon className={'w-4 h-4 ' + w.color} />
-              </div>
-              <span className={'text-[11px] font-bold leading-none ' + tempColor(day.maxTemp)}>{day.maxTemp}°</span>
-              <span className="text-[10px] text-gray-300 leading-none">{day.minTemp}°</span>
-              {day.precipProb >= 20 && (
-                <div className="w-5">
-                  <div className="h-0.5 rounded-full bg-blue-100 overflow-hidden">
-                    <div className="h-full bg-blue-400 rounded-full" style={{ width: day.precipProb + '%' }} />
-                  </div>
-                </div>
-              )}
-            </div>
+              <span className={
+                'text-[11px] font-semibold leading-none transition-colors' +
+                (isSelected ? ' text-[#008afe]' : ' text-gray-400')
+              }>
+                {dayName}
+              </span>
+              <w.Icon className={'w-5 h-5 ' + w.color} />
+              <span className={'text-sm font-bold leading-none tabular-nums ' + tempColor(day.maxTemp)}>
+                {day.maxTemp}°
+              </span>
+              <span className="text-xs font-medium leading-none tabular-nums text-gray-400">
+                {day.minTemp}°
+              </span>
+            </button>
           )
         })}
       </div>

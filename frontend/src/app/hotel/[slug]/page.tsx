@@ -529,12 +529,12 @@ export default async function HotelDetailPage({ params }: Props) {
                       Přímé rezervace
                     </span>
                     <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                    <span className="flex items-center gap-1 text-[10px] text-[#0c4d50]">
+                    <span className="flex items-center gap-1 text-[12px] text-[#0c4d50]">
                       <PiCheck className="w-3 h-3 text-[#0c4d50] flex-shrink-0" />
                       Bez poplatků
                     </span>
                     <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                    <span className="flex items-center gap-1 text-[10px] text-[#0c4d50]">
+                    <span className="flex items-center gap-1 text-[12px] text-[#0c4d50]">
                       <PiCheck className="w-3 h-3 text-[#0c4d50] flex-shrink-0" />
                       Ověřené CK
                     </span>
@@ -560,17 +560,7 @@ export default async function HotelDetailPage({ params }: Props) {
           <div className="flex items-center gap-3 mb-6 flex-wrap">
             <h2 className="text-xl font-bold text-gray-900">Dostupné termíny</h2>
             <span className="text-sm font-medium text-white bg-primary px-2.5 py-0.5 rounded-full tabular-nums">{tourCount}</span>
-            {(hotel.tours_updated_at || hotel.updated_at) && (() => {
-              const raw = (hotel.tours_updated_at || hotel.updated_at)!
-              // SQLite vrací "YYYY-MM-DD HH:MM:SS" — nahraď mezeru za T pro ISO 8601
-              const d = new Date(raw.replace(' ', 'T'))
-              if (isNaN(d.getTime())) return null
-              return (
-                <span className="text-xs text-gray-400 ml-auto">
-                  Aktualizováno {d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </span>
-              )
-            })()}
+
           </div>
           <TourDatesList slug={params.slug} />
         </div>
