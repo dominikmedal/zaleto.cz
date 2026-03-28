@@ -125,8 +125,6 @@ function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: 
                   <div className="text-[22px] font-bold text-gray-900 leading-none">{arrIata}</div>
                   <div className="text-[11px] text-gray-400 mt-0.5 truncate">{arrCity}</div>
                 </>
-              ) : tour.transport ? (
-                <div className="text-xs text-gray-400">{tour.transport}</div>
               ) : null}
             </div>
 

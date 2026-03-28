@@ -432,6 +432,7 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
         transport = f"letecky {dep_code}→{arr_code} {fn}".strip()
 
     hotel = {
+        "agency":         AGENCY,
         "name":           p["hotel_name"],
         "country":        p["country"],
         "destination":    p["destination"],
@@ -638,7 +639,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
         try:
             saved = scrape_hotel(session, db, url, slug_counter, airports)
             total_saved += saved
-            db.mark_done(url)
+            db.mark_done(AGENCY, url)
         except Exception as e:
             logger.error(f"Chyba u {url}: {e}")
 

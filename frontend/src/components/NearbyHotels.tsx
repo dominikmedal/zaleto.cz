@@ -10,7 +10,7 @@ function formatPriceShort(p: number) {
 export default async function NearbyHotels({ lat, lon, exclude }: { lat: number; lon: number; exclude: string }) {
   let nearby: NearbyHotel[] = []
   try {
-    nearby = await fetchNearbyHotels(lat, lon, exclude, 8)
+    nearby = await fetchNearbyHotels(lat, lon, exclude, 12)
   } catch {
     return null
   }
@@ -24,7 +24,7 @@ export default async function NearbyHotels({ lat, lon, exclude }: { lat: number;
         Hotely v okolí
       </h3>
       <div className="divide-y divide-gray-50">
-        {nearby.slice(0, 5).map(n => (
+        {nearby.map(n => (
           <Link
             key={n.slug}
             href={`/hotel/${n.slug}`}
@@ -42,9 +42,11 @@ export default async function NearbyHotels({ lat, lon, exclude }: { lat: number;
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-[#008afe] transition-colors">{n.name}</p>
-              <p className="text-[11px] text-gray-400">
-                {n.stars ? '★'.repeat(n.stars) : ''}{n.distance_km != null ? ` · ${n.distance_km.toFixed(1)} km` : ''}
-              </p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {n.stars ? <span className="text-[10px] text-amber-400">{'★'.repeat(n.stars)}</span> : null}
+                {n.distance_km != null && <span className="text-[10px] text-gray-400">{n.distance_km.toFixed(1)} km</span>}
+                {n.agency && <span className="text-[10px] text-blue-500 font-medium">{n.agency}</span>}
+              </div>
             </div>
             <span className="text-xs font-bold text-emerald-600 flex-shrink-0 tabular-nums">{formatPriceShort(n.min_price)} Kč</span>
           </Link>

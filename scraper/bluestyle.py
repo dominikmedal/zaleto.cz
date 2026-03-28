@@ -327,6 +327,7 @@ def _process_hotel(h: dict) -> dict:
     amenities = json.dumps(amenities_list, ensure_ascii=False) if amenities_list else None
 
     return {
+        "agency":         AGENCY,
         "name":           h.get("name", ""),
         "country":        country,
         "destination":    destination,

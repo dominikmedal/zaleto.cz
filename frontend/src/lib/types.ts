@@ -32,15 +32,18 @@ export interface Hotel {
 }
 
 export interface NearbyHotel {
-  id: number
+  id?: number
   slug: string
   name: string
   stars: number | null
   thumbnail_url: string | null
   min_price: number
-  resort_town: string | null
-  latitude: number
-  longitude: number
+  agency?: string
+  resort_town?: string | null
+  destination?: string | null
+  country?: string | null
+  latitude?: number
+  longitude?: number
   distance_km?: number
 }
 

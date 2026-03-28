@@ -128,7 +128,7 @@ class _HotelJsonParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         d = dict(attrs)
-        if tag == "div" and d.get("data-component-name") == "abnbHotelDetail":
+        if tag == "div" and d.get("data-component-name") in ("abnbHotelDetail", "hotelDetail"):
             self._in_target = True
             self._depth     = 1
         elif self._in_target:
@@ -183,6 +183,105 @@ def _fetch_embedded(session: requests.Session, url: str, airport: int = DEFAULT_
 # Extrakce parametrů z embedded JSON
 # ---------------------------------------------------------------------------
 
+def _parse_embedded_capacity(info: dict, embedded: dict) -> dict | None:
+    """Fallback parser pro nový formát kapacitních hotelů (bez dataNew/offerFilter).
+    Extrahuje data přímo z hotelDetailInfo — používá minPrice pro jeden termín."""
+    try:
+        cap_id     = info.get("identifier")
+        data_src   = info.get("dataSource", 8)
+        name       = info.get("name", "") or info.get("nameWithoutHotel", "")
+        star       = info.get("star")
+
+        dest_list  = info.get("destination", [])
+        breadcrumbs = [{"name": d["name"]} for d in dest_list if isinstance(d, dict) and d.get("name")]
+        destination = " / ".join(b["name"] for b in breadcrumbs) if breadcrumbs else ""
+        resort_town = breadcrumbs[-1]["name"] if breadcrumbs else ""
+        country     = breadcrumbs[0]["name"] if breadcrumbs else ""
+
+        desc_obj    = info.get("description", {}) or {}
+        description = desc_obj.get("mainDescription", "") if isinstance(desc_obj, dict) else ""
+
+        images_raw = info.get("images", []) or []
+        images = [img["large"] for img in images_raw if isinstance(img, dict) and img.get("large")]
+
+        equip = info.get("hotelEquipment", {})
+        if isinstance(equip, dict):
+            items = equip.get("items") or equip.get("hotelEquipments") or []
+            amenities_list = [e.get("name", "") for e in items if isinstance(e, dict) and e.get("name")]
+        elif isinstance(equip, list):
+            amenities_list = [e if isinstance(e, str) else e.get("name", "") for e in equip if e]
+        else:
+            amenities_list = []
+
+        latitude, longitude = None, None
+        geo = info.get("hotelMapMarker") or info.get("hotelPin") or {}
+        if isinstance(geo, dict):
+            latitude  = geo.get("latitude") or geo.get("lat")
+            longitude = geo.get("longitude") or geo.get("lng")
+        elif isinstance(geo, str) and geo:
+            import base64
+            gp = dict(urllib.parse.parse_qsl(geo))
+            bhmm = gp.get("bhmm", "")
+            if bhmm:
+                try:
+                    gps_j = json.loads(base64.b64decode(bhmm + "==").decode("utf-8"))
+                    gps   = gps_j.get("GPS") or {} if isinstance(gps_j, dict) else {}
+                    latitude  = gps.get("Latitude")
+                    longitude = gps.get("Longitude")
+                except Exception:
+                    pass
+
+        terms = info.get("termsFilter") or info.get("tourTip") or ""
+        tip   = dict(urllib.parse.parse_qsl(terms))
+
+        df = tip.get("DF", "")
+        main_from, main_to = ("", "")
+        if "|" in df:
+            main_from, main_to = df.split("|", 1)
+            main_from = main_from[:10]
+            main_to   = main_to[:10]
+
+        min_price = info.get("minPrice") or {}
+
+        return {
+            "hotel_data_key":    {"hotelId": cap_id, "giata": 0, "dataSource": data_src,
+                                  "bedBank": "NevDama", "bedBankID": str(cap_id)},
+            "hotel_id":          cap_id,
+            "hotel_name":        name,
+            "stars":             star,
+            "review_score":      None,
+            "description":       description,
+            "images":            images,
+            "amenities":         ", ".join(amenities_list),
+            "tags":              "",
+            "distances":         "",
+            "latitude":          latitude,
+            "longitude":         longitude,
+            "destination":       destination,
+            "resort_town":       resort_town,
+            "country":           country,
+            "destination_ids":   [],
+            "transport_origin":  [],
+            "meal_code":         "",
+            "room_code":         "",
+            "nights":            int(min_price.get("lengthOfStay") or 7),
+            "all_nights":        [int(min_price.get("lengthOfStay") or 7)],
+            "adults":            2,
+            "departure_date":    (min_price.get("departureDate") or "")[:10],
+            "package_id":        "",
+            "main_filter_from":  main_from,
+            "main_filter_to":    main_to,
+            "tour_filter_query": terms,
+            "_offer_filter":     {},
+            "_bus_hotel":        True,
+            "_min_price":        min_price,
+            "_hotel_url_base":   info.get("url", ""),
+        }
+    except Exception as e:
+        logger.error(f"parse_embedded_capacity: {e}")
+        return None
+
+
 def _parse_embedded(embedded: dict) -> dict | None:
     try:
         # Nev-Dama (stejně jako Exim) obaluje data do hotelDetailInfo
@@ -192,7 +291,11 @@ def _parse_embedded(embedded: dict) -> dict | None:
         identifiers = hotel.get("identifiers", {})
 
         if not identifiers.get("hotelId"):
-            return None
+            # Fallback: nový formát kapacitních hotelů (bez dataNew/identifiers)
+            cap_id = info.get("identifier")
+            if not cap_id:
+                return None
+            return _parse_embedded_capacity(info, embedded)
 
         hotel_data_key = {
             "hotelId":    identifiers["hotelId"],
@@ -227,6 +330,19 @@ def _parse_embedded(embedded: dict) -> dict | None:
                     destination_ids = [int(d) for d in tip.get("D", "").split("|") if d.isdigit()]
                 if not transport_origin and tip.get("TO", "").isdigit():
                     transport_origin = [int(tip["TO"])]
+
+        # Fallback přes hotelMapMarker (string s query params: D=, TO=, bhmm=GPS)
+        if not destination_ids:
+            hm = info.get("hotelMapMarker")
+            if isinstance(hm, str) and hm:
+                hm_p = dict(urllib.parse.parse_qsl(hm))
+                destination_ids = [int(d) for d in hm_p.get("D", "").split("|") if d.isdigit()]
+                if not transport_origin and hm_p.get("TO", "").isdigit():
+                    transport_origin = [int(hm_p["TO"])]
+
+        # Pokud chybí destination_ids — skutečný bus/kapacitní hotel bez letů
+        if not destination_ids and info.get("minPrice"):
+            return _parse_embedded_capacity(info, embedded)
 
         mfd = (offer_filter.get("offerDate") or {}).get("mainFilterDates", [])
         main_from = mfd[0][:10] if len(mfd) > 0 else ""
@@ -444,6 +560,7 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
         "price_includes": price_includes,
         "latitude":       p.get("latitude"),
         "longitude":      p.get("longitude"),
+        "agency":         AGENCY,
         "api_config":     json.dumps({
             **p["_offer_filter"],
             "_hotelPath": "/" + hotel_url.split("nev-dama.cz/", 1)[-1].split("?")[0],
@@ -515,6 +632,91 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
 
 
 # ---------------------------------------------------------------------------
+# Zpracování bus/kapacitního hotelu — pouze minPrice termín
+# ---------------------------------------------------------------------------
+
+def _scrape_bus_hotel(hotel_url: str, p: dict, db: ZaletoDB, slug_counter: dict) -> int:
+    min_price = p.get("_min_price") or {}
+    dep_date  = (min_price.get("departureDate") or "")[:10]
+    ret_date  = (min_price.get("returnDate")    or "")[:10]
+    nights    = int(min_price.get("lengthOfStay") or 7)
+    price     = float(min_price.get("amount") or 0)
+
+    if not dep_date or price <= 0:
+        logger.debug(f"Bus hotel bez minPrice: {hotel_url}")
+        return 0
+
+    try:
+        dep_dt = datetime.strptime(dep_date, "%Y-%m-%d")
+    except ValueError:
+        return 0
+
+    tip    = dict(urllib.parse.parse_qsl(p.get("tour_filter_query", "")))
+    tip["DD"]  = dep_date
+    tip["RD"]  = ret_date
+    tip["NN"]  = str(nights)
+    tip["AC1"] = "2"
+    tip["KC1"] = "0"
+    qs = "&".join(f"{k}={urllib.parse.quote(str(v), safe='|,')}" for k, v in tip.items() if v)
+    base_url  = (p.get("_hotel_url_base") or hotel_url).split("?")[0]
+    tour_url  = f"{base_url}?{qs}" if qs else base_url
+
+    is_lm, is_fm = _detect_tour_type(dep_dt)
+
+    hotel_dict = {
+        "name":           p["hotel_name"],
+        "country":        p["country"],
+        "destination":    p["destination"],
+        "resort_town":    p["resort_town"],
+        "stars":          int(p["stars"]) if p.get("stars") else None,
+        "review_score":   None,
+        "description":    p["description"],
+        "thumbnail_url":  p["images"][0] if p["images"] else "",
+        "photos":         json.dumps(p["images"]) if p["images"] else "[]",
+        "amenities":      p["amenities"],
+        "tags":           "",
+        "distances":      "",
+        "food_options":   "",
+        "price_includes": "",
+        "latitude":       p.get("latitude"),
+        "longitude":      p.get("longitude"),
+        "agency":         AGENCY,
+        "api_config":     json.dumps({"_hotelPath": "/" + base_url.split("nev-dama.cz/", 1)[-1]}),
+    }
+
+    tour = {
+        "departure_date":  dep_date,
+        "return_date":     ret_date,
+        "duration":        nights,
+        "price":           price,
+        "transport":       "autobusem",
+        "meal_plan":       "",
+        "adults":          2,
+        "room_code":       "",
+        "url":             tour_url,
+        "url_single":      None,
+        "price_single":    None,
+        "is_last_minute":  is_lm,
+        "is_first_minute": is_fm,
+        "departure_city":  "",
+    }
+
+    base_slug = slugify(hotel_dict["name"])
+    slug = base_slug
+    n = slug_counter.get(base_slug, 0)
+    if n > 0:
+        slug = f"{base_slug}-{n}"
+    slug_counter[base_slug] = n + 1
+
+    hotel_id = db.upsert_hotel(slug, hotel_dict)
+    db.conn.execute("DELETE FROM tours WHERE hotel_id = %s AND agency = %s", (hotel_id, AGENCY))
+    db.upsert_tour(hotel_id, tour)
+    db.commit()
+    logger.debug(f"Bus hotel uložen: {hotel_dict['name']} @ {dep_date} = {price} Kč")
+    return 1
+
+
+# ---------------------------------------------------------------------------
 # Scraping jednoho hotelu
 # ---------------------------------------------------------------------------
 
@@ -526,6 +728,14 @@ def scrape_hotel(session: requests.Session, db: ZaletoDB,
 
     all_tours:  list = []
     hotel_dict       = None
+
+    # --- Zkus první letiště a zjisti typ hotelu ---
+    first_embedded = _fetch_embedded(session, hotel_url, airports[0] if airports else DEFAULT_AIRPORT)
+    first_p = _parse_embedded(first_embedded) if first_embedded else None
+
+    # Kapacitní bus hotel — použij minPrice pro jeden termín
+    if first_p and first_p.get("_bus_hotel"):
+        return _scrape_bus_hotel(hotel_url, first_p, db, slug_counter)
 
     for airport in airports:
         embedded = _fetch_embedded(session, hotel_url, airport)
@@ -562,6 +772,13 @@ def scrape_hotel(session: requests.Session, db: ZaletoDB,
             logger.debug(f"  Letiště {airport}: {len(airport_tours)} termínů")
 
     if hotel_dict is None:
+        # Fallback: letecká cesta nevrátila termíny — zkus capacity/bus cestu přes minPrice
+        if first_embedded:
+            info = first_embedded.get("hotelDetailInfo", first_embedded)
+            if info.get("minPrice"):
+                cap_p = _parse_embedded_capacity(info, first_embedded)
+                if cap_p:
+                    return _scrape_bus_hotel(hotel_url, cap_p, db, slug_counter)
         logger.warning(f"Žádné termíny ani data: {hotel_url}")
         return 0
 
@@ -629,7 +846,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
         try:
             saved = scrape_hotel(session, db, url, slug_counter, airports)
             total_saved += saved
-            db.mark_done(url)
+            db.mark_done(AGENCY, url)
         except Exception as e:
             logger.error(f"Chyba u {url}: {e}")
 

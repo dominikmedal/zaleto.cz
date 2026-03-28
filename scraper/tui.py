@@ -1477,6 +1477,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False):
         amenities_json = json.dumps(amenities_list, ensure_ascii=False) if amenities_list else None
 
         hotel_dict = {
+            "agency":         AGENCY,
             "name":           meta["hotel_name"],
             "country":        meta["country"],
             "destination":    meta["destination"],

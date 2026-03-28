@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
-import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar } from 'react-icons/pi'
+import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar, PiBuildings } from 'react-icons/pi'
 import ScrollToButton from '@/components/ScrollToButton'
 import ViewersBadge from '@/components/ViewersBadge'
 import Header from '@/components/Header'
@@ -482,6 +482,66 @@ export default async function HotelDetailPage({ params }: Props) {
           </div>
           <TourDatesList slug={params.slug} />
         </div>
+
+        {/* ── Nearby hotels — full width, below dates ── */}
+        {(hotel.latitude && hotel.longitude) && (
+          <div className="mt-12">
+            <Suspense fallback={null}>
+              <NearbyHotelsGrid lat={hotel.latitude} lon={hotel.longitude} exclude={params.slug} />
+            </Suspense>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+async function NearbyHotelsGrid({ lat, lon, exclude }: { lat: number; lon: number; exclude: string }) {
+  const { fetchNearbyHotels } = await import('@/lib/api')
+  let nearby = []
+  try {
+    nearby = await fetchNearbyHotels(lat, lon, exclude, 12)
+  } catch {
+    return null
+  }
+  if (nearby.length === 0) return null
+
+  function formatPriceShort(p: number) {
+    return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(p)
+  }
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2.5">
+        <span className="text-[#008afe]"><PiMapPin className="w-5 h-5" /></span>
+        Hotely v okolí
+      </h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        {nearby.map((n: import('@/lib/types').NearbyHotel) => (
+          <Link key={n.slug} href={`/hotel/${n.slug}`} className="group bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+            <div className="w-full aspect-[4/3] bg-gray-100 overflow-hidden">
+              {n.thumbnail_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={n.thumbnail_url} alt={n.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <PiBuildings className="w-6 h-6 text-gray-300" />
+                </div>
+              )}
+            </div>
+            <div className="p-2.5">
+              <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-[#008afe] transition-colors leading-tight mb-1">{n.name}</p>
+              <div className="flex items-center justify-between gap-1 flex-wrap">
+                <div className="flex items-center gap-1">
+                  {n.stars ? <span className="text-[10px] text-amber-400">{'★'.repeat(n.stars)}</span> : null}
+                  {n.distance_km != null && <span className="text-[10px] text-gray-400">{n.distance_km.toFixed(1)} km</span>}
+                </div>
+                {n.agency && <span className="text-[10px] text-blue-500 font-medium truncate">{n.agency}</span>}
+              </div>
+              <p className="text-xs font-bold text-emerald-600 tabular-nums mt-1">od {formatPriceShort(n.min_price)} Kč</p>
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   )

@@ -440,6 +440,7 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
         transport = f"letecky {dep_code}→{arr_code} {fn}".strip()
 
     hotel = {
+        "agency":        AGENCY,
         "name":          p["hotel_name"],
         "country":       p["country"],
         "destination":   p["destination"],

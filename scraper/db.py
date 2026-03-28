@@ -8,9 +8,19 @@ Připojení přes env var DATABASE_URL (Railway internal nebo public URL).
 import logging
 import os
 from datetime import datetime
+from pathlib import Path
 
 import psycopg2
 import psycopg2.extras
+
+# Načti .env ze složky scraperů (pokud existuje)
+_env_file = Path(__file__).parent / ".env"
+if _env_file.exists():
+    for _line in _env_file.read_text(encoding="utf-8").splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _k, _, _v = _line.partition("=")
+            os.environ.setdefault(_k.strip(), _v.strip())
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +30,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 def _connect():
     if not DATABASE_URL:
         raise RuntimeError("DATABASE_URL není nastaven")
-    ssl = {"sslmode": "require"} if "localhost" not in DATABASE_URL else {}
+    ssl = {"sslmode": "require"} if "localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL else {}
     conn = psycopg2.connect(
         DATABASE_URL,
         cursor_factory=psycopg2.extras.RealDictCursor,

@@ -300,49 +300,51 @@ router.get('/geo', async (req, res) => {
   }
 })
 
-// GET /api/hotels/nearby?slug=xxx&limit=6
+// GET /api/hotels/nearby?lat=X&lon=Y&exclude=slug&limit=12
 router.get('/nearby', async (req, res) => {
   try {
-    const { slug, limit = '6' } = req.query
-    if (!slug) return res.status(400).json({ error: 'slug required' })
+    const { lat, lon, exclude, limit = '12' } = req.query
+    if (!exclude) return res.status(400).json({ error: 'exclude required' })
 
-    const cacheKey = `nearby_${slug}_${limit}`
+    const cacheKey = `nearby_${exclude}_${limit}`
     const cached = hotelDetailCache.get(cacheKey)
     if (cached) return res.set('X-Cache', 'HIT').json(cached)
 
-    const hr = await db.query('SELECT latitude, longitude, destination FROM hotels WHERE slug = ?', [slug])
-    const hotel = hr.rows[0]
-    if (!hotel) return res.status(404).json({ error: 'Hotel not found' })
-
-    const limitNum = Math.min(20, Math.max(1, parseInt(limit) || 6))
+    const limitNum = Math.min(30, Math.max(1, parseInt(limit) || 12))
+    const latF = parseFloat(lat)
+    const lonF = parseFloat(lon)
 
     let rows
-    if (hotel.latitude && hotel.longitude) {
+    if (lat && lon && !isNaN(latF) && !isNaN(lonF)) {
       const r = await db.query(`
-        SELECT h.id, h.slug, h.name, h.stars, h.thumbnail_url, h.latitude, h.longitude,
-               h.destination, h.country, h.review_score,
+        SELECT h.slug, h.name, h.stars, h.thumbnail_url, h.latitude, h.longitude,
+               h.destination, h.country, h.agency, h.review_score,
                s.min_price, s.next_departure,
-               (ABS(h.latitude - ?) + ABS(h.longitude - ?)) AS dist
+               (ABS(h.latitude - $1) + ABS(h.longitude - $2)) AS dist
         FROM hotels h
         INNER JOIN hotel_stats s ON s.hotel_id = h.id
-        WHERE h.slug != ? AND s.min_price IS NOT NULL AND s.next_departure >= CURRENT_DATE::text
+        WHERE h.slug != $3 AND s.min_price IS NOT NULL AND s.next_departure >= CURRENT_DATE::text
           AND h.latitude IS NOT NULL AND h.longitude IS NOT NULL
         ORDER BY dist ASC
-        LIMIT ?
-      `, [hotel.latitude, hotel.longitude, slug, limitNum])
+        LIMIT $4
+      `, [latF, lonF, exclude, limitNum])
       rows = r.rows
     } else {
+      // fallback: hotely ve stejné destinaci
+      const hr = await db.query('SELECT destination FROM hotels WHERE slug = $1', [exclude])
+      const destination = hr.rows[0]?.destination
+      if (!destination) return res.json([])
       const r = await db.query(`
-        SELECT h.id, h.slug, h.name, h.stars, h.thumbnail_url, h.latitude, h.longitude,
-               h.destination, h.country, h.review_score,
+        SELECT h.slug, h.name, h.stars, h.thumbnail_url, h.latitude, h.longitude,
+               h.destination, h.country, h.agency, h.review_score,
                s.min_price, s.next_departure
         FROM hotels h
         INNER JOIN hotel_stats s ON s.hotel_id = h.id
-        WHERE h.slug != ? AND s.min_price IS NOT NULL AND s.next_departure >= CURRENT_DATE::text
-          AND h.destination = ?
+        WHERE h.slug != $1 AND s.min_price IS NOT NULL AND s.next_departure >= CURRENT_DATE::text
+          AND h.destination = $2
         ORDER BY s.min_price ASC
-        LIMIT ?
-      `, [slug, hotel.destination, limitNum])
+        LIMIT $3
+      `, [exclude, destination, limitNum])
       rows = r.rows
     }
 

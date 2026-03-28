@@ -4,7 +4,7 @@ const db      = require('../db')
 
 const AFFILIATE = {
   'fischer':    'https://www.anrdoezrs.net/click-101468674-15736055',
-  'exim tours': 'https://www.anrdoezrs.net/click-101468674-15736055',
+  'exim tours': 'https://www.dpbolvw.net/click-101468674-15043859',
   'nev-dama':   'https://www.anrdoezrs.net/click-101468674-15736055',
   'čedok':      'https://www.jdoqocy.com/click-101468674-15686662',
   'blue style': 'https://www.tkqlhce.com/click-101468674-14358779',

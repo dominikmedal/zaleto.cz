@@ -270,6 +270,7 @@ def _parse_rate(rate: dict, hotel_links: dict, dest_slug: str) -> tuple[dict, di
     destination = region_slug.replace("-", " ").title()
 
     hotel_dict = {
+        "agency":        AGENCY,
         "name":          name,
         "country":       country,
         "destination":   destination,
