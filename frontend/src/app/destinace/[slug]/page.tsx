@@ -7,9 +7,10 @@ import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import JsonLd from '@/components/JsonLd'
 import FilteringBar from '@/components/FilteringBar'
-import DestinationAISection from '@/components/DestinationAISection'
+import DestinationHeroAI from '@/components/DestinationHeroAI'
 import { fetchDestinations, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
+import { getCountryFlag } from '@/lib/countryFlags'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -128,15 +129,27 @@ export default async function DestinacePage({ params }: Props) {
   const dest = await resolveDestination(params.slug)
   if (!dest) notFound()
 
-  const [wiki, heroPhoto, destAI] = await Promise.all([
-    fetchWikiSummary(dest.name).catch(() => null),
+  const [destAI, heroPhoto] = await Promise.all([
+    fetchDestinationAI(dest.name).catch(() => null),
     fetchDestinationPhoto(dest.name).catch(() => null),
-    fetchDestinationAI(dest.name).catch(() => ({ description: null, excursions: [] })),
   ])
 
-  const wikiDescription = wiki
-    ? wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 3).join(' ')
-    : ''
+  // Use AI description if available, otherwise fall back to Wikipedia
+  const aiHeroText = destAI?.description
+    ? destAI.description.split(/\n\n+/)[0]
+    : null
+
+  const wiki = aiHeroText ? null : await fetchWikiSummary(dest.name).catch(() => null)
+  const heroDescription = aiHeroText
+    ?? (wiki ? wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 3).join(' ') : '')
+
+  const hasHeroAI = destAI && (
+    destAI.best_time || (destAI.places ?? []).length || (destAI.food ?? []).length ||
+    (destAI.trips ?? []).length || (destAI.excursions ?? []).length
+  )
+
+  const countryFlag = dest.type === 'country' ? getCountryFlag(dest.name) : null
+  const heroTitle = wiki ? wiki.title : dest.name
 
   const breadcrumbSchema = {
     '@context': 'https://schema.org',
@@ -159,7 +172,7 @@ export default async function DestinacePage({ params }: Props) {
 
       {/* ── Full-bleed hero (photo available) ── */}
       {heroPhoto && (
-        <div className="relative overflow-hidden h-[300px] sm:h-[380px]">
+        <div className="relative min-h-[300px] sm:min-h-[380px]">
           <Image
             src={heroPhoto}
             alt={dest.name}
@@ -177,12 +190,12 @@ export default async function DestinacePage({ params }: Props) {
           <div className="absolute inset-x-0 bottom-0 h-32" style={{
             background: 'linear-gradient(to top, rgba(245,250,255,1) 0%, rgba(245,250,255,0.6) 50%, transparent 100%)'
           }} />
-          <div className="absolute inset-0 flex items-center">
+          <div className="relative flex items-center py-8 sm:py-10">
             <div className="max-w-[1680px] mx-auto px-4 sm:px-10 w-full pb-6">
               <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
                 <Link href="/" className="hover:text-[#008afe] transition-colors">Všechny zájezdy</Link>
                 {dest.breadcrumb.map((crumb, i) => (
-                  <span key={crumb.label} className="flex items-center gap-1">
+                  <span key={crumb.href} className="flex items-center gap-1">
                     <span className="text-gray-200">/</span>
                     {i === dest.breadcrumb.length - 1
                       ? <span className="text-gray-700 font-medium">{crumb.label}</span>
@@ -191,12 +204,19 @@ export default async function DestinacePage({ params }: Props) {
                   </span>
                 ))}
               </nav>
-              <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 leading-tight mb-2 drop-shadow-sm">
-                {wiki ? wiki.title : dest.name}
+              <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 leading-tight mb-2 drop-shadow-sm flex items-center gap-3 flex-wrap">
+                {countryFlag && (
+                  <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm" style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
+                    {countryFlag}
+                  </span>
+                )}
+                {heroTitle}
               </h1>
-              <p className="text-gray-600 text-sm sm:text-base max-w-lg leading-relaxed">
-                {wiki ? wikiDescription : `Zájezdy do destinace ${dest.name} od předních cestovních kanceláří.`}
-              </p>
+              {heroDescription && (
+                <p className="text-gray-700 text-sm sm:text-base max-w-2xl leading-relaxed">
+                  {heroDescription}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -219,22 +239,25 @@ export default async function DestinacePage({ params }: Props) {
                 </span>
               ))}
             </nav>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2">
-              {wiki ? wiki.title : dest.name}
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2 flex items-center gap-3 flex-wrap">
+              {countryFlag && (
+                <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm" style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
+                  {countryFlag}
+                </span>
+              )}
+              {heroTitle}
             </h1>
-            <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-2xl">
-              {wiki ? wikiDescription : `Zájezdy do destinace ${dest.name} od předních cestovních kanceláří.`}
-            </p>
+            {heroDescription && (
+              <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-3xl">
+                {heroDescription}
+              </p>
+            )}
           </div>
         )}
 
-        {/* ── AI destination description + excursions ── */}
-        {destAI && (destAI.description || destAI.excursions.length > 0) && (
-          <DestinationAISection
-            destination={dest.name}
-            description={destAI.description}
-            excursions={destAI.excursions}
-          />
+        {/* ── AI info cards (side by side, below hero) ── */}
+        {hasHeroAI && destAI && (
+          <DestinationHeroAI data={destAI} />
         )}
 
         {/* ── Filter animation bar ── */}

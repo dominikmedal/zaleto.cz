@@ -25,6 +25,7 @@ import argparse
 import json
 import logging
 import os
+import random
 import re
 import time
 import unicodedata
@@ -33,6 +34,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
+from requests.exceptions import ConnectionError as ReqConnectionError, ChunkedEncodingError
 
 from db import ZaletoDB
 
@@ -216,16 +218,32 @@ def _make_session() -> requests.Session:
     return s
 
 
-def _get(session: requests.Session, url: str, timeout: int = 20) -> str | None:
-    try:
-        r = session.get(url, timeout=timeout)
-        if r.status_code == 200:
-            return r.text
-        logger.warning(f"HTTP {r.status_code}: {url}")
-        return None
-    except Exception as e:
-        logger.error(f"Fetch error {url}: {e}")
-        return None
+_CONNECTION_ERRORS = (ReqConnectionError, ChunkedEncodingError, TimeoutError)
+
+
+def _get(session: requests.Session, url: str, timeout: int = 20, _retries: int = 2) -> str | None:
+    for attempt in range(_retries + 1):
+        try:
+            r = session.get(url, timeout=timeout)
+            if r.status_code == 200:
+                return r.text
+            logger.warning(f"HTTP {r.status_code}: {url}")
+            return None
+        except _CONNECTION_ERRORS as e:
+            if attempt < _retries:
+                wait = 5 * (attempt + 1) + random.uniform(0, 3)
+                logger.warning(f"Spojení přerušeno ({e.__class__.__name__}), retry #{attempt+1} za {wait:.1f}s")
+                time.sleep(wait)
+                session.close()
+                new_s = _make_session()
+                session.headers = new_s.headers
+                session.cookies = new_s.cookies
+            else:
+                logger.error(f"Fetch error po {_retries} pokusech {url}: {e}")
+                return None
+        except Exception as e:
+            logger.error(f"Fetch error {url}: {e}")
+            return None
 
 
 # ---------------------------------------------------------------------------
@@ -256,15 +274,29 @@ def _post_json(session: requests.Session, url: str, body: dict, referer: str = "
         "Sec-Fetch-Site": "same-origin",
         "X-Requested-With": "XMLHttpRequest",
     }
-    try:
-        r = session.post(url, json=body, headers=headers, timeout=25)
-        if r.status_code == 200:
-            return r.json()
-        logger.debug(f"  API HTTP {r.status_code} [{url.split('/')[-1]}]: {r.text[:300]}")
-        return None
-    except Exception as e:
-        logger.debug(f"  API error {url.split('/')[-1]}: {e}")
-        return None
+    for attempt in range(3):
+        try:
+            r = session.post(url, json=body, headers=headers, timeout=30)
+            if r.status_code == 200:
+                return r.json()
+            logger.debug(f"  API HTTP {r.status_code} [{url.split('/')[-1]}]: {r.text[:300]}")
+            return None
+        except _CONNECTION_ERRORS as e:
+            if attempt < 2:
+                wait = 6 * (attempt + 1) + random.uniform(0, 4)
+                logger.warning(f"API spojení přerušeno ({e.__class__.__name__}), retry #{attempt+1} za {wait:.1f}s")
+                time.sleep(wait)
+                session.close()
+                new_s = _make_session()
+                session.headers = new_s.headers
+                session.cookies = new_s.cookies
+            else:
+                logger.debug(f"  API error po 3 pokusech {url.split('/')[-1]}: {e}")
+                return None
+        except Exception as e:
+            logger.debug(f"  API error {url.split('/')[-1]}: {e}")
+            return None
+    return None
 
 
 def _parse_all_offers_response(raw: list | dict, hotel_path: str) -> list[dict]:
@@ -1430,7 +1462,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False):
                 hotel_tours[hp].append(tour)
 
         if i < len(all_pages):
-            time.sleep(delay / 2)
+            time.sleep(delay / 2 + random.uniform(0, delay * 0.25))
 
     logger.info(f"Celkem nalezeno {len(hotel_tours)} unikátních hotelů")
 
@@ -1528,7 +1560,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False):
             f"— {saved} termínů"
         )
 
-        time.sleep(delay)
+        time.sleep(delay + random.uniform(0, delay * 0.5))
 
     db.close()
     logger.info(f"Hotovo. Uloženo: {hotel_count} hotelů, {tour_count} termínů.")

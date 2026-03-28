@@ -126,7 +126,7 @@ export default function HotelMap({ hotel, nearby }: Props) {
         }).addTo(hotelsLayer).bindPopup(`
           <div style="font-family:system-ui,sans-serif;min-width:150px;padding:2px 0">
             <p style="font-weight:700;font-size:13px;margin:0 0 3px">${n.name}</p>
-            <p style="color:#6b7280;font-size:11px;margin:0 0 5px">${'★'.repeat(n.stars || 0)}${n.distance_km ? ` · ${n.distance_km.toFixed(1)} km` : ''}</p>
+            <p style="color:#6b7280;font-size:11px;margin:0 0 5px">${'★'.repeat(n.stars || 0)}${n.distance_km != null ? ` · ${Number(n.distance_km).toFixed(1)} km` : ''}</p>
             <a href="/hotel/${n.slug}" style="color:#0093FF;font-size:12px;font-weight:600;text-decoration:none">Zobrazit →</a>
           </div>
         `)

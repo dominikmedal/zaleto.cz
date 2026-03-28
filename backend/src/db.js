@@ -163,6 +163,10 @@ async function initSchema() {
       `ALTER TABLE tours ADD COLUMN IF NOT EXISTS url_single TEXT`,
       `ALTER TABLE hotels ADD COLUMN IF NOT EXISTS review_score REAL`,
       `ALTER TABLE hotel_stats ADD COLUMN IF NOT EXISTS next_return_date TEXT`,
+      `ALTER TABLE destination_ai ADD COLUMN IF NOT EXISTS best_time TEXT`,
+      `ALTER TABLE destination_ai ADD COLUMN IF NOT EXISTS places TEXT`,
+      `ALTER TABLE destination_ai ADD COLUMN IF NOT EXISTS food TEXT`,
+      `ALTER TABLE destination_ai ADD COLUMN IF NOT EXISTS trips TEXT`,
     ]
     for (const sql of migrations) {
       try { await client.query(sql) } catch (e) {

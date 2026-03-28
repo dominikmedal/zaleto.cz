@@ -17,6 +17,7 @@ import argparse
 import json
 import logging
 import os
+import random
 import re
 import time
 import unicodedata
@@ -26,6 +27,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 import requests
+from requests.exceptions import ConnectionError as ReqConnectionError, ChunkedEncodingError
 
 from db import ZaletoDB
 
@@ -166,25 +168,42 @@ AIRPORT_NAMES: dict[int, str] = {
 }
 
 
-def _fetch_embedded(session: requests.Session, url: str, airport: int = DEFAULT_AIRPORT) -> dict | None:
+_CONNECTION_ERRORS = (ReqConnectionError, ChunkedEncodingError, TimeoutError)
+
+def _fetch_embedded(session: requests.Session, url: str, airport: int = DEFAULT_AIRPORT,
+                    _retries: int = 2) -> dict | None:
     # Přidej letiště pokud URL nemá TO= parametr
     if "TO=" not in url:
         sep = "&" if "?" in url else "?"
         url = f"{url}{sep}TO={airport}"
-    try:
-        r = session.get(url, timeout=20)
-        if r.status_code != 200:
-            logger.warning(f"HTTP {r.status_code}: {url}")
+    for attempt in range(_retries + 1):
+        try:
+            r = session.get(url, timeout=25)
+            if r.status_code != 200:
+                logger.warning(f"HTTP {r.status_code}: {url}")
+                return None
+            parser = _HotelJsonParser()
+            parser.feed(r.text)
+            if parser.result:
+                return json.loads(parser.result)
+            logger.debug(f"Embedded JSON nenalezen: {url}")
             return None
-        parser = _HotelJsonParser()
-        parser.feed(r.text)
-        if parser.result:
-            return json.loads(parser.result)
-        logger.debug(f"Embedded JSON nenalezen: {url}")
-        return None
-    except Exception as e:
-        logger.error(f"Fetch error: {e}")
-        return None
+        except _CONNECTION_ERRORS as e:
+            if attempt < _retries:
+                wait = 5 * (attempt + 1) + random.uniform(0, 3)
+                logger.warning(f"Spojení přerušeno ({e.__class__.__name__}), čekám {wait:.1f}s před retry #{attempt+1}")
+                time.sleep(wait)
+                # Obnov session — starý socket je mrtvý
+                session.close()
+                new_s = _make_session()
+                session.headers = new_s.headers
+                session.cookies = new_s.cookies
+            else:
+                logger.error(f"Fetch error po {_retries} pokusech: {e}")
+                return None
+        except Exception as e:
+            logger.error(f"Fetch error: {e}")
+            return None
 
 
 # ---------------------------------------------------------------------------
@@ -350,17 +369,32 @@ def _get_offer(session: requests.Session, p: dict,
         "tourFilterQuery": p["tour_filter_query"],
     }
 
-    try:
-        r = session.post(
-            f"{BASE_URL}/api/SearchOffer/GetOfferWithOptions",
-            json=payload,
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-            timeout=30,
-        )
-        if r.status_code == 200 and r.text.strip():
-            return r.json()
-    except Exception as e:
-        logger.error(f"API error: {e}")
+    for attempt in range(3):
+        try:
+            r = session.post(
+                f"{BASE_URL}/api/SearchOffer/GetOfferWithOptions",
+                json=payload,
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
+                timeout=35,
+            )
+            if r.status_code == 200 and r.text.strip():
+                return r.json()
+            return None
+        except _CONNECTION_ERRORS as e:
+            if attempt < 2:
+                wait = 6 * (attempt + 1) + random.uniform(0, 4)
+                logger.warning(f"API spojení přerušeno ({e.__class__.__name__}), retry #{attempt+1} za {wait:.1f}s")
+                time.sleep(wait)
+                session.close()
+                new_s = _make_session()
+                session.headers = new_s.headers
+                session.cookies = new_s.cookies
+            else:
+                logger.error(f"API error po 3 pokusech: {e}")
+                return None
+        except Exception as e:
+            logger.error(f"API error: {e}")
+            return None
     return None
 
 
@@ -665,7 +699,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
             logger.error(f"Chyba u {url}: {e}")
 
         if i < len(hotel_urls):
-            time.sleep(delay)
+            time.sleep(delay + random.uniform(0, delay * 0.5))
 
     db.close()
     logger.info(f"Hotovo. Celkem uloženo: {total_saved} termínů z {len(hotel_urls)} hotelů.")

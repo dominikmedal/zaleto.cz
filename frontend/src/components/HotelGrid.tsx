@@ -209,7 +209,7 @@ export default function HotelGrid({ adults = 2, forcedDestination }: { adults?: 
           )}
         </p>
 
-        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-[#f5faff] rounded-xl p-1">
           {viewButtons.map(btn => (
             <button
               key={btn.id}

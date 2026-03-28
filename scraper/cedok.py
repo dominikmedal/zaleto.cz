@@ -18,6 +18,7 @@ import argparse
 import json
 import logging
 import os
+import random
 import re
 import time
 import unicodedata
@@ -26,6 +27,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
+from requests.exceptions import ConnectionError as ReqConnectionError, ChunkedEncodingError
 
 from db import ZaletoDB
 
@@ -141,16 +143,32 @@ def _make_session() -> requests.Session:
     return s
 
 
-def _get(session: requests.Session, url: str, timeout: int = 20) -> str | None:
-    try:
-        r = session.get(url, timeout=timeout)
-        if r.status_code == 200:
-            return r.text
-        logger.warning(f"HTTP {r.status_code}: {url}")
-        return None
-    except Exception as e:
-        logger.error(f"Fetch error {url}: {e}")
-        return None
+_CONNECTION_ERRORS = (ReqConnectionError, ChunkedEncodingError, TimeoutError)
+
+
+def _get(session: requests.Session, url: str, timeout: int = 20, _retries: int = 2) -> str | None:
+    for attempt in range(_retries + 1):
+        try:
+            r = session.get(url, timeout=timeout)
+            if r.status_code == 200:
+                return r.text
+            logger.warning(f"HTTP {r.status_code}: {url}")
+            return None
+        except _CONNECTION_ERRORS as e:
+            if attempt < _retries:
+                wait = 5 * (attempt + 1) + random.uniform(0, 3)
+                logger.warning(f"Spojení přerušeno ({e.__class__.__name__}), retry #{attempt+1} za {wait:.1f}s")
+                time.sleep(wait)
+                session.close()
+                new_s = _make_session()
+                session.headers = new_s.headers
+                session.cookies = new_s.cookies
+            else:
+                logger.error(f"Fetch error po {_retries} pokusech {url}: {e}")
+                return None
+        except Exception as e:
+            logger.error(f"Fetch error {url}: {e}")
+            return None
 
 
 # ---------------------------------------------------------------------------
@@ -407,7 +425,7 @@ def _fetch_dest_slug(session: requests.Session, dest_slug: str, delay: float) ->
         if skip >= total:
             break
 
-        time.sleep(delay / 2)
+        time.sleep(delay / 2 + random.uniform(0, delay * 0.25))
 
     return results
 
@@ -708,7 +726,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
             break
 
         if i < len(slugs) - 1:
-            time.sleep(delay)
+            time.sleep(delay + random.uniform(0, delay * 0.5))
 
     db.close()
     logger.info(f"Hotovo. Uloženo: {total_hotels} hotelů, {total_tours} termínů.")

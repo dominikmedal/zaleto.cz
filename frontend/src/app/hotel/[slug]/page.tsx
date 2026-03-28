@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { Plane, Bus, Car } from 'lucide-react'
-import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar, PiBuildings } from 'react-icons/pi'
+import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar, PiBuildings, PiSun, PiShieldCheck, PiArrowsDownUp } from 'react-icons/pi'
 import ScrollToButton from '@/components/ScrollToButton'
 import ViewersBadge from '@/components/ViewersBadge'
 import Header from '@/components/Header'
@@ -18,6 +18,9 @@ import { fetchHotel } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 import JsonLd from '@/components/JsonLd'
 import AgencyDescriptionSwitcher from '@/components/AgencyDescriptionSwitcher'
+import WeatherWidget from '@/components/WeatherWidget'
+import CollapsibleSection from '@/components/CollapsibleSection'
+import ShareButton from '@/components/ShareButton'
 
 // Leaflet needs browser APIs → dynamic import, no SSR
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false })
@@ -108,17 +111,6 @@ function StarsRow({ count }: { count: number }) {
   )
 }
 
-function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section className="py-6 border-b border-gray-100 last:border-0">
-      <h2 className="flex items-center gap-2.5 text-[17px] font-semibold text-gray-900 mb-5">
-        <span className="text-[#008afe] flex-shrink-0">{icon}</span>
-        {title}
-      </h2>
-      {children}
-    </section>
-  )
-}
 
 function formatDep(s: string): string {
   const [y, m, d] = s.split('T')[0].split('-').map(Number)
@@ -172,6 +164,15 @@ export default async function HotelDetailPage({ params }: Props) {
 
   const minTourPrice = hotel.min_price
   const tourCount    = hotel.available_dates ?? 0
+
+  const highlights: { icon: React.ReactNode; title: string; desc: string }[] = [
+    { icon: <PiShieldCheck className="w-5 h-5" />, title: 'Přímé rezervace u CK', desc: 'Bez prostředníka — objednáte přímo u cestovní kanceláře' },
+    { icon: <PiArrowsDownUp className="w-5 h-5" />, title: 'Srovnání z více CK', desc: 'Jeden hotel, více nabídek — vyberete nejlepší cenu a termín' },
+    ...(hotel.stars && hotel.stars >= 4 ? [{ icon: <PiStarFill className="w-5 h-5 text-amber-400" />, title: `${hotel.stars}hvězdičkový hotel`, desc: hotel.stars === 5 ? 'Luxusní ubytování s nejvyšším standardem' : 'Nadstandardní komfort a kvalita služeb' }] : []),
+    ...(hotel.review_score && hotel.review_score >= 7 ? [{ icon: <PiChatCircleDots className="w-5 h-5" />, title: `Hodnocení ${hotel.review_score.toFixed(1)}/10`, desc: 'Kladné recenze od hostů, kteří hotel skutečně navštívili' }] : []),
+    ...(hotel.has_last_minute === 1 ? [{ icon: <PiTimer className="w-5 h-5" />, title: 'Last minute sleva', desc: 'Výrazně snížená cena pro flexibilní cestovatele' }] : hotel.has_first_minute === 1 ? [{ icon: <PiCalendarStar className="w-5 h-5" />, title: 'First minute výhoda', desc: 'Nejlepší cena za včasnou rezervaci — rezervujte předem a ušetřete' }] : []),
+    ...(tourCount >= 8 ? [{ icon: <PiCalendarBlank className="w-5 h-5" />, title: `${tourCount} dostupných termínů`, desc: 'Velká flexibilita při výběru data odjezdu i délky pobytu' }] : []),
+  ]
 
   const hotelSchema = {
     '@context': 'https://schema.org',
@@ -271,13 +272,13 @@ export default async function HotelDetailPage({ params }: Props) {
         <HotelGallery photos={photos} name={hotel.name} />
 
         {/* ── Cena zájezdu — mobile only, right after gallery ── */}
-        <div className="lg:hidden mt-4 bg-[#e1f2f3] rounded-2xl p-4 space-y-4">
-          <div className="flex items-center justify-between gap-4">
+        <div className="lg:hidden mt-4 rounded-2xl border border-gray-100 overflow-hidden shadow-[0_4px_32px_-4px_rgba(0,138,254,0.13)]">
+          <div className="flex items-center justify-between gap-4 px-4 pt-4 pb-3 bg-gradient-to-b from-emerald-50/50 to-white">
             <div>
-              <p className="text-xs text-[#4d8a8c] mb-0.5">Nejnižší cena od osoby</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em] mb-1">Nejnižší cena od osoby</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold text-[#0d4f52]">{formatPriceShort(minTourPrice)}</span>
-                <span className="text-sm font-medium text-[#4d8a8c]">Kč</span>
+                <span className="text-3xl font-black text-emerald-600 tabular-nums">{formatPriceShort(minTourPrice)}</span>
+                <span className="text-sm font-semibold text-gray-400">Kč</span>
               </div>
             </div>
             <ScrollToButton
@@ -288,24 +289,32 @@ export default async function HotelDetailPage({ params }: Props) {
               Vybrat termín
             </ScrollToButton>
           </div>
-          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#b8dfe1]">
-            <div>
-              <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Termíny</p>
-              <p className="text-lg font-extrabold text-[#0d4f52]">{tourCount}</p>
+          <div className="grid grid-cols-2 gap-px border-t border-gray-50">
+            <div className="px-4 py-3">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em] mb-1">Termíny</p>
+              <span className="inline-flex items-center gap-1.5 bg-blue-50 text-[#008afe] text-xs font-bold px-2 py-0.5 rounded-full">
+                <PiCalendarBlank className="w-3 h-3" />
+                {tourCount}
+              </span>
             </div>
-            <div>
-              <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Nejbližší odjezd</p>
+            <div className="px-4 py-3 border-l border-gray-50">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em] mb-1">Nejbližší odjezd</p>
               {hotel.next_departure ? (
-                <ScrollToButton targetId="terminy" className="text-left">
-                  <p className="text-xs font-bold text-[#0d4f52]">
+                <ScrollToButton targetId="terminy" className="flex items-center gap-1.5 text-left group">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                  <p className="text-xs font-semibold text-gray-700 group-hover:text-[#008afe] transition-colors">
                     {formatDep(hotel.next_departure)}
                     {hotel.next_return_date && (
-                      <span className="font-normal text-[#4d8a8c]"> → {formatDep(hotel.next_return_date)}</span>
+                      <span className="font-normal text-gray-400"> → {formatDep(hotel.next_return_date)}</span>
                     )}
                   </p>
                 </ScrollToButton>
-              ) : <p className="text-xs font-semibold text-[#0d4f52]">—</p>}
+              ) : <p className="text-xs font-semibold text-gray-400">—</p>}
             </div>
+          </div>
+          <div className="px-4 pb-4 pt-3 border-t border-gray-50 flex gap-2">
+            <FavoriteButton slug={params.slug} name={hotel.name} variant="detail" className="flex-1 justify-center" />
+            <ShareButton slug={params.slug} name={hotel.name} />
           </div>
         </div>
 
@@ -325,19 +334,40 @@ export default async function HotelDetailPage({ params }: Props) {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6">
 
+              {/* ── Marketing highlights ── */}
+              {highlights.length > 0 && (
+                <section className="py-6 border-b border-gray-100">
+                  <h2 className="flex items-center gap-2.5 text-[17px] font-semibold text-[#0d4f52] mb-4">
+                    <span className="text-[#0d4f52] flex-shrink-0"><PiSparkle className="w-5 h-5" /></span>
+                    Proč tento zájezd?
+                  </h2>
+                  <div className="grid grid-cols-2 gap-2">
+                    {highlights.slice(0, 6).map((item, i) => (
+                      <div key={i} className="flex items-start gap-2.5 bg-[#f0fcfa] hover:bg-[#e2f7f2] transition-colors rounded-xl px-3.5 py-3">
+                        <span className="text-[#0d4f52] flex-shrink-0 mt-0.5">{item.icon}</span>
+                        <div>
+                          <p className="text-xs font-semibold text-[#0d4f52] leading-snug">{item.title}</p>
+                          <p className="text-[11px] text-gray-500 leading-snug mt-0.5">{item.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {((hotel.agencyDescriptions?.length ?? 0) > 0 || hotel.description) && (
-                <Section title="O hotelu" icon={<PiHouseSimple className="w-5 h-5" />}>
+                <CollapsibleSection title="O hotelu" icon={<PiHouseSimple className="w-5 h-5" />}>
                   <AgencyDescriptionSwitcher
                     descriptions={(hotel.agencyDescriptions?.length ?? 0) > 0
                       ? hotel.agencyDescriptions!
                       : hotel.description ? [{ agency: hotel.agency, description: hotel.description }] : []
                     }
                   />
-                </Section>
+                </CollapsibleSection>
               )}
 
               {amenitiesList.length > 0 && (
-                <Section title="Vybavení a výhody" icon={<PiSparkle className="w-5 h-5" />}>
+                <CollapsibleSection title="Vybavení a výhody" icon={<PiSparkle className="w-5 h-5" />}>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-2.5 gap-x-4">
                     {amenitiesList.map((item, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
@@ -346,11 +376,11 @@ export default async function HotelDetailPage({ params }: Props) {
                       </div>
                     ))}
                   </div>
-                </Section>
+                </CollapsibleSection>
               )}
 
               {distancesList.length > 0 && (
-                <Section title="Vzdálenosti" icon={<PiRuler className="w-5 h-5" />}>
+                <CollapsibleSection title="Vzdálenosti" icon={<PiRuler className="w-5 h-5" />}>
                   <div className="divide-y divide-gray-50">
                     {distancesList.map((d, i) => {
                       const [label, ...rest] = d.split(':')
@@ -366,11 +396,11 @@ export default async function HotelDetailPage({ params }: Props) {
                       )
                     })}
                   </div>
-                </Section>
+                </CollapsibleSection>
               )}
 
               {hotel.food_options && (
-                <Section title="Stravování" icon={<PiForkKnife className="w-5 h-5" />}>
+                <CollapsibleSection title="Stravování" icon={<PiForkKnife className="w-5 h-5" />}>
                   {hotel.food_options && (
                     <div className="divide-y divide-gray-50">
                       {parseFoodOptions(hotel.food_options).map((row, i) => (
@@ -381,11 +411,11 @@ export default async function HotelDetailPage({ params }: Props) {
                       ))}
                     </div>
                   )}
-                </Section>
+                </CollapsibleSection>
               )}
 
               {priceIncludesList.length > 0 && (
-                <Section title="Co je v ceně" icon={<PiWallet className="w-5 h-5" />}>
+                <CollapsibleSection title="Co je v ceně" icon={<PiWallet className="w-5 h-5" />}>
                   <div className="grid sm:grid-cols-2 gap-y-2.5 gap-x-6">
                     {priceIncludesList.map((item, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
@@ -394,18 +424,31 @@ export default async function HotelDetailPage({ params }: Props) {
                       </div>
                     ))}
                   </div>
-                </Section>
+                </CollapsibleSection>
               )}
 
               {hotel.latitude && hotel.longitude && (
-                <Section title="Poloha na mapě" icon={<PiMapTrifold className="w-5 h-5" />}>
-                  <HotelMap hotel={hotel} nearby={[]} />
-                </Section>
+                <CollapsibleSection title="Poloha na mapě" icon={<PiMapTrifold className="w-5 h-5" />}>
+                  <Suspense fallback={<div className="h-[440px] bg-gray-50 rounded-2xl animate-pulse" />}>
+                    <HotelMapWithNearby hotel={hotel} slug={params.slug} />
+                  </Suspense>
+                </CollapsibleSection>
               )}
 
-              <Section title="Recenze hostů" icon={<PiChatCircleDots className="w-5 h-5" />}>
+              <CollapsibleSection title="Recenze hostů" icon={<PiChatCircleDots className="w-5 h-5" />} defaultOpen={false} lazy>
                 <ReviewsSection slug={params.slug} />
-              </Section>
+              </CollapsibleSection>
+
+              {hotel.latitude && hotel.longitude && (
+                <CollapsibleSection title="Počasí v destinaci" icon={<PiSun className="w-5 h-5" />}>
+                  <WeatherWidget
+                    lat={hotel.latitude}
+                    lon={hotel.longitude}
+                    location={hotel.resort_town ?? hotel.country ?? ''}
+                    noCard
+                  />
+                </CollapsibleSection>
+              )}
 
             </div>
           </div>
@@ -415,57 +458,58 @@ export default async function HotelDetailPage({ params }: Props) {
             <div className="lg:sticky lg:top-[116px] space-y-3">
 
               {/* Booking widget — hidden on mobile (shown above gallery instead) */}
-              <div className="hidden lg:block bg-[#e1f2f3] rounded-2xl p-5 space-y-5">
+              <div className="hidden lg:block rounded-2xl border border-gray-100 overflow-hidden shadow-[0_4px_32px_-4px_rgba(0,138,254,0.13)]">
 
-                {/* Header */}
-                <h3 className="flex items-center gap-2.5 text-[17px] font-semibold text-[#0d4f52]">
-                  <span className="flex-shrink-0"><PiCoins className="w-5 h-5" /></span>
-                  Cena zájezdu
-                </h3>
+                {/* Price hero */}
+                <div className="px-5 pt-5 pb-5 bg-[#e1f2f3]">
+                  <p className="text-[10px] font-bold text-[#0d4f52] uppercase tracking-[0.12em] mb-1.5">Nejnižší cena od osoby</p>
+                  <div className="flex items-baseline gap-1.5 mb-4">
+                    <span className="text-[42px] font-bold text-[#0d4f52] leading-none tabular-nums">{formatPriceShort(minTourPrice)}</span>
+                    <span className="text-lg font-semibold text-[#0d4f52]">Kč</span>
+                  </div>
 
-                {/* Price */}
-                <div>
-                  <p className="text-xs text-[#4d8a8c] mb-1">Nejnižší cena od osoby</p>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-4xl font-extrabold text-[#0d4f52]">{formatPriceShort(minTourPrice)}</span>
-                    <span className="text-base font-medium text-[#4d8a8c]">Kč</span>
+                  <div className="flex flex-col gap-2.5">
+                    {/* Termíny + destinace */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1.5 bg-[#0d4f52] text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                        <PiCalendarBlank className="w-3.5 h-3.5" />
+                        {tourCount} {tourCount === 1 ? 'termín' : tourCount < 5 ? 'termíny' : 'termínů'}
+                      </span>
+                      {[hotel.resort_town, hotel.destination, hotel.country].filter(Boolean)[0] && (
+                        <Link
+                          href={`/destinace/${slugify([hotel.resort_town, hotel.destination, hotel.country].filter(Boolean)[0]!)}`}
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0d4f52] transition-colors"
+                        >
+                          <PiMapPin className="w-3.5 h-3.5 text-[#0d4f52] flex-shrink-0" />
+                          {[hotel.resort_town, hotel.country].filter(Boolean).join(', ')}
+                        </Link>
+                      )}
+                    </div>
+
+                    {/* Nejbližší odjezd */}
+                    {hotel.next_departure && (
+                      <ScrollToButton targetId="terminy" className="flex items-center gap-2 text-xs w-fit group">
+                        <span className="w-2 h-2 rounded-full bg-[#0d4f52] flex-shrink-0 ring-2 ring-emerald-100" />
+                        <span className="text-[#0d4f52] group-hover:text-[#0d4f52] transition-colors">
+                          Nejbližší:{' '}
+                          <span className="font-semibold text-[#0d4f52] group-hover:text-[#0d4f52] transition-colors">
+                            {formatDep(hotel.next_departure)}{hotel.next_return_date ? ` → ${formatDep(hotel.next_return_date)}` : ''}
+                          </span>
+                        </span>
+                      </ScrollToButton>
+                    )}
                   </div>
                 </div>
 
-                {/* Stats — compact single row */}
-                <div className="pt-3 border-t border-[#b8dfe1] space-y-3">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="text-xs font-bold text-[#0d4f52] tabular-nums">{tourCount}</span>
-                    <span className="text-xs text-[#4d8a8c]">
-                      {tourCount === 1 ? 'termín' : tourCount < 5 ? 'termíny' : 'termínů'}
-                    </span>
-                    {[hotel.resort_town, hotel.destination, hotel.country].filter(Boolean)[0] && (
-                      <>
-                        <span className="text-[#b8dfe1] select-none">·</span>
-                        <Link
-                          href={`/destinace/${slugify([hotel.resort_town, hotel.destination, hotel.country].filter(Boolean)[0]!)}`}
-                          className="text-xs font-medium text-[#0d4f52] hover:text-[#008afe] transition-colors"
-                        >
-                          {[hotel.resort_town, hotel.country].filter(Boolean).join(', ')}
-                        </Link>
-                      </>
-                    )}
-                    {hotel.next_departure && (
-                      <>
-                        <span className="text-[#b8dfe1] select-none">·</span>
-                        <ScrollToButton targetId="terminy" className="text-xs font-medium text-[#0d4f52] hover:text-[#008afe] transition-colors whitespace-nowrap">
-                          {formatDep(hotel.next_departure)}{hotel.next_return_date ? ` → ${formatDep(hotel.next_return_date)}` : ''}
-                        </ScrollToButton>
-                      </>
-                    )}
-                  </div>
+                {/* Upcoming departures */}
+                <div className="px-5 py-3 border-t border-gray-50">
                   <Suspense fallback={null}>
                     <UpcomingDepartures slug={params.slug} />
                   </Suspense>
                 </div>
 
                 {/* CTA */}
-                <div className="space-y-2.5 pt-1 border-t border-[#b8dfe1]">
+                <div className="px-5 pb-5 pt-3 border-t border-gray-100 space-y-2.5">
                   <ViewersBadge />
                   <ScrollToButton
                     targetId="terminy"
@@ -474,7 +518,27 @@ export default async function HotelDetailPage({ params }: Props) {
                     <PiCalendarBlank className="w-4 h-4" />
                     Vybrat termín
                   </ScrollToButton>
-                  <FavoriteButton slug={params.slug} name={hotel.name} variant="detail" className="w-full justify-center" />
+                  <div className="flex gap-2">
+                    <FavoriteButton slug={params.slug} name={hotel.name} variant="detail" className="flex-1 justify-center" />
+                    <ShareButton slug={params.slug} name={hotel.name} />
+                  </div>
+                  {/* Trust signals */}
+                  <div className="flex items-center justify-center gap-3 pt-0.5">
+                    <span className="flex items-center gap-1 text-[12px] text-[#0c4d50]">
+                      <PiCheck className="w-3 h-3 text-[#0c4d50] flex-shrink-0" />
+                      Přímé rezervace
+                    </span>
+                    <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
+                    <span className="flex items-center gap-1 text-[10px] text-[#0c4d50]">
+                      <PiCheck className="w-3 h-3 text-[#0c4d50] flex-shrink-0" />
+                      Bez poplatků
+                    </span>
+                    <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
+                    <span className="flex items-center gap-1 text-[10px] text-[#0c4d50]">
+                      <PiCheck className="w-3 h-3 text-[#0c4d50] flex-shrink-0" />
+                      Ověřené CK
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -495,7 +559,7 @@ export default async function HotelDetailPage({ params }: Props) {
         <div id="terminy" className="mt-12 scroll-mt-[140px]">
           <div className="flex items-center gap-3 mb-6 flex-wrap">
             <h2 className="text-xl font-bold text-gray-900">Dostupné termíny</h2>
-            <span className="text-sm font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">{tourCount}</span>
+            <span className="text-sm font-medium text-white bg-primary px-2.5 py-0.5 rounded-full tabular-nums">{tourCount}</span>
             {(hotel.tours_updated_at || hotel.updated_at) && (() => {
               const raw = (hotel.tours_updated_at || hotel.updated_at)!
               // SQLite vrací "YYYY-MM-DD HH:MM:SS" — nahraď mezeru za T pro ISO 8601
@@ -575,9 +639,9 @@ async function UpcomingDepartures({ slug }: { slug: string }) {
 
 async function NearbyHotelsGrid({ lat, lon, exclude }: { lat: number; lon: number; exclude: string }) {
   const { fetchNearbyHotels } = await import('@/lib/api')
-  let nearby = []
+  let nearby: import('@/lib/types').NearbyHotel[] = []
   try {
-    nearby = await fetchNearbyHotels(lat, lon, exclude, 12)
+    nearby = await fetchNearbyHotels(lat, lon, exclude, 8)
   } catch {
     return null
   }
@@ -589,37 +653,88 @@ async function NearbyHotelsGrid({ lat, lon, exclude }: { lat: number; lon: numbe
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2.5">
+      <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2.5">
         <span className="text-[#008afe]"><PiMapPin className="w-5 h-5" /></span>
         Hotely v okolí
       </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {nearby.map((n: import('@/lib/types').NearbyHotel) => (
-          <Link key={n.slug} href={`/hotel/${n.slug}`} className="group bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-            <div className="w-full aspect-[4/3] bg-gray-100 overflow-hidden">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5 lg:gap-6">
+        {nearby.map((n) => (
+          <Link key={n.slug} href={`/hotel/${n.slug}`} className="group block">
+            {/* Image */}
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-gray-100 mb-3">
               {n.thumbnail_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={n.thumbnail_url} alt={n.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.04]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={n.thumbnail_url} alt={n.name} className="w-full h-full object-cover" />
+                </div>
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <PiBuildings className="w-6 h-6 text-gray-300" />
+                  <PiBuildings className="w-8 h-8 text-gray-300" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+              {n.distance_km != null && (
+                <div className="absolute bottom-2.5 left-2.5">
+                  <span className="text-[10px] font-semibold text-white bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded-md leading-none">
+                    {Number(n.distance_km).toFixed(1)} km
+                  </span>
                 </div>
               )}
             </div>
-            <div className="p-2.5">
-              <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-[#008afe] transition-colors leading-tight mb-1">{n.name}</p>
-              <div className="flex items-center justify-between gap-1 flex-wrap">
-                <div className="flex items-center gap-1">
-                  {n.stars ? <span className="text-[10px] text-amber-400">{'★'.repeat(n.stars)}</span> : null}
-                  {n.distance_km != null && <span className="text-[10px] text-gray-400">{Number(n.distance_km).toFixed(1)} km</span>}
-                </div>
-                {n.agency && <span className="text-[10px] text-blue-500 font-medium truncate">{n.agency}</span>}
+            {/* Text */}
+            <div className="px-0.5">
+              <div className="flex items-center gap-1.5 mb-1 min-w-0">
+                {n.stars ? (
+                  <span className="text-amber-400 text-xs tracking-tighter leading-none flex-shrink-0">
+                    {'★'.repeat(Math.min(n.stars, 5))}
+                  </span>
+                ) : null}
+                <span className="text-xs text-gray-400 truncate">
+                  {[n.resort_town, n.country].filter(Boolean).join(', ')}
+                </span>
               </div>
-              <p className="text-xs font-bold text-emerald-600 tabular-nums mt-1">od {formatPriceShort(n.min_price)} Kč</p>
+              <h3 className="font-semibold text-gray-900 text-[15px] leading-snug line-clamp-2 group-hover:text-[#0093FF] transition-colors mb-2">
+                {n.name}
+              </h3>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xs text-gray-400">od</span>
+                <span className="text-lg font-bold text-emerald-600 tabular-nums">{formatPriceShort(n.min_price)}</span>
+                <span className="text-xs text-gray-400">Kč / os.</span>
+              </div>
             </div>
           </Link>
         ))}
       </div>
     </div>
   )
+}
+
+async function HotelMapWithNearby({ hotel, slug }: { hotel: import('@/lib/types').Hotel; slug: string }) {
+  const { fetchNearbyHotels } = await import('@/lib/api')
+  type MapNearby = {
+    id: number; slug: string; name: string; stars: number | null
+    thumbnail_url: string | null; min_price: number; resort_town: string | null
+    latitude: number; longitude: number; distance_km?: number
+  }
+  let nearbyForMap: MapNearby[] = []
+  if (hotel.latitude && hotel.longitude) {
+    try {
+      const raw = await fetchNearbyHotels(hotel.latitude, hotel.longitude, slug, 20)
+      nearbyForMap = raw
+        .filter((n) => n.latitude != null && n.longitude != null)
+        .map((n) => ({
+          id: n.id ?? 0,
+          slug: n.slug,
+          name: n.name,
+          stars: n.stars,
+          thumbnail_url: n.thumbnail_url,
+          min_price: n.min_price,
+          resort_town: n.resort_town ?? null,
+          latitude: n.latitude!,
+          longitude: n.longitude!,
+          distance_km: n.distance_km,
+        }))
+    } catch { /* ignore */ }
+  }
+  return <HotelMap hotel={hotel} nearby={nearbyForMap} />
 }

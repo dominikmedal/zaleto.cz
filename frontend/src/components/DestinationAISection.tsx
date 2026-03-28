@@ -1,70 +1,127 @@
-import { PiMapPin, PiSparkle } from 'react-icons/pi'
-
-interface Excursion {
-  name: string
-  emoji: string
-  description: string
-}
+import CollapsibleSection from '@/components/CollapsibleSection'
+import {
+  PiSun,
+  PiMapPin,
+  PiForkKnife,
+  PiMapTrifold,
+  PiCompass,
+} from 'react-icons/pi'
+import type { DestinationAIData, DestinationAIItem } from '@/lib/api'
 
 interface Props {
   destination: string
-  description: string | null
-  excursions: Excursion[]
+  data: DestinationAIData
+  /** Show the description text (proč jet) — omit if already shown in hero */
+  showDescription?: boolean
 }
 
-export default function DestinationAISection({ destination, description, excursions }: Props) {
-  if (!description && excursions.length === 0) return null
+function ItemList({ items, icon: Icon }: { items: DestinationAIItem[]; icon: React.ElementType }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {items.map((item, i) => (
+        <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 hover:bg-blue-50/50 transition-colors">
+          <span className="flex-shrink-0 mt-0.5 text-[#0093FF]">
+            <Icon className="w-4 h-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-gray-800 leading-tight">{item.name}</p>
+            <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{item.description}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
-  const paragraphs = description ? description.split(/\n\n+/).filter(Boolean) : []
+export default function DestinationAISection({ destination, data, showDescription = false }: Props) {
+  const description   = data.description ?? null
+  const excursions    = data.excursions  ?? []
+  const best_time     = data.best_time   ?? null
+  const places        = data.places      ?? []
+  const food          = data.food        ?? []
+  const trips         = data.trips       ?? []
+
+  const hasSections = best_time || places.length || food.length || trips.length || excursions.length
+  if (!hasSections && !description) return null
+
+  const bestTimeParagraphs = best_time ? best_time.split(/\n\n+/).filter(Boolean) : []
+  const descParagraphs     = description ? description.split(/\n\n+/).filter(Boolean) : []
 
   return (
-    <section className="space-y-6">
-      {/* AI description */}
-      {paragraphs.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 text-[#0093FF]">
-              <PiSparkle className="w-4 h-4" />
-            </span>
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-widest">
-              Proč jet do {destination}
-            </h2>
-          </div>
-          <div className="space-y-3">
-            {paragraphs.map((p, i) => (
-              <p key={i} className="text-gray-600 text-sm leading-relaxed">
-                {p}
-              </p>
+    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden px-2">
+      {/* Description — only when explicitly requested (no-photo hero fallback) */}
+      {showDescription && descParagraphs.length > 0 && (
+        <CollapsibleSection
+          title={`Proč jet do ${destination}`}
+          icon={<PiCompass className="w-5 h-5" />}
+          defaultOpen
+        >
+          <div className="space-y-2">
+            {descParagraphs.map((p, i) => (
+              <p key={i} className="text-gray-600 text-sm leading-relaxed">{p}</p>
             ))}
           </div>
-        </div>
+        </CollapsibleSection>
       )}
 
-      {/* Excursions grid */}
-      {excursions.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 text-[#0093FF]">
-              <PiMapPin className="w-4 h-4" />
-            </span>
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-widest">
-              Co zažít v {destination}
-            </h2>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {excursions.map((exc, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 hover:border-blue-200 hover:shadow-md transition-all"
-              >
-                <div className="text-2xl mb-2">{exc.emoji}</div>
-                <p className="text-sm font-semibold text-gray-800 leading-tight mb-1">{exc.name}</p>
-                <p className="text-xs text-gray-500 leading-relaxed">{exc.description}</p>
-              </div>
+      {/* Best time */}
+      {bestTimeParagraphs.length > 0 && (
+        <CollapsibleSection
+          title="Kdy jet"
+          icon={<PiSun className="w-5 h-5" />}
+          defaultOpen={false}
+        >
+          <div className="space-y-2">
+            {bestTimeParagraphs.map((p, i) => (
+              <p key={i} className="text-gray-600 text-sm leading-relaxed">{p}</p>
             ))}
           </div>
-        </div>
+        </CollapsibleSection>
       )}
-    </section>
+
+      {/* Places */}
+      {places.length > 0 && (
+        <CollapsibleSection
+          title={`Místa k objevení`}
+          icon={<PiMapPin className="w-5 h-5" />}
+          defaultOpen={false}
+        >
+          <ItemList items={places} icon={PiMapPin} />
+        </CollapsibleSection>
+      )}
+
+      {/* Food */}
+      {food.length > 0 && (
+        <CollapsibleSection
+          title="Tradiční jídlo"
+          icon={<PiForkKnife className="w-5 h-5" />}
+          defaultOpen={false}
+        >
+          <ItemList items={food} icon={PiForkKnife} />
+        </CollapsibleSection>
+      )}
+
+      {/* Day trips */}
+      {trips.length > 0 && (
+        <CollapsibleSection
+          title="Výlety z okolí"
+          icon={<PiMapTrifold className="w-5 h-5" />}
+          defaultOpen={false}
+        >
+          <ItemList items={trips} icon={PiMapTrifold} />
+        </CollapsibleSection>
+      )}
+
+      {/* Activities */}
+      {excursions.length > 0 && (
+        <CollapsibleSection
+          title="Co zažít"
+          icon={<PiCompass className="w-5 h-5" />}
+          defaultOpen={false}
+        >
+          <ItemList items={excursions} icon={PiCompass} />
+        </CollapsibleSection>
+      )}
+    </div>
   )
 }

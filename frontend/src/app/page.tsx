@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { PiCalendarStar, PiAirplane, PiGlobe, PiTag, PiTimer, PiBuildings, PiSun } from 'react-icons/pi'
+import HomeStepper from '@/components/HomeStepper'
 import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import DestinationCarousel from '@/components/DestinationCarousel'
@@ -11,7 +12,8 @@ import { slugify } from '@/lib/slugify'
 import type { Filters } from '@/lib/types'
 import JsonLd from '@/components/JsonLd'
 import FilteringBar from '@/components/FilteringBar'
-import DestinationAISection from '@/components/DestinationAISection'
+import DestinationHeroAI from '@/components/DestinationHeroAI'
+import { getCountryFlag } from '@/lib/countryFlags'
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
   const destination = Array.isArray(searchParams.destination)
@@ -67,8 +69,19 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     }
   }
 
+  const titles = [
+    'Zájezdy 2026 levně | Srovnávač dovolených online – Zaleto.cz',
+    'Levné zájezdy od CK na jednom místě | Srovnání dovolených – Zaleto.cz',
+    'Dovolená levně 2026 | Nejlepší zájezdy od všech CK – Zaleto.cz',
+    'Najdi nejlevnější dovolenou ✈️ | Srovnávač zájezdů Zaleto.cz',
+    'Porovnej zájezdy a ušetři tisíce | Zaleto.cz – dovolená chytře',
+    'Last minute zájezdy levně 🌴 | Zaleto.cz – srovnávač dovolených',
+    'Levné zájezdy, last minute, dovolená u moře | Srovnávač Zaleto.cz',
+    'Zájezdy k moři 2026 | Last minute, all inclusive – Zaleto.cz',
+  ]
+  const title = titles[Math.floor(Math.random() * titles.length)]
   return {
-    title: 'Zaleto — Vyhledávač zájezdů | Srovnej ceny CK',
+    title,
     description: 'Porovnejte tisíce leteckých zájezdů od předních českých cestovních kanceláří. Egypt, Řecko, Turecko, Chorvatsko a další. Filtrujte podle termínu, stravování a ceny.',
     alternates: { canonical: 'https://zaleto.cz' },
     openGraph: {
@@ -157,7 +170,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   // Hero photo + AI content — parallel when destination selected
   const [heroPhoto, destAI] = await Promise.all([
     singleDest ? fetchDestinationPhoto(singleDest).catch(() => null) : Promise.resolve(null),
-    singleDest ? fetchDestinationAI(singleDest).catch(() => ({ description: null, excursions: [] })) : Promise.resolve(null),
+    singleDest ? fetchDestinationAI(singleDest).catch(() => null) : Promise.resolve(null),
   ])
 
   // Top unique regions with hotel counts
@@ -178,10 +191,16 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   const countryCount = new Set(destinations.map(d => d.country)).size
 
-  // Wiki description — up to 3 sentences
+  // Prefer AI description over wiki
+  const aiHeroText = destAI?.description ? destAI.description.split(/\n\n+/)[0] : null
   const wikiDescription = wiki
     ? wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 3).join(' ')
     : ''
+  const heroDescription = aiHeroText ?? wikiDescription
+
+  // Flag for country destinations
+  const singleDestFlag = singleDest ? getCountryFlag(singleDest) : null
+  const heroTitle = singleDest ? (wiki ? wiki.title : singleDest) : null
 
   // Breadcrumb from DB: find country (and optionally resort) for the selected region/resort
   const breadcrumb: { label: string; href: string }[] = []
@@ -196,7 +215,9 @@ export default async function HomePage({ searchParams }: PageProps) {
     const row = asRegion ?? asResort
 
     if (row) {
-      breadcrumb.push({ label: row.country, href: `/destinace/${slugify(row.country)}` })
+      if (row.country && row.country !== singleDest) {
+        breadcrumb.push({ label: row.country, href: `/destinace/${slugify(row.country)}` })
+      }
       const region = row.destination.split('/').map(s => s.trim())[1] ?? row.destination.split('/')[0].trim()
       if (asResort && region !== singleDest) {
         breadcrumb.push({ label: region, href: `/destinace/${slugify(region)}` })
@@ -237,7 +258,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                 <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
                   <Link href="/" className="hover:text-[#008afe] transition-colors">Všechny zájezdy</Link>
                   {breadcrumb.map((crumb, i) => (
-                    <span key={crumb.label} className="flex items-center gap-1">
+                    <span key={crumb.href} className="flex items-center gap-1">
                       <span className="text-gray-200">/</span>
                       {i === breadcrumb.length - 1
                         ? <span className="text-gray-700 font-medium">{crumb.label}</span>
@@ -247,11 +268,16 @@ export default async function HomePage({ searchParams }: PageProps) {
                   ))}
                 </nav>
               )}
-              <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 leading-tight mb-2 drop-shadow-sm">
-                {wiki ? wiki.title : singleDest}
+              <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 leading-tight mb-2 drop-shadow-sm flex items-center gap-3 flex-wrap">
+                {singleDestFlag && (
+                  <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm" style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
+                    {singleDestFlag}
+                  </span>
+                )}
+                {heroTitle}
               </h1>
-              <p className="text-gray-600 text-sm sm:text-base max-w-lg leading-relaxed">
-                {wiki ? wikiDescription : `Zájezdy do destinace ${singleDest} od předních cestovních kanceláří.`}
+              <p className="text-gray-700 text-sm sm:text-base max-w-2xl leading-relaxed">
+                {heroDescription || `Zájezdy do destinace ${singleDest} od předních cestovních kanceláří.`}
               </p>
             </div>
           </div>
@@ -262,86 +288,100 @@ export default async function HomePage({ searchParams }: PageProps) {
 
         {/* ── Compact hero (no destination photo) ── */}
         {!(heroPhoto && singleDest) && (
-          <div className="lg:flex lg:items-end lg:justify-between lg:gap-8">
+          <>
+            <div className="lg:flex lg:items-end lg:justify-between lg:gap-8">
 
-            {/* Title + description */}
-            <div className="min-w-0">
-              {breadcrumb.length > 0 && (
-                <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
-                  <Link href="/" className="hover:text-[#008afe] transition-colors">Všechny zájezdy</Link>
-                  {breadcrumb.map((crumb, i) => (
-                    <span key={crumb.label} className="flex items-center gap-1">
-                      <span className="text-gray-200">/</span>
-                      {i === breadcrumb.length - 1
-                        ? <span className="text-gray-700 font-medium">{crumb.label}</span>
-                        : <Link href={crumb.href} className="hover:text-[#008afe] transition-colors">{crumb.label}</Link>
-                      }
-                    </span>
-                  ))}
-                </nav>
-              )}
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2">
-                {singleDest
-                  ? (wiki ? wiki.title : singleDest)
-                  : tourType === 'last_minute'
-                  ? <><span className="text-red-500 inline-flex items-center gap-2"><PiTimer className="w-7 h-7 sm:w-9 sm:h-9" />Last minute 2026</span></>
-                  : tourType === 'first_minute'
-                  ? <><span className="text-emerald-500 inline-flex items-center gap-2"><PiCalendarStar className="w-7 h-7 sm:w-9 sm:h-9" />First minute 2026</span></>
-                  : <>Najdi svůj zájezd <span className="text-[#008afe]">snadno a rychle</span>.</>}
-              </h1>
-              <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-2xl lg:max-w-xl">
-                {singleDest
-                  ? (wiki ? wikiDescription : `Zájezdy do destinace ${singleDest} od předních cestovních kanceláří.`)
-                  : tourType === 'last_minute'
-                  ? 'Zájezdy s odletem v nejbližších dnech za zvýhodněné ceny. Vyber, rezervuj a jeď.'
-                  : tourType === 'first_minute'
-                  ? 'Výhodné zájezdy pro ty, kdo plánují s předstihem. Nejlepší ceny pro včasné rezervace.'
-                  : 'Porovnejte termíny a ceny od předních cestovních kanceláří na jednom místě.'}
-              </p>
+              {/* Title + description */}
+              <div className="min-w-0">
+                {breadcrumb.length > 0 && (
+                  <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
+                    <Link href="/" className="hover:text-[#008afe] transition-colors">Všechny zájezdy</Link>
+                    {breadcrumb.map((crumb, i) => (
+                      <span key={crumb.label} className="flex items-center gap-1">
+                        <span className="text-gray-200">/</span>
+                        {i === breadcrumb.length - 1
+                          ? <span className="text-gray-700 font-medium">{crumb.label}</span>
+                          : <Link href={crumb.href} className="hover:text-[#008afe] transition-colors">{crumb.label}</Link>
+                        }
+                      </span>
+                    ))}
+                  </nav>
+                )}
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2 flex items-center gap-3 flex-wrap">
+                  {singleDest
+                    ? <>
+                        {singleDestFlag && (
+                          <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm" style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
+                            {singleDestFlag}
+                          </span>
+                        )}
+                        {heroTitle}
+                      </>
+                    : tourType === 'last_minute'
+                    ? <span className="text-red-500 inline-flex items-center gap-2"><PiTimer className="w-7 h-7 sm:w-9 sm:h-9" />Last minute 2026</span>
+                    : tourType === 'first_minute'
+                    ? <span className="text-emerald-500 inline-flex items-center gap-2"><PiCalendarStar className="w-7 h-7 sm:w-9 sm:h-9" />First minute 2026</span>
+                    : <>Najdi svůj zájezd <span className="text-[#008afe]">snadno a rychle</span>.</>}
+                </h1>
+                <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-3xl">
+                  {singleDest
+                    ? (heroDescription || `Zájezdy do destinace ${singleDest} od předních cestovních kanceláří.`)
+                    : tourType === 'last_minute'
+                    ? 'Zájezdy s odletem v nejbližších dnech za zvýhodněné ceny. Vyber, rezervuj a jeď.'
+                    : tourType === 'first_minute'
+                    ? 'Výhodné zájezdy pro ty, kdo plánují s předstihem. Nejlepší ceny pro včasné rezervace.'
+                    : 'Porovnejte termíny a ceny od předních cestovních kanceláří na jednom místě.'}
+                </p>
+              </div>
+
+              {/* Stats — pouze na filtrovaných stránkách (ne default homepage) */}
+              {!singleDest && (!noFilters || !!tourType) && (() => {
+                const statsArr = [
+                  { icon: <PiBuildings className="w-3 h-3" />, value: fmtShort(meta.totalHotels ?? 0), label: 'hotelů' },
+                  { icon: <PiAirplane  className="w-3 h-3" />, value: fmtShort(meta.totalTours ?? 0),  label: 'termínů' },
+                  { icon: <PiGlobe    className="w-3 h-3" />, value: String(countryCount),             label: 'zemí' },
+                  { icon: <PiTag      className="w-3 h-3" />, value: `od ${fmtShort(meta.priceRange?.min ?? null)}`, label: 'Kč' },
+                ]
+                return (
+                  <div className="hidden sm:block lg:flex-shrink-0 mt-5 lg:mt-0">
+                    <div className="lg:hidden grid grid-cols-4 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                      {statsArr.map(({ icon, value, label }) => (
+                        <div key={label} className="flex flex-col items-center justify-center py-4 px-3 border-r border-gray-100 last:border-r-0">
+                          <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                            <span className="text-[#008afe]">{icon}</span>
+                            {label}
+                          </div>
+                          <span className="text-xl font-bold text-gray-900 leading-none tabular-nums">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="hidden lg:flex items-stretch divide-x divide-gray-100">
+                      {statsArr.map(({ icon, value, label }) => (
+                        <div key={label} className="flex flex-col justify-center px-5 last:pr-0 first:pl-0">
+                          <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                            <span className="text-[#008afe]">{icon}</span>
+                            {label}
+                          </div>
+                          <span className="text-[22px] font-bold text-gray-900 leading-none tabular-nums">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
             </div>
 
-            {/* Stats */}
-            {!singleDest && (() => {
-              const statsArr = [
-                { icon: <PiBuildings         className="w-3 h-3" />, value: fmtShort(meta.totalHotels ?? 0),       label: 'hotelů'  },
-                { icon: <PiAirplane          className="w-3 h-3" />, value: fmtShort(meta.totalTours ?? 0),        label: 'termínů' },
-                { icon: <PiGlobe             className="w-3 h-3" />, value: String(countryCount),                  label: 'zemí'    },
-                { icon: <PiTag               className="w-3 h-3" />, value: `od ${fmtShort(meta.priceRange?.min ?? null)}`, label: 'Kč'     },
-              ]
-              return (
-                <div className="hidden sm:block lg:flex-shrink-0 mt-5 lg:mt-0">
-
-                  {/* Tablet (sm–lg): full-width card below title */}
-                  <div className="lg:hidden grid grid-cols-4 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-                    {statsArr.map(({ icon, value, label }) => (
-                      <div key={label} className="flex flex-col items-center justify-center py-4 px-3 border-r border-gray-100 last:border-r-0">
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                          <span className="text-[#008afe]">{icon}</span>
-                          {label}
-                        </div>
-                        <span className="text-xl font-bold text-gray-900 leading-none tabular-nums">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Desktop (lg+): inline strip to the right of title */}
-                  <div className="hidden lg:flex items-stretch divide-x divide-gray-100">
-                    {statsArr.map(({ icon, value, label }) => (
-                      <div key={label} className="flex flex-col justify-center px-5 last:pr-0 first:pl-0">
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
-                          <span className="text-[#008afe]">{icon}</span>
-                          {label}
-                        </div>
-                        <span className="text-[22px] font-bold text-gray-900 leading-none tabular-nums">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                </div>
-              )
-            })()}
-
-          </div>
+            {/* ── Stepper + stats (pouze default homepage) ── */}
+            {noFilters && !singleDest && !tourType && (
+              <HomeStepper
+                totalHotels={meta.totalHotels ?? 0}
+                totalTours={meta.totalTours ?? 0}
+                countryCount={countryCount}
+                minPrice={meta.priceRange?.min ?? null}
+              />
+            )}
+          </>
         )}
 
         {/* ── Popular destination cards (only when no filters active) ── */}
@@ -402,12 +442,8 @@ export default async function HomePage({ searchParams }: PageProps) {
         )}
 
         {/* ── AI destination description + excursions ── */}
-        {singleDest && destAI && (destAI.description || destAI.excursions.length > 0) && (
-          <DestinationAISection
-            destination={singleDest}
-            description={destAI.description}
-            excursions={destAI.excursions}
-          />
+        {singleDest && destAI && (
+          <DestinationHeroAI data={destAI} />
         )}
 
         {/* ── Filter animation bar ── */}

@@ -140,18 +140,33 @@ export async function fetchHotelSearch(q: string): Promise<{
   } catch { return [] }
 }
 
-export async function fetchDestinationAI(destination: string): Promise<{
+export type DestinationAIItem = { name: string; description: string; emoji?: string }
+export type DestinationAIData = {
   description: string | null
-  excursions: { name: string; emoji: string; description: string }[]
-}> {
+  excursions: DestinationAIItem[]
+  best_time: string | null
+  places: DestinationAIItem[]
+  food: DestinationAIItem[]
+  trips: DestinationAIItem[]
+}
+
+export async function fetchDestinationAI(destination: string): Promise<DestinationAIData> {
   try {
     const res = await fetch(
       `${API}/api/destination-ai/${encodeURIComponent(destination)}`,
       { next: { revalidate: 3600 }, signal: timeout() }
     )
-    if (!res.ok) return { description: null, excursions: [] }
-    return res.json()
-  } catch { return { description: null, excursions: [] } }
+    if (!res.ok) return { description: null, excursions: [], best_time: null, places: [], food: [], trips: [] }
+    const d = await res.json()
+    return {
+      description: d.description ?? null,
+      excursions:  d.excursions  ?? [],
+      best_time:   d.best_time   ?? null,
+      places:      d.places      ?? [],
+      food:        d.food        ?? [],
+      trips:       d.trips       ?? [],
+    }
+  } catch { return { description: null, excursions: [], best_time: null, places: [], food: [], trips: [] } }
 }
 
 export async function fetchFilters(): Promise<{

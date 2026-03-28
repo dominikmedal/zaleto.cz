@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
     }
 
     const {
-      destination, date_from, date_to,
+      destination, date_from, date_to, date_flex,
       adults, duration, min_price, max_price,
       stars, meal_plan, transport, tour_type, departure_city,
       sort = 'price_asc', page = '1', limit = '24', view,
@@ -31,19 +31,39 @@ router.get('/', async (req, res) => {
     const knownTotal = known_total ? parseInt(known_total) : null
     const offset = (pageNum - 1) * limitNum
 
+    // date_from = departure date, date_to = return date
+    // date_flex=0 means exact; default (missing or =1) means ±3 days
+    const isExact = date_flex === '0'
+    const flexDays = isExact ? 0 : 3
+    function shiftDate(ymd, days) {
+      if (!ymd) return ymd
+      const d = new Date(ymd)
+      d.setDate(d.getDate() + days)
+      return d.toISOString().slice(0, 10)
+    }
+
     const hasTourFilters = date_from || date_to || duration || meal_plan || transport || departure_city
 
     const extraFields = view === 'list'
       ? ', h.description, h.amenities, h.distances, h.food_options, h.price_includes'
       : ', h.food_options, h.amenities'
 
-    const orderMap = {
+    const fastOrderMap = {
       price_asc:  'min_price ASC',
       price_desc: 'min_price DESC',
+      date_asc:   's.next_departure ASC',
       stars_desc: 'h.stars DESC, min_price ASC',
       name_asc:   'h.name ASC',
     }
-    const orderBy = orderMap[sort] || 'min_price ASC'
+    const slowOrderMap = {
+      price_asc:  'min_price ASC',
+      price_desc: 'min_price DESC',
+      date_asc:   'next_departure ASC',
+      stars_desc: 'h.stars DESC, min_price ASC',
+      name_asc:   'h.name ASC',
+    }
+    const fastOrderBy = fastOrderMap[sort] || 'min_price ASC'
+    const slowOrderBy = slowOrderMap[sort] || 'min_price ASC'
 
     let total, hotels
 
@@ -93,7 +113,7 @@ router.get('/', async (req, res) => {
           FROM hotels h
           INNER JOIN hotel_stats s ON s.hotel_id = h.id
           ${where}
-          ORDER BY ${orderBy}
+          ORDER BY ${fastOrderBy}
           LIMIT ? OFFSET ?
         `
         if (knownTotal !== null && pageNum > 1) {
@@ -141,7 +161,7 @@ router.get('/', async (req, res) => {
           LEFT JOIN hotel_stats s ON s.hotel_id = h.id
           LEFT JOIN ${liveSub} ON sub.hotel_id = h.id
           WHERE ${coalesceWhere}
-          ORDER BY ${orderBy}
+          ORDER BY ${fastOrderBy}
           LIMIT ? OFFSET ?
         `
         if (knownTotal !== null && pageNum > 1) {
@@ -159,10 +179,25 @@ router.get('/', async (req, res) => {
 
     } else {
       // ── SLOW PATH: GROUP BY přes tours (tour-level filtry) ───────────────
-      // date_from supersedes CURRENT_DATE
-      const tourConds = ['t.price > 0', date_from ? 't.departure_date >= ?' : 't.departure_date >= CURRENT_DATE::text']
+      // date_from = odjezd, date_to = příjezd/návrat
+      const tourConds = ['t.price > 0']
       const tourParams = []
-      if (date_from) tourParams.push(date_from)
+      const bothDates = date_from && date_to
+      if (date_from) {
+        if (bothDates && flexDays > 0) {
+          tourConds.push('t.departure_date >= ? AND t.departure_date <= ?')
+          tourParams.push(shiftDate(date_from, -flexDays), shiftDate(date_from, flexDays))
+        } else if (bothDates) {
+          tourConds.push('t.departure_date = ?')
+          tourParams.push(date_from)
+        } else {
+          // only date_from: departure from that date onwards
+          tourConds.push('t.departure_date >= ?')
+          tourParams.push(date_from)
+        }
+      } else {
+        tourConds.push('t.departure_date >= CURRENT_DATE::text')
+      }
 
       const hotelConds = ['(h.canonical_slug IS NULL OR h.canonical_slug = h.slug)']
       const mainParams = []
@@ -184,7 +219,19 @@ router.get('/', async (req, res) => {
         if (arr.length) { hotelConds.push(`h.stars IN (${arr.map(() => '?').join(',')})`); mainParams.push(...arr) }
       }
 
-      if (date_to) { tourConds.push('t.departure_date <= ?'); tourParams.push(date_to) }
+      if (date_to) {
+        if (bothDates && flexDays > 0) {
+          tourConds.push('t.return_date >= ? AND t.return_date <= ?')
+          tourParams.push(shiftDate(date_to, -flexDays), shiftDate(date_to, flexDays))
+        } else if (bothDates) {
+          tourConds.push('t.return_date = ?')
+          tourParams.push(date_to)
+        } else {
+          // only date_to (no date_from): return on or before this date
+          tourConds.push('t.return_date <= ?')
+          tourParams.push(date_to)
+        }
+      }
 
       if (duration) {
         const arr = String(duration).split(',').map(Number).filter(Boolean)
@@ -218,7 +265,8 @@ router.get('/', async (req, res) => {
       const whereClause = `WHERE ${allConds.join(' AND ')}`
       const having = havingConds.length ? `HAVING ${havingConds.join(' AND ')}` : ''
 
-      // In PG, GROUP BY h.id works when h is the real hotels table (functional dependency on PK)
+      // Tours jsou uloženy pod hotel_id agentury (Fischer, Exim...), nikoli pod canonical_slug hotelem.
+      // Proto musíme přes JOIN dup najít všechny duplikáty canonical hotelu a teprve na ně joinovat tours.
       const slowSql = `
         SELECT h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
                h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
@@ -228,14 +276,17 @@ router.get('/', async (req, res) => {
           (ARRAY_AGG(t.return_date ORDER BY t.departure_date ASC, t.price ASC))[1] AS next_return_date,
           MAX(t.is_last_minute) AS has_last_minute, MAX(t.is_first_minute) AS has_first_minute
         FROM hotels h
-        INNER JOIN tours t ON t.hotel_id = h.id
+        INNER JOIN hotels dup ON (dup.canonical_slug = h.slug OR (dup.slug = h.slug AND dup.canonical_slug IS NULL))
+        INNER JOIN tours t ON t.hotel_id = dup.id
         ${whereClause}
-        GROUP BY h.id ${having} ORDER BY ${orderBy} LIMIT ? OFFSET ?
+        GROUP BY h.id ${having} ORDER BY ${slowOrderBy} LIMIT ? OFFSET ?
       `
       const countSql = `
         SELECT COUNT(*) AS total FROM (
           SELECT h.id, MIN(t.price) AS min_price
-          FROM hotels h INNER JOIN tours t ON t.hotel_id = h.id
+          FROM hotels h
+          INNER JOIN hotels dup ON (dup.canonical_slug = h.slug OR (dup.slug = h.slug AND dup.canonical_slug IS NULL))
+          INNER JOIN tours t ON t.hotel_id = dup.id
           ${whereClause}
           GROUP BY h.id ${having}
         ) AS count_sub

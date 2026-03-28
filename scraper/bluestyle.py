@@ -17,6 +17,7 @@ import argparse
 import json
 import logging
 import os
+import random
 import re
 import sys
 import time
@@ -26,6 +27,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
+from requests.exceptions import ConnectionError as ReqConnectionError, ChunkedEncodingError
 
 from db import ZaletoDB
 
@@ -85,6 +87,8 @@ def _make_session() -> requests.Session:
 
 
 _blocked = False  # globální flag — IP je zablokovaná, přestaň posílat požadavky
+_CONNECTION_ERRORS = (ReqConnectionError, ChunkedEncodingError, TimeoutError)
+
 
 def gql(session: requests.Session, query: str, variables: dict = None) -> dict | None:
     global _blocked
@@ -94,32 +98,46 @@ def gql(session: requests.Session, query: str, variables: dict = None) -> dict |
     payload = {"query": query}
     if variables:
         payload["variables"] = variables
-    try:
-        r = session.post(GQL_URL, json=payload, timeout=30)
-        if r.status_code == 429 or r.status_code == 403:
-            logger.error(f"GraphQL HTTP {r.status_code} — IP pravděpodobně zablokována Blue Style")
-            _blocked = True
+
+    for attempt in range(3):
+        try:
+            r = session.post(GQL_URL, json=payload, timeout=35)
+            if r.status_code == 429 or r.status_code == 403:
+                logger.error(f"GraphQL HTTP {r.status_code} — IP pravděpodobně zablokována Blue Style")
+                _blocked = True
+                return None
+            if r.status_code != 200:
+                logger.warning(f"GraphQL HTTP {r.status_code}")
+                return None
+            data = r.json()
+            if "errors" in data:
+                errs = data["errors"]
+                for e in errs:
+                    msg = str(e.get("message", ""))
+                    code = e.get("code")
+                    if code == 429 or "zablokovali" in msg or "odblokovani@" in msg:
+                        logger.error("GraphQL: IP zablokována Blue Style — zastavuji scraper")
+                        _blocked = True
+                        return None
+                logger.warning(f"GraphQL errors: {errs[:2]}")
+                return None
+            return data.get("data")
+        except _CONNECTION_ERRORS as e:
+            if attempt < 2:
+                wait = 6 * (attempt + 1) + random.uniform(0, 4)
+                logger.warning(f"GraphQL spojení přerušeno ({e.__class__.__name__}), retry #{attempt+1} za {wait:.1f}s")
+                time.sleep(wait)
+                session.close()
+                new_s = _make_session()
+                session.headers = new_s.headers
+                session.cookies = new_s.cookies
+            else:
+                logger.error(f"GraphQL error po 3 pokusech: {e}")
+                return None
+        except Exception as e:
+            logger.error(f"GraphQL error: {e}")
             return None
-        if r.status_code != 200:
-            logger.warning(f"GraphQL HTTP {r.status_code}")
-            return None
-        data = r.json()
-        if "errors" in data:
-            errs = data["errors"]
-            # Detekuj blokaci v error zprávě (vracejí 200 s HTML v message)
-            for e in errs:
-                msg = str(e.get("message", ""))
-                code = e.get("code")
-                if code == 429 or "zablokovali" in msg or "odblokovani@" in msg:
-                    logger.error("GraphQL: IP zablokována Blue Style — zastavuji scraper")
-                    _blocked = True
-                    return None
-            logger.warning(f"GraphQL errors: {errs[:2]}")
-            return None
-        return data.get("data")
-    except Exception as e:
-        logger.error(f"GraphQL error: {e}")
-        return None
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -132,24 +150,37 @@ def _fetch_hotel_description(session: requests.Session, hotel_url_path: str) -> 
     hotel_url_path: relativní path, např. '/egypt/marsa-alam/hotel-pickalbatros-oasis/'
     """
     url = f"{BASE_URL}{hotel_url_path}"
-    try:
-        r = session.get(url, timeout=20, headers={"Accept": "text/html,*/*"})
-        if r.status_code != 200:
+    for attempt in range(3):
+        try:
+            r = session.get(url, timeout=25, headers={"Accept": "text/html,*/*"})
+            if r.status_code != 200:
+                return None
+            for m in re.finditer(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
+                                 r.text, re.DOTALL):
+                try:
+                    data = json.loads(m.group(1))
+                    items = data.get("@graph", [data])
+                    for item in items:
+                        if item.get("@type") == "Hotel" and item.get("description"):
+                            return item["description"].strip()
+                except (json.JSONDecodeError, AttributeError):
+                    continue
             return None
-        # Najdi JSON-LD blok s @type Hotel
-        for m in re.finditer(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
-                             r.text, re.DOTALL):
-            try:
-                data = json.loads(m.group(1))
-                # Může být objekt nebo {"@graph": [...]}
-                items = data.get("@graph", [data])
-                for item in items:
-                    if item.get("@type") == "Hotel" and item.get("description"):
-                        return item["description"].strip()
-            except (json.JSONDecodeError, AttributeError):
-                continue
-    except Exception as e:
-        logger.debug(f"Detail page error {hotel_url_path}: {e}")
+        except _CONNECTION_ERRORS as e:
+            if attempt < 2:
+                wait = 5 * (attempt + 1) + random.uniform(0, 3)
+                logger.debug(f"Detail page spojení přerušeno, retry #{attempt+1} za {wait:.1f}s")
+                time.sleep(wait)
+                session.close()
+                new_s = _make_session()
+                session.headers = new_s.headers
+                session.cookies = new_s.cookies
+            else:
+                logger.debug(f"Detail page error {hotel_url_path}: {e}")
+                return None
+        except Exception as e:
+            logger.debug(f"Detail page error {hotel_url_path}: {e}")
+            return None
     return None
 
 

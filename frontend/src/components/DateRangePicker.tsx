@@ -18,6 +18,8 @@ interface Props {
   noLabel?: boolean
   inline?: boolean
   onComplete?: () => void
+  flex?: boolean
+  onFlexChange?: (v: boolean) => void
 }
 
 // ─── Date utilities (no external libs) ───────────────────────────────────────
@@ -153,7 +155,7 @@ function MonthGrid({ year, month, priceMap, allPrices, dateFrom, dateTo, hover, 
 
 // ─── DateRangePicker ──────────────────────────────────────────────────────────
 
-export default function DateRangePicker({ dateFrom, dateTo, destination, onDateFromChange, onDateToChange, defaultOpen, noLabel, inline, onComplete }: Props) {
+export default function DateRangePicker({ dateFrom, dateTo, destination, onDateFromChange, onDateToChange, defaultOpen, noLabel, inline, onComplete, flex, onFlexChange }: Props) {
   const today = toYMD(new Date())
   const init  = dateFrom ? (() => { const [y, m] = dateFrom.split('-').map(Number); return { year: y, month: m - 1 } })() : { year: new Date().getFullYear(), month: new Date().getMonth() }
 
@@ -246,9 +248,29 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />Průměrné</span>
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-400 inline-block" />Dražší</span>
         <span className="text-gray-300 text-xs ml-1">Ceny od osoby / 2 os.</span>
-        {!inline && (
+        {onFlexChange && (
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5 ml-auto">
+            <button type="button"
+              onClick={() => onFlexChange(false)}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${!flex ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              Přesně
+            </button>
+            <button type="button"
+              onClick={() => onFlexChange(true)}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${flex ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              ±3 dny
+            </button>
+          </div>
+        )}
+        {!inline && !onFlexChange && (
           <button type="button" onClick={() => { setOpen(false); setPicking('from'); setHover('') }}
             className="ml-auto text-xs text-gray-400 underline underline-offset-2 hover:text-gray-600 transition-colors">
+            Zavřít
+          </button>
+        )}
+        {!inline && onFlexChange && (
+          <button type="button" onClick={() => { setOpen(false); setPicking('from'); setHover('') }}
+            className="text-xs text-gray-400 underline underline-offset-2 hover:text-gray-600 transition-colors">
             Zavřít
           </button>
         )}

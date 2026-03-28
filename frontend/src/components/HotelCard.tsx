@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
-import { PiBuildings, PiTimer, PiCalendarStar, PiCheckCircle, PiForkKnife, PiSwimmingPool, PiWifiHigh, PiFlower, PiUmbrellaSimple } from 'react-icons/pi'
+import { PiBuildings, PiTimer, PiCalendarStar, PiCheckCircle, PiForkKnife, PiSwimmingPool, PiWifiHigh, PiFlower, PiUmbrellaSimple, PiArrowSquareOut } from 'react-icons/pi'
 import type { Hotel } from '@/lib/types'
 import FavoriteButton from './FavoriteButton'
 import ToursModal from './ToursModal'
@@ -184,8 +184,16 @@ export default function HotelCard({ hotel, adults = 2, activeTourType }: { hotel
             )}
           </div>
 
-          {/* Top-right: favorite */}
-          <div className="absolute top-3 right-3">
+          {/* Top-right: new tab + favorite */}
+          <div className="absolute top-3 right-3 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={e => { e.preventDefault(); window.open(`/hotel/${hotel.slug}`, '_blank', 'noopener,noreferrer') }}
+              aria-label="Otevřít v novém okně"
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-black/25 backdrop-blur-sm hover:bg-white/90 transition-all group/ext"
+            >
+              <PiArrowSquareOut className="w-4 h-4 text-white group-hover/ext:text-gray-700 transition-colors" />
+            </button>
             <FavoriteButton slug={hotel.slug} name={hotel.name} variant="card" />
           </div>
 

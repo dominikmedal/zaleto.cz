@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { PiStarFill, PiMapPin, PiCalendarBlank } from 'react-icons/pi'
 import FavoriteButton from './FavoriteButton'
+import ShareButton from './ShareButton'
 
 interface Props {
   name: string
@@ -83,8 +84,9 @@ export default function HotelStickyBar({ name, slug, stars, location, minPrice }
               </div>
             </div>
 
-            {/* Favorite */}
+            {/* Favorite + Share */}
             <FavoriteButton slug={slug} variant="detail" className="flex-shrink-0 hidden sm:inline-flex" />
+            <ShareButton slug={slug} name={name} className="flex-shrink-0 hidden sm:block" />
 
             {/* CTA */}
             <button

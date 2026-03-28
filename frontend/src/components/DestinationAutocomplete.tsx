@@ -33,14 +33,8 @@ interface Props {
   loading?: boolean
 }
 
-const COUNTRY_FLAGS: Record<string, string> = {
-  'Španělsko': '🇪🇸', 'Řecko': '🇬🇷', 'Turecko': '🇹🇷', 'Egypt': '🇪🇬',
-  'Tunisko': '🇹🇳', 'Chorvatsko': '🇭🇷', 'Itálie': '🇮🇹', 'Kypr': '🇨🇾',
-  'Portugalsko': '🇵🇹', 'Bulharsko': '🇧🇬', 'Maroko': '🇲🇦', 'Thajsko': '🇹🇭',
-  'Maldivky': '🇲🇻', 'Dubaj': '🇦🇪', 'Mexiko': '🇲🇽', 'Malta': '🇲🇹',
-  'Dominikánská republika': '🇩🇴', 'Francie': '🇫🇷',
-}
-const getFlag = (c: string) => COUNTRY_FLAGS[c] ?? '🌍'
+import { COUNTRY_FLAGS, getCountryFlag } from '@/lib/countryFlags'
+const getFlag = (c: string) => getCountryFlag(c) ?? '🌍'
 
 interface Resort { label: string; count: number }
 interface Dest   { label: string; count: number; resorts: Resort[] }

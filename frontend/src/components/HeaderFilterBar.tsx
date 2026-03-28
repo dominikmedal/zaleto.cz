@@ -34,6 +34,7 @@ const PLACEHOLDER_CYCLE = [
 const SORT_OPTIONS = [
   { value: 'price_asc',  label: 'Cena: nejlevnější' },
   { value: 'price_desc', label: 'Cena: nejdražší' },
+  { value: 'date_asc',   label: 'Termín odjezdu' },
   { value: 'stars_desc', label: 'Hvězdičky' },
   { value: 'name_asc',   label: 'Název A–Z' },
 ]
@@ -128,6 +129,7 @@ function parseParams(raw: string) {
     destination: p.get('destination')?.split(',').filter(Boolean) ?? [],
     dateFrom:    p.get('date_from')  || '',
     dateTo:      p.get('date_to')    || '',
+    dateFlex:    p.get('date_flex')  !== '0',
     adults:      parseInt(p.get('adults') || '2'),
     sort:        p.get('sort')       || 'price_asc',
     duration:    p.get('duration')   || '',
@@ -167,6 +169,7 @@ export default function HeaderFilterBar() {
   const [destination, setDestination] = useState<string[]>(init.destination)
   const [dateFrom,    setDateFrom]    = useState(init.dateFrom)
   const [dateTo,      setDateTo]      = useState(init.dateTo)
+  const [dateFlex,    setDateFlex]    = useState(init.dateFlex)
   const [adults,      setAdults]      = useState(init.adults)
   const [sort,        setSort]        = useState(init.sort)
   const [duration,    setDuration]    = useState(init.duration)
@@ -213,6 +216,7 @@ export default function HeaderFilterBar() {
     if (destination.length)   params.set('destination',    destination.join(','))
     if (dateFrom)             params.set('date_from',       dateFrom)
     if (dateTo)               params.set('date_to',         dateTo)
+    if (!dateFlex && dateFrom && dateTo) params.set('date_flex', '0')
     if (adults !== 2)         params.set('adults',          String(adults))
     if (sort !== 'price_asc') params.set('sort',            sort)
     if (duration)             params.set('duration',        duration)
@@ -224,7 +228,7 @@ export default function HeaderFilterBar() {
     if (tourType)             params.set('tour_type',       tourType)
     if (depCity.length)       params.set('departure_city',  depCity.join(','))
     return params
-  }, [destination, dateFrom, dateTo, adults, sort, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, depCity])
+  }, [destination, dateFrom, dateTo, dateFlex, adults, sort, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, depCity])
 
   // ── Sync from URL when on home page ───────────────────────────────────────
   const lastPushedKey = useRef<string>(initialStateKey)
@@ -235,6 +239,7 @@ export default function HeaderFilterBar() {
     setDestination(next.destination)
     setDateFrom(next.dateFrom)
     setDateTo(next.dateTo)
+    setDateFlex(next.dateFlex)
     setAdults(next.adults)
     setSort(next.sort)
     setDuration(next.duration)
@@ -260,6 +265,7 @@ export default function HeaderFilterBar() {
       setDestination(s.destination)
       setDateFrom(s.dateFrom)
       setDateTo(s.dateTo)
+      setDateFlex(s.dateFlex)
       setAdults(s.adults)
       setSort(s.sort)
       setDuration(s.duration)
@@ -274,7 +280,7 @@ export default function HeaderFilterBar() {
   }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-navigate on any filter change (debounced 350ms) ─────────────────
-  const stateKey = JSON.stringify({ destination, dateFrom, dateTo, adults, sort, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, depCity })
+  const stateKey = JSON.stringify({ destination, dateFrom, dateTo, dateFlex, adults, sort, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, depCity })
 
   useEffect(() => {
     if (stateKey === lastPushedKey.current) return
@@ -406,7 +412,7 @@ export default function HeaderFilterBar() {
               </span>
             )}
             <span className={!destSummary && activePanel !== 'dest' ? 'text-[#008afe]' : ''}>
-              <span className="sm:hidden">
+              <span className="sm:hidden" suppressHydrationWarning>
                 {destSummary ? 'Destinace' : dateSummary ? 'Termín' : 'Destinace'}
               </span>
               <span className="hidden sm:inline">Destinace</span>
@@ -414,7 +420,7 @@ export default function HeaderFilterBar() {
           </span>
           {/* Mobile: show date summary if no dest selected */}
           {!destSummary && dateSummary && (
-            <span className={`sm:hidden ${subLabel} text-gray-700 font-medium truncate`}>{dateSummary}</span>
+            <span className={`sm:hidden ${subLabel} text-gray-700 font-medium truncate`} suppressHydrationWarning>{dateSummary}</span>
           )}
           {destSummary ? (
             <span className={`${subLabel} text-gray-700 font-medium truncate`}>{destSummary}</span>
@@ -436,14 +442,22 @@ export default function HeaderFilterBar() {
         {/* Termín — hidden on xs */}
         <div
           onClick={() => openPanel('date')}
-          className={`hidden sm:flex flex-col justify-center px-5 w-44 flex-shrink-0 cursor-pointer transition-colors ${
+          className={`hidden sm:flex items-center gap-1 px-5 w-44 flex-shrink-0 cursor-pointer transition-colors ${
             activePanel === 'date' ? 'bg-blue-50/60' : 'hover:bg-gray-50/80'
           }`}
         >
-          <span className={microLabel}>Termín odjezdu</span>
-          <span className={`${subLabel} ${dateSummary ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
-            {dateSummary || 'Vybrat termín'}
-          </span>
+          <div className="flex flex-col justify-center flex-1 min-w-0">
+            <span className={microLabel}>Termín odjezdu</span>
+            <span className={`${subLabel} ${dateSummary ? 'text-gray-700 font-medium' : 'text-gray-400'} truncate`}>
+              {dateSummary || 'Vybrat termín'}
+            </span>
+          </div>
+          {(dateFrom || dateTo) && (
+            <span
+              onClick={e => { e.stopPropagation(); setDateFrom(''); setDateTo('') }}
+              className="text-gray-300 hover:text-red-400 transition-colors text-base leading-none flex-shrink-0 cursor-pointer"
+            >✕</span>
+          )}
         </div>
 
         {/* Cestující — hidden on sm */}
@@ -551,6 +565,8 @@ export default function HeaderFilterBar() {
             destination={destination[0]}
             onDateFromChange={setDateFrom}
             onDateToChange={setDateTo}
+            flex={dateFlex}
+            onFlexChange={dateFrom && dateTo ? setDateFlex : undefined}
             inline
             onComplete={() => setActivePanel(null)}
           />
@@ -748,6 +764,8 @@ export default function HeaderFilterBar() {
                   destination={destination[0]}
                   onDateFromChange={setDateFrom}
                   onDateToChange={setDateTo}
+                  flex={dateFlex}
+                  onFlexChange={dateFrom && dateTo ? setDateFlex : undefined}
                   inline
                 />
               </section>

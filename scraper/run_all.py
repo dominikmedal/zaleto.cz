@@ -497,6 +497,57 @@ def _invalidate_api_cache(final: bool = False):
         logger.warning(f"Cache: invalidace selhala — {e}")
 
 
+def wait_for_ai_generation(timeout_minutes: int = 360):
+    """
+    Spustí generování AI popisků pro všechny destinace bez popisu a čeká na dokončení.
+    Vrátí počet nově zařazených destinací (0 = vše bylo již vygenerováno).
+    """
+    backend = os.environ.get("BACKEND_URL", "http://localhost:3001")
+
+    # Spusť generování a zjisti, kolik bylo zařazeno do fronty
+    try:
+        resp = requests.post(f"{backend}/api/destination-ai/generate", timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        queued = data.get("queued", 0)
+        pending = data.get("pending", 0)
+    except Exception as e:
+        logger.warning(f"AI generování: spuštění selhalo — {e}")
+        return 0
+
+    if queued == 0 and pending == 0:
+        logger.info("AI generování: všechny destinace již mají popis, přeskakuji čekání")
+        return 0
+
+    logger.info(f"AI generování: zařazeno {queued} destinací do fronty (celkem čeká {pending})")
+
+    # Čekej na dokončení — kontroluj každých 60 s
+    deadline = time.time() + timeout_minutes * 60
+    last_pending = pending
+    while time.time() < deadline:
+        if _shutdown:
+            logger.info("AI generování: přerušeno (shutdown signál)")
+            return queued
+        time.sleep(60)
+        try:
+            status = requests.get(f"{backend}/api/destination-ai/status", timeout=5).json()
+            current_pending = status.get("pending", 0)
+        except Exception as e:
+            logger.warning(f"AI generování: kontrola stavu selhala — {e}")
+            continue
+
+        if current_pending != last_pending:
+            done = queued - current_pending if current_pending <= queued else 0
+            logger.info(f"AI generování: {current_pending} zbývá z {queued} ({done} hotovo)")
+            last_pending = current_pending
+
+        if current_pending == 0:
+            logger.info(f"AI generování: dokončeno ({queued} destinací)")
+            return queued
+
+    logger.warning(f"AI generování: timeout {timeout_minutes} min — pokračuji se scrapingem")
+
+
 def send_email(subject: str, html: str, text: str):
     """Odešle report — Resend HTTP API (primární) nebo SMTP (fallback)."""
     if not REPORT_TO:
@@ -763,6 +814,13 @@ def run_cycle(cycle: int, skip_email: bool = False):
     already_done = get_recently_completed(conn)
     if already_done:
         logger.info(f"Checkpoint ({CHECKPOINT_HOURS}h okno): přeskakuji již dokončené CK: {', '.join(sorted(already_done))}")
+
+    # Nejprve vygeneruj AI popisky pro všechny destinace bez popisu, pak teprve scraping
+    hotel_count = conn.execute("SELECT COUNT(*) AS n FROM hotels").fetchone()["n"]
+    if hotel_count > 0:
+        wait_for_ai_generation()
+    else:
+        logger.info("AI generování: DB je prázdná, přeskakuji (první spuštění)")
 
     results: list[dict] = []
 
