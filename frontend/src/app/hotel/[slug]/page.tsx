@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
+import { Plane, Bus, Car } from 'lucide-react'
 import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar, PiBuildings } from 'react-icons/pi'
 import ScrollToButton from '@/components/ScrollToButton'
 import ViewersBadge from '@/components/ViewersBadge'
@@ -14,6 +15,7 @@ import HotelGallery from '@/components/HotelGallery'
 import ReviewsSection from '@/components/ReviewsSection'
 import NearbyHotels from '@/components/NearbyHotels'
 import { fetchHotel } from '@/lib/api'
+import { slugify } from '@/lib/slugify'
 import JsonLd from '@/components/JsonLd'
 import AgencyDescriptionSwitcher from '@/components/AgencyDescriptionSwitcher'
 
@@ -118,6 +120,11 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
   )
 }
 
+function formatDep(s: string): string {
+  const [y, m, d] = s.split('T')[0].split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })
+}
+
 export default async function HotelDetailPage({ params }: Props) {
   let hotel: Awaited<ReturnType<typeof fetchHotel>>
 
@@ -199,9 +206,9 @@ export default async function HotelDetailPage({ params }: Props) {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Zaleto', item: 'https://zaleto.cz' },
-      ...(hotel.country ? [{ '@type': 'ListItem', position: 2, name: hotel.country, item: `https://zaleto.cz/?destination=${encodeURIComponent(hotel.country)}` }] : []),
-      ...(hotel.destination && hotel.destination !== hotel.country ? [{ '@type': 'ListItem', position: 3, name: hotel.destination, item: `https://zaleto.cz/?destination=${encodeURIComponent(hotel.destination)}` }] : []),
-      { '@type': 'ListItem', position: hotel.destination && hotel.destination !== hotel.country ? 4 : 3, name: hotel.name, item: `https://zaleto.cz/hotel/${params.slug}` },
+      ...(hotel.country ? [{ '@type': 'ListItem', position: 2, name: hotel.country, item: `https://zaleto.cz/destinace/${slugify(hotel.country)}` }] : []),
+      ...(hotel.resort_town && hotel.resort_town !== hotel.country ? [{ '@type': 'ListItem', position: 3, name: hotel.resort_town, item: `https://zaleto.cz/destinace/${slugify(hotel.resort_town)}` }] : []),
+      { '@type': 'ListItem', position: hotel.resort_town && hotel.resort_town !== hotel.country ? 4 : 3, name: hotel.name, item: `https://zaleto.cz/hotel/${params.slug}` },
     ],
   }
 
@@ -219,11 +226,11 @@ export default async function HotelDetailPage({ params }: Props) {
           </Link>
           {hotel.country && (
             <><span className="text-gray-200 select-none">/</span>
-            <Link href={`/?destination=${encodeURIComponent(hotel.country)}`} className="hover:text-blue-500 transition-colors">{hotel.country}</Link></>
+            <Link href={`/destinace/${slugify(hotel.country)}`} className="hover:text-blue-500 transition-colors">{hotel.country}</Link></>
           )}
           {hotel.resort_town && hotel.resort_town !== hotel.country && (
             <><span className="text-gray-200 select-none">/</span>
-            <Link href={`/?destination=${encodeURIComponent(hotel.resort_town)}`} className="hover:text-blue-500 transition-colors">{hotel.resort_town}</Link></>
+            <Link href={`/destinace/${slugify(hotel.resort_town)}`} className="hover:text-blue-500 transition-colors">{hotel.resort_town}</Link></>
           )}
           <span className="text-gray-200 select-none">/</span>
           <span className="text-gray-600 font-medium truncate max-w-[220px]">{hotel.name}</span>
@@ -288,9 +295,16 @@ export default async function HotelDetailPage({ params }: Props) {
             </div>
             <div>
               <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Nejbližší odjezd</p>
-              <p className="text-xs font-semibold text-[#0d4f52] leading-tight">
-                {hotel.next_departure ? new Date(hotel.next_departure).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' }) : '—'}
-              </p>
+              {hotel.next_departure ? (
+                <ScrollToButton targetId="terminy" className="text-left">
+                  <p className="text-xs font-bold text-[#0d4f52]">
+                    {formatDep(hotel.next_departure)}
+                    {hotel.next_return_date && (
+                      <span className="font-normal text-[#4d8a8c]"> → {formatDep(hotel.next_return_date)}</span>
+                    )}
+                  </p>
+                </ScrollToButton>
+              ) : <p className="text-xs font-semibold text-[#0d4f52]">—</p>}
             </div>
           </div>
         </div>
@@ -398,7 +412,7 @@ export default async function HotelDetailPage({ params }: Props) {
 
           {/* ── Right column ── */}
           <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-[116px] space-y-3 lg:max-h-[calc(100vh-132px)] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="lg:sticky lg:top-[116px] space-y-3">
 
               {/* Booking widget — hidden on mobile (shown above gallery instead) */}
               <div className="hidden lg:block bg-[#e1f2f3] rounded-2xl p-5 space-y-5">
@@ -418,24 +432,36 @@ export default async function HotelDetailPage({ params }: Props) {
                   </div>
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-1 border-t border-[#b8dfe1]">
-                  <div>
-                    <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Termíny</p>
-                    <p className="text-lg font-extrabold text-[#0d4f52]">{tourCount}</p>
+                {/* Stats — compact single row */}
+                <div className="pt-3 border-t border-[#b8dfe1] space-y-3">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="text-xs font-bold text-[#0d4f52] tabular-nums">{tourCount}</span>
+                    <span className="text-xs text-[#4d8a8c]">
+                      {tourCount === 1 ? 'termín' : tourCount < 5 ? 'termíny' : 'termínů'}
+                    </span>
+                    {[hotel.resort_town, hotel.destination, hotel.country].filter(Boolean)[0] && (
+                      <>
+                        <span className="text-[#b8dfe1] select-none">·</span>
+                        <Link
+                          href={`/destinace/${slugify([hotel.resort_town, hotel.destination, hotel.country].filter(Boolean)[0]!)}`}
+                          className="text-xs font-medium text-[#0d4f52] hover:text-[#008afe] transition-colors"
+                        >
+                          {[hotel.resort_town, hotel.country].filter(Boolean).join(', ')}
+                        </Link>
+                      </>
+                    )}
+                    {hotel.next_departure && (
+                      <>
+                        <span className="text-[#b8dfe1] select-none">·</span>
+                        <ScrollToButton targetId="terminy" className="text-xs font-medium text-[#0d4f52] hover:text-[#008afe] transition-colors whitespace-nowrap">
+                          {formatDep(hotel.next_departure)}{hotel.next_return_date ? ` → ${formatDep(hotel.next_return_date)}` : ''}
+                        </ScrollToButton>
+                      </>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Nejbližší odjezd</p>
-                    <p className="text-sm font-semibold text-[#0d4f52] leading-tight">
-                      {hotel.next_departure ? new Date(hotel.next_departure).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-[10px] text-[#4d8a8c] uppercase tracking-widest mb-1">Lokalita</p>
-                    <p className="text-xs font-medium text-[#0d4f52] leading-tight">
-                      {[hotel.resort_town, hotel.country].filter(Boolean).join(', ') || '—'}
-                    </p>
-                  </div>
+                  <Suspense fallback={null}>
+                    <UpcomingDepartures slug={params.slug} />
+                  </Suspense>
                 </div>
 
                 {/* CTA */}
@@ -452,11 +478,13 @@ export default async function HotelDetailPage({ params }: Props) {
                 </div>
               </div>
 
-              {/* Nearby hotels — streamed, neblokuje render hlavního obsahu */}
+              {/* Nearby hotels — vlastní scroll, neposouvá price widget */}
               {hotel.latitude && hotel.longitude && (
-                <Suspense fallback={null}>
-                  <NearbyHotels lat={hotel.latitude} lon={hotel.longitude} exclude={params.slug} />
-                </Suspense>
+                <div className="lg:max-h-[400px] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  <Suspense fallback={null}>
+                    <NearbyHotels lat={hotel.latitude} lon={hotel.longitude} exclude={params.slug} />
+                  </Suspense>
+                </div>
               )}
 
             </div>
@@ -492,6 +520,55 @@ export default async function HotelDetailPage({ params }: Props) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+async function UpcomingDepartures({ slug }: { slug: string }) {
+  const { fetchHotelTours } = await import('@/lib/api')
+  let tours: import('@/lib/types').Tour[] = []
+  try {
+    const data = await fetchHotelTours(slug)
+    tours = (data.tours ?? [])
+      .sort((a, b) => (a.departure_date || '').localeCompare(b.departure_date || ''))
+      .slice(0, 4)
+  } catch { return null }
+  if (tours.length === 0) return null
+
+  function fmtShort(s: string | null) {
+    if (!s) return null
+    const [y, m, d] = s.split('T')[0].split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })
+  }
+
+  function TourTransportIcon({ transport }: { transport: string | null }) {
+    const t = (transport ?? '').toLowerCase()
+    if (t.includes('autobus') || t.includes('vlak')) return <Bus className="w-3 h-3" />
+    if (t.includes('vlastní') || t.includes('vlastni')) return <Car className="w-3 h-3" />
+    if (t.includes('leteck') || /[A-Z]{3}[→>-][A-Z]{3}/.test(transport ?? '')) return <Plane className="w-3 h-3" />
+    return null
+  }
+
+  return (
+    <div className="space-y-2">
+        {tours.map(tour => {
+          const dep = fmtShort(tour.departure_date)
+          const ret = fmtShort(tour.return_date ?? null)
+          return (
+            <div key={tour.id} className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-[#0d4f52]">
+                {dep}
+                {ret && <span className="font-normal text-[#4d8a8c]"> → {ret}</span>}
+              </span>
+              <div className="flex items-center gap-1 text-[#4d8a8c] flex-shrink-0">
+                <TourTransportIcon transport={tour.transport} />
+                {tour.departure_city && (
+                  <span className="text-[10px] truncate max-w-[60px]">{tour.departure_city}</span>
+                )}
+              </div>
+            </div>
+          )
+        })}
     </div>
   )
 }
@@ -534,7 +611,7 @@ async function NearbyHotelsGrid({ lat, lon, exclude }: { lat: number; lon: numbe
               <div className="flex items-center justify-between gap-1 flex-wrap">
                 <div className="flex items-center gap-1">
                   {n.stars ? <span className="text-[10px] text-amber-400">{'★'.repeat(n.stars)}</span> : null}
-                  {n.distance_km != null && <span className="text-[10px] text-gray-400">{n.distance_km.toFixed(1)} km</span>}
+                  {n.distance_km != null && <span className="text-[10px] text-gray-400">{Number(n.distance_km).toFixed(1)} km</span>}
                 </div>
                 {n.agency && <span className="text-[10px] text-blue-500 font-medium truncate">{n.agency}</span>}
               </div>

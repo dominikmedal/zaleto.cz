@@ -11,10 +11,17 @@ function formatPrice(price: number) {
   return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(price)
 }
 
-function formatDate(dateStr: string | null) {
+function formatDep(dateStr: string | null): string | null {
   if (!dateStr) return null
   const [y, m, d] = dateStr.split('T')[0].split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })
+}
+
+function formatDateRange(dep: string | null, ret: string | null | undefined): string | null {
+  const d = formatDep(dep)
+  if (!d) return null
+  const r = formatDep(ret ?? null)
+  return r ? `${d} – ${r}` : d
 }
 
 function Stars({ count }: { count: number }) {
@@ -51,7 +58,7 @@ function amenityIcon(label: string) {
 }
 
 export default function HotelCard({ hotel, adults = 2, activeTourType }: { hotel: Hotel; adults?: number; activeTourType?: string }) {
-  const nextDep  = formatDate(hotel.next_departure)
+  const nextDep  = formatDateRange(hotel.next_departure ?? null, hotel.next_return_date)
   const meals    = parseMealPlans(hotel.food_options ?? null).slice(0, 2)
   const amenities = parseAmenities(hotel.amenities ?? null).slice(0, 3)
 
@@ -64,11 +71,30 @@ export default function HotelCard({ hotel, adults = 2, activeTourType }: { hotel
     }
   })()
 
-  const [activeIdx,  setActiveIdx]  = useState(0)
-  const [hovered,    setHovered]    = useState(false)
-  const [modalOpen,  setModalOpen]  = useState(false)
-  const intervalRef   = useRef<ReturnType<typeof setInterval> | null>(null)
-  const overlayRef    = useRef<HTMLDivElement>(null)
+  const [activeIdx,    setActiveIdx]    = useState(0)
+  const [hovered,      setHovered]      = useState(false)
+  const [modalOpen,    setModalOpen]    = useState(false)
+  // Photos 2-5 are mounted lazily after card enters the viewport (~700ms delay)
+  const [preloaded,    setPreloaded]    = useState(false)
+  const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null)
+  const overlayRef   = useRef<HTMLDivElement>(null)
+  const cardRef      = useRef<HTMLDivElement>(null)
+
+  // Preload remaining photos after card is visible for a moment
+  useEffect(() => {
+    if (photos.length <= 1 || preloaded) return
+    const el = cardRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        obs.disconnect()
+        const t = setTimeout(() => setPreloaded(true), 700)
+        return () => clearTimeout(t)
+      }
+    }, { threshold: 0.1 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [photos.length, preloaded])
 
   useEffect(() => {
     if (!hovered || photos.length <= 1) return
@@ -84,6 +110,8 @@ export default function HotelCard({ hotel, adults = 2, activeTourType }: { hotel
     setActiveIdx(0)
     if (intervalRef.current) clearInterval(intervalRef.current)
   }
+  // Touch: start carousel on first tap (mobile devices where hover never fires)
+  const handleTouchStart = () => { if (!hovered) setHovered(true) }
 
   return (
     <>
@@ -92,13 +120,13 @@ export default function HotelCard({ hotel, adults = 2, activeTourType }: { hotel
       className="group block"
       onClick={() => { if (overlayRef.current) overlayRef.current.style.display = 'flex' }}
     >
-      <article onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+      <article ref={cardRef} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onTouchStart={handleTouchStart}>
 
         {/* ── Image ── */}
         <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-gray-100 mb-3">
           {photos.length > 0 ? (
             <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.04]">
-              {(hovered ? photos : photos.slice(0, 1)).map((photo, i) => (
+              {(hovered || preloaded ? photos : photos.slice(0, 1)).map((photo, i) => (
                 <Image
                   key={photo}
                   src={photo}
@@ -162,13 +190,14 @@ export default function HotelCard({ hotel, adults = 2, activeTourType }: { hotel
           </div>
 
           {/* Photo dots */}
-          {photos.length > 1 && (
+          {photos.length > 1 && (preloaded || hovered) && (
             <div className={`absolute bottom-3 left-0 right-0 flex justify-center gap-1 transition-opacity duration-200 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
               {photos.map((_, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={e => { e.preventDefault(); setActiveIdx(i) }}
+                  onTouchEnd={e => { e.preventDefault(); setActiveIdx(i) }}
                   className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === activeIdx ? 'bg-white scale-125' : 'bg-white/55 hover:bg-white/80'}`}
                   aria-label={`Fotka ${i + 1}`}
                 />
@@ -181,17 +210,16 @@ export default function HotelCard({ hotel, adults = 2, activeTourType }: { hotel
         <div className="px-0.5">
 
           {/* Location row */}
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-1 min-w-0">
-              {hotel.stars && hotel.stars > 0 && <Stars count={hotel.stars} />}
-              <span className="text-xs text-gray-400 truncate ml-0.5">
-                {[hotel.resort_town, hotel.country].filter(Boolean).join(', ')}
-              </span>
-            </div>
+          <div className="flex items-center gap-1.5 mb-1 min-w-0">
+            {hotel.stars && hotel.stars > 0 && <Stars count={hotel.stars} />}
+            <span className="text-xs text-gray-400 truncate">
+              {[hotel.resort_town, hotel.country].filter(Boolean).join(', ')}
+            </span>
             {nextDep && (
-              <span className="text-[11px] text-gray-400 whitespace-nowrap ml-2 flex-shrink-0">
-                od {nextDep}
-              </span>
+              <>
+                <span className="text-gray-200 flex-shrink-0">·</span>
+                <span className="text-xs text-gray-400 flex-shrink-0 whitespace-nowrap">od {nextDep}</span>
+              </>
             )}
           </div>
 

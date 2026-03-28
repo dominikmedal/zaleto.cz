@@ -69,8 +69,12 @@ SMTP_USER    = os.environ.get("SMTP_USER", "")
 SMTP_PASS    = os.environ.get("SMTP_PASS", "")
 REPORT_TO    = [e.strip() for e in os.environ.get("REPORT_TO", "").split(",") if e.strip()]
 REPORT_FROM  = os.environ.get("REPORT_FROM", SMTP_USER)
-INTERVAL_H   = float(os.environ.get("SCRAPE_INTERVAL_H", "12"))
-SCRAPER_DELAY = float(os.environ.get("SCRAPER_DELAY", "1.5"))
+INTERVAL_H        = float(os.environ.get("SCRAPE_INTERVAL_H", "12"))
+SCRAPER_DELAY     = float(os.environ.get("SCRAPER_DELAY", "1.5"))
+# Kolik hodin zpět se bere checkpoint za platný (default 36h).
+# CK se přeskočí, pokud od posledního úspěšného doběhnutí neuplynulo víc než
+# SCRAPE_CHECKPOINT_HOURS hodin — nezávisle na kalendářním dni.
+CHECKPOINT_HOURS  = int(os.environ.get("SCRAPE_CHECKPOINT_HOURS", "36"))
 
 # GPS tolerance pro párování hotelů (~55 m na rovníku)
 # Různé CK mohou reportovat GPS téhož hotelu s odchylkou do ~50 m.
@@ -95,34 +99,40 @@ logger = logging.getLogger("run_all")
 
 SCRAPERS: list[dict] = [
     {
-        "agency":  "Fischer",
-        "module":  "fischer.py",
-        "args":    ["--delay", str(SCRAPER_DELAY)],
+        "agency":     "Fischer",
+        "module":     "fischer.py",
+        "args":       ["--delay", str(SCRAPER_DELAY)],
+        "timeout_h":  20,   # Fischer má tisíce hotelů — dáme mu až 20 h
     },
     {
-        "agency":  "Exim Tours",
-        "module":  "eximtours.py",
-        "args":    ["--delay", str(SCRAPER_DELAY)],
+        "agency":     "Exim Tours",
+        "module":     "eximtours.py",
+        "args":       ["--delay", str(SCRAPER_DELAY)],
+        "timeout_h":  8,
     },
     {
-        "agency":  "Nev-Dama",
-        "module":  "nevdama.py",
-        "args":    ["--delay", str(SCRAPER_DELAY)],
+        "agency":     "Nev-Dama",
+        "module":     "nevdama.py",
+        "args":       ["--delay", str(SCRAPER_DELAY)],
+        "timeout_h":  8,
     },
     {
-        "agency":  "Blue Style",
-        "module":  "bluestyle.py",
-        "args":    ["--delay", str(min(SCRAPER_DELAY, 0.8))],
+        "agency":     "Blue Style",
+        "module":     "bluestyle.py",
+        "args":       ["--delay", str(min(SCRAPER_DELAY, 0.8))],
+        "timeout_h":  8,
     },
     {
-        "agency":  "Čedok",
-        "module":  "cedok.py",
-        "args":    ["--delay", str(SCRAPER_DELAY)],
+        "agency":     "Čedok",
+        "module":     "cedok.py",
+        "args":       ["--delay", str(SCRAPER_DELAY)],
+        "timeout_h":  8,
     },
     {
-        "agency":  "TUI",
-        "module":  "tui.py",
-        "args":    ["--delay", str(SCRAPER_DELAY)],
+        "agency":     "TUI",
+        "module":     "tui.py",
+        "args":       ["--delay", str(SCRAPER_DELAY)],
+        "timeout_h":  8,
     },
 ]
 
@@ -157,11 +167,15 @@ def ensure_checkpoint_table(conn):
     conn.commit()
 
 
-def get_completed_today(conn) -> set:
-    """Vrátí množinu CK, které dnes již úspěšně dokončily stahování."""
-    today = datetime.now().strftime("%Y-%m-%d")
+def get_recently_completed(conn) -> set:
+    """
+    Vrátí CK, které úspěšně dokončily scraping v posledních CHECKPOINT_HOURS hodinách.
+    Nezávislé na kalendářním dni — Fischer může trvat přes půlnoc.
+    """
+    from datetime import timedelta
+    threshold = (datetime.now() - timedelta(hours=CHECKPOINT_HOURS)).strftime("%Y-%m-%d %H:%M:%S")
     rows = conn.execute(
-        "SELECT agency FROM scraper_checkpoints WHERE cycle_date = ?", (today,)
+        "SELECT agency FROM scraper_checkpoints WHERE completed_at >= ?", (threshold,)
     ).fetchall()
     return {r["agency"] for r in rows}
 
@@ -177,13 +191,17 @@ def mark_completed(conn, agency: str):
 
 
 def clear_checkpoints(conn):
-    """Smaže checkpointy starší než 2 dny."""
+    """Smaže checkpointy starší než 2× CHECKPOINT_HOURS (min. 48 h)."""
+    keep_h = max(CHECKPOINT_HOURS * 2, 48)
+    from datetime import timedelta
+    threshold = (datetime.now() - timedelta(hours=keep_h)).strftime("%Y-%m-%d %H:%M:%S")
     conn.execute(
-        "DELETE FROM scraper_checkpoints WHERE cycle_date < (CURRENT_DATE - INTERVAL '2 days')::text"
+        "DELETE FROM scraper_checkpoints WHERE completed_at < ?", (threshold,)
     )
     try:
+        cycle_threshold = (datetime.now() - timedelta(hours=keep_h)).strftime("%Y-%m-%d")
         conn.execute(
-            "DELETE FROM hotel_checkpoints WHERE cycle_date < (CURRENT_DATE - INTERVAL '2 days')::text"
+            "DELETE FROM hotel_checkpoints WHERE cycle_date < ?", (cycle_threshold,)
         )
     except Exception:
         pass
@@ -382,16 +400,35 @@ def run_scraper(scraper: dict, conn=None) -> dict:
             cwd=str(BASE_DIR),
         )
 
-        # Stream stdout v reálném čase
+        # Stream stdout v reálném čase; hlídej per-scraper timeout
+        timeout_sec = scraper.get("timeout_h", 24) * 3600
         captured_lines: list[str] = []
+        timed_out = False
+
         for line in proc.stdout:
             line = line.rstrip("\n")
             captured_lines.append(line)
             logger.info(f"  [{agency}] {line}")
+            if time.time() - started > timeout_sec:
+                logger.warning(
+                    f"{agency}: timeout {scraper.get('timeout_h', 24)}h překročen — ukončuji proces"
+                )
+                proc.terminate()
+                try:
+                    proc.wait(timeout=30)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                timed_out = True
+                break
 
-        proc.wait()
+        if not timed_out:
+            proc.wait()
 
-        if proc.returncode != 0:
+        if timed_out:
+            result["error"] = f"Timeout {scraper.get('timeout_h', 24)}h překročen"
+            result["log_tail"] = "\n".join(captured_lines[-20:])
+            logger.error(f"{agency}: {result['error']}")
+        elif proc.returncode != 0:
             err_lines = captured_lines or ["neznámá chyba"]
             result["error"] = err_lines[-1][:200] if err_lines else f"exit {proc.returncode}"
             result["log_tail"] = "\n".join(err_lines[-20:])
@@ -641,29 +678,44 @@ def refresh_hotel_stats(conn):
     Voláno po každém cyklu scraperů, aby fast-path v API měl aktuální data.
     """
     conn.execute("""
+        WITH next_dep AS (
+            SELECT DISTINCT ON (hotel_id)
+                hotel_id, return_date
+            FROM tours
+            WHERE price > 0 AND departure_date >= CURRENT_DATE::text
+            ORDER BY hotel_id, departure_date ASC, price ASC
+        ),
+        agg AS (
+            SELECT
+                hotel_id,
+                MIN(price)                        AS min_price,
+                MAX(price)                        AS max_price,
+                COUNT(*)                          AS available_dates,
+                MIN(departure_date)               AS next_departure,
+                MAX(COALESCE(is_last_minute,  0)) AS has_last_minute,
+                MAX(COALESCE(is_first_minute, 0)) AS has_first_minute
+            FROM tours
+            WHERE price > 0 AND departure_date >= CURRENT_DATE::text
+            GROUP BY hotel_id
+        )
         INSERT INTO hotel_stats
             (hotel_id, min_price, max_price, available_dates, next_departure,
-             has_last_minute, has_first_minute, updated_at)
+             next_return_date, has_last_minute, has_first_minute, updated_at)
         SELECT
-            hotel_id,
-            MIN(price),
-            MAX(price),
-            COUNT(*),
-            MIN(departure_date),
-            MAX(COALESCE(is_last_minute, 0)),
-            MAX(COALESCE(is_first_minute, 0)),
-            NOW()
-        FROM tours
-        WHERE price > 0 AND departure_date >= CURRENT_DATE::text
-        GROUP BY hotel_id
+            a.hotel_id, a.min_price, a.max_price, a.available_dates, a.next_departure,
+            n.return_date,
+            a.has_last_minute, a.has_first_minute, NOW()
+        FROM agg a
+        LEFT JOIN next_dep n ON n.hotel_id = a.hotel_id
         ON CONFLICT (hotel_id) DO UPDATE SET
-            min_price       = EXCLUDED.min_price,
-            max_price       = EXCLUDED.max_price,
-            available_dates = EXCLUDED.available_dates,
-            next_departure  = EXCLUDED.next_departure,
+            min_price        = EXCLUDED.min_price,
+            max_price        = EXCLUDED.max_price,
+            available_dates  = EXCLUDED.available_dates,
+            next_departure   = EXCLUDED.next_departure,
+            next_return_date = EXCLUDED.next_return_date,
             has_last_minute  = EXCLUDED.has_last_minute,
             has_first_minute = EXCLUDED.has_first_minute,
-            updated_at      = EXCLUDED.updated_at
+            updated_at       = EXCLUDED.updated_at
     """)
     conn.execute("""
         DELETE FROM hotel_stats
@@ -708,9 +760,9 @@ def run_cycle(cycle: int, skip_email: bool = False):
     ensure_checkpoint_table(conn)
     clear_checkpoints(conn)
 
-    already_done = get_completed_today(conn)
+    already_done = get_recently_completed(conn)
     if already_done:
-        logger.info(f"Checkpoint: přeskakuji již dokončené CK: {', '.join(sorted(already_done))}")
+        logger.info(f"Checkpoint ({CHECKPOINT_HOURS}h okno): přeskakuji již dokončené CK: {', '.join(sorted(already_done))}")
 
     results: list[dict] = []
 

@@ -88,6 +88,7 @@ async function initSchema() {
         max_price        REAL,
         available_dates  INTEGER DEFAULT 0,
         next_departure   TEXT,
+        next_return_date TEXT,
         has_last_minute  INTEGER DEFAULT 0,
         has_first_minute INTEGER DEFAULT 0,
         updated_at       TIMESTAMPTZ DEFAULT NOW()
@@ -157,12 +158,16 @@ async function initSchema() {
     }
 
     console.log('[db] running migrations...')
-    try {
-      await client.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS price_single REAL`)
-      await client.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS url_single TEXT`)
-      await client.query(`ALTER TABLE hotels ADD COLUMN IF NOT EXISTS review_score REAL`)
-    } catch (e) {
-      console.warn('[db] migration warning (will retry on next start):', e.message)
+    const migrations = [
+      `ALTER TABLE tours ADD COLUMN IF NOT EXISTS price_single REAL`,
+      `ALTER TABLE tours ADD COLUMN IF NOT EXISTS url_single TEXT`,
+      `ALTER TABLE hotels ADD COLUMN IF NOT EXISTS review_score REAL`,
+      `ALTER TABLE hotel_stats ADD COLUMN IF NOT EXISTS next_return_date TEXT`,
+    ]
+    for (const sql of migrations) {
+      try { await client.query(sql) } catch (e) {
+        console.warn('[db] migration warning:', e.message.slice(0, 80))
+      }
     }
 
     console.log('[db] schema OK')

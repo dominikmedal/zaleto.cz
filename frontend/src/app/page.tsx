@@ -7,6 +7,7 @@ import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import DestinationCarousel from '@/components/DestinationCarousel'
 import { fetchDestinations, fetchFilters, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI, fetchHotels } from '@/lib/api'
+import { slugify } from '@/lib/slugify'
 import type { Filters } from '@/lib/types'
 import JsonLd from '@/components/JsonLd'
 import FilteringBar from '@/components/FilteringBar'
@@ -195,12 +196,12 @@ export default async function HomePage({ searchParams }: PageProps) {
     const row = asRegion ?? asResort
 
     if (row) {
-      breadcrumb.push({ label: row.country, href: `/?destination=${encodeURIComponent(row.country)}` })
+      breadcrumb.push({ label: row.country, href: `/destinace/${slugify(row.country)}` })
       const region = row.destination.split('/').map(s => s.trim())[1] ?? row.destination.split('/')[0].trim()
       if (asResort && region !== singleDest) {
-        breadcrumb.push({ label: region, href: `/?destination=${encodeURIComponent(region)}` })
+        breadcrumb.push({ label: region, href: `/destinace/${slugify(region)}` })
       }
-      breadcrumb.push({ label: singleDest, href: `/?destination=${encodeURIComponent(singleDest)}` })
+      breadcrumb.push({ label: singleDest, href: `/destinace/${slugify(singleDest)}` })
     }
   }
 

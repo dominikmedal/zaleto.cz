@@ -3,6 +3,7 @@ import { useRef, useEffect, useCallback, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { PiCaretLeft, PiCaretRight } from 'react-icons/pi'
+import { slugify } from '@/lib/slugify'
 
 interface Item {
   region: string
@@ -81,7 +82,7 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
         {items.map(({ region, count, thumb }) => (
           <Link
             key={region}
-            href={`/?destination=${encodeURIComponent(region)}`}
+            href={`/destinace/${slugify(region)}`}
             className="group relative flex-shrink-0 w-[148px] rounded-xl overflow-hidden bg-gray-100 block"
             style={{ aspectRatio: '3/4' }}
           >

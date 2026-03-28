@@ -88,7 +88,7 @@ router.get('/', async (req, res) => {
             h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
             h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
             ${extraFields},
-            s.min_price, s.available_dates, s.next_departure,
+            s.min_price, s.available_dates, s.next_departure, s.next_return_date,
             s.has_last_minute, s.has_first_minute
           FROM hotels h
           INNER JOIN hotel_stats s ON s.hotel_id = h.id
@@ -134,6 +134,7 @@ router.get('/', async (req, res) => {
             COALESCE(s.min_price, sub.min_price)               AS min_price,
             COALESCE(s.available_dates, sub.available_dates)   AS available_dates,
             COALESCE(s.next_departure, sub.next_departure)     AS next_departure,
+            s.next_return_date                                 AS next_return_date,
             COALESCE(s.has_last_minute, sub.has_last_minute)   AS has_last_minute,
             COALESCE(s.has_first_minute, sub.has_first_minute) AS has_first_minute
           FROM hotels h
@@ -224,6 +225,7 @@ router.get('/', async (req, res) => {
                ${extraFields},
           MIN(t.price) AS min_price, COUNT(t.id)::integer AS available_dates,
           MIN(t.departure_date) AS next_departure,
+          (ARRAY_AGG(t.return_date ORDER BY t.departure_date ASC, t.price ASC))[1] AS next_return_date,
           MAX(t.is_last_minute) AS has_last_minute, MAX(t.is_first_minute) AS has_first_minute
         FROM hotels h
         INNER JOIN tours t ON t.hotel_id = h.id
@@ -320,12 +322,12 @@ router.get('/nearby', async (req, res) => {
         SELECT h.slug, h.name, h.stars, h.thumbnail_url, h.latitude, h.longitude,
                h.destination, h.country, h.agency, h.review_score,
                s.min_price, s.next_departure,
-               (ABS(h.latitude - $1) + ABS(h.longitude - $2)) AS dist
+               ROUND(CAST(SQRT(POWER((h.latitude - $1) * 111.32, 2) + POWER((h.longitude - $2) * 71.5, 2)) AS numeric), 1) AS distance_km
         FROM hotels h
         INNER JOIN hotel_stats s ON s.hotel_id = h.id
         WHERE h.slug != $3 AND s.min_price IS NOT NULL AND s.next_departure >= CURRENT_DATE::text
           AND h.latitude IS NOT NULL AND h.longitude IS NOT NULL
-        ORDER BY dist ASC
+        ORDER BY distance_km ASC
         LIMIT $4
       `, [latF, lonF, exclude, limitNum])
       rows = r.rows

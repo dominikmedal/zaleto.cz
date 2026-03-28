@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Calendar, Plane, Moon, Utensils, ExternalLink, Loader2, SlidersHorizontal } from 'lucide-react'
+import { Calendar, Plane, Bus, Car, Moon, Utensils, ExternalLink, Loader2, SlidersHorizontal } from 'lucide-react'
 import { PiUserMinus, PiUserPlus } from 'react-icons/pi'
 import type { Tour } from '@/lib/types'
 import { API } from '@/lib/api'
@@ -46,6 +46,29 @@ function bookingUrl(slug: string, tour: Tour, adults: number) {
   if (tour.url)    params.set('tour_url', tour.url)
   if (tour.agency) params.set('agency',   tour.agency)
   return `${API}/api/redirect/${slug}?${params}`
+}
+
+function isFlying(transport: string | null): boolean {
+  if (!transport) return false
+  const t = transport.toLowerCase()
+  return t.includes('leteck') || /[A-Z]{3}[→>-][A-Z]{3}/.test(transport)
+}
+
+function transportLabel(transport: string | null): string {
+  if (!transport) return 'Doprava nespecifikována'
+  const t = transport.toLowerCase()
+  if (t.includes('autobus')) return 'Autobusem'
+  if (t.includes('vlak'))    return 'Vlakem'
+  if (t.includes('vlastní') || t.includes('vlastni')) return 'Vlastní dopravou'
+  if (t.includes('leteck'))  return 'Letecky'
+  return transport
+}
+
+function TransportIcon({ transport, className }: { transport: string | null; className?: string }) {
+  const t = (transport ?? '').toLowerCase()
+  if (t.includes('autobus') || t.includes('vlak')) return <Bus className={className} />
+  if (t.includes('vlastní') || t.includes('vlastni')) return <Car className={className} />
+  return <Plane className={className} />
 }
 
 // Parsuje "letecky BRQ→AYT" → { dep: 'BRQ', arr: 'AYT' }
@@ -97,38 +120,48 @@ function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: 
 
         {/* ── Horní část: trasa ── */}
         <div className="px-5 pt-4 pb-3">
-          <div className="flex items-center gap-3">
-
-            {/* Odlet */}
-            <div className="flex-shrink-0 min-w-[52px]">
-              {depIata ? (
+          {isFlying(tour.transport) ? (
+            <div className="flex items-center gap-3">
+              {/* Odlet */}
+              <div className="flex-shrink-0 min-w-[52px]">
+                {depIata ? (
+                  <>
+                    <div className="text-[22px] font-bold text-gray-900 leading-none">{depIata}</div>
+                    <div className="text-[11px] text-gray-400 mt-0.5 truncate">{depCityName}</div>
+                  </>
+                ) : (
+                  <div className="text-xs text-gray-400">{depCityName ?? '—'}</div>
+                )}
+              </div>
+              {/* Šipka s letadlem */}
+              <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                <div className="flex-1 border-t border-dashed border-gray-200" />
+                <Plane className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                <div className="flex-1 border-t border-dashed border-gray-200" />
+              </div>
+              {/* Přilet */}
+              <div className="flex-shrink-0 min-w-[52px] text-right">
+                {arrIata ? (
+                  <>
+                    <div className="text-[22px] font-bold text-gray-900 leading-none">{arrIata}</div>
+                    <div className="text-[11px] text-gray-400 mt-0.5 truncate">{arrCity}</div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2.5">
+              <TransportIcon transport={tour.transport} className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <span className="text-sm font-medium text-gray-700">{transportLabel(tour.transport)}</span>
+              {tour.departure_city && (
                 <>
-                  <div className="text-[22px] font-bold text-gray-900 leading-none">{depIata}</div>
-                  <div className="text-[11px] text-gray-400 mt-0.5 truncate">{depCityName}</div>
+                  <span className="text-gray-200 select-none">·</span>
+                  <span className="text-xs text-gray-500">z {tour.departure_city}</span>
                 </>
-              ) : (
-                <div className="text-xs text-gray-400">{depCityName ?? '—'}</div>
               )}
+              <div className="flex-1 border-t border-dashed border-gray-200 ml-1" />
             </div>
-
-            {/* Šipka s letadlem */}
-            <div className="flex-1 flex items-center gap-1.5 min-w-0">
-              <div className="flex-1 border-t border-dashed border-gray-200" />
-              <Plane className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
-              <div className="flex-1 border-t border-dashed border-gray-200" />
-            </div>
-
-            {/* Přilet */}
-            <div className="flex-shrink-0 min-w-[52px] text-right">
-              {arrIata ? (
-                <>
-                  <div className="text-[22px] font-bold text-gray-900 leading-none">{arrIata}</div>
-                  <div className="text-[11px] text-gray-400 mt-0.5 truncate">{arrCity}</div>
-                </>
-              ) : null}
-            </div>
-
-          </div>
+          )}
         </div>
 
         {/* ── Oddělovač (tear line) ── */}
@@ -148,6 +181,12 @@ function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: 
             <span className="flex items-center gap-1.5 font-medium text-gray-800">
               <Calendar className="w-3.5 h-3.5 text-gray-400" />
               {formatDateShort(tour.departure_date)}
+              {tour.return_date && (
+                <>
+                  <span className="text-gray-300 mx-0.5">→</span>
+                  <span>{formatDateShort(tour.return_date)}</span>
+                </>
+              )}
             </span>
             {tour.duration && (
               <span className="flex items-center gap-1.5">

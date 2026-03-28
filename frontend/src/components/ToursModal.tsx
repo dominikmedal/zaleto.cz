@@ -106,6 +106,12 @@ function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: 
             <span className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
               <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
               {formatDateShort(tour.departure_date)}
+              {tour.return_date && (
+                <>
+                  <span className="text-gray-300 mx-0.5">→</span>
+                  <span>{formatDateShort(tour.return_date)}</span>
+                </>
+              )}
             </span>
             {tour.duration && (
               <span className="flex items-center gap-1 text-xs text-gray-500">

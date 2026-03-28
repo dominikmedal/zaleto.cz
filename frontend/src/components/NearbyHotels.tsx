@@ -44,7 +44,7 @@ export default async function NearbyHotels({ lat, lon, exclude }: { lat: number;
               <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-[#008afe] transition-colors">{n.name}</p>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {n.stars ? <span className="text-[10px] text-amber-400">{'★'.repeat(n.stars)}</span> : null}
-                {n.distance_km != null && <span className="text-[10px] text-gray-400">{n.distance_km.toFixed(1)} km</span>}
+                {n.distance_km != null && <span className="text-[10px] text-gray-400">{Number(n.distance_km).toFixed(1)} km</span>}
                 {n.agency && <span className="text-[10px] text-blue-500 font-medium">{n.agency}</span>}
               </div>
             </div>

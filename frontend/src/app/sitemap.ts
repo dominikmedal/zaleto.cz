@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { fetchAllHotelSlugs, fetchDestinations } from '@/lib/api'
+import { slugify } from '@/lib/slugify'
 
 // Nevygenerovat při buildu — Railway by timeoutovalo.
 // Sitemap se vygeneruje on-demand a Vercel ji cachuje 24 hodin.
@@ -28,36 +29,45 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     for (const d of destinations) {
       // Země
-      if (d.country && !seen.has(d.country)) {
-        seen.add(d.country)
-        destUrls.push({
-          url: `${base}/?destination=${encodeURIComponent(d.country)}`,
-          lastModified: now,
-          changeFrequency: 'daily',
-          priority: 0.7,
-        })
+      if (d.country) {
+        const s = slugify(d.country)
+        if (!seen.has(s)) {
+          seen.add(s)
+          destUrls.push({
+            url: `${base}/destinace/${s}`,
+            lastModified: now,
+            changeFrequency: 'daily',
+            priority: 0.8,
+          })
+        }
       }
-      // Region (prostřední část "Země / Region / Letovisko")
+      // Region
       const region = d.destination?.split('/').map((s: string) => s.trim())[1]
         ?? d.destination?.split('/')[0]?.trim()
-      if (region && !seen.has(region)) {
-        seen.add(region)
-        destUrls.push({
-          url: `${base}/?destination=${encodeURIComponent(region)}`,
-          lastModified: now,
-          changeFrequency: 'daily',
-          priority: 0.65,
-        })
+      if (region) {
+        const s = slugify(region)
+        if (!seen.has(s)) {
+          seen.add(s)
+          destUrls.push({
+            url: `${base}/destinace/${s}`,
+            lastModified: now,
+            changeFrequency: 'daily',
+            priority: 0.75,
+          })
+        }
       }
       // Letovisko
-      if (d.resort_town && !seen.has(d.resort_town)) {
-        seen.add(d.resort_town)
-        destUrls.push({
-          url: `${base}/?destination=${encodeURIComponent(d.resort_town)}`,
-          lastModified: now,
-          changeFrequency: 'daily',
-          priority: 0.6,
-        })
+      if (d.resort_town) {
+        const s = slugify(d.resort_town)
+        if (!seen.has(s)) {
+          seen.add(s)
+          destUrls.push({
+            url: `${base}/destinace/${s}`,
+            lastModified: now,
+            changeFrequency: 'daily',
+            priority: 0.7,
+          })
+        }
       }
     }
   } catch {}

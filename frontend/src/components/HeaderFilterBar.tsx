@@ -52,6 +52,65 @@ function formatDateShort(s: string): string {
   return d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })
 }
 
+function fmtKc(v: number) {
+  return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(v)
+}
+
+function PriceRangeSlider({
+  absMin, absMax, valueMin, valueMax, onMinChange, onMaxChange,
+}: {
+  absMin: number; absMax: number
+  valueMin: number; valueMax: number
+  onMinChange: (v: number) => void
+  onMaxChange: (v: number) => void
+}) {
+  const step = Math.max(500, Math.ceil((absMax - absMin) / 150 / 500) * 500)
+  const pct  = (v: number) => Math.max(0, Math.min(100, ((v - absMin) / (absMax - absMin)) * 100))
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-3">
+        <span className="text-sm font-semibold text-gray-800">{fmtKc(valueMin)} Kč</span>
+        <span className="text-xs text-gray-400 mx-1">–</span>
+        <span className="text-sm font-semibold text-gray-800">{fmtKc(valueMax)} Kč</span>
+      </div>
+      <div className="relative h-5 flex items-center select-none">
+        {/* Track base */}
+        <div className="absolute inset-x-0 h-1.5 rounded-full bg-gray-200 top-1/2 -translate-y-1/2" />
+        {/* Active range */}
+        <div
+          className="absolute h-1.5 rounded-full bg-[#008afe] top-1/2 -translate-y-1/2 pointer-events-none"
+          style={{ left: `${pct(valueMin)}%`, right: `${100 - pct(valueMax)}%` }}
+        />
+        {/* Thumb min */}
+        <div
+          className="absolute w-4 h-4 rounded-full bg-white border-2 border-[#008afe] shadow-md top-1/2 -translate-y-1/2 pointer-events-none z-10"
+          style={{ left: `calc(${pct(valueMin)}% - 8px)` }}
+        />
+        {/* Thumb max */}
+        <div
+          className="absolute w-4 h-4 rounded-full bg-white border-2 border-[#008afe] shadow-md top-1/2 -translate-y-1/2 pointer-events-none z-10"
+          style={{ left: `calc(${pct(valueMax)}% - 8px)` }}
+        />
+        {/* Input min — transparent, handles drag */}
+        <input
+          type="range" min={absMin} max={absMax} step={step} value={valueMin}
+          onChange={e => onMinChange(Math.min(Number(e.target.value), valueMax - step))}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          style={{ zIndex: pct(valueMin) > 90 ? 5 : 3 }}
+        />
+        {/* Input max */}
+        <input
+          type="range" min={absMin} max={absMax} step={step} value={valueMax}
+          onChange={e => onMaxChange(Math.max(Number(e.target.value), valueMin + step))}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          style={{ zIndex: 4 }}
+        />
+      </div>
+    </div>
+  )
+}
+
 function PillToggle({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick}
@@ -313,7 +372,13 @@ export default function HeaderFilterBar() {
     <div ref={containerRef} className="relative flex-1 flex items-center gap-0 min-w-0">
 
       {/* ── Compact pill bar ── */}
-      <div className="flex-1 flex items-stretch bg-white border border-gray-100 rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.06)] divide-x divide-gray-100 min-w-0 h-11 overflow-hidden">
+      <div className={`flex-1 flex items-stretch bg-white border rounded-full divide-x divide-gray-100 min-w-0 h-11 overflow-hidden transition-all duration-300 ${
+        activePanel === 'dest'
+          ? 'border-[#008afe]/40 shadow-[0_2px_16px_rgba(0,138,254,0.18)]'
+          : !destSummary
+          ? 'border-[#008afe]/30 shadow-[0_2px_16px_rgba(0,138,254,0.12)]'
+          : 'border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.06)]'
+      }`}>
 
         {/* Destinace */}
         <div
@@ -326,18 +391,26 @@ export default function HeaderFilterBar() {
           }}
           className={`flex-1 min-w-0 flex flex-col justify-center px-5 cursor-text transition-colors rounded-l-full ${
             activePanel === 'dest'
-              ? 'bg-blue-50/60'
+              ? 'bg-[#008afe]/[0.07]'
               : destination.length > 0
               ? 'hover:bg-gray-50/80'
-              : 'bg-[#008afe]/[0.03] hover:bg-[#008afe]/[0.06]'
+              : 'bg-[#008afe]/[0.05] hover:bg-[#008afe]/[0.09]'
           }`}
         >
           {/* On mobile, show combined label when date is set */}
-          <span className={microLabel}>
-            <span className="sm:hidden">
-              {destSummary ? 'Destinace' : dateSummary ? 'Termín' : 'Destinace'}
+          <span className={`${microLabel} flex items-center gap-1.5`}>
+            {!destSummary && activePanel !== 'dest' && (
+              <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#008afe] opacity-60" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#008afe]" />
+              </span>
+            )}
+            <span className={!destSummary && activePanel !== 'dest' ? 'text-[#008afe]' : ''}>
+              <span className="sm:hidden">
+                {destSummary ? 'Destinace' : dateSummary ? 'Termín' : 'Destinace'}
+              </span>
+              <span className="hidden sm:inline">Destinace</span>
             </span>
-            <span className="hidden sm:inline">Destinace</span>
           </span>
           {/* Mobile: show date summary if no dest selected */}
           {!destSummary && dateSummary && (
@@ -470,7 +543,8 @@ export default function HeaderFilterBar() {
 
       {/* ══ Date dropdown — calendar shown directly (inline) ══ */}
       {activePanel === 'date' && (
-        <div className="absolute top-full sm:left-[calc(37%-0.5rem)] mt-2.5 bg-white rounded-2xl border border-gray-100 shadow-2xl z-50 p-5">
+        <div className="absolute top-full sm:left-[calc(37%-0.5rem)] mt-2.5 bg-white rounded-2xl border border-gray-100 shadow-2xl z-50 p-5"
+          style={{ width: 'min(690px, calc(100vw - 3rem))' }}>
           <DateRangePicker
             dateFrom={dateFrom}
             dateTo={dateTo}
@@ -585,15 +659,16 @@ export default function HeaderFilterBar() {
               )}
 
               {/* Cena */}
-              <div>
+              <div className="w-full sm:min-w-[220px] sm:flex-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Cena (Kč / os.)</p>
-                <div className="flex items-center gap-2">
-                  <input type="number" placeholder="Od" value={minPrice} onChange={e => setMinPrice(e.target.value)}
-                    className="w-24 px-3 py-2 text-sm border border-gray-100 rounded-xl bg-white focus:outline-none shadow-sm" min={0} step={1000} />
-                  <span className="text-gray-300">–</span>
-                  <input type="number" placeholder="Do" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
-                    className="w-24 px-3 py-2 text-sm border border-gray-100 rounded-xl bg-white focus:outline-none shadow-sm" min={0} step={1000} />
-                </div>
+                <PriceRangeSlider
+                  absMin={meta.priceRange.min}
+                  absMax={meta.priceRange.max}
+                  valueMin={minPrice ? parseInt(minPrice) : meta.priceRange.min}
+                  valueMax={maxPrice ? parseInt(maxPrice) : meta.priceRange.max}
+                  onMinChange={v => setMinPrice(v <= meta.priceRange.min ? '' : String(v))}
+                  onMaxChange={v => setMaxPrice(v >= meta.priceRange.max ? '' : String(v))}
+                />
               </div>
 
             </div>
@@ -644,7 +719,7 @@ export default function HeaderFilterBar() {
           </div>
 
           {/* Scrollable content */}
-          <div className="overflow-y-auto flex-1 overscroll-contain">
+          <div className="overflow-y-auto overflow-x-hidden flex-1 overscroll-contain">
             <div className="px-5 py-5 space-y-7">
 
               {/* Destinace */}
@@ -820,13 +895,14 @@ export default function HeaderFilterBar() {
                   {/* Cena */}
                   <section>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Cena (Kč / os.)</p>
-                    <div className="flex items-center gap-3">
-                      <input type="number" placeholder="Od" value={minPrice} onChange={e => setMinPrice(e.target.value)}
-                        className="flex-1 px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none" min={0} step={1000} />
-                      <span className="text-gray-300">–</span>
-                      <input type="number" placeholder="Do" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
-                        className="flex-1 px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none" min={0} step={1000} />
-                    </div>
+                    <PriceRangeSlider
+                      absMin={meta.priceRange.min}
+                      absMax={meta.priceRange.max}
+                      valueMin={minPrice ? parseInt(minPrice) : meta.priceRange.min}
+                      valueMax={maxPrice ? parseInt(maxPrice) : meta.priceRange.max}
+                      onMinChange={v => setMinPrice(v <= meta.priceRange.min ? '' : String(v))}
+                      onMaxChange={v => setMaxPrice(v >= meta.priceRange.max ? '' : String(v))}
+                    />
                   </section>
                 </>
               )}

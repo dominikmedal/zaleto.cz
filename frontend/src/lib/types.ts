@@ -22,6 +22,7 @@ export interface Hotel {
   max_price?: number
   available_dates: number
   next_departure: string | null
+  next_return_date?: string | null
   total_dates?: number
   has_last_minute?: number   // 1 pokud má alespoň jeden LM termín
   has_first_minute?: number  // 1 pokud má alespoň jeden FM termín

@@ -55,11 +55,19 @@ function HotelSkeleton() {
   )
 }
 
-export default function HotelGrid({ adults = 2 }: { adults?: number }) {
+export default function HotelGrid({ adults = 2, forcedDestination }: { adults?: number; forcedDestination?: string }) {
   const spBase = useSearchParams()
   // spStr tracks the "effective" search string — updated immediately by filterchange
   // events (before Next.js navigation commits) and also by useSearchParams changes
-  const [spStr, setSpStr] = useState(() => spBase.toString())
+  const [spStr, setSpStr] = useState(() => {
+    const base = spBase.toString()
+    if (forcedDestination && !new URLSearchParams(base).has('destination')) {
+      const p = new URLSearchParams(base)
+      p.set('destination', forcedDestination)
+      return p.toString()
+    }
+    return base
+  })
   // Tracks when the last filterchange event fired — guards against stale navigation commits
   // overwriting a newer filterchange (race: nav1 commits after filterchange2 fired)
   const lastFilterTs = useRef(0)

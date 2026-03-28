@@ -42,7 +42,7 @@ export default function HotelStickyBar({ name, slug, stars, location, minPrice }
 
       {/* Sticky bar — slides in from behind the main header (no gap) */}
       <div
-        className={`fixed top-[95px] inset-x-0 z-30 transition-all duration-300 ease-out ${
+        className={`fixed top-[100px] inset-x-0 z-30 transition-all duration-300 ease-out ${
           visible
             ? 'translate-y-0 opacity-100 pointer-events-auto'
             : '-translate-y-full opacity-0 pointer-events-none'

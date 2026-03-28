@@ -258,7 +258,7 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
 
   // ── Inline mode — render calendar directly (no trigger button) ────────────
   if (inline) {
-    return <div style={{ width: 'min(680px, calc(100vw - 2rem))' }}>{calendarContent}</div>
+    return <div className="w-full min-w-0">{calendarContent}</div>
   }
 
   // ── Normal mode — trigger button + popup ──────────────────────────────────
