@@ -14,7 +14,7 @@ interface Panel {
 export default function DestinationHeroAI({ data }: { data: DestinationAIData }) {
   const [openKey, setOpenKey] = useState<string | null>(null)
 
-  const panels: Panel[] = [
+  const panels: Panel[] = ([
     data.best_time
       ? { key: 'best_time', title: 'Kdy jet', Icon: PiSun, text: data.best_time }
       : null,
@@ -30,7 +30,7 @@ export default function DestinationHeroAI({ data }: { data: DestinationAIData })
     (data.excursions ?? []).length > 0
       ? { key: 'excursions', title: 'Co zažít', Icon: PiCompass, items: data.excursions }
       : null,
-  ].filter((p): p is Panel => p !== null)
+  ] as (Panel | null)[]).filter((p): p is Panel => p !== null)
 
   if (!panels.length) return null
 
