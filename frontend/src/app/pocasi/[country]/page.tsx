@@ -5,7 +5,7 @@ import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import {
   PiThermometer, PiSun, PiLeaf, PiWind, PiAirplane,
-  PiCloudSun, PiCalendarBlank, PiMapPin,
+  PiCloudSun, PiCalendarBlank, PiMapPin, PiFlower, PiSnowflake,
 } from 'react-icons/pi'
 import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
@@ -26,10 +26,10 @@ const MONTH_NAMES = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
 const MONTH_SHORT = ['Led', 'Únr', 'Bře', 'Dub', 'Kvě', 'Čer', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro']
 
 const SEASONS = [
-  { key: 'spring', label: 'Jaro',   months: 'březen – květen',   icon: '🌸', border: 'border-emerald-400', bg: 'bg-emerald-50' },
-  { key: 'summer', label: 'Léto',   months: 'červen – srpen',    icon: '☀️', border: 'border-amber-400',   bg: 'bg-amber-50'   },
-  { key: 'autumn', label: 'Podzim', months: 'září – listopad',   icon: '🍂', border: 'border-orange-400',  bg: 'bg-orange-50'  },
-  { key: 'winter', label: 'Zima',   months: 'prosinec – únor',   icon: '❄️', border: 'border-sky-400',     bg: 'bg-sky-50'     },
+  { key: 'spring', label: 'Jaro',   months: 'březen – květen',   Icon: PiFlower,    iconColor: 'text-emerald-500', border: 'border-emerald-300', bg: 'bg-emerald-50' },
+  { key: 'summer', label: 'Léto',   months: 'červen – srpen',    Icon: PiSun,       iconColor: 'text-amber-500',   border: 'border-amber-300',   bg: 'bg-amber-50'   },
+  { key: 'autumn', label: 'Podzim', months: 'září – listopad',   Icon: PiLeaf,      iconColor: 'text-orange-500',  border: 'border-orange-300',  bg: 'bg-orange-50'  },
+  { key: 'winter', label: 'Zima',   months: 'prosinec – únor',   Icon: PiSnowflake, iconColor: 'text-sky-500',     border: 'border-sky-300',     bg: 'bg-sky-50'     },
 ] as const
 
 const SCROLL_MARGIN = { scrollMarginTop: '136px' }
@@ -319,9 +319,9 @@ export default async function CountryWeatherPage({ params }: Props) {
                 const text = weather[s.key as keyof typeof weather] as string | null
                 if (!text) return null
                 return (
-                  <div key={s.key} className={`rounded-2xl border border-gray-100 border-l-4 p-4 ${s.border} ${s.bg}`}>
+                  <div key={s.key} className={`rounded-2xl border-l-4 shadow-sm p-4 ${s.border} ${s.bg}`}>
                     <div className="flex items-center gap-2 mb-2.5">
-                      <span className="text-xl">{s.icon}</span>
+                      <s.Icon className={`w-5 h-5 flex-shrink-0 ${s.iconColor}`} />
                       <div>
                         <p className="font-bold text-sm text-gray-900 leading-none">{s.label}</p>
                         <p className="text-[10px] text-gray-400 mt-0.5">{s.months}</p>
