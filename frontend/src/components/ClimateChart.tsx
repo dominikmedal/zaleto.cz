@@ -11,8 +11,8 @@ const MONTHS = ['Led', 'Únr', 'Bře', 'Dub', 'Kvě', 'Čer', 'Čvc', 'Srp', 'Z�
 const MONTHS_FULL = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec']
 
 const W = 700
-const H = 260
-const PAD = { top: 44, right: 20, bottom: 38, left: 52 }
+const H = 230
+const PAD = { top: 36, right: 16, bottom: 34, left: 44 }
 const CW = W - PAD.left - PAD.right
 const CH = H - PAD.top - PAD.bottom
 
@@ -90,22 +90,22 @@ export default function ClimateChart({ name, air, sea }: Props) {
               <line x1={PAD.left} y1={yPos(v)} x2={PAD.left + CW} y2={yPos(v)}
                 stroke={v === 0 ? '#d1d5db' : '#e5e7eb'} strokeWidth="1" />
               <text x={PAD.left - 6} y={yPos(v)} textAnchor="end" dominantBaseline="middle"
-                fontSize="10.5" fill="#9ca3af">{v}°</text>
+                fontSize="10" fill="#6b7280">{v}°</text>
             </g>
           ))}
 
           {/* X axis labels */}
           {MONTHS.map((m, i) => (
-            <text key={m} x={xPos(i)} y={PAD.top + CH + 20} textAnchor="middle"
-              fontSize="10.5" fill="#9ca3af">{m}</text>
+            <text key={m} x={xPos(i)} y={PAD.top + CH + 18} textAnchor="middle"
+              fontSize="9" fill="#9ca3af">{m}</text>
           ))}
 
           {/* Sea line + dots */}
           {sea && (
             <>
-              <path d={smoothPath(seaPts)} fill="none" stroke="#4db6e8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={smoothPath(seaPts)} fill="none" stroke="#4db6e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               {seaPts.map(([cx, cy], i) => (
-                <circle key={i} cx={cx} cy={cy} r="4.5" fill="#4db6e8" stroke="white" strokeWidth="1.5"
+                <circle key={i} cx={cx} cy={cy} r="3.5" fill="#4db6e8" stroke="white" strokeWidth="1.5"
                   style={{ cursor: 'pointer' }}
                   onMouseEnter={() => setTooltip({ i, x: cx, y: cy })} />
               ))}
@@ -113,9 +113,9 @@ export default function ClimateChart({ name, air, sea }: Props) {
           )}
 
           {/* Air line + dots */}
-          <path d={smoothPath(airPts)} fill="none" stroke="#ff8c2e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={smoothPath(airPts)} fill="none" stroke="#ff8c2e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           {airPts.map(([cx, cy], i) => (
-            <circle key={i} cx={cx} cy={cy} r="4.5" fill="#ff8c2e" stroke="white" strokeWidth="1.5"
+            <circle key={i} cx={cx} cy={cy} r="3.5" fill="#ff8c2e" stroke="white" strokeWidth="1.5"
               style={{ cursor: 'pointer' }}
               onMouseEnter={() => setTooltip({ i, x: cx, y: cy })} />
           ))}
@@ -134,12 +134,12 @@ export default function ClimateChart({ name, air, sea }: Props) {
                 <rect x={tx} y={ty} width={bw} height={bh} rx="8" fill="white"
                   stroke="#e5e7eb" strokeWidth="1"
                   style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.08))' }} />
-                <text x={tx + bw / 2} y={ty + 14} textAnchor="middle" fontSize="11" fontWeight="600" fill="#374151">
+                <text x={tx + bw / 2} y={ty + 13} textAnchor="middle" fontSize="10" fontWeight="600" fill="#374151">
                   {MONTHS_FULL[i]}
                 </text>
-                <text x={tx + 12} y={ty + 30} fontSize="10.5" fill="#ff8c2e" fontWeight="600">● {air[i]}°C vzduch</text>
+                <text x={tx + 10} y={ty + 28} fontSize="9.5" fill="#ff8c2e" fontWeight="600">● {air[i]}°C vzduch</text>
                 {sea && (
-                  <text x={tx + 12} y={ty + 46} fontSize="10.5" fill="#4db6e8" fontWeight="600">● {sea[i]}°C moře</text>
+                  <text x={tx + 10} y={ty + 43} fontSize="9.5" fill="#4db6e8" fontWeight="600">● {sea[i]}°C moře</text>
                 )}
               </g>
             )

@@ -26,10 +26,6 @@ function NavLinks() {
         <PiCalendarStar className="w-4 h-4 flex-shrink-0" />
         First minute
       </Link>
-      <Link href="/pocasi" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-sky-600 hover:bg-sky-50">
-        <PiCloudSun className="w-4 h-4 flex-shrink-0" />
-        Počasí
-      </Link>
       <Link href="/kontakt" className="px-3 py-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap">
         Kontakt
       </Link>

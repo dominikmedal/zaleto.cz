@@ -497,6 +497,28 @@ def _invalidate_api_cache(final: bool = False):
         logger.warning(f"Cache: invalidace selhala — {e}")
 
 
+def _trigger_ai(endpoint: str, label: str) -> int:
+    """
+    Spustí AI generování na daném endpointu (fire-and-forget).
+    Vrátí počet zařazených destinací.
+    """
+    backend = os.environ.get("BACKEND_URL", "http://localhost:3001")
+    try:
+        resp = requests.post(f"{backend}{endpoint}", timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        queued  = data.get("queued", 0)
+        pending = data.get("pending", 0)
+        if queued == 0 and pending == 0:
+            logger.info(f"{label}: vše již vygenerováno, přeskakuji")
+        else:
+            logger.info(f"{label}: zařazeno {queued} destinací (celkem čeká {pending}) — generování běží na pozadí")
+        return queued
+    except Exception as e:
+        logger.warning(f"{label}: spuštění selhalo — {e}")
+        return 0
+
+
 def wait_for_ai_generation(timeout_minutes: int = 360):
     """
     Spustí generování AI popisků pro všechny destinace bez popisu a čeká na dokončení.
@@ -815,10 +837,12 @@ def run_cycle(cycle: int, skip_email: bool = False):
     if already_done:
         logger.info(f"Checkpoint ({CHECKPOINT_HOURS}h okno): přeskakuji již dokončené CK: {', '.join(sorted(already_done))}")
 
-    # Nejprve vygeneruj AI popisky pro všechny destinace bez popisu, pak teprve scraping
+    # Spusť AI generování: nejprve počasí, pak popisky destinací — obojí na pozadí,
+    # scraping startuje okamžitě souběžně (není třeba čekat).
     hotel_count = conn.execute("SELECT COUNT(*) AS n FROM hotels").fetchone()["n"]
     if hotel_count > 0:
-        wait_for_ai_generation()
+        _trigger_ai("/api/weather-ai/generate",     "Počasí AI")
+        _trigger_ai("/api/destination-ai/generate", "Destinace AI")
     else:
         logger.info("AI generování: DB je prázdná, přeskakuji (první spuštění)")
 

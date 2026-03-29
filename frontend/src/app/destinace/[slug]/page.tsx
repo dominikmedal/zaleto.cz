@@ -151,6 +151,13 @@ export default async function DestinacePage({ params }: Props) {
   const countryFlag = dest.type === 'country' ? getCountryFlag(dest.name) : null
   const heroTitle = wiki ? wiki.title : dest.name
 
+  // Weather page link for this destination
+  const weatherUrl = dest.type === 'country'
+    ? `/pocasi/${slugify(dest.name)}`
+    : dest.country
+      ? `/pocasi/${slugify(dest.country)}/${slugify(dest.name)}`
+      : null
+
   const breadcrumbSchema = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -217,6 +224,12 @@ export default async function DestinacePage({ params }: Props) {
                   {heroDescription}
                 </p>
               )}
+              {weatherUrl && (
+                <Link href={weatherUrl} className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-sky-200 text-sky-600 hover:bg-sky-50 hover:border-sky-400 rounded-full text-xs font-semibold transition-all shadow-sm">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="9" r="2.5"/></svg>
+                  Počasí a klima — {dest.name}
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -251,6 +264,12 @@ export default async function DestinacePage({ params }: Props) {
               <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-3xl">
                 {heroDescription}
               </p>
+            )}
+            {weatherUrl && (
+              <Link href={weatherUrl} className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 bg-sky-50 border border-sky-200 text-sky-600 hover:bg-sky-100 hover:border-sky-400 rounded-full text-xs font-semibold transition-all">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="9" r="2.5"/></svg>
+                Počasí a klima — {dest.name}
+              </Link>
             )}
           </div>
         )}

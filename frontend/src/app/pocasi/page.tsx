@@ -9,12 +9,12 @@ import { getCountryFlag } from '@/lib/countryFlags'
 export const revalidate = 3600
 
 export const metadata: Metadata = {
-  title: 'Počasí v dovolenkových destinacích | Zaleto',
-  description: 'Aktuální počasí, klimatické grafy a průměrné teploty pro všechny oblíbené turistické destinace. Pomozte si vybrat nejlepší dobu pro dovolenou.',
+  title: 'Počasí na dovolené — kdy jet a kam? Průvodce klimatem destinací',
+  description: 'Zjistěte, kdy je v dané destinaci nejlépe. Klimatické grafy, průměrné teploty vzduchu i moře, počet slunečních hodin a nejlepší měsíce pro dovolenou.',
   alternates: { canonical: 'https://zaleto.cz/pocasi' },
   openGraph: {
-    title: 'Počasí v dovolenkových destinacích | Zaleto',
-    description: 'Klima, teploty moře a nejlepší měsíce pro každou destinaci.',
+    title: 'Počasí na dovolené — kdy jet a kam?',
+    description: 'Klimatické průvodce, teploty moře a nejlepší měsíce pro každou destinaci.',
     url: 'https://zaleto.cz/pocasi',
     type: 'website',
     siteName: 'Zaleto',

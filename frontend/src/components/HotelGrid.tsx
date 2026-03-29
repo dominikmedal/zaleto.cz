@@ -76,9 +76,16 @@ export default function HotelGrid({ adults = 2, forcedDestination }: { adults?: 
     // Only override with URL params if no filterchange fired in the last 10s.
     // This prevents a slow navigation (railway ~5-15s) from overwriting a newer filter.
     if (Date.now() - lastFilterTs.current > 10_000) {
-      setSpStr(spBase.toString())
+      const base = spBase.toString()
+      if (forcedDestination && !new URLSearchParams(base).has('destination')) {
+        const p = new URLSearchParams(base)
+        p.set('destination', forcedDestination)
+        setSpStr(p.toString())
+      } else {
+        setSpStr(base)
+      }
     }
-  }, [spBase])
+  }, [spBase, forcedDestination])
 
   useEffect(() => {
     const handler = (e: Event) => {

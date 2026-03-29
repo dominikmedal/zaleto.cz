@@ -439,16 +439,36 @@ export default async function HotelDetailPage({ params }: Props) {
                 <ReviewsSection slug={params.slug} />
               </CollapsibleSection>
 
-              {hotel.latitude && hotel.longitude && (
-                <CollapsibleSection title="Počasí v destinaci" icon={<PiSun className="w-5 h-5" />}>
-                  <WeatherWidget
-                    lat={hotel.latitude}
-                    lon={hotel.longitude}
-                    location={hotel.resort_town ?? hotel.country ?? ''}
-                    noCard
-                  />
-                </CollapsibleSection>
-              )}
+              {hotel.latitude && hotel.longitude && (() => {
+                const _country = hotel.country
+                const _region = hotel.destination?.split('/')[1]?.trim()
+                const _weatherUrl = _country
+                  ? _region
+                    ? `/pocasi/${slugify(_country)}/${slugify(_region)}`
+                    : `/pocasi/${slugify(_country)}`
+                  : null
+                return (
+                  <CollapsibleSection title="Počasí v destinaci" icon={<PiSun className="w-5 h-5" />}>
+                    <WeatherWidget
+                      lat={hotel.latitude!}
+                      lon={hotel.longitude!}
+                      location={hotel.resort_town ?? hotel.country ?? ''}
+                      noCard
+                    />
+                    {_weatherUrl && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <Link
+                          href={_weatherUrl}
+                          className="inline-flex items-center gap-1.5 text-xs text-[#008afe] hover:underline font-medium"
+                        >
+                          <PiSun className="w-3.5 h-3.5" />
+                          Podrobné klima a předpověď — {_region ?? _country}
+                        </Link>
+                      </div>
+                    )}
+                  </CollapsibleSection>
+                )
+              })()}
 
             </div>
           </div>

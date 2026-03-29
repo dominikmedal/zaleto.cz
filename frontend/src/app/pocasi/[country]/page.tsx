@@ -3,13 +3,19 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
+import {
+  PiThermometer, PiSun, PiLeaf, PiWind, PiAirplane,
+  PiCloudSun, PiCalendarBlank, PiMapPin,
+} from 'react-icons/pi'
 import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import WeatherWidget from '@/components/WeatherWidget'
 import ClimateChart from '@/components/ClimateChart'
 import WeatherBarsChart from '@/components/WeatherBarsChart'
+import { FeaturedHotelsBarVertical } from '@/components/FeaturedHotelCard'
+import WeatherPageNav from '@/components/WeatherPageNav'
 import JsonLd from '@/components/JsonLd'
-import { fetchDestinations, fetchDestinationPhoto, fetchWeatherAI, fetchWeatherLocation } from '@/lib/api'
+import { fetchDestinations, fetchDestinationPhoto, fetchWeatherAI, fetchWeatherLocation, fetchHotels } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 import { getCountryFlag } from '@/lib/countryFlags'
 
@@ -18,6 +24,15 @@ export const dynamicParams = true
 
 const MONTH_NAMES = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec']
 const MONTH_SHORT = ['Led', 'Únr', 'Bře', 'Dub', 'Kvě', 'Čer', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro']
+
+const SEASONS = [
+  { key: 'spring', label: 'Jaro',   months: 'březen – květen',   icon: '🌸', border: 'border-emerald-400', bg: 'bg-emerald-50' },
+  { key: 'summer', label: 'Léto',   months: 'červen – srpen',    icon: '☀️', border: 'border-amber-400',   bg: 'bg-amber-50'   },
+  { key: 'autumn', label: 'Podzim', months: 'září – listopad',   icon: '🍂', border: 'border-orange-400',  bg: 'bg-orange-50'  },
+  { key: 'winter', label: 'Zima',   months: 'prosinec – únor',   icon: '❄️', border: 'border-sky-400',     bg: 'bg-sky-50'     },
+] as const
+
+const SCROLL_MARGIN = { scrollMarginTop: '136px' }
 
 export async function generateStaticParams() {
   try {
@@ -48,7 +63,6 @@ async function resolveCountry(countrySlug: string): Promise<CountryInfo | null> 
   }
   if (!countryName) return null
 
-  // Collect sub-destinations (regions) for this country
   const regionMap = new Map<string, number>()
   for (const d of destinations) {
     if (d.country !== countryName) continue
@@ -67,11 +81,23 @@ async function resolveCountry(countrySlug: string): Promise<CountryInfo | null> 
 
 interface Props { params: { country: string } }
 
+function weatherTitle(name: string): string {
+  const year = new Date().getFullYear()
+  const idx = [...name].reduce((sum, c) => sum + c.charCodeAt(0), 0) % 5
+  return [
+    `${name} počasí – kdy jet na dovolenou + teplota moře`,
+    `${name} počasí ${year} – teplota, moře, kdy jet + zájezdy`,
+    `${name} počasí + levné zájezdy – kdy jet a kolik stojí`,
+    `Jaké je počasí v ${name}? Teploty, moře a nejlepší období`,
+    `${name} – počasí podle měsíců + tipy na dovolenou`,
+  ][idx]
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const info = await resolveCountry(params.country)
   if (!info) return { title: 'Počasí | Zaleto' }
-  const title = `Počasí ${info.name} — teploty, klima, nejlepší doba | Zaleto`
-  const description = `Aktuální počasí a klimatické grafy pro ${info.name}. Průměrné teploty vzduchu a moře, počet slunečních hodin a nejlepší měsíce pro dovolenou.`
+  const title = weatherTitle(info.name)
+  const description = `Průměrné teploty vzduchu a moře, sluneční svit a srážky v ${info.name} po měsících. Zjistěte, kdy je nejlepší dovolená a kdy se můžete koupat.`
   const canonical = `https://zaleto.cz/pocasi/${params.country}`
   return {
     title,
@@ -81,49 +107,36 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-function BestMonthsStrip({ best }: { best: number[] }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {MONTH_SHORT.map((m, i) => {
-        const isBest = best.includes(i + 1)
-        return (
-          <span key={m} className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
-            isBest
-              ? 'bg-[#008afe] text-white'
-              : 'bg-gray-100 text-gray-400'
-          }`}>
-            {m}
-          </span>
-        )
-      })}
-    </div>
-  )
-}
-
-function SeasonCard({ icon, title, text }: { icon: string; title: string; text: string }) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xl">{icon}</span>
-        <span className="font-semibold text-sm text-gray-800">{title}</span>
-      </div>
-      <p className="text-xs text-gray-500 leading-relaxed">{text}</p>
-    </div>
-  )
-}
-
 export default async function CountryWeatherPage({ params }: Props) {
   const info = await resolveCountry(params.country)
   if (!info) notFound()
 
-  const [weather, location, heroPhoto] = await Promise.all([
+  const [weather, location, heroPhoto, featuredResult] = await Promise.all([
     fetchWeatherAI(info.name),
     fetchWeatherLocation(info.name),
     fetchDestinationPhoto(info.name).catch(() => null),
+    fetchHotels({ destination: info.name, limit: 3, sort: 'stars_desc' }).catch(() => ({ hotels: [], pagination: { total: 0, page: 1, limit: 3, totalPages: 0, hasMore: false } })),
   ])
+  const featuredHotels = featuredResult.hotels
 
   const flag = getCountryFlag(info.name)
   const hasCharts = weather.monthly_air && weather.monthly_air.length === 12
+  const peakSea = weather.monthly_sea ? Math.max(...weather.monthly_sea) : null
+  const bestMonthNames = weather.best_months.map(m => MONTH_SHORT[m - 1])
+  const hasWeather = !!(location.lat && location.lon)
+  const hasSlunce = !!(weather.monthly_sun_hours || weather.monthly_rain_days)
+  const hasOdobi = SEASONS.some(s => weather[s.key as keyof typeof weather])
+  const hasVitr = !!(weather.wind_info || weather.sea_info)
+
+  const navItems = [
+    hasWeather || weather.best_months.length > 0 ? { id: 'pocasi', label: 'Počasí' } : null,
+    hasCharts ? { id: 'teploty', label: 'Teploty' } : null,
+    hasSlunce ? { id: 'slunce', label: 'Slunce & déšť' } : null,
+    hasOdobi ? { id: 'obdobi', label: 'Roční období' } : null,
+    hasVitr ? { id: 'vitr', label: 'Vítr & moře' } : null,
+    info.subDestinations.length > 0 ? { id: 'oblasti', label: 'Oblasti' } : null,
+    { id: 'zajezdy', label: 'Zájezdy' },
+  ].filter(Boolean) as { id: string; label: string }[]
 
   const breadcrumbSchema = {
     '@context': 'https://schema.org',
@@ -140,159 +153,217 @@ export default async function CountryWeatherPage({ params }: Props) {
       <JsonLd data={breadcrumbSchema} />
       <Header />
 
-      {/* Hero */}
-      {heroPhoto && (
-        <div className="relative min-h-[260px] sm:min-h-[340px]">
+      {/* ── Hero ── */}
+      {heroPhoto ? (
+        <div className="relative min-h-[300px] sm:min-h-[380px]">
           <Image src={heroPhoto} alt={info.name} fill className="object-cover" unoptimized priority
             style={{ filter: 'brightness(1.05) saturate(1.05)' }} />
           <div className="absolute inset-0" style={{
-            background: 'linear-gradient(to right, rgba(245,250,255,1) 0%, rgba(245,250,255,0.88) 32%, rgba(245,250,255,0.5) 60%, rgba(245,250,255,0) 100%)'
+            background: 'linear-gradient(to right, rgba(245,250,255,1) 0%, rgba(245,250,255,0.88) 30%, rgba(245,250,255,0.55) 58%, rgba(245,250,255,0.0) 100%)'
           }} />
-          <div className="absolute inset-x-0 bottom-0 h-28" style={{
+          <div className="absolute inset-x-0 bottom-0 h-32" style={{
             background: 'linear-gradient(to top, rgba(245,250,255,1) 0%, rgba(245,250,255,0.6) 50%, transparent 100%)'
           }} />
-          <div className="relative py-8 sm:py-12">
-            <div className="max-w-[1680px] mx-auto px-4 sm:px-10 pb-4">
-              <HeroBreadcrumb countrySlug={params.country} countryName={info.name} />
-              <HeroTitle name={info.name} flag={flag} />
+          <div className="relative flex items-center py-8 sm:py-10">
+            <div className="max-w-[1680px] mx-auto px-4 sm:px-10 w-full pb-6">
+              <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
+                <Link href="/" className="hover:text-[#008afe] transition-colors">Zaleto</Link>
+                <span className="text-gray-200">/</span>
+                <Link href="/pocasi" className="hover:text-[#008afe] transition-colors">Počasí</Link>
+                <span className="text-gray-200">/</span>
+                <span className="text-gray-700 font-medium">{info.name}</span>
+              </nav>
+              <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 leading-tight mb-2 drop-shadow-sm flex items-center gap-3 flex-wrap">
+                {flag && <span className="flex-shrink-0">{flag}</span>}
+                Počasí — {info.name}
+              </h1>
               {weather.description && (
-                <p className="text-gray-700 text-sm sm:text-base max-w-xl leading-relaxed mt-2">
+                <p className="text-gray-700 text-sm sm:text-base max-w-2xl leading-relaxed">
                   {weather.description.split(/\n\n+/)[0]}
                 </p>
+              )}
+              {(peakSea || bestMonthNames.length > 0) && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {peakSea && (
+                    <span className="inline-flex items-center gap-1.5 bg-white/80 backdrop-blur-sm border border-sky-200 text-sky-700 text-xs font-medium px-3 py-1.5 rounded-full shadow-sm">
+                      🏊 Moře až {peakSea}°C
+                    </span>
+                  )}
+                  {bestMonthNames.length > 0 && (
+                    <span className="inline-flex items-center gap-1.5 bg-white/80 backdrop-blur-sm border border-amber-200 text-amber-700 text-xs font-medium px-3 py-1.5 rounded-full shadow-sm">
+                      ☀️ Nejlepší: {bestMonthNames.slice(0, 4).join(', ')}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </div>
         </div>
-      )}
-
-      <main className="max-w-[1680px] mx-auto px-4 sm:px-10 py-6 sm:py-8 space-y-8">
-
-        {/* Compact hero when no photo */}
-        {!heroPhoto && (
-          <div>
-            <HeroBreadcrumb countrySlug={params.country} countryName={info.name} />
-            <HeroTitle name={info.name} flag={flag} />
+      ) : (
+        <div className="bg-white border-b border-gray-100">
+          <div className="max-w-[1680px] mx-auto px-4 sm:px-10 py-8">
+            <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
+              <Link href="/" className="hover:text-[#008afe] transition-colors">Zaleto</Link>
+              <span className="text-gray-200">/</span>
+              <Link href="/pocasi" className="hover:text-[#008afe] transition-colors">Počasí</Link>
+              <span className="text-gray-200">/</span>
+              <span className="text-gray-700 font-medium">{info.name}</span>
+            </nav>
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 flex items-center gap-3 flex-wrap">
+              {flag && <span className="flex-shrink-0">{flag}</span>}
+              Počasí — {info.name}
+            </h1>
             {weather.description && (
               <p className="text-gray-500 text-sm mt-2 max-w-2xl leading-relaxed">
                 {weather.description.split(/\n\n+/)[0]}
               </p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── Section nav (not sticky) ── */}
+      <WeatherPageNav items={navItems} />
+
+      <div className="max-w-[1680px] mx-auto px-4 sm:px-10 py-6 sm:py-8">
+        <div className="flex gap-8 items-start">
+
+          {/* ── Main content ── */}
+          <main className="flex-1 min-w-0 space-y-10">
+
+        {/* ── Počasí + Nejlepší měsíce (merged wide block) ── */}
+        {(hasWeather || weather.best_months.length > 0) && (
+          <section id="pocasi" style={SCROLL_MARGIN}>
+            <SectionHeader Icon={PiCloudSun} title="Počasí" />
+            <div className="flex flex-col lg:flex-row gap-4 lg:items-stretch">
+              {hasWeather && (
+                <div className="lg:w-72 flex-shrink-0 flex flex-col [&>*]:flex-1 [&>*]:min-h-0">
+                  <WeatherWidget lat={location.lat!} lon={location.lon!} location={info.name} />
+                </div>
+              )}
+              {weather.best_months.length > 0 && (
+                <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4">
+                  <p className="text-xs
+                   text-gray-900 mb uppercase tracking-widest flex items-center gap-1.5">
+                    <PiCalendarBlank className="w-3.5 h-3.5" />
+                    Nejlepší měsíce pro dovolenou
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {MONTH_SHORT.map((m, i) => {
+                      const isBest = weather.best_months.includes(i + 1)
+                      return (
+                        <span key={m} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${
+                          isBest ? 'bg-[#008afe] text-white' : 'bg-gray-100 text-gray-400'
+                        }`}>{m}</span>
+                      )
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Ideální termíny: {weather.best_months.map(m => MONTH_NAMES[m - 1]).join(', ')}
+                  </p>
+                  {weather.description?.split(/\n\n+/)[1] && (
+                    <p className="text-sm text-gray-500 leading-relaxed border-t border-gray-50 pt-4">
+                      {weather.description.split(/\n\n+/)[1]}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
         )}
 
-        {/* Weather + Best months */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Current weather widget */}
-          {location.lat && location.lon && (
-            <div className="lg:col-span-1">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Aktuální počasí</h2>
-              <WeatherWidget lat={location.lat} lon={location.lon} location={info.name} />
-            </div>
-          )}
-
-          {/* Best months */}
-          {weather.best_months.length > 0 && (
-            <div className={location.lat ? 'lg:col-span-2' : 'lg:col-span-3'}>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Nejlepší měsíce pro dovolenou</h2>
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <BestMonthsStrip best={weather.best_months} />
-                {weather.best_months.length > 0 && (
-                  <p className="text-xs text-gray-400 mt-3">
-                    Ideální: {weather.best_months.map(m => MONTH_NAMES[m - 1]).join(', ')}
-                  </p>
-                )}
-                {weather.description && (
-                  <p className="text-sm text-gray-600 leading-relaxed mt-3 border-t border-gray-50 pt-3">
-                    {weather.description.split(/\n\n+/)[1] ?? ''}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Climate charts */}
+        {/* ── Průměrné teploty ── */}
         {hasCharts && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-800">Průměrné teploty</h2>
+          <section id="teploty" style={SCROLL_MARGIN}>
+            <SectionHeader Icon={PiThermometer} title={`Průměrné teploty — ${info.name}`} />
             <ClimateChart
-              name={`${info.name} — teploty vzduchu${weather.monthly_sea ? ' a moře' : ''}`}
+              name={info.name}
               air={weather.monthly_air!}
               sea={weather.monthly_sea ?? undefined}
             />
-          </div>
+          </section>
         )}
 
-        {/* Sun + Rain charts */}
-        {(weather.monthly_sun_hours || weather.monthly_rain_days) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {weather.monthly_sun_hours && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800 mb-3">Sluneční svit</h2>
+        {/* ── Slunce & srážky ── */}
+        {hasSlunce && (
+          <section id="slunce" style={SCROLL_MARGIN}>
+            <SectionHeader Icon={PiSun} title="Slunce a srážky" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {weather.monthly_sun_hours && (
                 <WeatherBarsChart
-                  title="Průměrný denní počet hodin slunce"
+                  title="Průměrný počet hodin slunce za den"
                   values={weather.monthly_sun_hours}
                   color="#fbbf24"
-                  unit="hodin/den"
+                  unit="hod / den"
                   highlightMonths={weather.best_months}
                 />
-              </div>
-            )}
-            {weather.monthly_rain_days && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800 mb-3">Srážky</h2>
+              )}
+              {weather.monthly_rain_days && (
                 <WeatherBarsChart
-                  title="Průměrný počet dešťových dní v měsíci"
+                  title="Průměrný počet dešťových dní"
                   values={weather.monthly_rain_days}
                   color="#60a5fa"
-                  unit="dní/měsíc"
+                  unit="dní / měsíc"
                 />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Seasonal cards */}
-        {(weather.spring || weather.summer || weather.autumn || weather.winter) && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Počasí podle ročního období</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {weather.spring  && <SeasonCard icon="🌸" title="Jaro (březen–květen)"      text={weather.spring} />}
-              {weather.summer  && <SeasonCard icon="☀️" title="Léto (červen–srpen)"       text={weather.summer} />}
-              {weather.autumn  && <SeasonCard icon="🍂" title="Podzim (září–listopad)"     text={weather.autumn} />}
-              {weather.winter  && <SeasonCard icon="❄️" title="Zima (prosinec–únor)"       text={weather.winter} />}
+              )}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Wind + Sea info */}
-        {(weather.wind_info || weather.sea_info) && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {weather.wind_info && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">💨</span>
-                  <span className="font-semibold text-sm text-gray-800">Vítr</span>
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed">{weather.wind_info}</p>
-              </div>
-            )}
-            {weather.sea_info && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">🏊</span>
-                  <span className="font-semibold text-sm text-gray-800">Teplota moře</span>
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed">{weather.sea_info}</p>
-              </div>
-            )}
-          </div>
+        {/* ── Roční období ── */}
+        {hasOdobi && (
+          <section id="obdobi" style={SCROLL_MARGIN}>
+            <SectionHeader Icon={PiLeaf} title="Počasí podle ročního období" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {SEASONS.map(s => {
+                const text = weather[s.key as keyof typeof weather] as string | null
+                if (!text) return null
+                return (
+                  <div key={s.key} className={`rounded-2xl border border-gray-100 border-l-4 p-4 ${s.border} ${s.bg}`}>
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <span className="text-xl">{s.icon}</span>
+                      <div>
+                        <p className="font-bold text-sm text-gray-900 leading-none">{s.label}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{s.months}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">{text}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
         )}
 
-        {/* Sub-destinations grid */}
+        {/* ── Vítr & moře ── */}
+        {hasVitr && (
+          <section id="vitr" style={SCROLL_MARGIN}>
+            <SectionHeader Icon={PiWind} title="Vítr a moře" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {weather.wind_info && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <p className="flex items-center gap-2 font-semibold text-sm text-gray-800 mb-2">
+                    <PiWind className="w-4 h-4 text-[#008afe]" /> Vítr
+                  </p>
+                  <p className="text-sm text-gray-500 leading-relaxed">{weather.wind_info}</p>
+                </div>
+              )}
+              {weather.sea_info && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <p className="flex items-center gap-2 font-semibold text-sm text-gray-800 mb-2">
+                    <PiMapPin className="w-4 h-4 text-[#008afe]" /> Koupání a teplota moře
+                  </p>
+                  <p className="text-sm text-gray-500 leading-relaxed">{weather.sea_info}</p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ── Oblasti a letoviště ── */}
         {info.subDestinations.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Počasí v oblastech a letoviscích</h2>
+          <section id="oblasti" style={SCROLL_MARGIN}>
+            <SectionHeader Icon={PiMapPin} title="Oblasti a letoviště" />
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {info.subDestinations.map((dest) => (
                 <Link
@@ -312,47 +383,43 @@ export default async function CountryWeatherPage({ params }: Props) {
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Tour banners */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-800 mb-1">
-            Zájezdy do {info.name}
-          </h2>
-          <p className="text-sm text-gray-400 mb-5">Nejlepší nabídky na tuto sezónu</p>
+        {/* ── Zájezdy ── */}
+        <section id="zajezdy" style={SCROLL_MARGIN}>
+          <SectionHeader Icon={PiAirplane} title={`Zájezdy do ${info.name}`} />
+          {/* Dashed connector */}
+          <div className="flex items-center gap-2 mb-5">
+            <div className="flex-1 h-px" style={{ backgroundImage: 'repeating-linear-gradient(to right, #e5e7eb 0, #e5e7eb 6px, transparent 6px, transparent 12px)' }} />
+            <PiAirplane className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" style={{ transform: 'rotate(90deg)' }} />
+            <div className="flex-1 h-px" style={{ backgroundImage: 'repeating-linear-gradient(to right, #e5e7eb 0, #e5e7eb 6px, transparent 6px, transparent 12px)' }} />
+          </div>
           <Suspense>
             <HotelGrid forcedDestination={info.name} />
           </Suspense>
-        </div>
+        </section>
 
-      </main>
+          </main>
+
+          {/* ── Right sidebar: hotel recommendations ── */}
+          {featuredHotels.length > 0 && (
+            <aside className="hidden lg:block w-56 flex-shrink-0 sticky top-24">
+              <FeaturedHotelsBarVertical hotels={featuredHotels} />
+            </aside>
+          )}
+
+        </div>
+      </div>
     </div>
   )
 }
 
-function HeroBreadcrumb({ countrySlug, countryName }: { countrySlug: string; countryName: string }) {
+function SectionHeader({ Icon, title }: { Icon: React.ElementType; title: string }) {
   return (
-    <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
-      <Link href="/" className="hover:text-[#008afe] transition-colors">Zaleto</Link>
-      <span className="text-gray-200">/</span>
-      <Link href="/pocasi" className="hover:text-[#008afe] transition-colors">Počasí</Link>
-      <span className="text-gray-200">/</span>
-      <span className="text-gray-700 font-medium">{countryName}</span>
-    </nav>
-  )
-}
-
-function HeroTitle({ name, flag }: { name: string; flag: string | null }) {
-  return (
-    <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 leading-tight flex items-center gap-3 flex-wrap">
-      {flag && (
-        <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm"
-          style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
-          {flag}
-        </span>
-      )}
-      Počasí — {name}
-    </h1>
+    <h2 className="flex items-center gap-2 text-base font-bold text-gray-900 mb-4">
+      <Icon className="w-4 h-4 text-[#008afe] flex-shrink-0" />
+      {title}
+    </h2>
   )
 }
