@@ -23,9 +23,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // ── Stránky destinací ─────────────────────────────────────────────────────
   let destUrls: MetadataRoute.Sitemap = []
+  let weatherUrls: MetadataRoute.Sitemap = []
   try {
     const destinations = await fetchDestinations()
     const seen = new Set<string>()
+    const weatherCountrySeen = new Set<string>()
+    const weatherDestSeen = new Set<string>()
+
+    // Landing počasí
+    weatherUrls.push({ url: `${base}/pocasi`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 })
 
     for (const d of destinations) {
       // Země
@@ -33,27 +39,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const s = slugify(d.country)
         if (!seen.has(s)) {
           seen.add(s)
-          destUrls.push({
-            url: `${base}/destinace/${s}`,
-            lastModified: now,
-            changeFrequency: 'daily',
-            priority: 0.8,
-          })
+          destUrls.push({ url: `${base}/destinace/${s}`, lastModified: now, changeFrequency: 'daily', priority: 0.8 })
+        }
+        if (!weatherCountrySeen.has(s)) {
+          weatherCountrySeen.add(s)
+          weatherUrls.push({ url: `${base}/pocasi/${s}`, lastModified: now, changeFrequency: 'weekly', priority: 0.75 })
         }
       }
       // Region
       const region = d.destination?.split('/').map((s: string) => s.trim())[1]
         ?? d.destination?.split('/')[0]?.trim()
-      if (region) {
+      if (region && !/safari|bike|trek|plus|sport|aktivní/i.test(region)) {
         const s = slugify(region)
         if (!seen.has(s)) {
           seen.add(s)
-          destUrls.push({
-            url: `${base}/destinace/${s}`,
-            lastModified: now,
-            changeFrequency: 'daily',
-            priority: 0.75,
-          })
+          destUrls.push({ url: `${base}/destinace/${s}`, lastModified: now, changeFrequency: 'daily', priority: 0.75 })
+        }
+        if (d.country) {
+          const weatherKey = `${slugify(d.country)}_${s}`
+          if (!weatherDestSeen.has(weatherKey)) {
+            weatherDestSeen.add(weatherKey)
+            weatherUrls.push({
+              url: `${base}/pocasi/${slugify(d.country)}/${s}`,
+              lastModified: now,
+              changeFrequency: 'weekly',
+              priority: 0.7,
+            })
+          }
         }
       }
       // Letovisko
@@ -61,12 +73,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const s = slugify(d.resort_town)
         if (!seen.has(s)) {
           seen.add(s)
-          destUrls.push({
-            url: `${base}/destinace/${s}`,
-            lastModified: now,
-            changeFrequency: 'daily',
-            priority: 0.7,
-          })
+          destUrls.push({ url: `${base}/destinace/${s}`, lastModified: now, changeFrequency: 'daily', priority: 0.7 })
         }
       }
     }
@@ -84,5 +91,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
   } catch {}
 
-  return [...staticPages, ...destUrls, ...hotelUrls]
+  return [...staticPages, ...destUrls, ...weatherUrls, ...hotelUrls]
 }

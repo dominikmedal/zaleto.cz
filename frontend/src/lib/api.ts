@@ -169,6 +169,51 @@ export async function fetchDestinationAI(destination: string): Promise<Destinati
   } catch { return { description: null, excursions: [], best_time: null, places: [], food: [], trips: [] } }
 }
 
+export type WeatherAIData = {
+  description: string | null
+  monthly_air: number[] | null
+  monthly_sea: number[] | null
+  monthly_rain_days: number[] | null
+  monthly_sun_hours: number[] | null
+  best_months: number[]
+  winter: string | null
+  spring: string | null
+  summer: string | null
+  autumn: string | null
+  wind_info: string | null
+  sea_info: string | null
+}
+
+const EMPTY_WEATHER: WeatherAIData = {
+  description: null, monthly_air: null, monthly_sea: null,
+  monthly_rain_days: null, monthly_sun_hours: null, best_months: [],
+  winter: null, spring: null, summer: null, autumn: null,
+  wind_info: null, sea_info: null,
+}
+
+export async function fetchWeatherAI(destination: string): Promise<WeatherAIData> {
+  try {
+    const res = await fetch(
+      `${API}/api/weather-ai/${encodeURIComponent(destination)}`,
+      { next: { revalidate: 86400 }, signal: timeout() }
+    )
+    if (!res.ok) return EMPTY_WEATHER
+    const d = await res.json()
+    return { ...EMPTY_WEATHER, ...d }
+  } catch { return EMPTY_WEATHER }
+}
+
+export async function fetchWeatherLocation(destination: string): Promise<{ lat: number | null; lon: number | null }> {
+  try {
+    const res = await fetch(
+      `${API}/api/weather-ai/location/${encodeURIComponent(destination)}`,
+      { next: { revalidate: 86400 }, signal: timeout() }
+    )
+    if (!res.ok) return { lat: null, lon: null }
+    return res.json()
+  } catch { return { lat: null, lon: null } }
+}
+
 export async function fetchFilters(): Promise<{
   mealPlans: { meal_plan: string; count: number }[]
   priceRange: { min: number; max: number }

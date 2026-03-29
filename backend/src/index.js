@@ -34,6 +34,7 @@ const metaRouter           = require('./routes/meta')
 const redirectRouter       = require('./routes/redirect')
 const destPhotosRouter     = require('./routes/destinationPhotos')
 const destAIRouter         = require('./routes/destinationAI')
+const weatherAIRouter      = require('./routes/weatherAI')
 const contactRouter        = require('./routes/contact')
 
 app.use('/api/hotels', hotelsRouter)
@@ -48,6 +49,7 @@ const redirectLimiter = rateLimit({
 app.use('/api/redirect', redirectLimiter, redirectRouter)
 app.use('/api/destination-photo', destPhotosRouter)
 app.use('/api/destination-ai', destAIRouter)
+app.use('/api/weather-ai', weatherAIRouter)
 app.use('/api/contact', contactRouter)
 app.use('/api', metaRouter)
 
@@ -65,6 +67,10 @@ app.post('/api/cache/invalidate', async (req, res) => {
   // Vygeneruj AI popisy jen při finální invalidaci (konec celého scraping cyklu)
   if (req.query.final === '1') {
     require('./routes/destinationAI').generateMissingAI().catch(() => {})
+    // Start weather AI generation 3 min after destination AI (shares same Gemini key)
+    setTimeout(() => {
+      require('./routes/weatherAI').generateMissingWeatherAI().catch(() => {})
+    }, 3 * 60_000)
   }
   res.json({ ok: true })
 })

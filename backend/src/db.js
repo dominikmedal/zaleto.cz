@@ -157,6 +157,25 @@ async function initSchema() {
       }
     }
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS weather_ai (
+        name              TEXT PRIMARY KEY,
+        description       TEXT,
+        monthly_air       TEXT,
+        monthly_sea       TEXT,
+        monthly_rain_days TEXT,
+        monthly_sun_hours TEXT,
+        best_months       TEXT,
+        winter            TEXT,
+        spring            TEXT,
+        summer            TEXT,
+        autumn            TEXT,
+        wind_info         TEXT,
+        sea_info          TEXT,
+        generated_at      TIMESTAMPTZ DEFAULT NOW()
+      )
+    `)
+
     console.log('[db] running migrations...')
     const migrations = [
       `ALTER TABLE tours ADD COLUMN IF NOT EXISTS price_single REAL`,
@@ -167,6 +186,7 @@ async function initSchema() {
       `ALTER TABLE destination_ai ADD COLUMN IF NOT EXISTS places TEXT`,
       `ALTER TABLE destination_ai ADD COLUMN IF NOT EXISTS food TEXT`,
       `ALTER TABLE destination_ai ADD COLUMN IF NOT EXISTS trips TEXT`,
+      `ALTER TABLE hotels ADD COLUMN IF NOT EXISTS static_fetched_at TIMESTAMPTZ`,
     ]
     for (const sql of migrations) {
       try { await client.query(sql) } catch (e) {
