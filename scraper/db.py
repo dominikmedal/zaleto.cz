@@ -91,8 +91,11 @@ class _ConnWrapper:
 
     def __init__(self, conn):
         self._conn = conn
+        self._db   = None  # backref na ZaletoDB — nastaví __init__
 
     def execute(self, sql: str, params=None):
+        if self._conn.closed and self._db:
+            self._db._reconnect()
         sql = sql.replace("?", "%s")
         cur = self._conn.cursor(cursor_factory=psycopg2.extensions.cursor)
         cur.execute(sql, params or ())
@@ -114,10 +117,23 @@ class ZaletoDB:
     def __init__(self, path: str = None):
         self._pg_conn = _connect()
         self.conn = _ConnWrapper(self._pg_conn)
+        self.conn._db = self
         self._ensure_extra_tables()
         logger.info("DB: PostgreSQL")
 
+    def _reconnect(self):
+        """Obnoví ztracené DB spojení (psycopg2 connection already closed)."""
+        try:
+            self._pg_conn.close()
+        except Exception:
+            pass
+        self._pg_conn = _connect()
+        self.conn._conn = self._pg_conn  # aktualizuj existující wrapper
+        logger.warning("DB: PostgreSQL (relace obnovena)")
+
     def _cur(self):
+        if self._pg_conn.closed:
+            self._reconnect()
         return self._pg_conn.cursor()
 
     def _ensure_extra_tables(self):
