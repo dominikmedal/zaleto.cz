@@ -95,7 +95,7 @@ def get_hotel_urls(session: requests.Session, limit: int = 0) -> list[str]:
             if r.status_code == 404:
                 break  # žádné další sitemap soubory
             if r.status_code != 200:
-                logger.debug(f"Fischer sitemap-hotel-{idx}.xml: HTTP {r.status_code}")
+                logger.warning(f"Fischer sitemap-hotel-{idx}.xml: HTTP {r.status_code}")
                 break
             found = re.findall(
                 r"<loc>(https://www\.fischer\.cz/(?!sitemap)[^<]+)</loc>", r.text
@@ -105,7 +105,7 @@ def get_hotel_urls(session: requests.Session, limit: int = 0) -> list[str]:
             urls.extend(found)
             logger.info(f"  sitemap-hotel-{idx}.xml: {len(found)} URL")
         except Exception as e:
-            logger.debug(f"Fischer sitemap-hotel-{idx}.xml error: {e}")
+            logger.warning(f"Fischer sitemap-hotel-{idx}.xml error: {e}")
             break
 
     # Deduplikace
@@ -491,9 +491,10 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
         "price_includes": price_includes,
         "latitude":      p.get("latitude"),
         "longitude":     p.get("longitude"),
-        "api_config":    json.dumps({                     # pro live redirect
+        "api_config":    json.dumps({                     # pro live redirect + update-only mode
             **p["_offer_filter"],
-            "_hotelPath": "/" + hotel_url.split("fischer.cz/", 1)[-1].split("?")[0],
+            "_hotelPath":    "/" + hotel_url.split("fischer.cz/", 1)[-1].split("?")[0],
+            "_hotelDataKey": p["hotel_data_key"],
         }),
     }
 
@@ -643,6 +644,115 @@ def scrape_hotel(session: requests.Session, db: ZaletoDB,
     return len(all_tours)
 
 
+# ---------------------------------------------------------------------------
+# Update-only mode — přeskočí GET hotelové stránky, použije uložený api_config
+# ---------------------------------------------------------------------------
+
+def _p_from_api_config(cfg: dict) -> dict | None:
+    """Rekonstruuje parametrický dict pro _get_offer z uloženého api_config."""
+    hdk = cfg.get("_hotelDataKey")
+    if not hdk or not hdk.get("hotelId"):
+        return None
+
+    dest_ids = cfg.get("destinationIds", [])
+    transport = cfg.get("transportOrigin", [])
+    if not dest_ids:
+        return None
+
+    rooms = cfg.get("rooms", [{}])
+    room  = rooms[0] if rooms else {}
+    travellers = room.get("travellers", [])
+    adults = len([t for t in travellers if t.get("type") == 0]) or 2
+
+    number_nights = cfg.get("numberNights", [7])
+    nights = number_nights[0] if number_nights else 7
+
+    mfd = (cfg.get("offerDate") or {}).get("mainFilterDates", [])
+    main_from = mfd[0][:10] if len(mfd) > 0 else ""
+    main_to   = mfd[1][:10] if len(mfd) > 1 else ""
+
+    # Pokud jsou uložená data z minulosti, aktualizuj rozsah na dnešek–18 měsíců
+    today = datetime.today().strftime("%Y-%m-%d")
+    far   = (datetime.today() + timedelta(days=548)).strftime("%Y-%m-%d")
+    if not main_from or main_from < today:
+        main_from = today
+    if not main_to or main_to < today:
+        main_to = far
+
+    return {
+        "hotel_data_key":    hdk,
+        "hotel_id":          hdk.get("hotelId"),
+        "destination_ids":   dest_ids,
+        "transport_origin":  transport,
+        "meal_code":         cfg.get("mealCode", ""),
+        "room_code":         room.get("roomCode", ""),
+        "nights":            nights,
+        "all_nights":        number_nights if number_nights else [7],
+        "adults":            adults,
+        "package_id":        cfg.get("packageId", ""),
+        "main_filter_from":  main_from,
+        "main_filter_to":    main_to,
+        "tour_filter_query": cfg.get("tourFilterQuery", ""),
+        "_offer_filter":     cfg,
+        "departure_date":    "",
+        # metadata — není potřeba pro API, ale _build_hotel_and_tours to toleruje
+        "hotel_name": "", "country": "", "destination": "", "resort_town": "",
+        "stars": None, "review_score": None, "description": "", "images": [],
+        "amenities": "", "tags": "", "distances": "", "latitude": None, "longitude": None,
+    }
+
+
+def update_hotel_tours(session: requests.Session, db: ZaletoDB,
+                       hotel_id: int, api_config_str: str,
+                       airports: list[int]) -> int:
+    """
+    Rychlá aktualizace termínů jednoho hotelu bez GET hotelové stránky.
+    Vrací počet uložených termínů (0 = přeskočeno nebo žádné termíny).
+    """
+    try:
+        cfg = json.loads(api_config_str)
+    except Exception:
+        return 0
+
+    hotel_path = cfg.get("_hotelPath", "")
+    if not hotel_path:
+        return 0
+    hotel_url_base = f"{BASE_URL}{hotel_path}"
+
+    base_p = _p_from_api_config(cfg)
+    if not base_p:
+        return 0   # chybí _hotelDataKey → hotel ze staré verze scraperu
+
+    all_tours: list = []
+
+    # transportOrigin v api_config odpovídá letišti prvního scrapu.
+    # V update-only prochází všechna letiště stejně jako full scrape.
+    for airport in airports:
+        p = {**base_p, "transport_origin": [airport]}
+        airport_name  = AIRPORT_NAMES.get(airport, str(airport))
+        airport_tours: list = []
+
+        for nights_val in p["all_nights"]:
+            api_data = _get_offer(session, p, p["main_filter_from"], p["main_filter_to"],
+                                  nights_override=nights_val)
+            if not api_data or not api_data.get("availableDates"):
+                continue
+            _, tour_list = _build_hotel_and_tours(hotel_url_base, p, api_data, airport_name)
+            airport_tours.extend(tour_list)
+
+        if airport_tours:
+            all_tours.extend(airport_tours)
+
+    if not all_tours:
+        return 0
+
+    db.conn.execute("DELETE FROM tours WHERE hotel_id = %s AND agency = %s", (hotel_id, AGENCY))
+    for t in all_tours:
+        db.upsert_tour(hotel_id, t)
+    db.commit()
+    return len(all_tours)
+
+
 def delete_all(db: ZaletoDB):
     """Smaže všechny hotely a termíny (kaskádově). Zachová schéma."""
     hotels_count = db.conn.execute("SELECT COUNT(*) FROM hotels").fetchone()[0]
@@ -654,8 +764,73 @@ def delete_all(db: ZaletoDB):
     logger.info(f"Smazáno: {hotels_count} hotelů, {tours_count} termínů, recenze.")
 
 
+def _run_update_only(db: ZaletoDB, session: requests.Session,
+                     delay: float, airports: list[int]) -> int:
+    """
+    Rychlá aktualizace termínů bez GET hotelových stránek.
+    Pro každý Fischer hotel v DB použije uložený api_config → rovnou volá API.
+    Hotely bez _hotelDataKey (stará verze scraperu) scrape-uje plně.
+    """
+    rows = db.conn.execute(
+        "SELECT id, slug, api_config FROM hotels WHERE agency = %s AND api_config IS NOT NULL",
+        (AGENCY,)
+    ).fetchall()
+    total = len(rows)
+    logger.info(f"Update-only: {total} hotelů k aktualizaci")
+
+    slug_counter: dict = {}
+    for (s,) in db.conn.execute("SELECT slug FROM hotels WHERE agency = %s", (AGENCY,)).fetchall():
+        parts = s.rsplit("-", 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            slug_counter[parts[0]] = max(slug_counter.get(parts[0], 0), int(parts[1]) + 1)
+        else:
+            slug_counter[s] = max(slug_counter.get(s, 0), 1)
+
+    done_keys = db.get_done_keys(AGENCY)
+    total_saved = 0
+
+    for i, (hotel_id, slug, api_config_str) in enumerate(rows, 1):
+        ck = f"upd:{hotel_id}"
+        if ck in done_keys:
+            logger.info(f"[{i}/{total}] ✓ checkpoint: {slug}")
+            continue
+
+        try:
+            cfg = json.loads(api_config_str) if api_config_str else {}
+        except Exception:
+            cfg = {}
+
+        hotel_path = cfg.get("_hotelPath", "")
+        hotel_url  = f"{BASE_URL}{hotel_path}" if hotel_path else ""
+
+        if cfg.get("_hotelDataKey") and hotel_url:
+            logger.info(f"[{i}/{total}] (fast) {slug}")
+            try:
+                saved = update_hotel_tours(session, db, hotel_id, api_config_str, airports)
+                total_saved += saved
+                db.mark_done(AGENCY, ck)
+            except Exception as e:
+                logger.error(f"Chyba (fast) {slug}: {e}")
+        elif hotel_url:
+            # Starý api_config bez _hotelDataKey — full scrape tohoto hotelu + uloží nový api_config
+            logger.info(f"[{i}/{total}] (full fallback) {slug}")
+            try:
+                saved = scrape_hotel(session, db, hotel_url, slug_counter, airports)
+                total_saved += saved
+                db.mark_done(AGENCY, ck)
+            except Exception as e:
+                logger.error(f"Chyba (full fallback) {slug}: {e}")
+        else:
+            logger.debug(f"[{i}/{total}] Přeskakuji {slug} — chybí _hotelPath")
+
+        if i < total:
+            time.sleep(delay + random.uniform(0, delay * 0.4))
+
+    return total_saved
+
+
 def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
-        airports: list[int] | None = None):
+        airports: list[int] | None = None, update_only: bool = False):
     if airports is None:
         airports = list(AIRPORT_NAMES.keys())
 
@@ -666,12 +841,24 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
         logger.info("--delete: mažu všechna stávající data...")
         delete_all(db)
 
+    if update_only:
+        logger.info("Režim: UPDATE-ONLY (přeskočení GET stránek, jen API aktualizace termínů)")
+        total_saved = _run_update_only(db, session, delay, airports)
+        db.close()
+        logger.info(f"Update-only hotovo. Celkem uloženo: {total_saved} termínů.")
+        return total_saved
+
     hotel_urls  = get_hotel_urls(session, limit)
+    if not hotel_urls:
+        logger.error("Sitemap nevrátila žádné hotely — přerušuji (data v DB zachována).")
+        db.close()
+        raise SystemExit(1)
+
     total_saved = 0
     slug_counter: dict = {}
 
     # Pre-populate slug_counter z DB — zabrání kolizím slugů při resumování
-    for (s,) in db.conn.execute("SELECT slug FROM hotels WHERE agency = ?", (AGENCY,)).fetchall():
+    for (s,) in db.conn.execute("SELECT slug FROM hotels WHERE agency = %s", (AGENCY,)).fetchall():
         parts = s.rsplit("-", 1)
         if len(parts) == 2 and parts[1].isdigit():
             base, n = parts[0], int(parts[1]) + 1
@@ -718,6 +905,8 @@ if __name__ == "__main__":
                         help="Pauza mezi hotely v sekundách")
     parser.add_argument("--delete", action="store_true",
                         help="Před stažením smaže všechny stávající záznamy a začne od nuly")
+    parser.add_argument("--update-only", action="store_true",
+                        help="Přeskočí GET hotelových stránek — pouze aktualizuje termíny a ceny přes API")
     parser.add_argument("--airports", type=str, default='',
                         help=f"ID letišť oddělená čárkou (default: všechna = {','.join(str(k) for k in AIRPORT_NAMES)}). Př: --airports 4312,4313")
     args = parser.parse_args()
@@ -725,4 +914,5 @@ if __name__ == "__main__":
         airports = [int(x.strip()) for x in args.airports.split(",") if x.strip()]
     else:
         airports = None  # použij výchozí = všechna letiště
-    run(limit=args.limit, delay=args.delay, delete=args.delete, airports=airports)
+    run(limit=args.limit, delay=args.delay, delete=args.delete,
+        airports=airports, update_only=args.update_only)

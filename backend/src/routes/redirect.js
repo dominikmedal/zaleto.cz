@@ -87,7 +87,7 @@ router.get('/:slug', async (req, res) => {
       const p = urlObj.searchParams
 
       p.set('DD', date)
-      p.set('RD', date)
+      p.set('RD', addDays(date, nightsNum))
       p.set('NN',  String(nightsNum))
       p.set('MNN', String(nightsNum))
       p.set('NNM', String(nightsNum))

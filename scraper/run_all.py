@@ -102,7 +102,7 @@ SCRAPERS: list[dict] = [
         "agency":     "Fischer",
         "module":     "fischer.py",
         "args":       ["--delay", str(SCRAPER_DELAY)],
-        "timeout_h":  20,   # Fischer má tisíce hotelů — dáme mu až 20 h
+        "timeout_h":  None,  # bez timeoutu — Fischer může trvat i přes noc
     },
     {
         "agency":     "Exim Tours",
@@ -147,6 +147,9 @@ SCRAPERS: list[dict] = [
 # Checkpoint — přežije restart kontejneru (deploy)
 # ---------------------------------------------------------------------------
 
+FULL_SCRAPE_DAYS = 14   # po kolika dnech se spustí plný scrape (Fischer / Exim / NevDama)
+UPDATE_ONLY_AGENCIES = {"Fischer", "Exim Tours", "Nev-Dama"}  # CK podporující --update-only
+
 def ensure_checkpoint_table(conn):
     conn.execute("""
         CREATE TABLE IF NOT EXISTS scraper_checkpoints (
@@ -164,6 +167,35 @@ def ensure_checkpoint_table(conn):
             PRIMARY KEY (agency, key, cycle_date)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS scraper_full_scrapes (
+            agency       TEXT PRIMARY KEY,
+            completed_at TEXT NOT NULL
+        )
+    """)
+    conn.commit()
+
+
+def last_full_scrape_date(conn, agency: str) -> datetime | None:
+    """Vrátí datum posledního plného scrape dané CK, nebo None."""
+    row = conn.execute(
+        "SELECT completed_at FROM scraper_full_scrapes WHERE agency = ?", (agency,)
+    ).fetchone()
+    if not row:
+        return None
+    try:
+        return datetime.strptime(row["completed_at"], "%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return None
+
+
+def mark_full_scrape(conn, agency: str):
+    """Zaznamená úspěšný plný scrape dané CK."""
+    conn.execute(
+        "INSERT INTO scraper_full_scrapes (agency, completed_at) VALUES (?, ?) "
+        "ON CONFLICT (agency) DO UPDATE SET completed_at = EXCLUDED.completed_at",
+        (agency, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+    )
     conn.commit()
 
 
@@ -344,13 +376,32 @@ def run_scraper(scraper: dict, conn=None) -> dict:
     """
     agency = scraper["agency"]
     script = str(BASE_DIR / scraper["module"])
-    cmd    = [sys.executable, "-u", script] + scraper["args"]
-
-    env = {**os.environ, "DATABASE_URL": DATABASE_URL}
 
     _own_conn = conn is None
     if _own_conn:
         conn = open_db()
+
+    # Fischer / Exim Tours / Nev-Dama: rozhodni full vs update-only
+    is_update_only = False
+    if agency in UPDATE_ONLY_AGENCIES:
+        last_full = last_full_scrape_date(conn, agency)
+        if last_full and (datetime.now() - last_full).days < FULL_SCRAPE_DAYS:
+            is_update_only = True
+            logger.info(
+                f"{agency}: poslední plný scrape {last_full.strftime('%Y-%m-%d')} "
+                f"({(datetime.now() - last_full).days} dní), spouštím UPDATE-ONLY"
+            )
+        else:
+            logger.info(f"{agency}: spouštím PLNÝ SCRAPE (metadata + termíny)")
+
+    scraper_args = list(scraper["args"])
+    timeout_h    = scraper.get("timeout_h")   # None = bez timeoutu
+    if is_update_only:
+        scraper_args.append("--update-only")
+        timeout_h = 6   # update-only je výrazně rychlejší
+
+    cmd = [sys.executable, "-u", script] + scraper_args
+    env = {**os.environ, "DATABASE_URL": DATABASE_URL}
 
     before      = get_counts(conn, agency)
     run_started = datetime.now()
@@ -400,8 +451,8 @@ def run_scraper(scraper: dict, conn=None) -> dict:
             cwd=str(BASE_DIR),
         )
 
-        # Stream stdout v reálném čase; hlídej per-scraper timeout
-        timeout_sec = scraper.get("timeout_h", 24) * 3600
+        # Stream stdout v reálném čase; hlídej per-scraper timeout (None = bez limitu)
+        timeout_sec = timeout_h * 3600 if timeout_h else float("inf")
         captured_lines: list[str] = []
         timed_out = False
 
@@ -411,7 +462,7 @@ def run_scraper(scraper: dict, conn=None) -> dict:
             logger.info(f"  [{agency}] {line}")
             if time.time() - started > timeout_sec:
                 logger.warning(
-                    f"{agency}: timeout {scraper.get('timeout_h', 24)}h překročen — ukončuji proces"
+                    f"{agency}: timeout {timeout_h or '∞'}h překročen — ukončuji proces"
                 )
                 proc.terminate()
                 try:
@@ -425,7 +476,7 @@ def run_scraper(scraper: dict, conn=None) -> dict:
             proc.wait()
 
         if timed_out:
-            result["error"] = f"Timeout {scraper.get('timeout_h', 24)}h překročen"
+            result["error"] = f"Timeout {timeout_h or '∞'}h překročen"
             result["log_tail"] = "\n".join(captured_lines[-20:])
             logger.error(f"{agency}: {result['error']}")
         elif proc.returncode != 0:
@@ -435,11 +486,24 @@ def run_scraper(scraper: dict, conn=None) -> dict:
             logger.error(f"{agency} skončil s kódem {proc.returncode}: {result['error']}")
         else:
             logger.info(f"{agency} dokončen OK")
-            # Smaž termíny, které se v tomto běhu neobjevily → zastaralé ceny
-            stale = purge_stale_tours(conn, agency, run_started)
-            result["stale_removed"] = stale
-            if stale:
-                logger.info(f"  Stale cleanup: smazáno {stale} zastaralých termínů ({agency})")
+            # Safety guard: pokud scraper neaktualizoval žádné termíny ale před ním jich bylo hodně
+            # → pravděpodobně síťová chyba / prázdná sitemap → zachovej stará data, nemaž je.
+            updated_count = conn.execute(
+                "SELECT COUNT(*) AS n FROM tours WHERE agency = ? AND updated_at >= ?",
+                (agency, run_started.strftime("%Y-%m-%d %H:%M:%S")),
+            ).fetchone()["n"]
+            if updated_count == 0 and before["tours"] > 100:
+                logger.warning(
+                    f"{agency}: 0 termínů aktualizováno (síťová chyba? prázdná sitemap?) "
+                    f"— přeskakuji purge_stale_tours, stará data ZACHOVÁNA"
+                )
+                result["stale_removed"] = 0
+            else:
+                # Smaž termíny, které se v tomto běhu neobjevily → zastaralé ceny
+                stale = purge_stale_tours(conn, agency, run_started)
+                result["stale_removed"] = stale
+                if stale:
+                    logger.info(f"  Stale cleanup: smazáno {stale} zastaralých termínů ({agency})")
             # Smaž hotel_checkpoints pro tuto CK — cyklus dokončen, pro příští cyklus
             # musíme začít od začátku (checkpointy slouží jen pro crash recovery uvnitř cyklu)
             try:
@@ -447,6 +511,10 @@ def run_scraper(scraper: dict, conn=None) -> dict:
                 conn.commit()
             except Exception:
                 pass  # tabulka ještě nemusí existovat při prvním běhu
+            # Plný scrape: zaznamej datum jen pokud scraper skutečně aktualizoval data
+            if agency in UPDATE_ONLY_AGENCIES and not is_update_only and updated_count > 0:
+                mark_full_scrape(conn, agency)
+                logger.info(f"{agency}: plný scrape zaznamenán → příštích {FULL_SCRAPE_DAYS} dní bude update-only")
             # Ulož checkpoint — přežije restart kontejneru
             mark_completed(conn, agency)
 
