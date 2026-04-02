@@ -102,37 +102,31 @@ SCRAPERS: list[dict] = [
         "agency":     "Fischer",
         "module":     "fischer.py",
         "args":       ["--delay", str(SCRAPER_DELAY)],
-        "timeout_h":  None,  # bez timeoutu — Fischer může trvat i přes noc
     },
     {
         "agency":     "Exim Tours",
         "module":     "eximtours.py",
         "args":       ["--delay", str(SCRAPER_DELAY)],
-        "timeout_h":  8,
     },
     {
         "agency":     "Nev-Dama",
         "module":     "nevdama.py",
         "args":       ["--delay", str(SCRAPER_DELAY)],
-        "timeout_h":  8,
     },
     {
         "agency":     "Blue Style",
         "module":     "bluestyle.py",
         "args":       ["--delay", str(min(SCRAPER_DELAY, 0.8))],
-        "timeout_h":  8,
     },
     {
         "agency":     "Čedok",
         "module":     "cedok.py",
         "args":       ["--delay", str(SCRAPER_DELAY)],
-        "timeout_h":  8,
     },
     {
         "agency":     "TUI",
         "module":     "tui.py",
         "args":       ["--delay", str(SCRAPER_DELAY)],
-        "timeout_h":  8,
     },
 ]
 
@@ -395,10 +389,8 @@ def run_scraper(scraper: dict, conn=None) -> dict:
             logger.info(f"{agency}: spouštím PLNÝ SCRAPE (metadata + termíny)")
 
     scraper_args = list(scraper["args"])
-    timeout_h    = scraper.get("timeout_h")   # None = bez timeoutu
     if is_update_only:
         scraper_args.append("--update-only")
-        timeout_h = 6   # update-only je výrazně rychlejší
 
     cmd = [sys.executable, "-u", script] + scraper_args
     env = {**os.environ, "DATABASE_URL": DATABASE_URL}
@@ -451,35 +443,17 @@ def run_scraper(scraper: dict, conn=None) -> dict:
             cwd=str(BASE_DIR),
         )
 
-        # Stream stdout v reálném čase; hlídej per-scraper timeout (None = bez limitu)
-        timeout_sec = timeout_h * 3600 if timeout_h else float("inf")
+        # Stream stdout v reálném čase
         captured_lines: list[str] = []
-        timed_out = False
 
         for line in proc.stdout:
             line = line.rstrip("\n")
             captured_lines.append(line)
             logger.info(f"  [{agency}] {line}")
-            if time.time() - started > timeout_sec:
-                logger.warning(
-                    f"{agency}: timeout {timeout_h or '∞'}h překročen — ukončuji proces"
-                )
-                proc.terminate()
-                try:
-                    proc.wait(timeout=30)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-                timed_out = True
-                break
 
-        if not timed_out:
-            proc.wait()
+        proc.wait()
 
-        if timed_out:
-            result["error"] = f"Timeout {timeout_h or '∞'}h překročen"
-            result["log_tail"] = "\n".join(captured_lines[-20:])
-            logger.error(f"{agency}: {result['error']}")
-        elif proc.returncode != 0:
+        if proc.returncode != 0:
             err_lines = captured_lines or ["neznámá chyba"]
             result["error"] = err_lines[-1][:200] if err_lines else f"exit {proc.returncode}"
             result["log_tail"] = "\n".join(err_lines[-20:])
