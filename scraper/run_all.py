@@ -71,10 +71,11 @@ REPORT_TO    = [e.strip() for e in os.environ.get("REPORT_TO", "").split(",") if
 REPORT_FROM  = os.environ.get("REPORT_FROM", SMTP_USER)
 INTERVAL_H        = float(os.environ.get("SCRAPE_INTERVAL_H", "12"))
 SCRAPER_DELAY     = float(os.environ.get("SCRAPER_DELAY", "1.5"))
-# Kolik hodin zpět se bere checkpoint za platný (default 36h).
+# Kolik hodin zpět se bere checkpoint za platný (default 14h).
 # CK se přeskočí, pokud od posledního úspěšného doběhnutí neuplynulo víc než
-# SCRAPE_CHECKPOINT_HOURS hodin — nezávisle na kalendářním dni.
-CHECKPOINT_HOURS  = int(os.environ.get("SCRAPE_CHECKPOINT_HOURS", "36"))
+# SCRAPE_CHECKPOINT_HOURS hodin — ochrana proti double-run v rámci jednoho cyklu.
+# Hodnota by měla být o něco větší než SCRAPE_INTERVAL_H (12h), ale menší než 2× interval.
+CHECKPOINT_HOURS  = int(os.environ.get("SCRAPE_CHECKPOINT_HOURS", "14"))
 
 # GPS tolerance pro párování hotelů (~55 m na rovníku)
 # Různé CK mohou reportovat GPS téhož hotelu s odchylkou do ~50 m.
