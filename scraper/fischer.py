@@ -87,26 +87,63 @@ def get_hotel_urls(session: requests.Session, limit: int = 0) -> list[str]:
     hdrs = {"Accept": "application/xml,text/xml,*/*", "Content-Type": ""}
     urls = []
 
-    # Stáhni sitemap-hotel-0.xml, sitemap-hotel-1.xml, ... dokud HTTP 200
-    for idx in range(20):  # max 20 souborů
+    # Regex pro hotel URL — toleruje http/https i absenci www
+    _hotel_re = re.compile(
+        r"<loc>(https?://(?:www\.)?fischer\.cz/(?!sitemap)[^<]+)</loc>"
+    )
+
+    def _fetch_sitemap(url: str) -> list[str]:
+        try:
+            r = session.get(url, headers=hdrs, timeout=20)
+            if r.status_code != 200:
+                logger.warning(f"Fischer sitemap HTTP {r.status_code}: {url}")
+                return []
+            found = _hotel_re.findall(r.text)
+            logger.info(f"  {url}: {len(found)} URL")
+            return found
+        except Exception as e:
+            logger.warning(f"Fischer sitemap error ({url}): {e}")
+            return []
+
+    # 1. Pokus: sitemap-hotel-0.xml, sitemap-hotel-1.xml, ...
+    for idx in range(20):
         sitemap_url = f"{BASE_URL}/sitemap-hotel-{idx}.xml"
         try:
             r = session.get(sitemap_url, headers=hdrs, timeout=20)
             if r.status_code == 404:
-                break  # žádné další sitemap soubory
+                break  # žádné další soubory
             if r.status_code != 200:
                 logger.warning(f"Fischer sitemap-hotel-{idx}.xml: HTTP {r.status_code}")
                 break
-            found = re.findall(
-                r"<loc>(https://www\.fischer\.cz/(?!sitemap)[^<]+)</loc>", r.text
-            )
+            found = _hotel_re.findall(r.text)
             if not found:
-                break  # prázdný soubor = konec
+                # Soubor existuje, ale neobsahuje hotely → loguj snippet pro debug
+                logger.warning(
+                    f"Fischer sitemap-hotel-{idx}.xml: 0 hotelů "
+                    f"(snippet: {r.text[:300]!r})"
+                )
+                break
             urls.extend(found)
             logger.info(f"  sitemap-hotel-{idx}.xml: {len(found)} URL")
         except Exception as e:
             logger.warning(f"Fischer sitemap-hotel-{idx}.xml error: {e}")
             break
+
+    # 2. Fallback: hlavní sitemap.xml — hledej sitemap indexy hotelů
+    if not urls:
+        logger.info("Fallback: zkouším hlavní sitemap.xml")
+        try:
+            r = session.get(f"{BASE_URL}/sitemap.xml", headers=hdrs, timeout=20)
+            if r.status_code == 200:
+                # Najdi sitemap soubory s "hotel" v URL
+                sub_sitemaps = re.findall(
+                    r"<loc>(https?://[^<]*hotel[^<]*\.xml[^<]*)</loc>", r.text
+                )
+                logger.info(f"  Nalezeny sub-sitemapy: {sub_sitemaps}")
+                for sub_url in sub_sitemaps:
+                    urls.extend(_fetch_sitemap(sub_url))
+        except Exception as e:
+            logger.warning(f"Fischer hlavní sitemap error: {e}")
 
     # Deduplikace
     seen, result = set(), []

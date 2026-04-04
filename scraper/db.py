@@ -300,6 +300,21 @@ class ZaletoDB:
         ))
         self.conn.commit()
 
+    def update_single_price(self, two_url: str, price_single: float, url_single: str):
+        """Aktualizuje price_single a url_single pro tour identifikovaný two_url."""
+        cur = self._cur()
+        cur.execute(
+            """
+            UPDATE tours
+               SET price_single = %s,
+                   url_single   = %s,
+                   updated_at   = NOW()
+             WHERE url = %s
+            """,
+            (price_single, url_single, two_url),
+        )
+        # Bez commit — volající si commituje sám
+
     def commit(self):
         self._pg_conn.commit()
 

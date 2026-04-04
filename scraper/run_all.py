@@ -234,6 +234,19 @@ def clear_checkpoints(conn):
     conn.commit()
 
 
+def _db_now(conn) -> datetime:
+    """Vrátí aktuální čas PostgreSQL serveru (tz-naive) — konzistentní s updated_at = NOW()."""
+    try:
+        row = conn.execute("SELECT NOW() AT TIME ZONE 'UTC' AS t").fetchone()
+        t = row["t"]
+        if hasattr(t, "tzinfo") and t.tzinfo is not None:
+            from datetime import timezone as _tz
+            return t.astimezone(_tz.utc).replace(tzinfo=None)
+        return t if isinstance(t, datetime) else datetime.now()
+    except Exception:
+        return datetime.now()
+
+
 def get_counts(conn, agency: str) -> dict:
     """Vrátí počty hotelů a termínů pro danou CK."""
     h = conn.execute(
@@ -396,7 +409,7 @@ def run_scraper(scraper: dict, conn=None) -> dict:
     env = {**os.environ, "DATABASE_URL": DATABASE_URL}
 
     before      = get_counts(conn, agency)
-    run_started = datetime.now()
+    run_started = _db_now(conn)   # DB čas = stejná reference jako updated_at = NOW()
     started     = time.time()
 
     result: dict = {
