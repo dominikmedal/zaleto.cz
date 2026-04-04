@@ -73,10 +73,6 @@ app.post('/api/cache/invalidate', async (req, res) => {
     setTimeout(() => {
       require('./routes/weatherAI').generateMissingWeatherAI().catch(() => {})
     }, 3 * 60_000)
-    // Start articles generation 6 min after destination AI
-    setTimeout(() => {
-      require('./routes/articles').generateMissingArticles().catch(() => {})
-    }, 6 * 60_000)
   }
   res.json({ ok: true })
 })

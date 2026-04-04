@@ -899,6 +899,7 @@ def run_cycle(cycle: int, skip_email: bool = False):
     if hotel_count > 0:
         _trigger_ai("/api/weather-ai/generate",     "Počasí AI")
         _trigger_ai("/api/destination-ai/generate", "Destinace AI")
+        _trigger_ai("/api/articles/generate",        "Články AI")
     else:
         logger.info("AI generování: DB je prázdná, přeskakuji (první spuštění)")
 

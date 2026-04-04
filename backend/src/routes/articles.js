@@ -139,6 +139,18 @@ async function generateAndStoreArticle(topic) {
        result.excerpt || null, result.content || null, result.reading_time || 5]
     )
 
+    // Mark topic as done in article_topics.txt (prepend #)
+    try {
+      const topicsPath = path.join(__dirname, '../../article_topics.txt')
+      if (fs.existsSync(topicsPath)) {
+        const lines = fs.readFileSync(topicsPath, 'utf-8').split('\n')
+        const updated = lines.map(l => (l.trim() === topic ? `#${topic}` : l))
+        fs.writeFileSync(topicsPath, updated.join('\n'), 'utf-8')
+      }
+    } catch (markErr) {
+      console.warn(`[articles] nelze označit téma v souboru: ${markErr.message}`)
+    }
+
     // Invalidate list cache
     metaCache.invalidate()
     console.log(`[articles] ✓ hotovo: "${result.title}"`)

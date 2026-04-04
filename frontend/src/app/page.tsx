@@ -2,8 +2,7 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { PiCalendarStar, PiAirplane, PiGlobe, PiTag, PiTimer, PiBuildings, PiSun } from 'react-icons/pi'
-import HomeStepper from '@/components/HomeStepper'
+import { PiCalendarStar, PiAirplane, PiGlobe, PiTag, PiTimer, PiBuildings, PiSun, PiArrowRight } from 'react-icons/pi'
 import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import DestinationCarousel from '@/components/DestinationCarousel'
@@ -319,113 +318,208 @@ export default async function HomePage({ searchParams }: PageProps) {
         {/* ── Compact hero (no destination photo) ── */}
         {!(heroPhoto && singleDest) && (
           <>
-            <div className="lg:flex lg:items-end lg:justify-between lg:gap-8">
+            {noFilters && !singleDest && !tourType ? (
 
-              {/* Title + description */}
-              <div className="min-w-0">
-                {breadcrumb.length > 0 && (
-                  <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
-                    <Link href="/" className="hover:text-[#008afe] transition-colors">Všechny zájezdy</Link>
-                    {breadcrumb.map((crumb, i) => (
-                      <span key={crumb.label} className="flex items-center gap-1">
-                        <span className="text-gray-200">/</span>
-                        {i === breadcrumb.length - 1
-                          ? <span className="text-gray-700 font-medium">{crumb.label}</span>
-                          : <Link href={crumb.href} className="hover:text-[#008afe] transition-colors">{crumb.label}</Link>
-                        }
-                      </span>
-                    ))}
-                  </nav>
-                )}
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2 flex items-center gap-3 flex-wrap">
-                  {singleDest
-                    ? <>
-                        {singleDestFlag && (
-                          <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm" style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
-                            {singleDestFlag}
-                          </span>
-                        )}
-                        {heroTitle}
-                      </>
-                    : tourType === 'last_minute'
-                    ? <span className="text-red-500 inline-flex items-center gap-2"><PiTimer className="w-7 h-7 sm:w-9 sm:h-9" />Last minute 2026</span>
-                    : tourType === 'first_minute'
-                    ? <span className="text-emerald-500 inline-flex items-center gap-2"><PiCalendarStar className="w-7 h-7 sm:w-9 sm:h-9" />First minute 2026</span>
-                    : <>Najdi svůj zájezd <span className="text-[#008afe]">snadno a rychle</span>.</>}
-                </h1>
-                <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-3xl">
-                  {singleDest
-                    ? (heroDescription || `Zájezdy do destinace ${singleDest} od předních cestovních kanceláří.`)
-                    : tourType === 'last_minute'
-                    ? 'Zájezdy s odletem v nejbližších dnech za zvýhodněné ceny. Vyber, rezervuj a jeď.'
-                    : tourType === 'first_minute'
-                    ? 'Výhodné zájezdy pro ty, kdo plánují s předstihem. Nejlepší ceny pro včasné rezervace.'
-                    : 'Porovnejte termíny a ceny od předních cestovních kanceláří na jednom místě.'}
-                </p>
-              </div>
+              /* ═══ DEFAULT HOMEPAGE — editorial split hero ═══ */
+              <div className="py-6 lg:py-10">
+                <div className="flex flex-col lg:flex-row items-start justify-between gap-10 lg:gap-14">
 
-              {/* Stats — pouze na filtrovaných stránkách (ne default homepage) */}
-              {!singleDest && (!noFilters || !!tourType) && (() => {
-                const statsArr = [
-                  { icon: <PiBuildings className="w-3 h-3" />, value: fmtShort(meta.totalHotels ?? 0), label: 'hotelů' },
-                  { icon: <PiAirplane  className="w-3 h-3" />, value: fmtShort(meta.totalTours ?? 0),  label: 'termínů' },
-                  { icon: <PiGlobe    className="w-3 h-3" />, value: String(countryCount),             label: 'zemí' },
-                  { icon: <PiTag      className="w-3 h-3" />, value: `od ${fmtShort(meta.priceRange?.min ?? null)}`, label: 'Kč' },
-                ]
-                return (
-                  <div className="hidden sm:block lg:flex-shrink-0 mt-5 lg:mt-0">
-                    <div className="lg:hidden grid grid-cols-4 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-                      {statsArr.map(({ icon, value, label }) => (
-                        <div key={label} className="flex flex-col items-center justify-center py-4 px-3 border-r border-gray-100 last:border-r-0">
-                          <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                            <span className="text-[#008afe]">{icon}</span>
-                            {label}
+                  {/* Left: heading + stats + steps */}
+                  <div className="flex-1 min-w-0">
+                    <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.12em] uppercase text-[#0093FF] mb-6">
+                      <PiAirplane className="w-3 h-3" />
+                      Nejlepší vyhledávač a srovnávač zájezdů
+                    </p>
+
+                    <h1
+                      className="font-bold text-gray-900 leading-[1.0] tracking-tight mb-5"
+                      style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(52px, 6vw, 88px)' }}
+                    >
+                      Najdi svůj<br />
+                      <em className="not-italic text-[#0093FF]">zájezd</em><br />
+                      snadno.
+                    </h1>
+
+                    <p className="text-gray-500 text-base leading-relaxed max-w-xs mb-8">
+                      Porovnejte termíny a ceny od předních cestovních kanceláří na jednom místě.
+                    </p>
+
+                    {/* Inline stats */}
+                    <div className="flex items-center flex-wrap gap-y-4 mb-10">
+                      {[
+                        { value: fmtShort(meta.totalHotels ?? 0), label: 'hotelů' },
+                        { value: fmtShort(meta.totalTours ?? 0),  label: 'termínů' },
+                        { value: String(countryCount),            label: 'zemí' },
+                        { value: `od ${fmtShort(meta.priceRange?.min ?? null)} Kč`, label: '/ os.' },
+                      ].map((s, i) => (
+                        <div key={s.label} className="flex items-center">
+                          {i > 0 && <div className="w-px h-7 bg-gray-200 mx-5 flex-shrink-0" />}
+                          <div>
+                            <p className="text-[22px] font-bold text-gray-900 tabular-nums leading-none">{s.value}</p>
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-gray-400 mt-1">{s.label}</p>
                           </div>
-                          <span className="text-xl font-bold text-gray-900 leading-none tabular-nums">{value}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="hidden lg:flex items-stretch divide-x divide-gray-100">
-                      {statsArr.map(({ icon, value, label }) => (
-                        <div key={label} className="flex flex-col justify-center px-5 last:pr-0 first:pl-0">
-                          <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
-                            <span className="text-[#008afe]">{icon}</span>
-                            {label}
+
+                    {/* How it works — 3 steps */}
+                    <div className="hidden sm:flex items-center gap-0 pt-6 border-t border-gray-100">
+                      {[
+                        { n: '1', title: 'Zadej destinaci',   sub: 'nebo jen termín odjezdu'        },
+                        { n: '2', title: 'Srovnáme za tebe',  sub: '15+ cestovních kanceláří'        },
+                        { n: '3', title: 'Vyber a rezervuj',  sub: 'přímo u CK · bez poplatků'      },
+                      ].map((step, i) => (
+                        <div key={step.n} className="flex items-center">
+                          {i > 0 && (
+                            <div className="w-10 h-px mx-3 flex-shrink-0"
+                              style={{ backgroundImage: 'repeating-linear-gradient(to right, #d1d5db 0, #d1d5db 4px, transparent 4px, transparent 9px)' }}
+                            />
+                          )}
+                          <div className="flex items-center gap-2.5 flex-shrink-0">
+                            <span className="w-5 h-5 rounded-full bg-[#0093FF] text-white text-[9px] font-bold flex items-center justify-center leading-none flex-shrink-0">
+                              {step.n}
+                            </span>
+                            <div>
+                              <p className="text-[11px] font-bold text-gray-800 leading-tight">{step.title}</p>
+                              <p className="text-[10px] text-gray-400 mt-0.5">{step.sub}</p>
+                            </div>
                           </div>
-                          <span className="text-[22px] font-bold text-gray-900 leading-none tabular-nums">{value}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-                )
-              })()}
 
-            </div>
+                  {/* Right: scrollable destination carousel */}
+                  {topRegions.length >= 1 && (
+                    <>
+                      {/* Mobile: full-width strip below hero text */}
+                      <div className="block lg:hidden w-full h-44">
+                        <DestinationCarousel
+                          items={topRegions.map(({ region, count }, i) => ({
+                            region,
+                            count,
+                            thumb: regionPhotos[i] ?? null,
+                            minPrice: regionMinPrice.get(region) ?? null,
+                          }))}
+                        />
+                      </div>
+                      {/* Desktop: tall side panel */}
+                      <div className="hidden lg:block flex-shrink-0 h-[430px]" style={{ width: 'clamp(340px, 36vw, 520px)' }}>
+                        <DestinationCarousel
+                          items={topRegions.map(({ region, count }, i) => ({
+                            region,
+                            count,
+                            thumb: regionPhotos[i] ?? null,
+                            minPrice: regionMinPrice.get(region) ?? null,
+                          }))}
+                        />
+                      </div>
+                    </>
+                  )}
 
-            {/* ── Stepper + stats (pouze default homepage) ── */}
-            {noFilters && !singleDest && !tourType && (
-              <HomeStepper
-                totalHotels={meta.totalHotels ?? 0}
-                totalTours={meta.totalTours ?? 0}
-                countryCount={countryCount}
-                minPrice={meta.priceRange?.min ?? null}
-              />
+                </div>
+              </div>
+
+            ) : (
+
+              /* ═══ FILTERED / DESTINATION / TOUR TYPE HERO ═══ */
+              <div className="lg:flex lg:items-end lg:justify-between lg:gap-8 py-2">
+                <div className="min-w-0">
+                  {breadcrumb.length > 0 && (
+                    <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
+                      <Link href="/" className="hover:text-[#008afe] transition-colors">Všechny zájezdy</Link>
+                      {breadcrumb.map((crumb, i) => (
+                        <span key={crumb.label} className="flex items-center gap-1">
+                          <span className="text-gray-200">/</span>
+                          {i === breadcrumb.length - 1
+                            ? <span className="text-gray-700 font-medium">{crumb.label}</span>
+                            : <Link href={crumb.href} className="hover:text-[#008afe] transition-colors">{crumb.label}</Link>
+                          }
+                        </span>
+                      ))}
+                    </nav>
+                  )}
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2 flex items-center gap-3 flex-wrap">
+                    {singleDest
+                      ? <>
+                          {singleDestFlag && (
+                            <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm" style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
+                              {singleDestFlag}
+                            </span>
+                          )}
+                          {heroTitle}
+                        </>
+                      : tourType === 'last_minute'
+                      ? <span className="text-red-500 inline-flex items-center gap-2"><PiTimer className="w-7 h-7 sm:w-9 sm:h-9" />Last minute 2026</span>
+                      : tourType === 'first_minute'
+                      ? <span className="text-emerald-500 inline-flex items-center gap-2"><PiCalendarStar className="w-7 h-7 sm:w-9 sm:h-9" />First minute 2026</span>
+                      : <>Najdi svůj zájezd <span className="text-[#008afe]">snadno a rychle</span>.</>}
+                  </h1>
+                  <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-3xl">
+                    {singleDest
+                      ? (heroDescription || `Zájezdy do destinace ${singleDest} od předních cestovních kanceláří.`)
+                      : tourType === 'last_minute'
+                      ? 'Zájezdy s odletem v nejbližších dnech za zvýhodněné ceny. Vyber, rezervuj a jeď.'
+                      : tourType === 'first_minute'
+                      ? 'Výhodné zájezdy pro ty, kdo plánují s předstihem. Nejlepší ceny pro včasné rezervace.'
+                      : 'Porovnejte termíny a ceny od předních cestovních kanceláří na jednom místě.'}
+                  </p>
+                </div>
+
+                {/* Stats — filtered pages only */}
+                {!singleDest && (!noFilters || !!tourType) && (() => {
+                  const statsArr = [
+                    { icon: <PiBuildings className="w-3 h-3" />, value: fmtShort(meta.totalHotels ?? 0), label: 'hotelů' },
+                    { icon: <PiAirplane  className="w-3 h-3" />, value: fmtShort(meta.totalTours ?? 0),  label: 'termínů' },
+                    { icon: <PiGlobe    className="w-3 h-3" />, value: String(countryCount),             label: 'zemí' },
+                    { icon: <PiTag      className="w-3 h-3" />, value: `od ${fmtShort(meta.priceRange?.min ?? null)}`, label: 'Kč' },
+                  ]
+                  return (
+                    <div className="hidden sm:block lg:flex-shrink-0 mt-5 lg:mt-0">
+                      <div className="lg:hidden grid grid-cols-4 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                        {statsArr.map(({ icon, value, label }) => (
+                          <div key={label} className="flex flex-col items-center justify-center py-4 px-3 border-r border-gray-100 last:border-r-0">
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                              <span className="text-[#008afe]">{icon}</span>{label}
+                            </div>
+                            <span className="text-xl font-bold text-gray-900 leading-none tabular-nums">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="hidden lg:flex items-stretch divide-x divide-gray-100">
+                        {statsArr.map(({ icon, value, label }) => (
+                          <div key={label} className="flex flex-col justify-center px-5 last:pr-0 first:pl-0">
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                              <span className="text-[#008afe]">{icon}</span>{label}
+                            </div>
+                            <span className="text-[22px] font-bold text-gray-900 leading-none tabular-nums">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+
             )}
           </>
         )}
 
-        {/* ── Popular destination cards (only when no filters active) ── */}
-        {noFilters && topRegions.length > 0 && (
+        {/* ── Popular destination cards (default homepage: indices 3-5, different from hero collage) ── */}
+        {noFilters && topRegions.length > 3 && (
           <section>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
-              Oblíbené destinace
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Oblíbené destinace</p>
+              <Link href="/destinace" className="text-xs font-semibold text-gray-400 hover:text-gray-700 transition-colors">
+                Zobrazit vše →
+              </Link>
+            </div>
             <DestinationCards
-              items={topRegions.slice(0, 3).map(({ region }, i) => ({
+              items={topRegions.slice(3, 6).map(({ region }, i) => ({
                 region,
                 country: regionCountryMap.get(region) ?? region,
                 minPrice: regionMinPrice.get(region) ?? regionMinPrice.get(regionCountryMap.get(region) ?? '') ?? null,
-                thumb: regionPhotos[i] ?? null,
+                thumb: regionPhotos[i + 3] ?? null,
               }))}
             />
           </section>
@@ -433,38 +527,94 @@ export default async function HomePage({ searchParams }: PageProps) {
 
         {/* ── Tips ── */}
         {noFilters && (dailyTip || weeklyTip) && (
-          <section>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Tipy pro vás</p>
+          <section className="section-island">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Tipy pro vás</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {dailyTip && (
-                <Link href={`/hotel/${dailyTip.slug}`} className="group relative rounded-2xl overflow-hidden bg-gray-100 block" style={{ aspectRatio: '16/7' }}>
-                  <Image src={dailyTip.thumbnail_url!} alt={dailyTip.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                <Link
+                  href={`/hotel/${dailyTip.slug}`}
+                  className="group block rounded-2xl overflow-hidden bg-gray-100 relative"
+                  style={{ aspectRatio: '16/7', boxShadow: '0 1px 6px rgba(0,0,0,0.07), 0 4px 16px rgba(0,80,180,0.06)' }}
+                >
+                  <Image src={dailyTip.thumbnail_url!} alt={dailyTip.name} fill className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" unoptimized />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+
+                  {/* Badge */}
                   <div className="absolute top-4 left-4">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold bg-amber-400 text-white px-3 py-1.5 rounded-full shadow-sm">
-                      <PiSun className="w-3.5 h-3.5" /> Tip dne
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold bg-amber-400 text-white px-2.5 py-1 rounded-full shadow-sm">
+                      <PiSun className="w-3 h-3" /> Tip dne
                     </span>
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <p className="text-white/65 text-xs mb-1">{dailyTip.stars ? '★'.repeat(dailyTip.stars) + '  ·  ' : ''}{[dailyTip.resort_town, dailyTip.country].filter(Boolean).join(', ')}</p>
-                    <p className="text-white font-bold text-xl leading-tight group-hover:underline underline-offset-2 mb-1.5">{dailyTip.name}</p>
-                    <p className="text-emerald-300 font-semibold text-sm">od {fmtShort(dailyTip.min_price ?? null)} Kč / osoba</p>
+
+                  {/* Content overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-5 flex items-end justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-white/55 text-[11px] mb-1.5 truncate">
+                        {dailyTip.stars ? '★'.repeat(Math.min(dailyTip.stars, 5)) + '  ·  ' : ''}
+                        {[dailyTip.resort_town, dailyTip.country].filter(Boolean).join(', ')}
+                      </p>
+                      <p
+                        className="text-white font-bold leading-tight line-clamp-2 mb-2"
+                        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(15px, 2vw, 19px)' }}
+                      >
+                        {dailyTip.name}
+                      </p>
+                      <p className="text-[12px] font-medium text-white/70">
+                        od <span className="text-white font-bold">{fmtShort(dailyTip.min_price ?? null)} Kč</span> / os.
+                      </p>
+                    </div>
+
+                    {/* Expanding pill CTA */}
+                    <div className="flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 group-hover:bg-white group-hover:border-white transition-all duration-200 overflow-hidden flex-shrink-0 px-2.5 py-2 group-hover:px-3.5" style={{ backdropFilter: 'blur(8px)' }}>
+                      <span className="text-[12px] font-semibold text-white group-hover:text-[#0093FF] transition-colors duration-200 max-w-0 group-hover:max-w-[60px] overflow-hidden whitespace-nowrap">
+                        Zobrazit
+                      </span>
+                      <PiArrowRight className="w-3.5 h-3.5 text-white group-hover:text-[#0093FF] transition-all duration-200 group-hover:translate-x-0.5 flex-shrink-0" />
+                    </div>
                   </div>
                 </Link>
               )}
               {weeklyTip && (
-                <Link href={`/hotel/${weeklyTip.slug}`} className="group relative rounded-2xl overflow-hidden bg-gray-100 block" style={{ aspectRatio: '16/7' }}>
-                  <Image src={weeklyTip.thumbnail_url!} alt={weeklyTip.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                <Link
+                  href={`/hotel/${weeklyTip.slug}`}
+                  className="group block rounded-2xl overflow-hidden bg-gray-100 relative"
+                  style={{ aspectRatio: '16/7', boxShadow: '0 1px 6px rgba(0,0,0,0.07), 0 4px 16px rgba(0,80,180,0.06)' }}
+                >
+                  <Image src={weeklyTip.thumbnail_url!} alt={weeklyTip.name} fill className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" unoptimized />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+
+                  {/* Badge */}
                   <div className="absolute top-4 left-4">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold bg-blue-500 text-white px-3 py-1.5 rounded-full shadow-sm">
-                      <PiCalendarStar className="w-3.5 h-3.5" /> Tip týdne
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold bg-[#0093FF] text-white px-2.5 py-1 rounded-full shadow-sm">
+                      <PiCalendarStar className="w-3 h-3" /> Tip týdne
                     </span>
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <p className="text-white/65 text-xs mb-1">{weeklyTip.stars ? '★'.repeat(weeklyTip.stars) + '  ·  ' : ''}{[weeklyTip.resort_town, weeklyTip.country].filter(Boolean).join(', ')}</p>
-                    <p className="text-white font-bold text-xl leading-tight group-hover:underline underline-offset-2 mb-1.5">{weeklyTip.name}</p>
-                    <p className="text-emerald-300 font-semibold text-sm">od {fmtShort(weeklyTip.min_price ?? null)} Kč / osoba</p>
+
+                  {/* Content overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-5 flex items-end justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-white/55 text-[11px] mb-1.5 truncate">
+                        {weeklyTip.stars ? '★'.repeat(Math.min(weeklyTip.stars, 5)) + '  ·  ' : ''}
+                        {[weeklyTip.resort_town, weeklyTip.country].filter(Boolean).join(', ')}
+                      </p>
+                      <p
+                        className="text-white font-bold leading-tight line-clamp-2 mb-2"
+                        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(15px, 2vw, 19px)' }}
+                      >
+                        {weeklyTip.name}
+                      </p>
+                      <p className="text-[12px] font-medium text-white/70">
+                        od <span className="text-white font-bold">{fmtShort(weeklyTip.min_price ?? null)} Kč</span> / os.
+                      </p>
+                    </div>
+
+                    {/* Expanding pill CTA */}
+                    <div className="flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 group-hover:bg-white group-hover:border-white transition-all duration-200 overflow-hidden flex-shrink-0 px-2.5 py-2 group-hover:px-3.5" style={{ backdropFilter: 'blur(8px)' }}>
+                      <span className="text-[12px] font-semibold text-white group-hover:text-[#0093FF] transition-colors duration-200 max-w-0 group-hover:max-w-[60px] overflow-hidden whitespace-nowrap">
+                        Zobrazit
+                      </span>
+                      <PiArrowRight className="w-3.5 h-3.5 text-white group-hover:text-[#0093FF] transition-all duration-200 group-hover:translate-x-0.5 flex-shrink-0" />
+                    </div>
                   </div>
                 </Link>
               )}
@@ -479,16 +629,20 @@ export default async function HomePage({ searchParams }: PageProps) {
 
         {/* ── Articles — homepage ── */}
         {noFilters && !singleDest && !tourType && articles.length > 0 && (
-          <ArticlesSection articles={articles} imageMap={articleImageMap} />
+          <div className="section-island">
+            <ArticlesSection articles={articles} imageMap={articleImageMap} />
+          </div>
         )}
 
         {/* ── Articles — destination page ── */}
         {singleDest && articles.length > 0 && (
-          <ArticlesSection
-            articles={articles}
-            imageMap={articleImageMap}
-            label={`Články o ${singleDest}`}
-          />
+          <div className="section-island">
+            <ArticlesSection
+              articles={articles}
+              imageMap={articleImageMap}
+              label={`Články o ${singleDest}`}
+            />
+          </div>
         )}
 
         {/* ── Filter animation bar ── */}

@@ -1,8 +1,8 @@
 'use client'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Check, Globe, Hotel } from 'lucide-react'
-import { PiMagnifyingGlass, PiSpinner } from 'react-icons/pi'
+import { X, Check } from 'lucide-react'
+import { PiMagnifyingGlass, PiSpinner, PiMapPin, PiBuildings, PiGlobe } from 'react-icons/pi'
 import { fetchHotelSearch } from '@/lib/api'
 
 const PLACEHOLDER_CYCLE = [
@@ -33,7 +33,7 @@ interface Props {
   loading?: boolean
 }
 
-import { COUNTRY_FLAGS, getCountryFlag } from '@/lib/countryFlags'
+import { getCountryFlag } from '@/lib/countryFlags'
 const getFlag = (c: string) => getCountryFlag(c) ?? '🌍'
 
 interface Resort { label: string; count: number }
@@ -57,7 +57,6 @@ function parseRegion(destination: string): string {
 
 function buildHierarchy(rows: DestRow[]): Country[] {
   const cm = new Map<string, Map<string, { count: number; resorts: Map<string, number> }>>()
-
   for (const r of rows) {
     const region = parseRegion(r.destination)
     if (!cm.has(r.country)) cm.set(r.country, new Map())
@@ -66,11 +65,8 @@ function buildHierarchy(rows: DestRow[]): Country[] {
     const de = dm.get(region)!
     de.count += r.hotel_count
     const resort = r.resort_town ?? (r.destination.split('/').length >= 3 ? r.destination.split('/')[2].trim() : null)
-    if (resort && resort !== region) {
-      de.resorts.set(resort, (de.resorts.get(resort) || 0) + r.hotel_count)
-    }
+    if (resort && resort !== region) de.resorts.set(resort, (de.resorts.get(resort) || 0) + r.hotel_count)
   }
-
   return Array.from(cm.entries())
     .map(([country, dm]) => ({
       label: country,
@@ -131,10 +127,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
     if (open || query || value.length > 0) return
     const timer = setInterval(() => {
       setPhVisible(false)
-      setTimeout(() => {
-        setPhIdx(i => (i + 1) % PLACEHOLDER_CYCLE.length)
-        setPhVisible(true)
-      }, 350)
+      setTimeout(() => { setPhIdx(i => (i + 1) % PLACEHOLDER_CYCLE.length); setPhVisible(true) }, 350)
     }, 2800)
     return () => clearInterval(timer)
   }, [open, query, value.length])
@@ -152,7 +145,6 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
     )
   }, [query, allItems])
 
-  // Debounced hotel search
   useEffect(() => {
     if (query.trim().length < 2) { setHotelResults([]); return }
     const t = setTimeout(async () => {
@@ -214,6 +206,58 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
     const isResort      = item.level === 'resort'
     const isCountry     = item.level === 'country'
 
+    if (isCountry) {
+      return (
+        <button
+          key={`${item.level}-${item.value}`}
+          data-idx={idx}
+          type="button"
+          onMouseDown={e => { e.preventDefault(); toggle(item.value); setQuery('') }}
+          onMouseEnter={() => setHighlighted(idx)}
+          className={`w-full flex items-center gap-2.5 px-4 py-2 text-left transition-colors ${
+            selected ? 'bg-[rgba(0,147,255,0.06)]' : isHighlighted ? 'bg-[rgba(0,147,255,0.04)]' : 'bg-[rgba(0,147,255,0.02)]'
+          }`}
+        >
+          <span className="text-lg leading-none flex-shrink-0">{item.flag}</span>
+          <span className={`text-[11px] font-bold uppercase tracking-widest flex-1 ${selected ? 'text-[#0093FF]' : 'text-gray-400'}`}>
+            {item.label}
+          </span>
+          {selected && (
+            <span className="w-4 h-4 rounded-full bg-[#0093FF] flex items-center justify-center flex-shrink-0">
+              <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+            </span>
+          )}
+        </button>
+      )
+    }
+
+    if (isResort) {
+      return (
+        <button
+          key={`${item.level}-${item.value}`}
+          data-idx={idx}
+          type="button"
+          onMouseDown={e => { e.preventDefault(); toggle(item.value); setQuery('') }}
+          onMouseEnter={() => setHighlighted(idx)}
+          className={`w-full flex items-center justify-between pl-14 pr-4 py-1.5 text-left transition-colors ${
+            selected ? 'bg-[rgba(0,147,255,0.06)]' : isHighlighted ? 'bg-[rgba(0,147,255,0.04)]' : 'hover:bg-[rgba(0,147,255,0.02)]'
+          }`}
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <span className="w-1 h-1 rounded-full bg-gray-300 flex-shrink-0" />
+            <span className={`text-[12px] truncate ${selected ? 'text-[#0093FF] font-medium' : 'text-gray-500'}`}>{item.label}</span>
+            {query && <span className="text-[10px] text-gray-400 flex-shrink-0">{item.destination}</span>}
+          </span>
+          {selected && (
+            <span className="w-3.5 h-3.5 rounded-full bg-[#0093FF] flex items-center justify-center flex-shrink-0 ml-2">
+              <Check className="w-2 h-2 text-white" strokeWidth={3} />
+            </span>
+          )}
+        </button>
+      )
+    }
+
+    // destination level
     return (
       <button
         key={`${item.level}-${item.value}`}
@@ -221,37 +265,17 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
         type="button"
         onMouseDown={e => { e.preventDefault(); toggle(item.value); setQuery('') }}
         onMouseEnter={() => setHighlighted(idx)}
-        className={`w-full flex items-center justify-between pr-4 transition-colors text-left ${
-          isCountry ? 'py-2 pl-3' : isResort ? 'py-1.5 pl-11' : 'py-2 pl-7'
-        } ${
-          selected
-            ? 'bg-[#008afe]/[0.06]'
-            : isHighlighted
-            ? 'bg-[#008afe]/[0.04]'
-            : isCountry
-            ? 'bg-gray-50/80 hover:bg-gray-100/60'
-            : 'hover:bg-gray-50'
+        className={`w-full flex items-center justify-between pl-9 pr-4 py-2 text-left transition-colors ${
+          selected ? 'bg-[rgba(0,147,255,0.07)]' : isHighlighted ? 'bg-[rgba(0,147,255,0.04)]' : 'hover:bg-[rgba(0,147,255,0.02)]'
         }`}
       >
-        <span className={`flex items-center gap-2.5 min-w-0 ${
-          isCountry
-            ? 'text-[10px] font-bold text-gray-400 uppercase tracking-widest'
-            : isResort
-            ? 'text-[13px] text-gray-500'
-            : 'text-sm font-medium text-gray-700'
-        }`}>
-          {isCountry && <span className="text-base leading-none flex-shrink-0">{item.flag}</span>}
-          {isResort && <span className="w-1 h-1 rounded-full bg-gray-300 flex-shrink-0" />}
-          <span className={`truncate ${selected ? 'text-[#008afe]' : ''}`}>{item.label}</span>
-          {query && isResort && (
-            <span className="text-[11px] text-gray-400 font-normal flex-shrink-0">{item.destination}</span>
-          )}
-          {query && !isResort && !isCountry && (
-            <span className="text-[11px] text-gray-400 font-normal flex-shrink-0">{item.country}</span>
-          )}
+        <span className="flex items-center gap-2 min-w-0">
+          <PiMapPin className={`w-3.5 h-3.5 flex-shrink-0 ${selected ? 'text-[#0093FF]' : 'text-gray-300'}`} />
+          <span className={`text-[13px] font-medium truncate ${selected ? 'text-[#0093FF]' : 'text-gray-700'}`}>{item.label}</span>
+          {query && <span className="text-[11px] text-gray-400 flex-shrink-0">{item.country}</span>}
         </span>
-        <span className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ml-3 transition-all ${
-          selected ? 'bg-[#008afe]' : 'border-2 border-gray-200'
+        <span className={`w-4 h-4 rounded-md flex items-center justify-center flex-shrink-0 ml-3 transition-all border ${
+          selected ? 'bg-[#0093FF] border-[#0093FF]' : 'border-gray-200'
         }`}>
           {selected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
         </span>
@@ -269,7 +293,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
         countryIdx
       )
       return (
-        <div key={country.label} className={ci > 0 ? 'border-t border-gray-100' : ''}>
+        <div key={country.label} className={ci > 0 ? 'border-t' : ''} style={{ borderColor: 'rgba(0,147,255,0.06)' }}>
           {countryEl}
           {country.destinations.map(dest => {
             const destIdx = idx++
@@ -303,17 +327,28 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
 
       {/* Input trigger */}
       <div
-        className={`relative min-h-[42px] w-full px-2.5 py-1.5 flex flex-wrap items-center gap-1.5 border rounded-xl bg-white cursor-text transition-all duration-150 ${
-          open
-            ? 'border-[#008afe] ring-2 ring-[#008afe]/12 shadow-[0_0_0_4px_rgba(0,138,254,0.06)]'
-            : 'border-gray-200 hover:border-[#008afe]/40'
-        }`}
+        className="relative min-h-[42px] w-full px-2.5 py-1.5 flex flex-wrap items-center gap-1.5 rounded-xl cursor-text transition-all duration-200"
+        style={{
+          background: open ? 'rgba(255,255,255,0.95)' : 'rgba(237,246,255,0.72)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: open
+            ? '1px solid rgba(0,147,255,0.40)'
+            : '1px solid rgba(200,227,255,0.65)',
+          boxShadow: open
+            ? '0 0 0 3px rgba(0,147,255,0.08), 0 2px 12px rgba(0,147,255,0.10)'
+            : '0 1px 4px rgba(0,147,255,0.06)',
+        }}
         onClick={() => { inputRef.current?.focus(); setOpen(true) }}
       >
-        <PiMagnifyingGlass className={`w-4 h-4 flex-shrink-0 ml-0.5 transition-colors ${open ? 'text-[#008afe]' : 'text-gray-400'}`} />
+        <PiMagnifyingGlass className={`w-4 h-4 flex-shrink-0 ml-0.5 transition-colors ${open ? 'text-[#0093FF]' : 'text-gray-400'}`} />
 
         {value.map(dest => (
-          <span key={dest} className="inline-flex items-center gap-1 text-xs font-medium bg-[#008afe] text-white px-2.5 py-1 rounded-lg whitespace-nowrap">
+          <span
+            key={dest}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-white px-2.5 py-1 rounded-lg whitespace-nowrap"
+            style={{ background: 'linear-gradient(135deg, #0093FF, #0070E0)', boxShadow: '0 1px 6px rgba(0,147,255,0.28)' }}
+          >
             {dest}
             <button type="button" onMouseDown={e => remove(dest, e)} className="opacity-70 hover:opacity-100 transition-opacity ml-0.5">
               <X className="w-3 h-3" />
@@ -344,7 +379,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
 
         {value.length > 0 && (
           <button type="button" onMouseDown={e => { e.preventDefault(); onChange([]) }}
-            className="flex-shrink-0 p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+            className="flex-shrink-0 p-0.5 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
@@ -352,40 +387,67 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
 
       {/* Dropdown */}
       {open && (
-        <div ref={listRef}
-          className="absolute z-50 left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden"
-          style={{ maxHeight: 360, overflowY: 'auto' }}>
-
+        <div
+          ref={listRef}
+          className="absolute z-50 left-0 right-0 mt-2 rounded-2xl overflow-hidden"
+          style={{
+            background: 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(28px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(28px) saturate(160%)',
+            border: '1px solid rgba(200,227,255,0.70)',
+            boxShadow: '0 8px 40px rgba(0,147,255,0.14), 0 2px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
+            maxHeight: 380,
+            overflowY: 'auto',
+          }}
+        >
+          {/* Active filters strip */}
           {value.length > 0 && (
-            <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
-              <span className="text-xs text-gray-500 font-medium">Vybráno: {value.join(', ')}</span>
+            <div
+              className="px-4 py-2.5 flex items-center justify-between flex-shrink-0"
+              style={{ borderBottom: '1px solid rgba(0,147,255,0.08)', background: 'rgba(0,147,255,0.03)' }}
+            >
+              <span className="text-xs text-gray-500 font-medium">Vybráno: <span className="text-[#0093FF] font-semibold">{value.join(', ')}</span></span>
               <button type="button" onMouseDown={e => { e.preventDefault(); onChange([]) }}
-                className="text-xs text-red-400 hover:text-red-600 transition-colors font-medium">
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors font-medium ml-3 flex-shrink-0">
                 Zrušit vše
               </button>
             </div>
           )}
 
-          {/* Loading skeleton */}
+          {/* Loading */}
           {loading && allItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-2">
-              <PiSpinner className="w-5 h-5 text-[#008afe] animate-spin" />
+              <PiSpinner className="w-5 h-5 text-[#0093FF] animate-spin" />
               <span className="text-xs text-gray-400">Načítám destinace…</span>
             </div>
+
           ) : filtered.length === 0 && hotelResults.length === 0 ? (
             <div className="px-4 py-8 text-center">
-              <Globe className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+              <PiGlobe className="w-8 h-8 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-gray-400">Žádné výsledky pro „{query}"</p>
             </div>
+
           ) : query ? (
             <div className="py-1.5">
-              {filtered.length > 0 && filtered.map((item, idx) => renderItem(item, idx))}
+              {/* Destination results */}
+              {filtered.length > 0 && (
+                <>
+                  <div className="px-4 py-1.5 flex items-center gap-1.5">
+                    <PiMapPin className="w-3 h-3 text-[#0093FF]" />
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Destinace</span>
+                  </div>
+                  {filtered.map((item, idx) => renderItem(item, idx))}
+                </>
+              )}
+              {/* Hotel results */}
               {hotelResults.length > 0 && (
                 <>
-                  {filtered.length > 0 && <div className="border-t border-gray-100 my-1" />}
-                  <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <Hotel className="w-3 h-3" />
-                    Hotely
+                  <div
+                    className="px-4 py-1.5 mt-1 flex items-center gap-1.5"
+                    style={{ borderTop: '1px solid rgba(0,147,255,0.07)' }}
+                  >
+                    <PiBuildings className="w-3 h-3 text-[#0093FF]" />
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Hotely</span>
                   </div>
                   {hotelResults.map((hotel, i) => {
                     const idx = filtered.length + i
@@ -397,29 +459,40 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
                         type="button"
                         onMouseDown={e => { e.preventDefault(); handleHotelClick(hotel.slug) }}
                         onMouseEnter={() => setHighlighted(idx)}
-                        className={`w-full flex items-center justify-between px-5 py-2.5 transition-colors text-left ${isHighlighted ? 'bg-[#008afe]/[0.06]' : 'hover:bg-gray-50'}`}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                          isHighlighted ? 'bg-[rgba(0,147,255,0.05)]' : 'hover:bg-[rgba(0,147,255,0.03)]'
+                        }`}
                       >
-                        <span className="flex flex-col min-w-0">
-                          <span className="text-sm font-medium text-gray-700 truncate">{hotel.name}</span>
-                          <span className="text-[11px] text-gray-400 mt-0.5">{hotel.resort_town ? `${hotel.resort_town}, ` : ''}{hotel.country}</span>
-                        </span>
-                        <span className="flex items-center gap-2 flex-shrink-0 ml-3">
-                          {hotel.stars ? <span className="text-xs text-amber-400">{'★'.repeat(hotel.stars)}</span> : null}
-                          <span className="text-[10px] text-[#008afe] font-semibold">→ detail</span>
-                        </span>
+                        {hotel.thumbnail_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={hotel.thumbnail_url} alt={hotel.name} className="w-10 h-8 rounded-lg object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-10 h-8 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(0,147,255,0.08)' }}>
+                            <PiBuildings className="w-4 h-4 text-[#0093FF]" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold text-gray-800 truncate leading-tight">{hotel.name}</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5">{hotel.resort_town ? `${hotel.resort_town}, ` : ''}{hotel.country}</p>
+                        </div>
+                        <div className="flex-shrink-0 flex items-center gap-1.5">
+                          {hotel.stars ? <span className="text-[10px] text-amber-400">{'★'.repeat(hotel.stars)}</span> : null}
+                          <span className="text-[10px] font-semibold text-[#0093FF]">→</span>
+                        </div>
                       </button>
                     )
                   })}
                 </>
               )}
             </div>
+
           ) : (
-            <div className="py-1.5">
+            <div className="py-1">
               {renderHierarchy()}
             </div>
           )}
 
-          <div className="h-2" />
+          <div className="h-1.5" />
         </div>
       )}
     </div>

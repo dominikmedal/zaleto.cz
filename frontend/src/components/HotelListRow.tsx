@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   PiMapPin, PiBuildings, PiCalendarBlank, PiForkKnife,
   PiStarFill, PiCheckCircle, PiRuler, PiArrowRight, PiTimer, PiCalendarStar,
-  PiSwimmingPool, PiWifiHigh, PiFlower, PiUmbrellaSimple,
+  PiSwimmingPool, PiWifiHigh, PiFlower, PiUmbrellaSimple, PiArrowSquareOut,
 } from 'react-icons/pi'
 import type { Hotel } from '@/lib/types'
 import FavoriteButton from './FavoriteButton'
@@ -99,7 +99,7 @@ export default function HotelListRow({ hotel, adults = 2, activeTourType }: { ho
       onClick={() => { if (overlayRef.current) overlayRef.current.style.display = 'flex' }}
     >
       <article
-        className="bg-white border border-gray-100 hover:border-[#008afe]/25 hover:shadow-md rounded-2xl overflow-hidden transition-all duration-200 flex flex-col sm:flex-row sm:min-h-[200px]"
+        className="glass-card rounded-2xl overflow-hidden transition-all duration-200 flex flex-col sm:flex-row sm:min-h-[200px] hover:shadow-[0_8px_32px_rgba(0,147,255,0.14)]"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => { setHovered(false); setActiveIdx(0); if (intervalRef.current) clearInterval(intervalRef.current) }}
       >
@@ -160,8 +160,16 @@ export default function HotelListRow({ hotel, adults = 2, activeTourType }: { ho
             )}
           </div>
 
-          {/* Favorite — top right on mobile image */}
-          <div className="absolute top-3 right-3 sm:hidden">
+          {/* Favorite + open in new tab — top right on mobile image */}
+          <div className="absolute top-3 right-3 sm:hidden flex items-center gap-1.5">
+            <button
+              type="button"
+              aria-label="Otevřít v novém okně"
+              onClick={e => { e.preventDefault(); e.stopPropagation(); window.open(`/hotel/${hotel.slug}`, '_blank') }}
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-all group bg-black/25 backdrop-blur-sm hover:bg-white/90"
+            >
+              <PiArrowSquareOut className="w-4 h-4 text-white group-hover:text-[#0093FF] transition-colors" />
+            </button>
             <FavoriteButton slug={hotel.slug} name={hotel.name} variant="card" />
           </div>
 
@@ -262,10 +270,18 @@ export default function HotelListRow({ hotel, adults = 2, activeTourType }: { ho
           {/* ── Right / price + CTA ── */}
           {/* Desktop: right column with border-l */}
           {/* Mobile: bottom row, no border */}
-          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-between gap-3 sm:min-w-[140px] sm:border-l sm:border-gray-100 sm:pl-5">
+          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-between gap-3 sm:min-w-[140px] sm:pl-5" style={{ borderLeft: '1px solid rgba(0,147,255,0.08)' }}>
 
-            {/* Favorite — desktop only (mobile version is on image) */}
-            <div className="hidden sm:block">
+            {/* Favorite + open in new tab — desktop only (mobile version is on image) */}
+            <div className="hidden sm:flex items-center gap-1.5">
+              <button
+                type="button"
+                aria-label="Otevřít v novém okně"
+                onClick={e => { e.preventDefault(); e.stopPropagation(); window.open(`/hotel/${hotel.slug}`, '_blank') }}
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-all group bg-black/25 backdrop-blur-sm hover:bg-white/90"
+              >
+                <PiArrowSquareOut className="w-4 h-4 text-white group-hover:text-[#0093FF] transition-colors" />
+              </button>
               <FavoriteButton slug={hotel.slug} name={hotel.name} variant="card" />
             </div>
 
@@ -279,7 +295,7 @@ export default function HotelListRow({ hotel, adults = 2, activeTourType }: { ho
               )}
               <p className="text-[11px] text-gray-400">od osoby</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-xl sm:text-2xl font-bold text-emerald-600 leading-none">{fmt(hotel.min_price)}</span>
+                <span className="text-xl sm:text-2xl font-bold leading-none" style={{ color: '#049669' }}>{fmt(hotel.min_price)}</span>
                 <span className="text-sm text-gray-400 font-medium">Kč</span>
               </div>
               {adults > 1 && (
@@ -288,7 +304,7 @@ export default function HotelListRow({ hotel, adults = 2, activeTourType }: { ho
             </div>
 
             {/* CTA */}
-            <button className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-[#008afe] hover:bg-[#0079e5] active:scale-[0.97] px-4 py-2.5 rounded-xl transition-all whitespace-nowrap">
+            <button className="btn-cta">
               Zobrazit
               <PiArrowRight className="w-4 h-4" />
             </button>

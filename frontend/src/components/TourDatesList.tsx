@@ -211,7 +211,7 @@ function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: 
           <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
             <div className="text-right">
               <div className="flex items-baseline gap-1 justify-end">
-                <span className="text-lg font-bold text-emerald-600">{formatPrice(tour.price)}</span>
+                <span className="text-lg font-bold" style={{ color: '#049669' }}>{formatPrice(tour.price)}</span>
                 <span className="text-xs text-gray-400">/ os.</span>
               </div>
               {adults > 1 && (

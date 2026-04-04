@@ -78,8 +78,11 @@ export default async function PocasiPage() {
             <span className="text-gray-200">/</span>
             <span className="text-gray-700 font-medium">Počasí</span>
           </nav>
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 leading-tight">
-            Počasí v dovolenkových destinacích
+          <h1
+            className="font-bold text-gray-900 mb-3 leading-tight tracking-tight"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(28px, 4vw, 50px)' }}
+          >
+            Počasí v <em className="not-italic text-[#0093FF]">dovolenkových</em> destinacích
           </h1>
           <p className="text-gray-500 text-sm sm:text-base max-w-2xl leading-relaxed">
             Aktuální předpověď počasí, průměrné teploty vzduchu i moře, počet slunečních hodin
@@ -96,7 +99,7 @@ export default async function PocasiPage() {
             <Link
               key={c.slug}
               href={`/pocasi/${c.slug}`}
-              className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#008afe]/30 transition-all overflow-hidden"
+              className="group relative glass-card rounded-2xl hover:shadow-[0_8px_32px_rgba(0,147,255,0.16)] transition-all duration-300 overflow-hidden"
             >
               {/* Photo */}
               <div className="relative h-36 bg-gradient-to-br from-sky-50 to-blue-50">

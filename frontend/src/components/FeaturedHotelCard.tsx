@@ -54,7 +54,7 @@ export function FeaturedHotelCardCompact({ hotel }: { hotel: Hotel }) {
         {/* Price badge */}
         <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-xl px-2.5 py-1.5 shadow-sm">
           <p className="text-[10px] text-gray-400 leading-none mb-0.5">od</p>
-          <p className="text-base font-bold text-[#0d4f52] leading-none">{formatPrice(hotel.min_price)} Kč</p>
+          <p className="text-base font-bold text-gray-800 leading-none">{formatPrice(hotel.min_price)} Kč</p>
         </div>
         {hotel.review_score && (
           <div className="absolute bottom-3 right-3 bg-[#008afe] text-white text-xs font-bold px-2 py-1 rounded-lg shadow-sm">
@@ -142,7 +142,7 @@ export default function FeaturedHotelCard({ hotel }: { hotel: Hotel }) {
           {/* Price badge on photo */}
           <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-1.5 shadow-sm">
             <p className="text-[11px] text-gray-400 leading-none mb-0.5">od</p>
-            <p className="text-lg font-bold text-[#0d4f52] leading-none">{formatPrice(hotel.min_price)} Kč</p>
+            <p className="text-lg font-bold leading-none">{formatPrice(hotel.min_price)} Kč</p>
           </div>
         </div>
 
@@ -270,15 +270,30 @@ export function FeaturedHotelsBar({ hotels }: { hotels: Hotel[] }) {
   )
 }
 
-/** Vertical sidebar strip — stacked hotel cards with dark teal header */
+/** Vertical sidebar strip — liquid glass with green accent */
 export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
   if (!hotels.length) return null
   return (
-    <div className="bg-[#e1f2f3] border border-[#0d4f52]/15 rounded-2xl shadow-sm overflow-hidden">
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{
+        background: 'rgba(245,252,249,0.95)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(4,150,105,0.18)',
+        boxShadow: '0 8px 32px rgba(4,150,105,0.10), 0 2px 8px rgba(0,0,0,0.04)',
+      }}
+    >
       {/* Header */}
-      <div className="bg-[#0d4f52] px-4 py-3 flex items-center gap-2">
-        <PiSparkle className="w-3.5 h-3.5 text-white/60 flex-shrink-0" />
-        <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Doporučujeme</span>
+      <div
+        className="px-4 py-3 flex items-center gap-2"
+        style={{
+          background: 'linear-gradient(135deg, #049669 0%, #047857 100%)',
+          boxShadow: '0 1px 0 rgba(255,255,255,0.12)',
+        }}
+      >
+        <PiSparkle className="w-3.5 h-3.5 text-white/70 flex-shrink-0" />
+        <span className="text-[10px] font-bold text-white/90 uppercase tracking-widest">Doporučujeme</span>
       </div>
 
       {/* Desktop: vertical stack */}
@@ -290,26 +305,27 @@ export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
             <Link
               key={hotel.slug}
               href={`/hotel/${hotel.slug}`}
-              className={`flex flex-col group ${idx > 0 ? 'border-t border-[#0d4f52]/10' : ''}`}
+              className="flex flex-col group"
+              style={idx > 0 ? { borderTop: '1px solid rgba(4,150,105,0.10)' } : {}}
             >
-              <div className="relative h-28 bg-[#0d4f52]/10 overflow-hidden flex-shrink-0">
+              <div className="relative h-28 overflow-hidden flex-shrink-0" style={{ background: 'rgba(4,150,105,0.06)' }}>
                 {photo && (
                   <Image src={photo} alt={hotel.name} fill className="object-cover group-hover:scale-[1.03] transition-transform duration-300" unoptimized />
                 )}
               </div>
               <div className="px-3 py-2.5">
                 {stars && <p className="text-amber-500 text-[10px] mb-0.5 leading-none">{stars}</p>}
-                <p className="text-xs font-semibold text-[#0d4f52] leading-snug line-clamp-1 group-hover:text-[#008afe] transition-colors">
+                <p className="text-xs font-semibold text-gray-800 leading-snug line-clamp-1 group-hover:text-[#049669] transition-colors">
                   {hotel.name}
                 </p>
-                <p className="text-[10px] text-[#0d4f52]/60 mt-0.5 truncate">
+                <p className="text-[10px] text-gray-400 mt-0.5 truncate">
                   {[hotel.resort_town, hotel.destination?.split('/').pop()].filter(Boolean).join(', ')}
                 </p>
                 <div className="flex items-center justify-between mt-2">
-                  <p className="text-[11px] text-[#0d4f52]/70">
-                    od <span className="text-sm font-bold text-[#0d4f52]">{formatPrice(hotel.min_price)}</span> Kč
+                  <p className="text-[11px] text-gray-400">
+                    od <span className="text-sm font-bold" style={{ color: '#049669' }}>{formatPrice(hotel.min_price)}</span> Kč
                   </p>
-                  <PiArrowRight className="w-3.5 h-3.5 text-[#0d4f52]/30 group-hover:text-[#008afe] transition-colors flex-shrink-0" />
+                  <PiArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#049669] transition-colors flex-shrink-0" />
                 </div>
               </div>
             </Link>
@@ -326,20 +342,21 @@ export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
             <Link
               key={hotel.slug}
               href={`/hotel/${hotel.slug}`}
-              className={`flex-shrink-0 w-48 flex flex-col group snap-start ${idx > 0 ? 'border-l border-[#0d4f52]/10' : ''}`}
+              className="flex-shrink-0 w-48 flex flex-col group snap-start"
+              style={idx > 0 ? { borderLeft: '1px solid rgba(4,150,105,0.10)' } : {}}
             >
-              <div className="relative h-24 bg-[#0d4f52]/10 overflow-hidden">
+              <div className="relative h-24 overflow-hidden" style={{ background: 'rgba(4,150,105,0.06)' }}>
                 {photo && (
                   <Image src={photo} alt={hotel.name} fill className="object-cover" unoptimized />
                 )}
               </div>
               <div className="px-3 py-2">
                 {stars && <p className="text-amber-500 text-[10px] mb-0.5 leading-none">{stars}</p>}
-                <p className="text-xs font-semibold text-[#0d4f52] leading-snug line-clamp-2">
+                <p className="text-xs font-semibold text-gray-800 leading-snug line-clamp-2">
                   {hotel.name}
                 </p>
-                <p className="text-[11px] text-[#0d4f52]/70 mt-1.5">
-                  od <span className="font-bold text-[#0d4f52]">{formatPrice(hotel.min_price)}</span> Kč
+                <p className="text-[11px] text-gray-400 mt-1.5">
+                  od <span className="font-bold" style={{ color: '#049669' }}>{formatPrice(hotel.min_price)}</span> Kč
                 </p>
               </div>
             </Link>

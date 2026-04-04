@@ -90,10 +90,10 @@ export default function HotelGallery({ photos, name }: Props) {
       </div>
 
       {/* ── Desktop: 2+4 grid ── */}
-      <div className="hidden sm:grid grid-cols-4 grid-rows-2 gap-2 h-[420px] sm:h-[520px] rounded-2xl overflow-hidden mb-8">
+      <div className="hidden sm:grid grid-cols-4 grid-rows-2 gap-2.5 h-[420px] sm:h-[520px] mb-8">
         {/* Main large photo */}
         <div
-          className="col-span-2 row-span-2 relative cursor-pointer group"
+          className="col-span-2 row-span-2 relative cursor-pointer group rounded-2xl overflow-hidden"
           onClick={() => open(0)}
         >
           <Image src={main} alt={name} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.02]" sizes="50vw" priority />
@@ -104,7 +104,7 @@ export default function HotelGallery({ photos, name }: Props) {
         {thumbs.map((photo, i) => (
           <div
             key={photo}
-            className="relative cursor-pointer group overflow-hidden"
+            className="relative cursor-pointer group overflow-hidden rounded-2xl"
             onClick={() => open(i + 1)}
           >
             <Image src={photo} alt={`${name} ${i + 2}`} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.05]" sizes="25vw" />
@@ -120,7 +120,7 @@ export default function HotelGallery({ photos, name }: Props) {
         ))}
 
         {thumbs.length < 4 && Array.from({ length: 4 - thumbs.length }).map((_, i) => (
-          <div key={`empty-${i}`} className="bg-gray-100" />
+          <div key={`empty-${i}`} className="bg-gray-100 rounded-2xl" />
         ))}
       </div>
 

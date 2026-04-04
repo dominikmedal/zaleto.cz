@@ -26,10 +26,10 @@ const MONTH_NAMES = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
 const MONTH_SHORT = ['Led', 'Únr', 'Bře', 'Dub', 'Kvě', 'Čer', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro']
 
 const SEASONS = [
-  { key: 'spring', label: 'Jaro',   months: 'březen – květen',   Icon: PiFlower,    iconColor: 'text-emerald-500', border: 'border-emerald-300', bg: 'bg-emerald-50' },
-  { key: 'summer', label: 'Léto',   months: 'červen – srpen',    Icon: PiSun,       iconColor: 'text-amber-500',   border: 'border-amber-300',   bg: 'bg-amber-50'   },
-  { key: 'autumn', label: 'Podzim', months: 'září – listopad',   Icon: PiLeaf,      iconColor: 'text-orange-500',  border: 'border-orange-300',  bg: 'bg-orange-50'  },
-  { key: 'winter', label: 'Zima',   months: 'prosinec – únor',   Icon: PiSnowflake, iconColor: 'text-sky-500',     border: 'border-sky-300',     bg: 'bg-sky-50'     },
+  { key: 'spring', label: 'Jaro',   months: 'březen – květen',   Icon: PiFlower,    accent: '#10b981' },
+  { key: 'summer', label: 'Léto',   months: 'červen – srpen',    Icon: PiSun,       accent: '#f59e0b' },
+  { key: 'autumn', label: 'Podzim', months: 'září – listopad',   Icon: PiLeaf,      accent: '#f97316' },
+  { key: 'winter', label: 'Zima',   months: 'prosinec – únor',   Icon: PiSnowflake, accent: '#38bdf8' },
 ] as const
 
 const SCROLL_MARGIN = { scrollMarginTop: '136px' }
@@ -173,7 +173,10 @@ export default async function CountryWeatherPage({ params }: Props) {
                 <span className="text-gray-200">/</span>
                 <span className="text-gray-700 font-medium">{info.name}</span>
               </nav>
-              <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 leading-tight mb-2 drop-shadow-sm flex items-center gap-3 flex-wrap">
+              <h1
+                className="font-bold text-gray-900 leading-tight tracking-tight mb-2 drop-shadow-sm flex items-center gap-3 flex-wrap"
+                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(28px, 5vw, 60px)' }}
+              >
                 {flag && <span className="flex-shrink-0">{flag}</span>}
                 Počasí — {info.name}
               </h1>
@@ -185,12 +188,14 @@ export default async function CountryWeatherPage({ params }: Props) {
               {(peakSea || bestMonthNames.length > 0) && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {peakSea && (
-                    <span className="inline-flex items-center gap-1.5 bg-white/80 backdrop-blur-sm border border-sky-200 text-sky-700 text-xs font-medium px-3 py-1.5 rounded-full shadow-sm">
+                    <span className="inline-flex items-center gap-1.5 text-sky-700 text-xs font-medium px-3 py-1.5 rounded-full"
+                      style={{ background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(12px)', border: '1px solid rgba(125,211,252,0.50)', boxShadow: '0 2px 8px rgba(14,165,233,0.12)' }}>
                       🏊 Moře až {peakSea}°C
                     </span>
                   )}
                   {bestMonthNames.length > 0 && (
-                    <span className="inline-flex items-center gap-1.5 bg-white/80 backdrop-blur-sm border border-amber-200 text-amber-700 text-xs font-medium px-3 py-1.5 rounded-full shadow-sm">
+                    <span className="inline-flex items-center gap-1.5 text-amber-700 text-xs font-medium px-3 py-1.5 rounded-full"
+                      style={{ background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(12px)', border: '1px solid rgba(251,191,36,0.40)', boxShadow: '0 2px 8px rgba(245,158,11,0.12)' }}>
                       ☀️ Nejlepší: {bestMonthNames.slice(0, 4).join(', ')}
                     </span>
                   )}
@@ -209,7 +214,10 @@ export default async function CountryWeatherPage({ params }: Props) {
               <span className="text-gray-200">/</span>
               <span className="text-gray-700 font-medium">{info.name}</span>
             </nav>
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 flex items-center gap-3 flex-wrap">
+            <h1
+              className="font-bold text-gray-900 leading-tight tracking-tight flex items-center gap-3 flex-wrap"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(26px, 4vw, 48px)' }}
+            >
               {flag && <span className="flex-shrink-0">{flag}</span>}
               Počasí — {info.name}
             </h1>
@@ -242,19 +250,26 @@ export default async function CountryWeatherPage({ params }: Props) {
                 </div>
               )}
               {weather.best_months.length > 0 && (
-                <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4">
-                  <p className="text-xs
-                   text-gray-900 mb uppercase tracking-widest flex items-center gap-1.5">
-                    <PiCalendarBlank className="w-3.5 h-3.5" />
-                    Nejlepší měsíce pro dovolenou
-                  </p>
+                <div className="flex-1 glass-card rounded-2xl p-5 flex flex-col gap-4">
+                    <p className="flex items-center gap-2 font-semibold text-sm text-gray-800 mb-2">
+                        <PiWind className="w-4 h-4 text-[#008afe]" /> Nejlepší měsíce pro dovolenou
+                    </p>
                   <div className="flex flex-wrap gap-1.5">
                     {MONTH_SHORT.map((m, i) => {
                       const isBest = weather.best_months.includes(i + 1)
                       return (
-                        <span key={m} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${
-                          isBest ? 'bg-[#008afe] text-white' : 'bg-gray-100 text-gray-400'
-                        }`}>{m}</span>
+                        <span key={m}
+                          className="px-3 py-1.5 rounded-xl text-xs font-bold"
+                          style={isBest ? {
+                            background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+                            color: '#fff',
+                            boxShadow: '0 2px 8px rgba(0,147,255,0.28)',
+                          } : {
+                            background: 'rgba(237,246,255,0.70)',
+                            color: '#9ca3af',
+                            border: '1px solid rgba(200,227,255,0.65)',
+                          }}
+                        >{m}</span>
                       )
                     })}
                   </div>
@@ -319,9 +334,12 @@ export default async function CountryWeatherPage({ params }: Props) {
                 const text = weather[s.key as keyof typeof weather] as string | null
                 if (!text) return null
                 return (
-                  <div key={s.key} className={`rounded-2xl border-l-4 shadow-sm p-4 ${s.border} ${s.bg}`}>
+                  <div key={s.key} className="glass-card rounded-2xl p-4" style={{ borderLeft: `3px solid ${s.accent}` }}>
                     <div className="flex items-center gap-2 mb-2.5">
-                      <s.Icon className={`w-5 h-5 flex-shrink-0 ${s.iconColor}`} />
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: `${s.accent}18` }}>
+                        <s.Icon className="w-4 h-4" style={{ color: s.accent }} />
+                      </div>
                       <div>
                         <p className="font-bold text-sm text-gray-900 leading-none">{s.label}</p>
                         <p className="text-[10px] text-gray-400 mt-0.5">{s.months}</p>
@@ -341,7 +359,7 @@ export default async function CountryWeatherPage({ params }: Props) {
             <SectionHeader Icon={PiWind} title="Vítr a moře" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {weather.wind_info && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="glass-card rounded-2xl p-5">
                   <p className="flex items-center gap-2 font-semibold text-sm text-gray-800 mb-2">
                     <PiWind className="w-4 h-4 text-[#008afe]" /> Vítr
                   </p>
@@ -349,7 +367,7 @@ export default async function CountryWeatherPage({ params }: Props) {
                 </div>
               )}
               {weather.sea_info && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="glass-card rounded-2xl p-5">
                   <p className="flex items-center gap-2 font-semibold text-sm text-gray-800 mb-2">
                     <PiMapPin className="w-4 h-4 text-[#008afe]" /> Koupání a teplota moře
                   </p>
@@ -369,7 +387,7 @@ export default async function CountryWeatherPage({ params }: Props) {
                 <Link
                   key={dest.slug}
                   href={`/pocasi/${params.country}/${dest.slug}`}
-                  className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#008afe]/30 transition-all p-4 flex flex-col gap-1"
+                  className="group glass-card rounded-2xl hover:shadow-[0_8px_32px_rgba(0,147,255,0.16)] transition-all duration-300 p-4 flex flex-col gap-1"
                 >
                   <span className="font-semibold text-sm text-gray-800 group-hover:text-[#008afe] transition-colors leading-snug">
                     {dest.name}
@@ -417,9 +435,12 @@ export default async function CountryWeatherPage({ params }: Props) {
 
 function SectionHeader({ Icon, title }: { Icon: React.ElementType; title: string }) {
   return (
-    <h2 className="flex items-center gap-2 text-base font-bold text-gray-900 mb-4">
-      <Icon className="w-4 h-4 text-[#008afe] flex-shrink-0" />
-      {title}
-    </h2>
+    <div className="flex items-center gap-2.5 mb-5">
+      <div className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ background: 'rgba(0,147,255,0.08)' }}>
+        <Icon className="w-3.5 h-3.5 text-[#0093FF]" />
+      </div>
+      <h2 className="text-base font-bold text-gray-900 tracking-tight">{title}</h2>
+    </div>
   )
 }

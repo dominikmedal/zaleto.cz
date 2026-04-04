@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useEffect, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { PiCaretLeft, PiCaretRight } from 'react-icons/pi'
@@ -9,98 +9,119 @@ interface Item {
   region: string
   count: number
   thumb: string | null
+  minPrice?: number | null
 }
 
-const CARD_W = 160   // px — approximate card width + gap for scroll step
-const INTERVAL = 3000 // ms
+const fmt = (n: number) =>
+  n >= 1_000 ? `od ${Math.round(n / 1000)} tis. Kč` : `od ${n.toLocaleString('cs-CZ')} Kč`
 
 export default function DestinationCarousel({ items }: { items: Item[] }) {
   const trackRef = useRef<HTMLDivElement>(null)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [canPrev, setCanPrev] = useState(false)
   const [canNext, setCanNext] = useState(true)
 
-  const updateButtons = useCallback(() => {
+  const updateArrows = useCallback(() => {
     const el = trackRef.current
     if (!el) return
     setCanPrev(el.scrollLeft > 4)
     setCanNext(el.scrollLeft < el.scrollWidth - el.clientWidth - 4)
   }, [])
 
-  const scrollBy = useCallback((dir: 1 | -1) => {
-    trackRef.current?.scrollBy({ left: dir * CARD_W * 2, behavior: 'smooth' })
-  }, [])
-
-  const startAuto = useCallback(() => {
-    timerRef.current = setInterval(() => {
-      const el = trackRef.current
-      if (!el) return
-      const atEnd = el.scrollLeft >= el.scrollWidth - el.clientWidth - 4
-      el.scrollBy({ left: atEnd ? -(el.scrollWidth) : CARD_W, behavior: 'smooth' })
-    }, INTERVAL)
-  }, [])
-
-  const stopAuto = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current)
-  }, [])
-
   useEffect(() => {
-    startAuto()
-    return stopAuto
-  }, [startAuto, stopAuto])
+    const el = trackRef.current
+    if (!el) return
+    updateArrows()
+    el.addEventListener('scroll', updateArrows, { passive: true })
+    window.addEventListener('resize', updateArrows)
+    return () => {
+      el.removeEventListener('scroll', updateArrows)
+      window.removeEventListener('resize', updateArrows)
+    }
+  }, [updateArrows])
+
+  const scrollBy = useCallback((dir: 1 | -1) => {
+    trackRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' })
+  }, [])
 
   return (
-    <div className="relative group/carousel">
-      {/* Left arrow */}
-      {canPrev && (
-        <button
-          onClick={() => scrollBy(-1)}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 w-9 h-9 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center text-gray-600 hover:text-[#008afe] hover:border-[#008afe]/30 transition-all opacity-0 group-hover/carousel:opacity-100"
-        >
-          <PiCaretLeft className="w-4 h-4" />
-        </button>
-      )}
+    <div className="relative h-full group/carousel">
 
-      {/* Right arrow */}
-      {canNext && (
-        <button
-          onClick={() => scrollBy(1)}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 w-9 h-9 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center text-gray-600 hover:text-[#008afe] hover:border-[#008afe]/30 transition-all opacity-0 group-hover/carousel:opacity-100"
-        >
-          <PiCaretRight className="w-4 h-4" />
-        </button>
-      )}
+      {/* Arrow — prev */}
+      <button
+        onClick={() => scrollBy(-1)}
+        aria-label="Předchozí"
+        className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 glass-pill shadow-[0_2px_12px_rgba(0,147,255,0.15)] ${
+          canPrev
+            ? 'opacity-100 pointer-events-auto'
+            : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <PiCaretLeft className="w-4 h-4 text-[#0093FF]" />
+      </button>
+
+      {/* Arrow — next */}
+      <button
+        onClick={() => scrollBy(1)}
+        aria-label="Další"
+        className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 glass-pill shadow-[0_2px_12px_rgba(0,147,255,0.15)] ${
+          canNext
+            ? 'opacity-100 pointer-events-auto'
+            : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <PiCaretRight className="w-4 h-4 text-[#0093FF]" />
+      </button>
 
       {/* Track */}
       <div
         ref={trackRef}
-        onScroll={updateButtons}
-        onMouseEnter={stopAuto}
-        onMouseLeave={startAuto}
-        className="flex gap-3 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-1"
+        className="flex gap-3 h-full overflow-x-auto scrollbar-hide"
+        style={{ scrollSnapType: 'x mandatory' }}
       >
-        {items.map(({ region, count, thumb }) => (
+        {items.map(({ region, thumb, minPrice }) => (
           <Link
             key={region}
             href={`/destinace/${slugify(region)}`}
-            className="group relative flex-shrink-0 w-[148px] rounded-xl overflow-hidden bg-gray-100 block"
-            style={{ aspectRatio: '3/4' }}
+            className="group relative flex-shrink-0 rounded-2xl overflow-hidden bg-gray-200 block h-full"
+            style={{ width: 'clamp(150px, 38vw, 210px)', scrollSnapAlign: 'start' }}
           >
             {thumb ? (
               <Image
                 src={thumb}
                 alt={region}
                 fill
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
                 unoptimized
               />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-[#008afe] to-blue-600" />
+              <div className="absolute inset-0 bg-gradient-to-br from-[#0093FF] to-blue-700" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-3">
-              <p className="text-white font-semibold text-sm leading-tight">{region}</p>
-              <p className="text-white/60 text-[11px] mt-0.5">{count} h.</p>
+
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-black/2 to-transparent" />
+
+            {/* Text — glass strip */}
+            <div className="absolute bottom-0 left-0 right-0 p-2.5">
+              <div style={{
+                background: 'rgba(8,18,40,0.28)',
+                backdropFilter: 'blur(14px)',
+                WebkitBackdropFilter: 'blur(14px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '12px',
+                padding: '8px 12px',
+              }}>
+                <p
+                  className="text-white font-bold leading-tight"
+                  style={{ fontSize: 'clamp(12px, 1.1vw, 15px)' }}
+                >
+                  {region}
+                </p>
+                {minPrice != null && (
+                  <p className="text-white/55 text-[14px] font-medium mt-0.5">
+                    {fmt(minPrice)}
+                  </p>
+                )}
+              </div>
             </div>
           </Link>
         ))}

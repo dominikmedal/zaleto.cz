@@ -1,10 +1,11 @@
+import React from 'react'
 import type { Metadata } from 'next'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { Plane, Bus, Car } from 'lucide-react'
-import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar, PiBuildings, PiSun, PiShieldCheck, PiArrowsDownUp } from 'react-icons/pi'
+import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar, PiBuildings, PiSun, PiShieldCheck, PiArrowsDownUp, PiArrowRight } from 'react-icons/pi'
 import ScrollToButton from '@/components/ScrollToButton'
 import ViewersBadge from '@/components/ViewersBadge'
 import Header from '@/components/Header'
@@ -219,54 +220,76 @@ export default async function HotelDetailPage({ params }: Props) {
       <JsonLd data={breadcrumbSchema} />
       <Header />
 
-      <div className="max-w-[1680px] mx-auto px-6 sm:px-8 py-6">
-        {/* Breadcrumb */}
-        <nav className="mb-4 flex items-center flex-wrap gap-1 text-xs text-gray-400">
-          <Link href="/" className="inline-flex items-center gap-1 hover:text-blue-500 transition-colors font-medium">
-            <PiArrowLeft className="w-3 h-3" /> Zaleto
-          </Link>
-          {hotel.country && (
-            <><span className="text-gray-200 select-none">/</span>
-            <Link href={`/destinace/${slugify(hotel.country)}`} className="hover:text-blue-500 transition-colors">{hotel.country}</Link></>
-          )}
-          {hotel.resort_town && hotel.resort_town !== hotel.country && (
-            <><span className="text-gray-200 select-none">/</span>
-            <Link href={`/destinace/${slugify(hotel.resort_town)}`} className="hover:text-blue-500 transition-colors">{hotel.resort_town}</Link></>
-          )}
-          <span className="text-gray-200 select-none">/</span>
-          <span className="text-gray-600 font-medium truncate max-w-[220px]">{hotel.name}</span>
-        </nav>
+      <div className="max-w-[1680px] mx-auto px-6 sm:px-8 pt-5 pb-6">
 
-        {/* Hotel header — above gallery, no background */}
+        {/* ── Editorial page header — no glass, clean type ── */}
         <div className="mb-5">
-          {hotel.stars && hotel.stars > 0 && (
-            <StarsRow count={hotel.stars} />
-          )}
-          <div className="flex flex-wrap items-center gap-2 mt-2 mb-1">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">{hotel.name}</h1>
-            {hotel.has_last_minute === 1 ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-red-500 px-2.5 py-1 rounded-lg shadow-sm">
-                <PiTimer className="w-3.5 h-3.5 flex-shrink-0" />
-                Last minute
+
+          {/* Breadcrumb + badges row */}
+          <div className="flex items-center flex-wrap gap-2 mb-3">
+            <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400">
+              <Link href="/" className="inline-flex items-center gap-1 hover:text-[#0093FF] transition-colors font-medium">
+                <PiArrowLeft className="w-3 h-3" /> Zaleto
+              </Link>
+              {hotel.country && (<>
+                <span className="text-gray-300 select-none mx-0.5">/</span>
+                <Link href={`/destinace/${slugify(hotel.country)}`} className="hover:text-[#0093FF] transition-colors">{hotel.country}</Link>
+              </>)}
+              {hotel.resort_town && hotel.resort_town !== hotel.country && (<>
+                <span className="text-gray-300 select-none mx-0.5">/</span>
+                <Link href={`/destinace/${slugify(hotel.resort_town)}`} className="hover:text-[#0093FF] transition-colors">{hotel.resort_town}</Link>
+              </>)}
+            </nav>
+
+            {hotel.has_last_minute === 1 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">
+                <PiTimer className="w-3 h-3" /> Last minute
               </span>
-            ) : hotel.has_first_minute === 1 ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-500 px-2.5 py-1 rounded-lg shadow-sm">
-                <PiCalendarStar className="w-3.5 h-3.5 flex-shrink-0" />
-                First minute
+            )}
+            {hotel.has_first_minute === 1 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                <PiCalendarStar className="w-3 h-3" /> First minute
               </span>
-            ) : null}
+            )}
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-gray-500 text-sm">
-            <span className="flex items-center gap-1.5">
-              <PiMapPin className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-              {[hotel.resort_town, hotel.destination, hotel.country].filter(Boolean).join(' · ')}
-            </span>
-            <span className="w-1 h-1 rounded-full bg-gray-300" />
-            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-              {hotel.agency}
-            </span>
+
+          {/* Location eyebrow */}
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#0093FF] uppercase tracking-[0.12em] mb-2">
+            <PiMapPin className="w-3.5 h-3.5 flex-shrink-0" />
+            {[hotel.resort_town, hotel.destination, hotel.country].filter(Boolean).join(' · ')}
+          </p>
+
+          {/* Title */}
+          <h1
+            className="font-bold text-gray-900 leading-[1.08] tracking-tight mb-4"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(26px, 3.5vw, 44px)' }}
+          >
+            {hotel.name}
+          </h1>
+
+          {/* Meta strip */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {hotel.stars && hotel.stars > 0 && (
+              <div className="flex items-center gap-1.5">
+                <StarsRow count={hotel.stars} />
+                <span className="text-[11px] text-gray-400">{hotel.stars}-hvězdičkový</span>
+              </div>
+            )}
+
+            {hotel.review_score && hotel.review_score > 0 && (<>
+              <span className="w-px h-4 bg-gray-200 flex-shrink-0" />
+              <div className="flex items-center gap-1.5">
+                <span className="text-[15px] font-bold text-gray-900 tabular-nums leading-none">{hotel.review_score.toFixed(1)}</span>
+                <span className="text-[11px] text-gray-400">/ 10 hodnocení</span>
+              </div>
+            </>)}
+
+            <span className="w-px h-4 bg-gray-200 flex-shrink-0" />
+            <span className="text-[12px] font-medium text-gray-500">{hotel.agency}</span>
           </div>
         </div>
+        {/* thin separator */}
+        <div className="mb-5 h-px" style={{ background: 'linear-gradient(90deg, rgba(0,147,255,0.18) 0%, transparent 60%)' }} />
 
         {/* Gallery */}
         <HotelGallery photos={photos} name={hotel.name} />
@@ -304,9 +327,7 @@ export default async function HotelDetailPage({ params }: Props) {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
                   <p className="text-xs font-semibold text-gray-700 group-hover:text-[#008afe] transition-colors">
                     {formatDep(hotel.next_departure)}
-                    {hotel.next_return_date && (
-                      <span className="font-normal text-gray-400"> → {formatDep(hotel.next_return_date)}</span>
-                    )}
+                    {hotel.next_return_date && <span className="font-normal text-gray-400"> → {formatDep(hotel.next_return_date)}</span>}
                   </p>
                 </ScrollToButton>
               ) : <p className="text-xs font-semibold text-gray-400">—</p>}
@@ -332,21 +353,31 @@ export default async function HotelDetailPage({ params }: Props) {
 
           {/* ── Left column ── */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6">
+            <div className="glass-card rounded-2xl px-6">
 
               {/* ── Marketing highlights ── */}
               {highlights.length > 0 && (
-                <section className="py-6 border-b border-gray-100">
-                  <h2 className="flex items-center gap-2.5 text-[17px] font-semibold text-[#0d4f52] mb-4">
-                    <span className="text-[#0d4f52] flex-shrink-0"><PiSparkle className="w-5 h-5" /></span>
+                <section className="py-6 border-b" style={{ borderColor: 'rgba(0,147,255,0.08)' }}>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Výhody</p>
+                  <h2 className="flex items-center gap-2 text-[16px] font-semibold text-gray-900 mb-4">
+                    <PiSparkle className="w-5 h-5 text-[#0093FF] flex-shrink-0" />
                     Proč tento zájezd?
                   </h2>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2.5">
                     {highlights.slice(0, 6).map((item, i) => (
-                      <div key={i} className="flex items-start gap-2.5 bg-[#f0fcfa] hover:bg-[#e2f7f2] transition-colors rounded-xl px-3.5 py-3">
-                        <span className="text-[#0d4f52] flex-shrink-0 mt-0.5">{item.icon}</span>
+                      <div
+                        key={i}
+                        className="flex items-start gap-3 rounded-xl px-3.5 py-3 transition-colors duration-200 hover:bg-[#F8FBFF]"
+                        style={{ background: '#F3F8FF', border: '1px solid rgba(0,147,255,0.10)' }}
+                      >
+                        <div
+                          className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mt-0.5"
+                          style={{ background: 'rgba(0,147,255,0.08)' }}
+                        >
+                          <span className="text-[#0093FF]">{item.icon}</span>
+                        </div>
                         <div>
-                          <p className="text-xs font-semibold text-[#0d4f52] leading-snug">{item.title}</p>
+                          <p className="text-xs font-semibold text-gray-800 leading-snug">{item.title}</p>
                           <p className="text-[11px] text-gray-500 leading-snug mt-0.5">{item.desc}</p>
                         </div>
                       </div>
@@ -489,7 +520,6 @@ export default async function HotelDetailPage({ params }: Props) {
                   </div>
 
                   <div className="flex flex-col gap-2.5">
-                    {/* Termíny + destinace */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="inline-flex items-center gap-1.5 bg-[#0d4f52] text-white text-xs font-bold px-2.5 py-1 rounded-full">
                         <PiCalendarBlank className="w-3.5 h-3.5" />
@@ -506,13 +536,12 @@ export default async function HotelDetailPage({ params }: Props) {
                       )}
                     </div>
 
-                    {/* Nejbližší odjezd */}
                     {hotel.next_departure && (
                       <ScrollToButton targetId="terminy" className="flex items-center gap-2 text-xs w-fit group">
                         <span className="w-2 h-2 rounded-full bg-[#0d4f52] flex-shrink-0 ring-2 ring-emerald-100" />
-                        <span className="text-[#0d4f52] group-hover:text-[#0d4f52] transition-colors">
+                        <span className="text-[#0d4f52]">
                           Nejbližší:{' '}
-                          <span className="font-semibold text-[#0d4f52] group-hover:text-[#0d4f52] transition-colors">
+                          <span className="font-semibold">
                             {formatDep(hotel.next_departure)}{hotel.next_return_date ? ` → ${formatDep(hotel.next_return_date)}` : ''}
                           </span>
                         </span>
@@ -542,22 +571,16 @@ export default async function HotelDetailPage({ params }: Props) {
                     <FavoriteButton slug={params.slug} name={hotel.name} variant="detail" className="flex-1 justify-center" />
                     <ShareButton slug={params.slug} name={hotel.name} />
                   </div>
-                  {/* Trust signals */}
                   <div className="flex items-center justify-center gap-3 pt-0.5">
-                    <span className="flex items-center gap-1 text-[12px] text-[#0c4d50]">
-                      <PiCheck className="w-3 h-3 text-[#0c4d50] flex-shrink-0" />
-                      Přímé rezervace
-                    </span>
-                    <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                    <span className="flex items-center gap-1 text-[12px] text-[#0c4d50]">
-                      <PiCheck className="w-3 h-3 text-[#0c4d50] flex-shrink-0" />
-                      Bez poplatků
-                    </span>
-                    <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                    <span className="flex items-center gap-1 text-[12px] text-[#0c4d50]">
-                      <PiCheck className="w-3 h-3 text-[#0c4d50] flex-shrink-0" />
-                      Ověřené CK
-                    </span>
+                    {['Přímé rezervace', 'Bez poplatků', 'Ověřené CK'].map((label, i) => (
+                      <React.Fragment key={label}>
+                        {i > 0 && <span className="w-px h-3 bg-gray-200 flex-shrink-0" />}
+                        <span className="flex items-center gap-1 text-[12px] text-[#0c4d50]">
+                          <PiCheck className="w-3 h-3 text-[#0c4d50] flex-shrink-0" />
+                          {label}
+                        </span>
+                      </React.Fragment>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -576,18 +599,34 @@ export default async function HotelDetailPage({ params }: Props) {
         </div>
 
         {/* ── Available dates — full width ── */}
-        <div id="terminy" className="mt-12 scroll-mt-[140px]">
-          <div className="flex items-center gap-3 mb-6 flex-wrap">
-            <h2 className="text-xl font-bold text-gray-900">Dostupné termíny</h2>
-            <span className="text-sm font-medium text-white bg-primary px-2.5 py-0.5 rounded-full tabular-nums">{tourCount}</span>
-
+        <div id="terminy" className="mt-10 scroll-mt-[140px]">
+          <div className="section-island">
+            {/* Section heading */}
+            <div className="flex items-end justify-between gap-4 mb-6">
+              <div>
+                <p className="text-[10px] font-bold text-[#0093FF] uppercase tracking-[0.16em] mb-1.5">Rezervace</p>
+                <h2
+                  className="font-bold text-gray-900 leading-tight"
+                  style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 2.5vw, 30px)' }}
+                >
+                  Dostupné termíny
+                </h2>
+              </div>
+              <span
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-white px-3.5 py-1.5 rounded-full flex-shrink-0 mb-0.5"
+                style={{ background: 'linear-gradient(135deg, #0093FF, #0070E0)', boxShadow: '0 3px 12px rgba(0,147,255,0.28)' }}
+              >
+                <PiCalendarBlank className="w-3.5 h-3.5" />
+                {tourCount}
+              </span>
+            </div>
+            <TourDatesList slug={params.slug} />
           </div>
-          <TourDatesList slug={params.slug} />
         </div>
 
         {/* ── Nearby hotels — full width, below dates ── */}
         {(hotel.latitude && hotel.longitude) && (
-          <div className="mt-12">
+          <div className="mt-8 section-island">
             <Suspense fallback={null}>
               <NearbyHotelsGrid lat={hotel.latitude} lon={hotel.longitude} exclude={params.slug} />
             </Suspense>
@@ -625,24 +664,24 @@ async function UpcomingDepartures({ slug }: { slug: string }) {
 
   return (
     <div className="space-y-2">
-        {tours.map(tour => {
-          const dep = fmtShort(tour.departure_date)
-          const ret = fmtShort(tour.return_date ?? null)
-          return (
-            <div key={tour.id} className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-[#0d4f52]">
-                {dep}
-                {ret && <span className="font-normal text-[#4d8a8c]"> → {ret}</span>}
-              </span>
-              <div className="flex items-center gap-1 text-[#4d8a8c] flex-shrink-0">
-                <TourTransportIcon transport={tour.transport} />
-                {tour.departure_city && (
-                  <span className="text-[10px] truncate max-w-[60px]">{tour.departure_city}</span>
-                )}
-              </div>
+      {tours.map(tour => {
+        const dep = fmtShort(tour.departure_date)
+        const ret = fmtShort(tour.return_date ?? null)
+        return (
+          <div key={tour.id} className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-gray-700">
+              {dep}
+              {ret && <span className="font-normal text-gray-400"> → {ret}</span>}
+            </span>
+            <div className="flex items-center gap-1 text-[#0093FF] flex-shrink-0">
+              <TourTransportIcon transport={tour.transport} />
+              {tour.departure_city && (
+                <span className="text-[10px] text-gray-400 truncate max-w-[60px]">{tour.departure_city}</span>
+              )}
             </div>
-          )
-        })}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -663,53 +702,68 @@ async function NearbyHotelsGrid({ lat, lon, exclude }: { lat: number; lon: numbe
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2.5">
-        <span className="text-[#008afe]"><PiMapPin className="w-5 h-5" /></span>
-        Hotely v okolí
-      </h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-5 lg:gap-6">
+      <div className="mb-6">
+        <p className="text-[10px] font-bold text-[#0093FF] uppercase tracking-[0.16em] mb-1.5">Podobné hotely</p>
+        <h2
+          className="font-bold text-gray-900 leading-tight"
+          style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2vw, 26px)' }}
+        >
+          Hotely <em className="not-italic text-[#0093FF]">v okolí</em>
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 lg:gap-6">
         {nearby.map((n) => (
-          <Link key={n.slug} href={`/hotel/${n.slug}`} className="group block">
-            {/* Image */}
-            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-gray-100 mb-3">
+          <Link key={n.slug} href={`/hotel/${n.slug}`} className="block group">
+            {/* Image — matches HotelCard */}
+            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-gray-200 mb-3 shadow-[0_2px_8px_rgba(0,0,0,0.10)] group-hover:shadow-[0_8px_28px_rgba(0,0,0,0.16)] transition-shadow duration-300">
               {n.thumbnail_url ? (
-                <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.04]">
+                <div className="absolute inset-0 transition-transform duration-700 ease-out group-hover:scale-[1.05]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={n.thumbnail_url} alt={n.name} className="w-full h-full object-cover" />
                 </div>
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <PiBuildings className="w-8 h-8 text-gray-300" />
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                  <PiBuildings className="w-8 h-8 text-blue-300" />
                 </div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
               {n.distance_km != null && (
-                <div className="absolute bottom-2.5 left-2.5">
-                  <span className="text-[10px] font-semibold text-white bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded-md leading-none">
+                <div className="absolute bottom-3 left-3 z-10">
+                  <span className="text-[11px] font-semibold text-white px-2.5 py-1 rounded-full" style={{ background: 'rgba(0,0,0,0.40)', backdropFilter: 'blur(6px)' }}>
                     {Number(n.distance_km).toFixed(1)} km
                   </span>
                 </div>
               )}
             </div>
-            {/* Text */}
+            {/* Info strip — same as HotelCard */}
             <div className="px-0.5">
-              <div className="flex items-center gap-1.5 mb-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-1.5 min-w-0">
                 {n.stars ? (
-                  <span className="text-amber-400 text-xs tracking-tighter leading-none flex-shrink-0">
+                  <span className="text-amber-400 text-[11px] leading-none tracking-tighter flex-shrink-0">
                     {'★'.repeat(Math.min(n.stars, 5))}
                   </span>
                 ) : null}
-                <span className="text-xs text-gray-400 truncate">
+                <span className="text-[11px] text-gray-500 truncate">
                   {[n.resort_town, n.country].filter(Boolean).join(', ')}
                 </span>
               </div>
-              <h3 className="font-semibold text-gray-900 text-[15px] leading-snug line-clamp-2 group-hover:text-[#0093FF] transition-colors mb-2">
+              <h3
+                className="font-bold text-gray-900 leading-snug line-clamp-1 mb-2.5 group-hover:text-[#0093FF] transition-colors duration-200"
+                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1rem' }}
+              >
                 {n.name}
               </h3>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xs text-gray-400">od</span>
-                <span className="text-lg font-bold text-emerald-600 tabular-nums">{formatPriceShort(n.min_price)}</span>
-                <span className="text-xs text-gray-400">Kč / os.</span>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-[16px] font-bold text-[#039669] tabular-nums">{formatPriceShort(n.min_price)}</span>
+                  <span className="text-[12px] text-gray-400 ml-1">Kč / os.</span>
+                </div>
+                <div className="flex items-center gap-1.5 rounded-full border border-[#C8E3FF] bg-[#EDF6FF] group-hover:bg-[#0093FF] group-hover:border-[#0093FF] transition-all duration-200 overflow-hidden flex-shrink-0 px-2.5 py-[7px] group-hover:px-3.5">
+                  <span className="text-[11px] font-semibold text-[#0093FF] group-hover:text-white transition-colors duration-200 max-w-0 group-hover:max-w-[56px] overflow-hidden whitespace-nowrap">
+                    Zobrazit
+                  </span>
+                  <PiArrowRight className="w-3.5 h-3.5 text-[#0093FF] group-hover:text-white transition-all duration-200 group-hover:translate-x-0.5 flex-shrink-0" />
+                </div>
               </div>
             </div>
           </Link>

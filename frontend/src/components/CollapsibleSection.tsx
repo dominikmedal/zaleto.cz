@@ -22,19 +22,21 @@ export default function CollapsibleSection({ title, icon, defaultOpen = true, la
   }
 
   return (
-    <section className="py-6 border-b border-gray-100 last:border-0">
+    <section className="py-6 last:border-0" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)' }}>
       <button
         type="button"
         onClick={toggle}
         className="w-full flex items-center justify-between gap-3 text-left group/toggle"
         aria-expanded={open}
       >
-        <h2 className="flex items-center gap-2.5 text-[17px] font-semibold text-gray-900">
-          <span className="text-[#008afe] flex-shrink-0">{icon}</span>
-          {title}
-        </h2>
+        <div>
+          <h2 className="flex items-center gap-2.5 text-[16px] font-semibold text-gray-900 group-hover/toggle:text-[#0093FF] transition-colors">
+            <span className="text-[#0093FF] flex-shrink-0">{icon}</span>
+            {title}
+          </h2>
+        </div>
         <PiCaretDown
-          className={`w-4 h-4 text-primary group-hover/toggle:text-gray-500 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-[#0093FF] group-hover/toggle:text-[#0070E0] flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
         />
       </button>
 

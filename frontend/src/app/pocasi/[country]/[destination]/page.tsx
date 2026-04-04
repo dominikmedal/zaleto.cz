@@ -164,7 +164,10 @@ export default async function DestinationWeatherPage({ params }: Props) {
                 <span className="text-gray-200">/</span>
                 <span className="text-gray-700 font-medium">{info.name}</span>
               </nav>
-              <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 leading-tight mb-2 drop-shadow-sm">
+              <h1
+                className="font-bold text-gray-900 leading-tight tracking-tight mb-2 drop-shadow-sm"
+                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(28px, 5vw, 60px)' }}
+              >
                 Počasí — {info.name}
               </h1>
               {weather.description && (
@@ -201,7 +204,12 @@ export default async function DestinationWeatherPage({ params }: Props) {
               <span className="text-gray-200">/</span>
               <span className="text-gray-700 font-medium">{info.name}</span>
             </nav>
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">Počasí — {info.name}</h1>
+            <h1
+              className="font-bold text-gray-900 leading-tight tracking-tight"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(26px, 4vw, 48px)' }}
+            >
+              Počasí — {info.name}
+            </h1>
             {weather.description && (
               <p className="text-gray-500 text-sm mt-2 max-w-2xl leading-relaxed">
                 {weather.description.split(/\n\n+/)[0]}
@@ -231,7 +239,7 @@ export default async function DestinationWeatherPage({ params }: Props) {
                 </div>
               )}
               {weather.best_months.length > 0 && (
-                <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4">
+                <div className="flex-1 glass-card rounded-2xl p-5 flex flex-col gap-4">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
                     <PiCalendarBlank className="w-3.5 h-3.5" />
                     Nejlepší měsíce pro dovolenou
@@ -329,7 +337,7 @@ export default async function DestinationWeatherPage({ params }: Props) {
             <SectionHeader Icon={PiWind} title="Vítr a moře" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {weather.wind_info && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="glass-card rounded-2xl p-5">
                   <p className="flex items-center gap-2 font-semibold text-sm text-gray-800 mb-2">
                     <PiWind className="w-4 h-4 text-[#008afe]" /> Vítr
                   </p>
@@ -337,7 +345,7 @@ export default async function DestinationWeatherPage({ params }: Props) {
                 </div>
               )}
               {weather.sea_info && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="glass-card rounded-2xl p-5">
                   <p className="flex items-center gap-2 font-semibold text-sm text-gray-800 mb-2">
                     <PiMapPin className="w-4 h-4 text-[#008afe]" /> Koupání a teplota moře
                   </p>

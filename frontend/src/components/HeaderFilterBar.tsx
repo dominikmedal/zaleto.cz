@@ -114,10 +114,22 @@ function PriceRangeSlider({
 
 function PillToggle({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap ${
-        active ? 'bg-[#008afe] text-white border-[#008afe]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#008afe]/50 hover:text-[#008afe]'
-      }`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className="px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap"
+      style={active ? {
+        background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+        color: '#fff',
+        border: '1px solid #0093FF',
+        boxShadow: '0 2px 8px rgba(0,147,255,0.28)',
+      } : {
+        background: 'rgba(237,246,255,0.70)',
+        color: '#4b5563',
+        border: '1px solid rgba(200,227,255,0.65)',
+        backdropFilter: 'blur(8px)',
+      }}
+    >
       {children}
     </button>
   )
@@ -378,13 +390,20 @@ export default function HeaderFilterBar() {
     <div ref={containerRef} className="relative flex-1 flex items-center gap-0 min-w-0">
 
       {/* ── Compact pill bar ── */}
-      <div className={`flex-1 flex items-stretch bg-white border rounded-full divide-x divide-gray-100 min-w-0 h-11 overflow-hidden transition-all duration-300 ${
-        activePanel === 'dest'
-          ? 'border-[#008afe]/40 shadow-[0_2px_16px_rgba(0,138,254,0.18)]'
-          : !destSummary
-          ? 'border-[#008afe]/30 shadow-[0_2px_16px_rgba(0,138,254,0.12)]'
-          : 'border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.06)]'
-      }`}>
+      <div
+        className="flex-1 flex items-stretch min-w-0 h-11 overflow-hidden transition-all duration-300 rounded-full"
+        style={{
+          background: 'rgba(245,248,255,0.92)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: activePanel
+            ? '1px solid rgba(0,147,255,0.40)'
+            : '1px solid rgba(200,227,255,0.70)',
+          boxShadow: activePanel
+            ? '0 2px 16px rgba(0,147,255,0.18)'
+            : '0 2px 12px rgba(0,147,255,0.10)',
+        }}
+      >
 
         {/* Destinace */}
         <div
@@ -395,12 +414,12 @@ export default function HeaderFilterBar() {
               openPanel('dest')
             }
           }}
-          className={`flex-1 min-w-0 flex flex-col justify-center px-5 cursor-text transition-colors rounded-l-full ${
+          className={`flex-1 min-w-0 flex flex-col justify-center px-5 cursor-text transition-colors rounded-l-full border-r border-[rgba(0,147,255,0.08)] ${
             activePanel === 'dest'
-              ? 'bg-[#008afe]/[0.07]'
+              ? 'bg-[rgba(0,147,255,0.07)]'
               : destination.length > 0
-              ? 'hover:bg-gray-50/80'
-              : 'bg-[#008afe]/[0.05] hover:bg-[#008afe]/[0.09]'
+              ? 'hover:bg-[rgba(237,246,255,0.50)]'
+              : 'bg-transparent hover:bg-[rgba(0,147,255,0.04)]'
           }`}
         >
           {/* On mobile, show combined label when date is set */}
@@ -442,8 +461,8 @@ export default function HeaderFilterBar() {
         {/* Termín — hidden on xs */}
         <div
           onClick={() => openPanel('date')}
-          className={`hidden sm:flex items-center gap-1 px-5 w-44 flex-shrink-0 cursor-pointer transition-colors ${
-            activePanel === 'date' ? 'bg-blue-50/60' : 'hover:bg-gray-50/80'
+          className={`hidden sm:flex items-center gap-1 px-5 w-44 flex-shrink-0 cursor-pointer transition-colors border-r border-[rgba(0,147,255,0.08)] ${
+            activePanel === 'date' ? 'bg-[rgba(0,147,255,0.06)]' : 'hover:bg-[rgba(237,246,255,0.50)]'
           }`}
         >
           <div className="flex flex-col justify-center flex-1 min-w-0">
@@ -500,11 +519,13 @@ export default function HeaderFilterBar() {
         <button
           type="button"
           onClick={e => { e.stopPropagation(); openPanel('adv') }}
-          className={`hidden sm:flex items-center gap-1.5 px-4 flex-shrink-0 transition-colors rounded-r-full ${
-            activePanel === 'adv' || advancedCount > 0
-              ? 'bg-[#008afe]/8 text-[#008afe]'
-              : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-          }`}
+          className="hidden sm:flex items-center gap-1.5 px-4 flex-shrink-0 transition-all rounded-r-full"
+          style={activePanel === 'adv' || advancedCount > 0 ? {
+            background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+            color: '#fff',
+          } : {
+            color: '#6b7280',
+          }}
         >
           {isPending
             ? <PiSpinner className="w-4 h-4 animate-spin" />
@@ -512,7 +533,7 @@ export default function HeaderFilterBar() {
           }
           <span className="text-xs font-medium hidden xl:block">Filtry</span>
           {advancedCount > 0 && (
-            <span className="w-4 h-4 flex items-center justify-center bg-[#008afe] text-white text-[9px] font-bold rounded-full flex-shrink-0">
+            <span className="w-4 h-4 flex items-center justify-center bg-white/25 text-white text-[9px] font-bold rounded-full flex-shrink-0">
               {advancedCount}
             </span>
           )}
@@ -522,18 +543,18 @@ export default function HeaderFilterBar() {
         <button
           type="button"
           onClick={e => { e.stopPropagation(); openMobileSheet() }}
-          className={`sm:hidden flex items-center gap-1.5 px-4 flex-shrink-0 transition-colors rounded-r-full ${
-            mobileFilterCount > 0
-              ? 'bg-[#008afe]/8 text-[#008afe]'
-              : 'text-gray-400'
-          }`}
+          className="sm:hidden flex items-center gap-1.5 px-4 flex-shrink-0 transition-all rounded-r-full"
+          style={mobileFilterCount > 0 ? {
+            background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+            color: '#fff',
+          } : { color: '#9ca3af' }}
         >
           {isPending
             ? <PiSpinner className="w-4 h-4 animate-spin" />
             : <PiSliders className="w-4 h-4" />
           }
           {mobileFilterCount > 0 && (
-            <span className="w-4 h-4 flex items-center justify-center bg-[#008afe] text-white text-[9px] font-bold rounded-full flex-shrink-0">
+            <span className="w-4 h-4 flex items-center justify-center bg-white/25 text-white text-[9px] font-bold rounded-full flex-shrink-0">
               {mobileFilterCount}
             </span>
           )}
@@ -543,7 +564,14 @@ export default function HeaderFilterBar() {
 
       {/* ══ Destination dropdown ══ */}
       {activePanel === 'dest' && (
-        <div className="absolute top-full left-0 right-0 mt-2.5 bg-white rounded-2xl border border-gray-100 shadow-2xl shadow-black/8 z-50 p-3">
+        <div className="absolute top-full left-0 right-0 mt-2.5 rounded-2xl z-50 p-3"
+          style={{
+            background: 'rgba(248,251,255,0.97)',
+            backdropFilter: 'blur(28px)',
+            WebkitBackdropFilter: 'blur(28px)',
+            border: '1px solid rgba(200,227,255,0.70)',
+            boxShadow: '0 20px 60px rgba(0,80,200,0.16), 0 4px 20px rgba(0,0,0,0.06)',
+          }}>
           <DestinationAutocomplete
             destinations={destRows}
             value={destination}
@@ -557,8 +585,15 @@ export default function HeaderFilterBar() {
 
       {/* ══ Date dropdown — calendar shown directly (inline) ══ */}
       {activePanel === 'date' && (
-        <div className="absolute top-full sm:left-[calc(37%-0.5rem)] mt-2.5 bg-white rounded-2xl border border-gray-100 shadow-2xl z-50 p-5"
-          style={{ width: 'min(690px, calc(100vw - 3rem))' }}>
+        <div className="absolute top-full sm:left-[calc(37%-0.5rem)] mt-2.5 rounded-2xl z-50 p-5"
+          style={{
+            width: 'min(690px, calc(100vw - 3rem))',
+            background: 'rgba(248,251,255,0.97)',
+            backdropFilter: 'blur(28px)',
+            WebkitBackdropFilter: 'blur(28px)',
+            border: '1px solid rgba(200,227,255,0.70)',
+            boxShadow: '0 20px 60px rgba(0,80,200,0.16), 0 4px 20px rgba(0,0,0,0.06)',
+          }}>
           <DateRangePicker
             dateFrom={dateFrom}
             dateTo={dateTo}
@@ -575,7 +610,14 @@ export default function HeaderFilterBar() {
 
       {/* ══ Advanced filters dropdown ══ */}
       {activePanel === 'adv' && (
-        <div className="absolute top-full left-0 right-0 mt-2.5 bg-white rounded-2xl border border-gray-100 shadow-2xl z-50 p-5">
+        <div className="absolute top-full left-0 right-0 mt-2.5 rounded-2xl z-50 p-5"
+          style={{
+            background: 'rgba(248,251,255,0.97)',
+            backdropFilter: 'blur(28px)',
+            WebkitBackdropFilter: 'blur(28px)',
+            border: '1px solid rgba(200,227,255,0.70)',
+            boxShadow: '0 20px 60px rgba(0,80,200,0.16), 0 4px 20px rgba(0,0,0,0.06)',
+          }}>
           {metaError ? (
             <div className="flex flex-col items-center py-6 gap-3">
               <p className="text-sm text-gray-500">Nepodařilo se načíst filtry.</p>
@@ -597,20 +639,28 @@ export default function HeaderFilterBar() {
                 <div className="flex gap-1.5 flex-wrap">
                   <button type="button"
                     onClick={() => setTourType(t => t === 'last_minute' ? '' : 'last_minute')}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                      tourType === 'last_minute'
-                        ? 'bg-red-500 text-white border-red-500'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-red-300 hover:text-red-500'
-                    }`}>
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all"
+                    style={tourType === 'last_minute' ? {
+                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      color: '#fff', border: '1px solid #ef4444',
+                      boxShadow: '0 2px 8px rgba(239,68,68,0.28)',
+                    } : {
+                      background: 'rgba(237,246,255,0.70)', color: '#4b5563',
+                      border: '1px solid rgba(200,227,255,0.65)',
+                    }}>
                     <PiTimer className="w-3.5 h-3.5" /> Last minute
                   </button>
                   <button type="button"
                     onClick={() => setTourType(t => t === 'first_minute' ? '' : 'first_minute')}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                      tourType === 'first_minute'
-                        ? 'bg-emerald-500 text-white border-emerald-500'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-600'
-                    }`}>
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all"
+                    style={tourType === 'first_minute' ? {
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      color: '#fff', border: '1px solid #10b981',
+                      boxShadow: '0 2px 8px rgba(16,185,129,0.28)',
+                    } : {
+                      background: 'rgba(237,246,255,0.70)', color: '#4b5563',
+                      border: '1px solid rgba(200,227,255,0.65)',
+                    }}>
                     <PiCalendarStar className="w-3.5 h-3.5" /> First minute
                   </button>
                 </div>
@@ -650,7 +700,12 @@ export default function HeaderFilterBar() {
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Délka pobytu</label>
                   <div className="relative">
                     <select value={duration} onChange={e => setDuration(e.target.value)}
-                      className="w-full text-sm border border-gray-100 rounded-xl px-3 py-2 bg-white focus:outline-none shadow-sm appearance-none pr-8 cursor-pointer">
+                      className="w-full text-sm rounded-xl px-3 py-2 focus:outline-none appearance-none pr-8 cursor-pointer"
+                      style={{
+                        background: 'rgba(237,246,255,0.70)',
+                        border: '1px solid rgba(200,227,255,0.65)',
+                        color: '#374151',
+                      }}>
                       <option value="">Libovolná</option>
                       {meta.durations.map(d => <option key={d.duration} value={d.duration}>{d.duration} nocí</option>)}
                     </select>
@@ -692,7 +747,7 @@ export default function HeaderFilterBar() {
 
           {/* Clear advanced */}
           {advancedCount > 0 && !metaError && (
-            <div className="mt-5 pt-4 border-t border-gray-100">
+            <div className="mt-5 pt-4" style={{ borderTop: '1px solid rgba(0,147,255,0.08)' }}>
               <button type="button"
                 onClick={() => { setDuration(''); setMinPrice(''); setMaxPrice(''); setStars([]); setMealPlan([]); setTransport(''); setTourType(''); setDepCity([]) }}
                 className="text-xs text-gray-400 hover:text-red-500 underline underline-offset-2 transition-colors">
@@ -715,7 +770,15 @@ export default function HeaderFilterBar() {
         />
 
         {/* Sheet */}
-        <div className="fixed bottom-0 inset-x-0 z-[201] bg-white rounded-t-3xl max-h-[92dvh] flex flex-col shadow-2xl">
+        <div className="fixed bottom-0 inset-x-0 z-[201] rounded-t-3xl max-h-[92dvh] flex flex-col"
+          style={{
+            background: 'rgba(248,251,255,0.97)',
+            backdropFilter: 'blur(28px)',
+            WebkitBackdropFilter: 'blur(28px)',
+            border: '1px solid rgba(200,227,255,0.60)',
+            borderBottom: 'none',
+            boxShadow: '0 -8px 40px rgba(0,80,200,0.18)',
+          }}>
 
           {/* Handle */}
           <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
@@ -723,7 +786,7 @@ export default function HeaderFilterBar() {
           </div>
 
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)' }}>
             <h2 className="text-base font-bold text-gray-900">Hledat zájezd</h2>
             <button
               type="button"
@@ -777,14 +840,16 @@ export default function HeaderFilterBar() {
                   <button type="button"
                     onClick={() => setAdults(a => Math.max(1, a - 1))}
                     disabled={adults <= 1}
-                    className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-[#008afe] hover:text-[#008afe] disabled:opacity-30 transition-colors">
+                    className="w-10 h-10 flex items-center justify-center rounded-full disabled:opacity-30 transition-colors"
+                    style={{ background: 'rgba(0,147,255,0.08)', color: '#0093FF', border: '1px solid rgba(0,147,255,0.20)' }}>
                     <PiUserMinus className="w-5 h-5" />
                   </button>
                   <span className="text-lg font-semibold text-gray-900 tabular-nums min-w-[5rem] text-center">{adults} {adults === 1 ? 'osoba' : adults < 5 ? 'osoby' : 'osob'}</span>
                   <button type="button"
                     onClick={() => setAdults(a => Math.min(6, a + 1))}
                     disabled={adults >= 6}
-                    className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-[#008afe] hover:text-[#008afe] disabled:opacity-30 transition-colors">
+                    className="w-10 h-10 flex items-center justify-center rounded-full disabled:opacity-30 transition-colors"
+                    style={{ background: 'rgba(0,147,255,0.08)', color: '#0093FF', border: '1px solid rgba(0,147,255,0.20)' }}>
                     <PiUserPlus className="w-5 h-5" />
                   </button>
                 </div>
@@ -797,11 +862,15 @@ export default function HeaderFilterBar() {
                   {SORT_OPTIONS.map(o => (
                     <button key={o.value} type="button"
                       onClick={() => setSort(o.value)}
-                      className={`px-3 py-2.5 rounded-xl text-sm font-medium border transition-all text-left ${
-                        sort === o.value
-                          ? 'bg-[#008afe] text-white border-[#008afe]'
-                          : 'bg-white text-gray-600 border-gray-200'
-                      }`}>
+                      className="px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left"
+                      style={sort === o.value ? {
+                        background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+                        color: '#fff', border: '1px solid #0093FF',
+                        boxShadow: '0 2px 8px rgba(0,147,255,0.25)',
+                      } : {
+                        background: 'rgba(237,246,255,0.70)', color: '#4b5563',
+                        border: '1px solid rgba(200,227,255,0.65)',
+                      }}>
                       {o.label}
                     </button>
                   ))}
@@ -814,20 +883,28 @@ export default function HeaderFilterBar() {
                 <div className="flex gap-2 flex-wrap">
                   <button type="button"
                     onClick={() => setTourType(t => t === 'last_minute' ? '' : 'last_minute')}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium border transition-all ${
-                      tourType === 'last_minute'
-                        ? 'bg-red-500 text-white border-red-500'
-                        : 'bg-white text-gray-600 border-gray-200'
-                    }`}>
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium transition-all"
+                    style={tourType === 'last_minute' ? {
+                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      color: '#fff', border: '1px solid #ef4444',
+                      boxShadow: '0 2px 8px rgba(239,68,68,0.28)',
+                    } : {
+                      background: 'rgba(237,246,255,0.70)', color: '#4b5563',
+                      border: '1px solid rgba(200,227,255,0.65)',
+                    }}>
                     <PiTimer className="w-4 h-4" /> Last minute
                   </button>
                   <button type="button"
                     onClick={() => setTourType(t => t === 'first_minute' ? '' : 'first_minute')}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium border transition-all ${
-                      tourType === 'first_minute'
-                        ? 'bg-emerald-500 text-white border-emerald-500'
-                        : 'bg-white text-gray-600 border-gray-200'
-                    }`}>
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium transition-all"
+                    style={tourType === 'first_minute' ? {
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      color: '#fff', border: '1px solid #10b981',
+                      boxShadow: '0 2px 8px rgba(16,185,129,0.28)',
+                    } : {
+                      background: 'rgba(237,246,255,0.70)', color: '#4b5563',
+                      border: '1px solid rgba(200,227,255,0.65)',
+                    }}>
                     <PiCalendarStar className="w-4 h-4" /> First minute
                   </button>
                 </div>
@@ -886,7 +963,12 @@ export default function HeaderFilterBar() {
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Délka pobytu</label>
                       <div className="relative">
                         <select value={duration} onChange={e => setDuration(e.target.value)}
-                          className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 bg-white focus:outline-none appearance-none pr-8 cursor-pointer">
+                          className="w-full text-sm rounded-xl px-4 py-3 focus:outline-none appearance-none pr-8 cursor-pointer"
+                          style={{
+                            background: 'rgba(237,246,255,0.70)',
+                            border: '1px solid rgba(200,227,255,0.65)',
+                            color: '#374151',
+                          }}>
                           <option value="">Libovolná</option>
                           {meta.durations.map(d => <option key={d.duration} value={d.duration}>{d.duration} nocí</option>)}
                         </select>
@@ -927,7 +1009,7 @@ export default function HeaderFilterBar() {
 
               {/* Clear all */}
               {(destination.length > 0 || dateFrom || dateTo || adults !== 2 || sort !== 'price_asc' || advancedCount > 0) && (
-                <div className="pt-2 border-t border-gray-100">
+                <div className="pt-2" style={{ borderTop: '1px solid rgba(0,147,255,0.08)' }}>
                   <button type="button"
                     onClick={() => {
                       setDestination([])
@@ -956,11 +1038,11 @@ export default function HeaderFilterBar() {
           </div>
 
           {/* Footer CTA */}
-          <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="flex-shrink-0 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]" style={{ borderTop: '1px solid rgba(0,147,255,0.08)' }}>
             <button
               type="button"
               onClick={() => setMobileSheetOpen(false)}
-              className="w-full bg-[#008afe] hover:bg-[#0079e5] active:bg-[#006fd4] text-white font-semibold py-4 rounded-2xl transition-colors text-sm flex items-center justify-center gap-2"
+              className="btn-cta w-full justify-center py-4"
             >
               {isPending
                 ? <PiSpinner className="w-4 h-4 animate-spin" />

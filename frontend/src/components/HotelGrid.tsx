@@ -191,8 +191,8 @@ export default function HotelGrid({ adults = 2, forcedDestination }: { adults?: 
   if (initialDone && hotels.length === 0) {
     return (
       <div className="text-center py-24">
-        <PiMagnifyingGlass className="w-12 h-12 text-gray-300 mx-auto mb-5" />
-        <h3 className="text-xl font-semibold text-gray-800 mb-2">Žádné výsledky</h3>
+        <PiMagnifyingGlass className="w-12 h-12 text-[#008afe]je  mx-auto mb-5" />
+        <h3 className="text-xl font-semibold text-[#008afe] mb-2">Žádné výsledky</h3>
         <p className="text-gray-400 text-sm">Zkuste upravit filtry nebo vyberte jinou destinaci.</p>
       </div>
     )
@@ -216,14 +216,16 @@ export default function HotelGrid({ adults = 2, forcedDestination }: { adults?: 
           )}
         </p>
 
-        <div className="flex items-center gap-1 bg-[#f5faff] rounded-xl p-1">
+        <div className="flex items-center gap-0.5 glass-pill rounded-xl p-1">
           {viewButtons.map(btn => (
             <button
               key={btn.id}
               onClick={() => setView(btn.id)}
               title={btn.label}
               className={`${btn.id === 'list' ? 'hidden sm:flex' : 'flex'} items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                view === btn.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                view === btn.id
+                  ? 'bg-white text-[#0093FF] shadow-[0_1px_6px_rgba(0,147,255,0.15)] border border-[#C8E3FF]'
+                  : 'text-gray-500 hover:text-[#0093FF] hover:bg-white/60'
               }`}
             >
               {btn.icon}

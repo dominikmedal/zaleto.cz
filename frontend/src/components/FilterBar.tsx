@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useTransition, useCallback } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { PiX, PiSpinner, PiCaretDown, PiArrowsDownUp, PiSliders, PiUserPlus, PiUserMinus, PiTimer, PiCalendarStar } from 'react-icons/pi'
+import { PiX, PiSpinner, PiCaretDown, PiSliders, PiUserPlus, PiUserMinus, PiTimer, PiCalendarStar } from 'react-icons/pi'
 import DateRangePicker from './DateRangePicker'
 import DestinationAutocomplete from './DestinationAutocomplete'
 
@@ -32,16 +32,39 @@ const SORT_OPTIONS = [
 ]
 
 const microLabel = "text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block"
-const advSelect  = "w-full text-sm text-gray-700 border border-gray-100 bg-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#008afe]/40 transition-all appearance-none cursor-pointer shadow-sm"
+
+const advSelectCls = [
+  'w-full text-sm text-gray-700 rounded-xl px-3 py-2.5 pr-8',
+  'focus:outline-none transition-all appearance-none cursor-pointer',
+  'bg-[rgba(237,246,255,0.60)] border border-[rgba(200,227,255,0.65)]',
+  'focus:bg-white focus:border-[rgba(0,147,255,0.40)] focus:shadow-[0_0_0_3px_rgba(0,147,255,0.08)]',
+].join(' ')
+
+const priceInputCls = [
+  'w-28 text-sm rounded-xl px-3 py-2.5',
+  'bg-[rgba(237,246,255,0.60)] border border-[rgba(200,227,255,0.65)]',
+  'focus:outline-none focus:bg-white focus:border-[rgba(0,147,255,0.40)] focus:shadow-[0_0_0_3px_rgba(0,147,255,0.08)]',
+  'transition-all text-gray-700 placeholder-gray-400',
+].join(' ')
 
 function PillToggle({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" onClick={onClick}
-      className={`px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap ${
-        active
-          ? 'bg-[#008afe] text-white border-[#008afe] shadow-sm'
-          : 'bg-white text-gray-600 border-gray-200 hover:border-[#008afe]/50 hover:text-[#008afe]'
-      }`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className="px-3.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap"
+      style={active ? {
+        background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+        color: '#fff',
+        border: '1px solid #0093FF',
+        boxShadow: '0 2px 8px rgba(0,147,255,0.28)',
+      } : {
+        background: 'rgba(237,246,255,0.70)',
+        color: '#4b5563',
+        border: '1px solid rgba(200,227,255,0.65)',
+        backdropFilter: 'blur(8px)',
+      }}
+    >
       {children}
     </button>
   )
@@ -160,21 +183,26 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
 
   const advancedCount = [duration, minPrice, maxPrice, transport, tourType].filter(Boolean).length + stars.length + mealPlan.length + depCity.length
 
+  const divider = '1px solid rgba(0,147,255,0.08)'
+
   return (
-    <div className="bg-white rounded-2xl shadow-[0_4px_28px_rgba(0,0,0,0.07),0_1px_8px_rgba(0,0,0,0.04)] relative overflow-hidden mb-6">
+    <div
+      className="glass-card rounded-2xl overflow-hidden relative mb-6"
+      style={{ border: '1px solid rgba(200,227,255,0.65)' }}
+    >
 
       {/* Loading bar */}
       {isPending && (
         <div className="absolute top-0 left-0 right-0 h-0.5 overflow-hidden z-10">
-          <div className="h-full bg-[#008afe] animate-pulse w-full" />
+          <div className="h-full bg-[#0093FF] animate-pulse w-full" />
         </div>
       )}
 
       {/* ── Main search row ── */}
-      <div className="flex flex-col sm:flex-row sm:items-stretch divide-y divide-gray-100 sm:divide-y-0 sm:divide-x sm:divide-gray-100">
+      <div className="flex flex-col sm:flex-row sm:items-stretch" style={{ borderBottom: showAdvanced || chips.length > 0 ? divider : undefined }}>
 
         {/* Destinace */}
-        <div className="flex-1 min-w-0 px-5 pt-4 pb-4">
+        <div className="flex-1 min-w-0 px-5 pt-4 pb-4" style={{ borderBottom: 'var(--row-divider, none)' }}>
           <span className={microLabel}>Destinace</span>
           <DestinationAutocomplete
             destinations={destinations}
@@ -184,7 +212,10 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
         </div>
 
         {/* Termín odjezdu */}
-        <div className="sm:w-60 flex-shrink-0 px-5 pt-4 pb-4">
+        <div
+          className="sm:w-60 flex-shrink-0 px-5 pt-4 pb-4"
+          style={{ borderLeft: divider }}
+        >
           <span className={microLabel}>Termín odjezdu</span>
           <DateRangePicker
             dateFrom={dateFrom}
@@ -196,31 +227,48 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
         </div>
 
         {/* Cestující */}
-        <div className="flex-shrink-0 px-5 pt-4 pb-4">
+        <div
+          className="flex-shrink-0 px-5 pt-4 pb-4"
+          style={{ borderLeft: divider }}
+        >
           <span className={microLabel}>Cestující</span>
           <div className="flex items-center gap-2.5 h-[42px]">
-            <button type="button" onClick={() => setAdults(a => Math.max(1, a - 1))}
+            <button
+              type="button"
+              onClick={() => setAdults(a => Math.max(1, a - 1))}
               disabled={adults <= 1}
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-[#008afe]/10 hover:text-[#008afe] transition-all disabled:opacity-30">
+              className="w-7 h-7 flex items-center justify-center rounded-full transition-all disabled:opacity-30"
+              style={{ background: 'rgba(0,147,255,0.07)', color: '#0093FF' }}
+            >
               <PiUserMinus className="w-3.5 h-3.5" />
             </button>
             <span className="text-sm font-semibold text-gray-800 tabular-nums w-10 text-center select-none">
               {adults} os.
             </span>
-            <button type="button" onClick={() => setAdults(a => Math.min(6, a + 1))}
+            <button
+              type="button"
+              onClick={() => setAdults(a => Math.min(6, a + 1))}
               disabled={adults >= 6}
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-[#008afe]/10 hover:text-[#008afe] transition-all disabled:opacity-30">
+              className="w-7 h-7 flex items-center justify-center rounded-full transition-all disabled:opacity-30"
+              style={{ background: 'rgba(0,147,255,0.07)', color: '#0093FF' }}
+            >
               <PiUserPlus className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
         {/* Řadit podle */}
-        <div className="flex-shrink-0 px-5 pt-4 pb-4">
+        <div
+          className="flex-shrink-0 px-5 pt-4 pb-4"
+          style={{ borderLeft: divider }}
+        >
           <span className={microLabel}>Řadit podle</span>
           <div className="relative flex items-center h-[42px]">
-            <select value={sort} onChange={e => setSort(e.target.value)}
-              className="text-sm font-medium text-gray-700 bg-transparent focus:outline-none appearance-none pr-6 cursor-pointer max-w-[148px]">
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value)}
+              className="text-sm font-medium text-gray-700 bg-transparent focus:outline-none appearance-none pr-6 cursor-pointer max-w-[148px]"
+            >
               {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             <PiCaretDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -228,22 +276,40 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
         </div>
 
         {/* Filtry */}
-        <div className="flex-shrink-0 px-5 pt-4 pb-4 flex flex-col justify-end">
+        <div
+          className="flex-shrink-0 px-5 pt-4 pb-4 flex flex-col justify-end"
+          style={{ borderLeft: divider }}
+        >
           <span className={microLabel}>&nbsp;</span>
           <button
             type="button"
             onClick={() => setShowAdvanced(v => !v)}
-            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap ${
-              showAdvanced || advancedCount > 0
-                ? 'bg-[#008afe] text-white border-[#008afe] shadow-[0_4px_14px_rgba(0,138,254,0.28)]'
-                : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
-            }`}>
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap"
+            style={showAdvanced || advancedCount > 0 ? {
+              background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+              color: '#fff',
+              border: '1px solid #0093FF',
+              boxShadow: '0 4px 14px rgba(0,147,255,0.30)',
+            } : {
+              background: 'rgba(237,246,255,0.70)',
+              color: '#374151',
+              border: '1px solid rgba(200,227,255,0.65)',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
             <PiSliders className="w-4 h-4" />
             Filtry
             {advancedCount > 0 && (
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
-                showAdvanced ? 'bg-white/25 text-white' : 'bg-[#008afe]/10 text-[#008afe]'
-              }`}>
+              <span
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                style={showAdvanced || advancedCount > 0 ? {
+                  background: 'rgba(255,255,255,0.25)',
+                  color: '#fff',
+                } : {
+                  background: 'rgba(0,147,255,0.10)',
+                  color: '#0093FF',
+                }}
+              >
                 {advancedCount}
               </span>
             )}
@@ -254,28 +320,53 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
 
       {/* ── Rozšířené filtry ── */}
       {showAdvanced && (
-        <div className="bg-gray-50/40 border-t border-gray-100 px-5 py-5 space-y-5">
+        <div
+          className="px-5 py-5 space-y-5"
+          style={{
+            background: 'rgba(237,246,255,0.40)',
+            backdropFilter: 'blur(12px)',
+            borderBottom: chips.length > 0 ? divider : undefined,
+          }}
+        >
           <div className="flex flex-wrap gap-x-8 gap-y-5 items-start">
 
             {/* Typ nabídky */}
             <div>
               <p className={microLabel}>Typ nabídky</p>
               <div className="flex gap-1.5 flex-wrap">
-                <button type="button" onClick={() => setTourType(t => t === 'last_minute' ? '' : 'last_minute')}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    tourType === 'last_minute'
-                      ? 'bg-red-500 text-white border-red-500 shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-red-300 hover:text-red-500'
-                  }`}>
+                <button
+                  type="button"
+                  onClick={() => setTourType(t => t === 'last_minute' ? '' : 'last_minute')}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all"
+                  style={tourType === 'last_minute' ? {
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    color: '#fff',
+                    border: '1px solid #ef4444',
+                    boxShadow: '0 2px 8px rgba(239,68,68,0.28)',
+                  } : {
+                    background: 'rgba(237,246,255,0.70)',
+                    color: '#4b5563',
+                    border: '1px solid rgba(200,227,255,0.65)',
+                  }}
+                >
                   <PiTimer className="w-3.5 h-3.5 flex-shrink-0" />
                   Last minute
                 </button>
-                <button type="button" onClick={() => setTourType(t => t === 'first_minute' ? '' : 'first_minute')}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    tourType === 'first_minute'
-                      ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-600'
-                  }`}>
+                <button
+                  type="button"
+                  onClick={() => setTourType(t => t === 'first_minute' ? '' : 'first_minute')}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all"
+                  style={tourType === 'first_minute' ? {
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: '#fff',
+                    border: '1px solid #10b981',
+                    boxShadow: '0 2px 8px rgba(16,185,129,0.28)',
+                  } : {
+                    background: 'rgba(237,246,255,0.70)',
+                    color: '#4b5563',
+                    border: '1px solid rgba(200,227,255,0.65)',
+                  }}
+                >
                   <PiCalendarStar className="w-3.5 h-3.5 flex-shrink-0" />
                   First minute
                 </button>
@@ -289,7 +380,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
                 <div className="flex gap-1.5 flex-wrap">
                   {meta.stars.map(s => (
                     <PillToggle key={s.stars} active={stars.includes(String(s.stars))} onClick={() => toggleStar(String(s.stars))}>
-                      <span className="text-amber-400">{'★'.repeat(s.stars)}</span>
+                      <span style={{ color: stars.includes(String(s.stars)) ? '#fff' : '#f59e0b' }}>{'★'.repeat(s.stars)}</span>
                     </PillToggle>
                   ))}
                 </div>
@@ -315,7 +406,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
               <div className="min-w-[130px]">
                 <label className={microLabel}>Délka pobytu</label>
                 <div className="relative">
-                  <select value={duration} onChange={e => setDuration(e.target.value)} className={`${advSelect} pr-8`}>
+                  <select value={duration} onChange={e => setDuration(e.target.value)} className={`${advSelectCls} pr-8`}>
                     <option value="">Libovolná</option>
                     {meta.durations.map(d => (
                       <option key={d.duration} value={d.duration}>{d.duration} nocí</option>
@@ -331,7 +422,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
               <div className="min-w-[140px]">
                 <label className={microLabel}>Doprava</label>
                 <div className="relative">
-                  <select value={transport} onChange={e => setTransport(e.target.value)} className={`${advSelect} pr-8`}>
+                  <select value={transport} onChange={e => setTransport(e.target.value)} className={`${advSelectCls} pr-8`}>
                     <option value="">Libovolná</option>
                     {(meta.transports ?? []).map(t => (
                       <option key={t.transport} value={t.transport}>{t.transport}</option>
@@ -348,8 +439,11 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
                 <p className={microLabel}>Místo odletu</p>
                 <div className="flex gap-1.5 flex-wrap">
                   {(meta.departureCities ?? []).map(c => (
-                    <PillToggle key={c.departure_city} active={depCity.includes(c.departure_city)}
-                      onClick={() => setDepCity(p => p.includes(c.departure_city) ? p.filter(x => x !== c.departure_city) : [...p, c.departure_city])}>
+                    <PillToggle
+                      key={c.departure_city}
+                      active={depCity.includes(c.departure_city)}
+                      onClick={() => setDepCity(p => p.includes(c.departure_city) ? p.filter(x => x !== c.departure_city) : [...p, c.departure_city])}
+                    >
                       {c.departure_city}
                     </PillToggle>
                   ))}
@@ -361,15 +455,25 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
             <div>
               <p className={microLabel}>Cena (Kč / os.)</p>
               <div className="flex items-center gap-2">
-                <input type="number" placeholder="Od" value={minPrice}
+                <input
+                  type="number"
+                  placeholder="Od"
+                  value={minPrice}
                   onChange={e => setMinPrice(e.target.value)}
-                  className="w-28 px-3 py-2.5 text-sm border border-gray-100 rounded-xl bg-white focus:outline-none focus:border-[#008afe]/40 transition-all shadow-sm"
-                  min={0} step={1000} />
+                  className={priceInputCls}
+                  min={0}
+                  step={1000}
+                />
                 <span className="text-gray-300 text-sm">–</span>
-                <input type="number" placeholder="Do" value={maxPrice}
+                <input
+                  type="number"
+                  placeholder="Do"
+                  value={maxPrice}
                   onChange={e => setMaxPrice(e.target.value)}
-                  className="w-28 px-3 py-2.5 text-sm border border-gray-100 rounded-xl bg-white focus:outline-none focus:border-[#008afe]/40 transition-all shadow-sm"
-                  min={0} step={1000} />
+                  className={priceInputCls}
+                  min={0}
+                  step={1000}
+                />
               </div>
             </div>
 
@@ -379,19 +483,43 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
 
       {/* ── Aktivní filtry ── */}
       {chips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 px-5 py-3 border-t border-gray-100">
+        <div className="flex flex-wrap items-center gap-1.5 px-5 py-3">
           {chips.map((chip, i) => (
-            <button key={i} type="button" onClick={chip.clear}
-              className="inline-flex items-center gap-1.5 text-xs font-medium bg-[#008afe]/8 text-[#008afe] border border-[#008afe]/15 px-3 py-1.5 rounded-full hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-colors">
+            <button
+              key={i}
+              type="button"
+              onClick={chip.clear}
+              className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
+              style={{
+                background: 'rgba(0,147,255,0.08)',
+                color: '#0093FF',
+                border: '1px solid rgba(0,147,255,0.15)',
+              }}
+              onMouseEnter={e => {
+                const el = e.currentTarget
+                el.style.background = 'rgba(239,68,68,0.08)'
+                el.style.color = '#ef4444'
+                el.style.borderColor = 'rgba(239,68,68,0.20)'
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget
+                el.style.background = 'rgba(0,147,255,0.08)'
+                el.style.color = '#0093FF'
+                el.style.borderColor = 'rgba(0,147,255,0.15)'
+              }}
+            >
               {chip.label}
               <PiX className="w-3 h-3" />
             </button>
           ))}
-          <button type="button" onClick={clearAll}
-            className="text-xs text-gray-400 hover:text-red-500 transition-colors ml-1 underline underline-offset-2">
+          <button
+            type="button"
+            onClick={clearAll}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors ml-1 underline underline-offset-2"
+          >
             Smazat vše
           </button>
-          {isPending && <PiSpinner className="w-3.5 h-3.5 text-[#008afe] animate-spin ml-auto" />}
+          {isPending && <PiSpinner className="w-3.5 h-3.5 text-[#0093FF] animate-spin ml-auto" />}
         </div>
       )}
 

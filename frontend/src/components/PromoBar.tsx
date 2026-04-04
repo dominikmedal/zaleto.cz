@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { PiArrowRight } from 'react-icons/pi'
+import { PiArrowRight, PiSparkleFill } from 'react-icons/pi'
 
 const PROMOS = [
   { text: 'Letní výprodej — All Inclusive od 8 990 Kč · Porovnej termíny hned', href: '/?meal_plan=All+Inclusive&sort=price_asc' },
@@ -25,12 +25,28 @@ export default function PromoBar() {
   return (
     <button
       onClick={() => router.push(promo.href)}
-      className="w-full h-8 bg-[#008afe] hover:bg-[#0079e5] transition-colors flex items-center justify-center gap-2 px-4 group"
+      className="w-full flex items-center justify-center gap-2.5 px-4 group"
+      style={{
+        height: 32,
+        background: 'linear-gradient(135deg, #0093FF 0%, #0055CC 100%)',
+        borderBottom: '1px solid rgba(0,80,200,0.25)',
+      }}
     >
-      <span className="text-white text-[11px] sm:text-xs font-medium tracking-wide truncate">
+      <PiSparkleFill className="w-3 h-3 text-white/60 flex-shrink-0 hidden sm:block" />
+      <span className="text-white text-[11px] sm:text-[12px] font-semibold tracking-wide truncate">
         {promo.text}
       </span>
-      <PiArrowRight className="w-3 h-3 text-white/70 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+      <span
+        className="hidden sm:flex items-center gap-1 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold transition-all group-hover:gap-1.5"
+        style={{
+          background: 'rgba(255,255,255,0.18)',
+          color: '#fff',
+          border: '1px solid rgba(255,255,255,0.25)',
+        }}
+      >
+        Zjistit víc
+        <PiArrowRight className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" />
+      </span>
     </button>
   )
 }

@@ -49,7 +49,7 @@ export default function FavoriteButton({ slug, name, variant = 'card', className
       type="button"
       onClick={handle}
       aria-label={active ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}
-      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all group ${
         active
           ? 'bg-white shadow-md'
           : 'bg-black/25 backdrop-blur-sm hover:bg-white/90'
@@ -57,7 +57,7 @@ export default function FavoriteButton({ slug, name, variant = 'card', className
     >
       {active
         ? <PiHeartFill key={animKey} className="w-4 h-4 text-red-500 animate-heart-pop" />
-        : <PiHeart key={animKey} className="w-4 h-4 text-white" />
+        : <PiHeart key={animKey} className="w-4 h-4 text-white group-hover:text-red-400 transition-colors" />
       }
     </button>
   )

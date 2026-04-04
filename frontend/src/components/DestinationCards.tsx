@@ -21,7 +21,7 @@ export default function DestinationCards({ items }: { items: Item[] }) {
           key={region}
           href={`/destinace/${slugify(region)}`}
           className="group relative rounded-2xl overflow-hidden bg-gray-200 block"
-          style={{ aspectRatio: '3/2' }}
+          style={{ aspectRatio: '4/3' }}
         >
           {thumb ? (
             <Image
@@ -35,7 +35,7 @@ export default function DestinationCards({ items }: { items: Item[] }) {
             <div className="absolute inset-0 bg-gradient-to-br from-[#0093FF] to-blue-700" />
           )}
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
 
           {/* Location badge */}
           <div className="absolute top-3 left-3">
@@ -49,12 +49,15 @@ export default function DestinationCards({ items }: { items: Item[] }) {
           </div>
 
           {/* Bottom content */}
-          <div className="absolute bottom-0 left-0 right-0 p-4">
-            <p className="text-white font-bold text-xl leading-tight tracking-tight mb-0.5">
+          <div className="absolute bottom-0 left-0 right-0 p-5">
+            <p
+              className="text-white font-bold leading-tight tracking-tight mb-1"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.5vw, 26px)' }}
+            >
               {region}
             </p>
             {minPrice != null && (
-              <p className="text-white/65 text-sm">
+              <p className="text-white/60 text-xs font-medium uppercase tracking-wide">
                 od {fmt(minPrice)}
               </p>
             )}

@@ -71,7 +71,7 @@ export default function NotFoundPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <Link href="/" className="inline-flex items-center gap-2 bg-[#008afe] hover:bg-[#0079e5] text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors">
+          <Link href="/" className="btn-cta">
             <PiArrowLeft className="w-4 h-4" /> Zpět na úvod
           </Link>
           <Link href="/kontakt" className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:border-[#008afe]/40 text-gray-700 text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors">

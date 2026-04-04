@@ -3,10 +3,10 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { PiMapPin, PiClock, PiArrowLeft } from 'react-icons/pi'
+import { PiMapPin, PiClock, PiArrowLeft, PiArrowRight, PiNewspaper } from 'react-icons/pi'
 import Header from '@/components/Header'
 import { FeaturedHotelsBarVertical } from '@/components/FeaturedHotelCard'
-import { fetchArticle, fetchDestinationPhoto, fetchHotels } from '@/lib/api'
+import { fetchArticle, fetchArticles, fetchDestinationPhoto, fetchHotels } from '@/lib/api'
 
 interface Props {
   params: { slug: string }
@@ -102,7 +102,7 @@ export default async function ArticlePage({ params }: Props) {
   const article = await fetchArticle(params.slug).catch(() => null)
   if (!article) notFound()
 
-  const [photo, byDestResult, fallbackResult] = await Promise.all([
+  const [photo, byDestResult, fallbackResult, relatedArticles] = await Promise.all([
     article.location
       ? fetchDestinationPhoto(article.location).catch(() => null)
       : Promise.resolve(null),
@@ -110,6 +110,7 @@ export default async function ArticlePage({ params }: Props) {
       ? fetchHotels({ destination: article.location, limit: 3, sort: 'price_asc' }).catch(() => null)
       : Promise.resolve(null),
     fetchHotels({ limit: 3, sort: 'price_asc' }).catch(() => null),
+    fetchArticles(6).catch(() => []),
   ])
 
   const featuredHotels =
@@ -117,15 +118,18 @@ export default async function ArticlePage({ params }: Props) {
       ? byDestResult!.hotels
       : (fallbackResult?.hotels ?? [])
 
+  // Exclude the current article from related
+  const otherArticles = relatedArticles.filter(a => a.slug !== params.slug).slice(0, 5)
+
   return (
     <div className="min-h-screen">
       <Header />
 
       <div className="max-w-[1680px] mx-auto px-4 sm:px-8 py-8 sm:py-12">
-        <div className="flex gap-16 items-start">
+        <div className="flex gap-10 xl:gap-16 items-start">
 
           {/* ── Main article column ── */}
-          <main className="flex-1 min-w-0 max-w-[960px]">
+          <main className="flex-1 min-w-0 max-w-[960px] glass-card rounded-2xl p-8 sm:p-10">
 
             {/* Back */}
             <Link href="/clanky" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-8">
@@ -176,19 +180,60 @@ export default async function ArticlePage({ params }: Props) {
             )}
 
             {/* CTA */}
-            <div className="mt-12 pt-8 border-t border-gray-100">
+            <div className="mt-12 pt-8" style={{ borderTop: '1px solid rgba(0,147,255,0.08)' }}>
               <p className="text-gray-500 text-sm mb-4">Hledáte zájezd do {article.location ?? 'této destinace'}?</p>
               <Link
                 href={article.location ? `/?destination=${encodeURIComponent(article.location)}` : '/'}
-                className="inline-flex items-center gap-2 px-5 py-3 bg-[#0093FF] text-white text-sm font-semibold rounded-xl hover:bg-[#0080e0] transition-colors"
+                className="btn-cta"
               >
                 Porovnat zájezdy {article.location ? `— ${article.location}` : ''}
               </Link>
             </div>
 
+            {/* Čtěte také */}
+            {otherArticles.length > 0 && (
+              <div className="mt-10 pt-8" style={{ borderTop: '1px solid rgba(0,147,255,0.08)' }}>
+                <div className="flex items-center gap-2.5 mb-5">
+                  <div className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(0,147,255,0.08)' }}>
+                    <PiNewspaper className="w-3.5 h-3.5 text-[#0093FF]" />
+                  </div>
+                  <h2 className="text-base font-bold text-gray-900 tracking-tight">Čtěte také</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {otherArticles.map(a => (
+                    <Link
+                      key={a.slug}
+                      href={`/clanky/${a.slug}`}
+                      className="group flex flex-col gap-2 rounded-2xl p-4 transition-all hover:shadow-[0_4px_20px_rgba(0,147,255,0.12)]"
+                      style={{
+                        background: 'rgba(237,246,255,0.60)',
+                        border: '1px solid rgba(200,227,255,0.65)',
+                        backdropFilter: 'blur(8px)',
+                      }}
+                    >
+                      <p className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 group-hover:text-[#0093FF] transition-colors">
+                        {a.title}
+                      </p>
+                      <div className="flex items-center justify-between mt-auto pt-1">
+                        {a.location ? (
+                          <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                            <PiMapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                            {a.location}
+                          </span>
+                        ) : <span />}
+                        <span className="text-[10px] font-semibold text-[#0093FF] flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          Číst <PiArrowRight className="w-3 h-3" />
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </main>
 
-          {/* ── Sticky sidebar ── */}
+          {/* ── Right sidebar ── */}
           {featuredHotels.length > 0 && (
             <aside className="hidden xl:block w-64 flex-shrink-0 sticky top-24">
               <FeaturedHotelsBarVertical hotels={featuredHotels} />

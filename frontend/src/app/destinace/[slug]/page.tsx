@@ -211,7 +211,10 @@ export default async function DestinacePage({ params }: Props) {
                   </span>
                 ))}
               </nav>
-              <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 leading-tight mb-2 drop-shadow-sm flex items-center gap-3 flex-wrap">
+              <h1
+                className="font-bold text-gray-900 leading-tight tracking-tight mb-2 drop-shadow-sm flex items-center gap-3 flex-wrap"
+                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(28px, 5vw, 60px)' }}
+              >
                 {countryFlag && (
                   <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm" style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
                     {countryFlag}
@@ -252,7 +255,10 @@ export default async function DestinacePage({ params }: Props) {
                 </span>
               ))}
             </nav>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2 flex items-center gap-3 flex-wrap">
+            <h1
+              className="font-bold text-gray-900 leading-tight tracking-tight mb-2 flex items-center gap-3 flex-wrap"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(26px, 4vw, 48px)' }}
+            >
               {countryFlag && (
                 <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm" style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
                   {countryFlag}

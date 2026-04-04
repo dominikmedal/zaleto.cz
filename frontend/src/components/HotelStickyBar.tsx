@@ -43,14 +43,14 @@ export default function HotelStickyBar({ name, slug, stars, location, minPrice }
 
       {/* Sticky bar — slides in from behind the main header (no gap) */}
       <div
-        className={`fixed top-[100px] inset-x-0 z-30 transition-all duration-300 ease-out ${
+        className={`fixed top-[90px] inset-x-0 z-30 transition-all duration-300 ease-out ${
           visible
             ? 'translate-y-0 opacity-100 pointer-events-auto'
             : '-translate-y-full opacity-0 pointer-events-none'
         }`}
       >
-        <div className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.08)]">
-          <div className="max-w-[1680px] mx-auto px-6 sm:px-8 h-14 flex items-center gap-4">
+        <div className="glass-bar">
+          <div className="max-w-[1680px] mx-auto px-6 sm:px-8/bt h-14 flex items-center gap-4">
 
             {/* Stars + name */}
             <div className="flex-1 min-w-0 flex items-center gap-3">
@@ -79,7 +79,7 @@ export default function HotelStickyBar({ name, slug, stars, location, minPrice }
                 od osoby
               </span>
               <div className="flex items-baseline gap-1">
-                <span className="text-[17px] font-bold text-emerald-600 leading-tight">{fmt(minPrice)}</span>
+                <span className="text-[17px] font-bold leading-tight" style={{ color: '#049669' }}>{fmt(minPrice)}</span>
                 <span className="text-xs text-gray-400 font-medium">Kč</span>
               </div>
             </div>
@@ -89,12 +89,9 @@ export default function HotelStickyBar({ name, slug, stars, location, minPrice }
             <ShareButton slug={slug} name={name} className="flex-shrink-0 hidden sm:block" />
 
             {/* CTA */}
-            <button
-              onClick={scrollToTerminy}
-              className="flex-shrink-0 inline-flex items-center gap-2 bg-[#008afe] hover:bg-[#0079e5] active:scale-[0.97] text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-sm shadow-[#008afe]/25 whitespace-nowrap"
-            >
+            <button onClick={scrollToTerminy} className="btn-cta flex-shrink-0" style={{ padding: '8px 18px', fontSize: 13 }}>
               <PiCalendarBlank className="w-4 h-4" />
-              <span>Vybrat termín</span>
+              Vybrat termín
             </button>
 
           </div>

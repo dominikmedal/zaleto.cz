@@ -26,11 +26,16 @@ export default async function ClankyPage() {
       <Header />
       <main className="max-w-[1280px] mx-auto px-4 sm:px-8 py-10 sm:py-14">
 
-        <div className="mb-10">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight mb-2">
-            Cestovní inspirace
+        <div className="mb-12 glass-card rounded-2xl p-8">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Blog</p>
+          <h1
+            className="font-bold text-gray-900 leading-[1.05] tracking-tight mb-3"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(36px, 5vw, 60px)' }}
+          >
+            Cestovní{' '}
+            <em className="not-italic text-[#0093FF]">inspirace</em>
           </h1>
-          <p className="text-gray-400">Tipy, průvodce a zajímavosti ze světa cestování</p>
+          <p className="text-gray-400 text-sm max-w-md">Tipy, průvodce a zajímavosti ze světa cestování</p>
         </div>
 
         {articles.length === 0 ? (
@@ -71,10 +76,10 @@ export default async function ClankyPage() {
                       {article.title}
                     </h2>
                     {article.excerpt && (
-                      <p className="text-[#0093FF] text-sm leading-relaxed line-clamp-2 mb-3">{article.excerpt}</p>
+                      <p className="text-gray-400 text-sm leading-relaxed line-clamp-2 mb-3">{article.excerpt}</p>
                     )}
-                    <span className="mt-auto inline-flex items-center gap-1.5 text-sm font-semibold text-gray-700 group-hover:text-[#0093FF] transition-colors">
-                      Číst článek <PiArrowRight className="w-3.5 h-3.5" />
+                    <span className="mt-auto inline-flex items-center gap-1 text-xs font-semibold text-gray-400 group-hover:text-[#0093FF] transition-colors">
+                      Číst článek <PiArrowRight className="w-3 h-3" />
                     </span>
                   </div>
                 </Link>
