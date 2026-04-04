@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { PiCalendarStar, PiAirplane, PiGlobe, PiTag, PiTimer, PiBuildings, PiSun, PiArrowRight } from 'react-icons/pi'
+import { PiCalendarStar, PiAirplane, PiTimer, PiSun, PiArrowRight } from 'react-icons/pi'
 import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import DestinationCarousel from '@/components/DestinationCarousel'
@@ -441,39 +441,6 @@ export default async function HomePage({ searchParams }: PageProps) {
                   </p>
                 </div>
 
-                {/* Stats — filtered pages only */}
-                {!singleDest && (!noFilters || !!tourType) && (() => {
-                  const statsArr = [
-                    { icon: <PiBuildings className="w-3 h-3" />, value: fmtShort(meta.totalHotels ?? 0), label: 'hotelů' },
-                    { icon: <PiAirplane  className="w-3 h-3" />, value: fmtShort(meta.totalTours ?? 0),  label: 'termínů' },
-                    { icon: <PiGlobe    className="w-3 h-3" />, value: String(countryCount),             label: 'zemí' },
-                    { icon: <PiTag      className="w-3 h-3" />, value: `od ${fmtShort(meta.priceRange?.min ?? null)}`, label: 'Kč' },
-                  ]
-                  return (
-                    <div className="hidden sm:block lg:flex-shrink-0 mt-5 lg:mt-0">
-                      <div className="lg:hidden grid grid-cols-4 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-                        {statsArr.map(({ icon, value, label }) => (
-                          <div key={label} className="flex flex-col items-center justify-center py-4 px-3 border-r border-gray-100 last:border-r-0">
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                              <span className="text-[#008afe]">{icon}</span>{label}
-                            </div>
-                            <span className="text-xl font-bold text-gray-900 leading-none tabular-nums">{value}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="hidden lg:flex items-stretch divide-x divide-gray-100">
-                        {statsArr.map(({ icon, value, label }) => (
-                          <div key={label} className="flex flex-col justify-center px-5 last:pr-0 first:pl-0">
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
-                              <span className="text-[#008afe]">{icon}</span>{label}
-                            </div>
-                            <span className="text-[22px] font-bold text-gray-900 leading-none tabular-nums">{value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })()}
               </div>
 
             )}
