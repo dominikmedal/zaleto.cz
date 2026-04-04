@@ -203,6 +203,11 @@ export default async function HomePage({ searchParams }: PageProps) {
     ? await Promise.all(topRegions.map(({ region }) => fetchDestinationPhoto(region).catch(() => null)))
     : []
 
+  // Filter out regions without photos
+  const topRegionsWithPhotos = topRegions
+    .map((r, i) => ({ ...r, thumb: regionPhotos[i] }))
+    .filter((r): r is typeof r & { thumb: string } => r.thumb != null)
+
   // Articles — homepage (no filters) or destination page
   const articles = (noFilters && !singleDest && !tourType)
     ? await fetchArticles(3).catch(() => [])
@@ -217,6 +222,9 @@ export default async function HomePage({ searchParams }: PageProps) {
   )
   const articleImageMap: Record<string, string | null> = {}
   articleLocations.forEach((loc, i) => { articleImageMap[loc] = articlePhotoResults[i] })
+
+  // Filter out articles without photos
+  const articlesWithPhotos = articles.filter(a => a.location && articleImageMap[a.location])
 
   const countryCount = new Set(destinations.map(d => d.country)).size
 
@@ -364,15 +372,15 @@ export default async function HomePage({ searchParams }: PageProps) {
                   </div>
 
                   {/* Right: scrollable destination carousel */}
-                  {topRegions.length >= 1 && (
+                  {topRegionsWithPhotos.length >= 1 && (
                     <>
                       {/* Mobile: full-width strip below hero text */}
                       <div className="block lg:hidden w-full h-44">
                         <DestinationCarousel
-                          items={topRegions.map(({ region, count }, i) => ({
+                          items={topRegionsWithPhotos.map(({ region, count, thumb }) => ({
                             region,
                             count,
-                            thumb: regionPhotos[i] ?? null,
+                            thumb,
                             minPrice: regionMinPrice.get(region) ?? null,
                           }))}
                         />
@@ -380,10 +388,10 @@ export default async function HomePage({ searchParams }: PageProps) {
                       {/* Desktop: tall side panel — takes all remaining space */}
                       <div className="hidden lg:block flex-1 min-w-0">
                         <DestinationCarousel
-                          items={topRegions.map(({ region, count }, i) => ({
+                          items={topRegionsWithPhotos.map(({ region, count, thumb }) => ({
                             region,
                             count,
-                            thumb: regionPhotos[i] ?? null,
+                            thumb,
                             minPrice: regionMinPrice.get(region) ?? null,
                           }))}
                         />
@@ -551,17 +559,17 @@ export default async function HomePage({ searchParams }: PageProps) {
         )}
 
         {/* ── Articles — homepage ── */}
-        {noFilters && !singleDest && !tourType && articles.length > 0 && (
+        {noFilters && !singleDest && !tourType && articlesWithPhotos.length > 0 && (
           <div className="section-island">
-            <ArticlesSection articles={articles} imageMap={articleImageMap} />
+            <ArticlesSection articles={articlesWithPhotos} imageMap={articleImageMap} />
           </div>
         )}
 
         {/* ── Articles — destination page ── */}
-        {singleDest && articles.length > 0 && (
+        {singleDest && articlesWithPhotos.length > 0 && (
           <div className="section-island">
             <ArticlesSection
-              articles={articles}
+              articles={articlesWithPhotos}
               imageMap={articleImageMap}
               label={`Články o ${singleDest}`}
             />
