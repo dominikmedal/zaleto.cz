@@ -223,8 +223,8 @@ export default async function HomePage({ searchParams }: PageProps) {
   const articleImageMap: Record<string, string | null> = {}
   articleLocations.forEach((loc, i) => { articleImageMap[loc] = articlePhotoResults[i] })
 
-  // Filter out articles without photos
-  const articlesWithPhotos = articles.filter(a => a.location && articleImageMap[a.location])
+  // Filter out articles without a location (guaranteed no photo); articles with location show photo or gradient
+  const articlesWithPhotos = articles.filter(a => Boolean(a.location))
 
   const countryCount = new Set(destinations.map(d => d.country)).size
 
