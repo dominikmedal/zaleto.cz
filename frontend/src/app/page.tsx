@@ -322,17 +322,19 @@ export default async function HomePage({ searchParams }: PageProps) {
 
               /* ═══ DEFAULT HOMEPAGE — editorial split hero ═══ */
               <div className="py-6 lg:py-10">
-                <div className="flex flex-col lg:flex-row items-start justify-between gap-10 lg:gap-14">
+                <div className="flex flex-col lg:flex-row items-stretch justify-between gap-10 lg:gap-16">
 
-                  {/* Left: heading + stats + steps */}
-                  <div className="flex-1 min-w-0">
-                    <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.12em] uppercase text-[#0093FF] mb-6">
-                      <PiAirplane className="w-3 h-3" />
-                      Nejlepší vyhledávač a srovnávač zájezdů
-                    </p>
+                  {/* Left: heading + stats */}
+                  <div className="flex-shrink-0 lg:max-w-[400px]">
+
+                    {/* Eyebrow badge */}
+                    <div className="inline-flex items-center gap-2 glass-pill px-3 py-1.5 rounded-full mb-5">
+                      <PiAirplane className="w-3.5 h-3.5 text-[#0093FF] flex-shrink-0" />
+                      <span className="text-[11px] font-semibold text-[#0093FF] tracking-[0.05em]">Srovnávač zájezdů</span>
+                    </div>
 
                     <h1
-                      className="font-bold text-gray-900 leading-[1.0] tracking-tight mb-5"
+                      className="font-bold text-gray-900 leading-[1.0] tracking-tight mb-4"
                       style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(52px, 6vw, 88px)' }}
                     >
                       Najdi svůj<br />
@@ -340,53 +342,25 @@ export default async function HomePage({ searchParams }: PageProps) {
                       snadno.
                     </h1>
 
-                    <p className="text-gray-500 text-base leading-relaxed max-w-xs mb-8">
+                    <p className="text-gray-500 text-base leading-relaxed mb-7">
                       Porovnejte termíny a ceny od předních cestovních kanceláří na jednom místě.
                     </p>
 
-                    {/* Inline stats */}
-                    <div className="flex items-center flex-wrap gap-y-4 mb-10">
+                    {/* Stats grid */}
+                    <div className="grid grid-cols-2 gap-2.5">
                       {[
-                        { value: fmtShort(meta.totalHotels ?? 0), label: 'hotelů' },
-                        { value: fmtShort(meta.totalTours ?? 0),  label: 'termínů' },
-                        { value: String(countryCount),            label: 'zemí' },
-                        { value: `od ${fmtShort(meta.priceRange?.min ?? null)} Kč`, label: '/ os.' },
-                      ].map((s, i) => (
-                        <div key={s.label} className="flex items-center">
-                          {i > 0 && <div className="w-px h-7 bg-gray-200 mx-5 flex-shrink-0" />}
-                          <div>
-                            <p className="text-[22px] font-bold text-gray-900 tabular-nums leading-none">{s.value}</p>
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-gray-400 mt-1">{s.label}</p>
-                          </div>
+                        { value: fmtShort(meta.totalHotels ?? 0),                   label: 'hotelů'    },
+                        { value: fmtShort(meta.totalTours ?? 0),                    label: 'termínů'   },
+                        { value: String(countryCount),                              label: 'zemí'      },
+                        { value: `od ${fmtShort(meta.priceRange?.min ?? null)} Kč`, label: 'cena / os.' },
+                      ].map(s => (
+                        <div key={s.label} className="glass-pill rounded-xl px-4 py-3">
+                          <p className="text-[19px] font-bold text-gray-900 tabular-nums leading-none tracking-tight">{s.value}</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.11em] text-gray-400 mt-1.5">{s.label}</p>
                         </div>
                       ))}
                     </div>
 
-                    {/* How it works — 3 steps */}
-                    <div className="hidden sm:flex items-center gap-0 pt-6 border-t border-gray-100">
-                      {[
-                        { n: '1', title: 'Zadej destinaci',   sub: 'nebo jen termín odjezdu'        },
-                        { n: '2', title: 'Srovnáme za tebe',  sub: '15+ cestovních kanceláří'        },
-                        { n: '3', title: 'Vyber a rezervuj',  sub: 'přímo u CK · bez poplatků'      },
-                      ].map((step, i) => (
-                        <div key={step.n} className="flex items-center">
-                          {i > 0 && (
-                            <div className="w-10 h-px mx-3 flex-shrink-0"
-                              style={{ backgroundImage: 'repeating-linear-gradient(to right, #d1d5db 0, #d1d5db 4px, transparent 4px, transparent 9px)' }}
-                            />
-                          )}
-                          <div className="flex items-center gap-2.5 flex-shrink-0">
-                            <span className="w-5 h-5 rounded-full bg-[#0093FF] text-white text-[9px] font-bold flex items-center justify-center leading-none flex-shrink-0">
-                              {step.n}
-                            </span>
-                            <div>
-                              <p className="text-[11px] font-bold text-gray-800 leading-tight">{step.title}</p>
-                              <p className="text-[10px] text-gray-400 mt-0.5">{step.sub}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   </div>
 
                   {/* Right: scrollable destination carousel */}
@@ -403,8 +377,8 @@ export default async function HomePage({ searchParams }: PageProps) {
                           }))}
                         />
                       </div>
-                      {/* Desktop: tall side panel */}
-                      <div className="hidden lg:block flex-shrink-0 h-[430px]" style={{ width: 'clamp(340px, 36vw, 520px)' }}>
+                      {/* Desktop: tall side panel — takes all remaining space */}
+                      <div className="hidden lg:block flex-1 min-w-0">
                         <DestinationCarousel
                           items={topRegions.map(({ region, count }, i) => ({
                             region,
@@ -418,6 +392,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   )}
 
                 </div>
+
               </div>
 
             ) : (
@@ -505,25 +480,6 @@ export default async function HomePage({ searchParams }: PageProps) {
           </>
         )}
 
-        {/* ── Popular destination cards (default homepage: indices 3-5, different from hero collage) ── */}
-        {noFilters && topRegions.length > 3 && (
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Oblíbené destinace</p>
-              <Link href="/destinace" className="text-xs font-semibold text-gray-400 hover:text-gray-700 transition-colors">
-                Zobrazit vše →
-              </Link>
-            </div>
-            <DestinationCards
-              items={topRegions.slice(3, 6).map(({ region }, i) => ({
-                region,
-                country: regionCountryMap.get(region) ?? region,
-                minPrice: regionMinPrice.get(region) ?? regionMinPrice.get(regionCountryMap.get(region) ?? '') ?? null,
-                thumb: regionPhotos[i + 3] ?? null,
-              }))}
-            />
-          </section>
-        )}
 
         {/* ── Tips ── */}
         {noFilters && (dailyTip || weeklyTip) && (

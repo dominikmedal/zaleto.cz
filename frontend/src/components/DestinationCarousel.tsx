@@ -83,7 +83,7 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
             key={region}
             href={`/destinace/${slugify(region)}`}
             className="group relative flex-shrink-0 rounded-2xl overflow-hidden bg-gray-200 block h-full"
-            style={{ width: 'clamp(150px, 38vw, 210px)', scrollSnapAlign: 'start' }}
+            style={{ width: 'clamp(180px, 22vw, 280px)', scrollSnapAlign: 'start' }}
           >
             {thumb ? (
               <Image
