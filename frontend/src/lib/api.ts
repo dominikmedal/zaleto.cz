@@ -214,6 +214,43 @@ export async function fetchWeatherLocation(destination: string): Promise<{ lat: 
   } catch { return { lat: null, lon: null } }
 }
 
+export type Article = {
+  id: number
+  slug: string
+  title: string
+  category: string | null
+  location: string | null
+  excerpt: string | null
+  reading_time: number
+  published_at: string
+}
+
+export type ArticleFull = Article & { content: string | null; topic: string }
+
+export async function fetchArticles(limit = 3, location?: string): Promise<Article[]> {
+  try {
+    const params = new URLSearchParams({ limit: String(limit) })
+    if (location) params.set('location', location)
+    const res = await fetch(`${API}/api/articles?${params}`, {
+      next: { revalidate: 3600 },
+      signal: timeout(),
+    })
+    if (!res.ok) return []
+    return res.json()
+  } catch { return [] }
+}
+
+export async function fetchArticle(slug: string): Promise<ArticleFull | null> {
+  try {
+    const res = await fetch(`${API}/api/articles/${encodeURIComponent(slug)}`, {
+      next: { revalidate: 3600 },
+      signal: timeout(),
+    })
+    if (!res.ok) return null
+    return res.json()
+  } catch { return null }
+}
+
 export async function fetchFilters(): Promise<{
   mealPlans: { meal_plan: string; count: number }[]
   priceRange: { min: number; max: number }

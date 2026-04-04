@@ -36,6 +36,7 @@ const destPhotosRouter     = require('./routes/destinationPhotos')
 const destAIRouter         = require('./routes/destinationAI')
 const weatherAIRouter      = require('./routes/weatherAI')
 const contactRouter        = require('./routes/contact')
+const articlesRouter       = require('./routes/articles')
 
 app.use('/api/hotels', hotelsRouter)
 app.use('/api/hotels/:slug/tours', toursRouter)
@@ -51,6 +52,7 @@ app.use('/api/destination-photo', destPhotosRouter)
 app.use('/api/destination-ai', destAIRouter)
 app.use('/api/weather-ai', weatherAIRouter)
 app.use('/api/contact', contactRouter)
+app.use('/api/articles', articlesRouter)
 app.use('/api', metaRouter)
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
@@ -71,6 +73,10 @@ app.post('/api/cache/invalidate', async (req, res) => {
     setTimeout(() => {
       require('./routes/weatherAI').generateMissingWeatherAI().catch(() => {})
     }, 3 * 60_000)
+    // Start articles generation 6 min after destination AI
+    setTimeout(() => {
+      require('./routes/articles').generateMissingArticles().catch(() => {})
+    }, 6 * 60_000)
   }
   res.json({ ok: true })
 })

@@ -1,0 +1,17 @@
+# Témata cestovních článků pro Zaleto.cz
+# Každý řádek = jedno téma článku (Gemini vygeneruje plný SEO článek)
+# Řádky začínající # jsou komentáře a přeskočí se
+#
+# Formát: [Kategorie: ]Název tématu
+# Kategorie: Průvodce | Inspirace | Tipy | Destinace
+
+Inspirace: 10 nejkrásnějších pláží na Maledivách
+Průvodce: Bali - Co navštívit, co ochutnat a kde spát
+Tipy: Tokio na víkend - 48 hodin v japonské metropoli
+Destinace: Řecko nebo Turecko? Kam na dovolenou 2026
+Tipy: Nejlepší all-inclusive resorty u Rudého moře v Egyptě
+Průvodce: Egypt mimo resort - výlety, na které nezapomeneš
+Inspirace: Skryté perly Chorvatska mimo turistické trasy
+Tipy: Jak ušetřit na dovolené - 8 osvědčených triků
+Průvodce: Thajsko pro první návštěvníky - kompletní průvodce
+Destinace: Kanárské ostrovy - který ostrov vybrat a proč

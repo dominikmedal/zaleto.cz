@@ -176,6 +176,25 @@ async function initSchema() {
       )
     `)
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS articles (
+        id           SERIAL PRIMARY KEY,
+        topic        TEXT UNIQUE NOT NULL,
+        slug         TEXT NOT NULL,
+        title        TEXT NOT NULL,
+        category     TEXT,
+        location     TEXT,
+        excerpt      TEXT,
+        content      TEXT,
+        reading_time INTEGER DEFAULT 5,
+        published_at TIMESTAMPTZ DEFAULT NOW(),
+        generated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `)
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published_at DESC)
+    `)
+
     console.log('[db] running migrations...')
     const migrations = [
       `ALTER TABLE tours ADD COLUMN IF NOT EXISTS price_single REAL`,

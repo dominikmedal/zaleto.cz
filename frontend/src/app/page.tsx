@@ -7,7 +7,9 @@ import HomeStepper from '@/components/HomeStepper'
 import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import DestinationCarousel from '@/components/DestinationCarousel'
-import { fetchDestinations, fetchFilters, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI, fetchHotels } from '@/lib/api'
+import DestinationCards from '@/components/DestinationCards'
+import ArticlesSection from '@/components/ArticlesSection'
+import { fetchDestinations, fetchFilters, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI, fetchHotels, fetchArticles } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 import type { Filters } from '@/lib/types'
 import JsonLd from '@/components/JsonLd'
@@ -173,21 +175,49 @@ export default async function HomePage({ searchParams }: PageProps) {
     singleDest ? fetchDestinationAI(singleDest).catch(() => null) : Promise.resolve(null),
   ])
 
-  // Top unique regions with hotel counts
+  // Top unique regions with hotel counts + country mapping
   const regionMap = new Map<string, number>()
+  const regionCountryMap = new Map<string, string>()
   for (const d of destinations) {
     const region = d.destination.split('/').map(s => s.trim())[1] ?? d.destination.split('/')[0].trim()
     regionMap.set(region, (regionMap.get(region) ?? 0) + d.hotel_count)
+    if (d.country && !regionCountryMap.has(region)) regionCountryMap.set(region, d.country)
   }
   const topRegions = [...regionMap.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 25)
     .map(([region, count]) => ({ region, count }))
 
+  // Min price per region (from tipHotels — sorted price_asc)
+  const regionMinPrice = new Map<string, number>()
+  for (const h of tipHotels) {
+    if (h.min_price == null) continue
+    const region = (h.destination ?? '').split('/').map((s: string) => s.trim())[1]
+      ?? (h.destination ?? '').split('/')[0]?.trim()
+      ?? h.resort_town
+    if (region && !regionMinPrice.has(region)) regionMinPrice.set(region, h.min_price)
+    if (h.country && !regionMinPrice.has(h.country)) regionMinPrice.set(h.country, h.min_price)
+  }
+
   // Fetch destination photos for carousel — Pexels (all parallel, cached via backend SQLite)
   const regionPhotos = noFilters
     ? await Promise.all(topRegions.map(({ region }) => fetchDestinationPhoto(region).catch(() => null)))
     : []
+
+  // Articles — homepage (no filters) or destination page
+  const articles = (noFilters && !singleDest && !tourType)
+    ? await fetchArticles(3).catch(() => [])
+    : singleDest
+    ? await fetchArticles(3, singleDest).catch(() => [])
+    : []
+
+  // Photos for articles
+  const articleLocations = [...new Set(articles.map(a => a.location).filter(Boolean) as string[])]
+  const articlePhotoResults = await Promise.all(
+    articleLocations.map(loc => fetchDestinationPhoto(loc).catch(() => null))
+  )
+  const articleImageMap: Record<string, string | null> = {}
+  articleLocations.forEach((loc, i) => { articleImageMap[loc] = articlePhotoResults[i] })
 
   const countryCount = new Set(destinations.map(d => d.country)).size
 
@@ -390,10 +420,11 @@ export default async function HomePage({ searchParams }: PageProps) {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
               Oblíbené destinace
             </p>
-            <DestinationCarousel
-              items={topRegions.map(({ region, count }, i) => ({
+            <DestinationCards
+              items={topRegions.slice(0, 3).map(({ region }, i) => ({
                 region,
-                count,
+                country: regionCountryMap.get(region) ?? region,
+                minPrice: regionMinPrice.get(region) ?? regionMinPrice.get(regionCountryMap.get(region) ?? '') ?? null,
                 thumb: regionPhotos[i] ?? null,
               }))}
             />
@@ -444,6 +475,20 @@ export default async function HomePage({ searchParams }: PageProps) {
         {/* ── AI destination description + excursions ── */}
         {singleDest && destAI && (
           <DestinationHeroAI data={destAI} />
+        )}
+
+        {/* ── Articles — homepage ── */}
+        {noFilters && !singleDest && !tourType && articles.length > 0 && (
+          <ArticlesSection articles={articles} imageMap={articleImageMap} />
+        )}
+
+        {/* ── Articles — destination page ── */}
+        {singleDest && articles.length > 0 && (
+          <ArticlesSection
+            articles={articles}
+            imageMap={articleImageMap}
+            label={`Články o ${singleDest}`}
+          />
         )}
 
         {/* ── Filter animation bar ── */}
