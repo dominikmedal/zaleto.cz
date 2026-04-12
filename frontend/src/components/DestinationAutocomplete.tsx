@@ -36,6 +36,11 @@ interface Props {
 import { getCountryFlag } from '@/lib/countryFlags'
 const getFlag = (c: string) => getCountryFlag(c) ?? '🌍'
 
+/** Normalize string: strip diacritics + lowercase for Czech-insensitive matching */
+function norm(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
 interface Resort { label: string; count: number }
 interface Dest   { label: string; count: number; resorts: Resort[] }
 interface Country{ label: string; flag: string; destinations: Dest[] }
@@ -110,7 +115,10 @@ interface HotelResult {
 /** Zvýrazní hledaný výraz v textu */
 function Highlight({ text, query }: { text: string; query: string }) {
   if (!query) return <>{text}</>
-  const idx = text.toLowerCase().indexOf(query.toLowerCase())
+  // Use normalized comparison so "recko" highlights in "Řecko"
+  const normText  = norm(text)
+  const normQuery = norm(query)
+  const idx = normText.indexOf(normQuery)
   if (idx === -1) return <>{text}</>
   return (
     <>
@@ -151,13 +159,15 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
   const allItems  = useMemo(() => buildFlatItems(hierarchy), [hierarchy])
 
   const filtered = useMemo<Item[]>(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return allItems
-    return allItems.filter(it =>
-      it.label.toLowerCase().includes(q) ||
-      it.country.toLowerCase().includes(q) ||
-      it.destination.toLowerCase().includes(q)
-    )
+    const q = norm(query.trim())
+    if (!q) return []
+    return allItems
+      .filter(it =>
+        norm(it.label).includes(q) ||
+        norm(it.country).includes(q) ||
+        norm(it.destination).includes(q)
+      )
+      .slice(0, 12)
   }, [query, allItems])
 
   useEffect(() => {
@@ -569,14 +579,17 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
               <span className="text-xs text-gray-400">Načítám destinace…</span>
             </div>
 
-          ) : query ? (
+          ) : query.trim() ? (
             /* ── Výsledky hledání ── */
             <div className="py-1.5">
               {filtered.length === 0 && hotelResults.length === 0 ? (
-                <div className="px-4 py-8 text-center">
-                  <PiGlobe className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500 font-medium">Žádné výsledky pro „{query}"</p>
-                  <p className="text-xs text-gray-400 mt-1">Zkuste jinou destinaci nebo název hotelu</p>
+                <div className="px-4 py-10 text-center">
+                  <PiGlobe className="w-10 h-10 text-gray-150 mx-auto mb-3" style={{ color: '#d1d5db' }} />
+                  <p className="text-[14px] font-semibold text-gray-600 mb-1">Nic nenalezeno</p>
+                  <p className="text-[12px] text-gray-400">
+                    Pro „<span className="font-medium text-gray-500">{query.trim()}</span>" jsme nenašli žádnou destinaci ani hotel.
+                  </p>
+                  <p className="text-[11px] text-gray-300 mt-1.5">Zkuste jiný název nebo zkontrolujte překlepy.</p>
                 </div>
               ) : (
                 <>

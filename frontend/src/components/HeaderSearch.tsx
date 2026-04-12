@@ -46,10 +46,14 @@ function buildDestOptions(rows: DestRow[]): DestOption[] {
   return out
 }
 
-/** Zvýrazní hledaný výraz */
+function normStr(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
+/** Zvýrazní hledaný výraz, diakritikou-insensitive */
 function Highlight({ text, query }: { text: string; query: string }) {
   if (!query) return <>{text}</>
-  const idx = text.toLowerCase().indexOf(query.toLowerCase())
+  const idx = normStr(text).indexOf(normStr(query))
   if (idx === -1) return <>{text}</>
   return (
     <>
@@ -95,17 +99,18 @@ export default function HeaderSearch() {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  const q = query.trim().toLowerCase()
+  const q    = query.trim()
+  const qNorm = normStr(q)
 
   // Při psaní: filtruj destinace; prázdný stav: top 8 zemí jako popular chips
-  const filteredDest = q.length >= 1
-    ? destOptions.filter(d => d.label.toLowerCase().includes(q)).slice(0, 6)
+  const filteredDest = qNorm.length >= 1
+    ? destOptions.filter(d => normStr(d.label).includes(qNorm)).slice(0, 6)
     : []
   const popularCountries = destOptions.filter(d => d.kind === 'country').slice(0, 8)
 
   const totalItems = filteredDest.length + hotelResults.length
   const hasResults = filteredDest.length > 0 || hotelResults.length > 0
-  const isSearching = q.length >= 1
+  const isSearching = qNorm.length >= 1
 
   const navigate = (href: string) => { setOpen(false); setQuery(''); setHighlighted(-1); router.push(href) }
 
@@ -117,11 +122,11 @@ export default function HeaderSearch() {
       if (highlighted >= 0 && highlighted < filteredDest.length) { e.preventDefault(); navigate(filteredDest[highlighted].href); return }
       const hotel = hotelResults[highlighted - filteredDest.length]
       if (hotel) { e.preventDefault(); navigate(`/hotel/${hotel.slug}`); return }
-      if (q.length >= 1) { e.preventDefault(); navigate(`/?destination=${encodeURIComponent(query.trim())}`) }
+      if (qNorm.length >= 1) { e.preventDefault(); navigate(`/?destination=${encodeURIComponent(query.trim())}`) }
     }
   }
 
-  const showDropdown = open && (isSearching ? (hasResults || q.length >= 2) : destLoaded)
+  const showDropdown = open && (isSearching ? (hasResults || qNorm.length >= 2) : destLoaded)
 
   return (
     <div ref={containerRef} className="relative flex-1 max-w-lg mx-3 sm:mx-6">
@@ -246,10 +251,12 @@ export default function HeaderSearch() {
                 </>
               )}
 
-              {!hasResults && q.length >= 2 && (
+              {!hasResults && qNorm.length >= 1 && (
                 <div className="px-4 py-8 text-center">
-                  <p className="text-sm font-medium text-gray-500">Žádné výsledky pro „{query}"</p>
-                  <p className="text-xs text-gray-400 mt-1">Zkuste jinou destinaci nebo název hotelu</p>
+                  <p className="text-sm font-semibold text-gray-600">Nic nenalezeno</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Pro „<span className="font-medium text-gray-500">{q}</span>" nebyla nalezena žádná destinace ani hotel.
+                  </p>
                 </div>
               )}
 
