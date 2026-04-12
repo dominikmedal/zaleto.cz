@@ -26,6 +26,7 @@ Volitelné env vars:
 """
 
 import argparse
+import concurrent.futures
 import logging
 import os
 import signal
@@ -76,6 +77,14 @@ SCRAPER_DELAY     = float(os.environ.get("SCRAPER_DELAY", "1.5"))
 # SCRAPE_CHECKPOINT_HOURS hodin — ochrana proti double-run v rámci jednoho cyklu.
 # Hodnota by měla být o něco větší než SCRAPE_INTERVAL_H (12h), ale menší než 2× interval.
 CHECKPOINT_HOURS  = int(os.environ.get("SCRAPE_CHECKPOINT_HOURS", "14"))
+# Maximální počet scraperů běžících paralelně.
+# 0 = neomezeno (všechny najednou). Výchozí: 3 (Fischer + Čedok + TUI souběžně,
+# Exim + Nev-Dama se přidají jakmile je slot volný).
+MAX_PARALLEL = int(os.environ.get("MAX_PARALLEL_SCRAPERS", "0"))
+# Počet paralelních workerů uvnitř každého scraperu (update-only mód).
+# Fischer/Exim/Nev-Dama otevřou tolik paralelních HTTP spojení najednou.
+# 0 = výchozí (1 — sekvenční). Doporučeno: 3–5.
+SCRAPER_WORKERS = int(os.environ.get("SCRAPER_WORKERS", "0"))
 
 # GPS tolerance pro párování hotelů (~55 m na rovníku)
 # Různé CK mohou reportovat GPS téhož hotelu s odchylkou do ~50 m.
@@ -98,26 +107,33 @@ logger = logging.getLogger("run_all")
 # Definice scraperů
 # ---------------------------------------------------------------------------
 
+def _worker_args() -> list[str]:
+    """Přidá --workers pouze pokud je SCRAPER_WORKERS > 0."""
+    if SCRAPER_WORKERS > 0:
+        return ["--workers", str(SCRAPER_WORKERS)]
+    return []
+
+
 SCRAPERS: list[dict] = [
     {
         "agency":     "Fischer",
         "module":     "fischer.py",
-        "args":       ["--delay", str(SCRAPER_DELAY)],
+        "args":       ["--delay", str(SCRAPER_DELAY)] + _worker_args(),
     },
     {
         "agency":     "Exim Tours",
         "module":     "eximtours.py",
-        "args":       ["--delay", str(SCRAPER_DELAY)],
+        "args":       ["--delay", str(SCRAPER_DELAY)] + _worker_args(),
     },
     {
         "agency":     "Nev-Dama",
         "module":     "nevdama.py",
-        "args":       ["--delay", str(SCRAPER_DELAY)],
+        "args":       ["--delay", str(SCRAPER_DELAY)] + _worker_args(),
     },
     {
         "agency":     "Blue Style",
         "module":     "bluestyle.py",
-        "args":       ["--delay", str(min(SCRAPER_DELAY, 0.8))],
+        "args":       [],   # delay: výchozí 2.0s (definován v bluestyle.py)
     },
     {
         "agency":     "Čedok",
@@ -463,6 +479,8 @@ def run_scraper(scraper: dict, conn=None) -> dict:
         for line in proc.stdout:
             line = line.rstrip("\n")
             captured_lines.append(line)
+            if len(captured_lines) > 5000:
+                captured_lines = captured_lines[-2500:]
             logger.info(f"  [{agency}] {line}")
 
         proc.wait()
@@ -486,8 +504,14 @@ def run_scraper(scraper: dict, conn=None) -> dict:
                     f"— přeskakuji purge_stale_tours, stará data ZACHOVÁNA"
                 )
                 result["stale_removed"] = 0
+            elif is_update_only:
+                # Update-only navštíví každý hotel, ale hotel může vrátit prázdné availableDates
+                # (sezónní výpadek, dočasná chyba API). Mazání by odstranilo platné termíny.
+                # Cleanup provedeme až po příštím plném scrape, kdy je zaručeno úplné pokrytí.
+                logger.info(f"{agency}: update-only → purge_stale přeskočen (provede příštní full scrape)")
+                result["stale_removed"] = 0
             else:
-                # Smaž termíny, které se v tomto běhu neobjevily → zastaralé ceny
+                # Plný scrape: hotely, které scraper nenašel, už CK nenabízí → smaž jejich termíny
                 stale = purge_stale_tours(conn, agency, run_started)
                 result["stale_removed"] = stale
                 if stale:
@@ -801,61 +825,72 @@ def build_report(
 # Materializovaná tabulka hotel_stats
 # ---------------------------------------------------------------------------
 
+# Zámek zabraňuje souběžnému spuštění refresh_hotel_stats z více scraperů najednou.
+_refresh_lock = threading.Lock()
+
+
 def refresh_hotel_stats(conn):
     """
     Přepočítá hotel_stats ze všech aktuálních termínů.
     Voláno po každém cyklu scraperů, aby fast-path v API měl aktuální data.
+    Při paralelním běhu scraperů vrátí ihned pokud jiný refresh právě běží.
     """
-    conn.execute("""
-        WITH next_dep AS (
-            SELECT DISTINCT ON (hotel_id)
-                hotel_id, return_date
-            FROM tours
-            WHERE price > 0 AND departure_date >= CURRENT_DATE::text
-            ORDER BY hotel_id, departure_date ASC, price ASC
-        ),
-        agg AS (
+    if not _refresh_lock.acquire(blocking=False):
+        logger.debug("  hotel_stats: přeskakuji (probíhá jiný refresh)")
+        return
+    try:
+        conn.execute("""
+            WITH next_dep AS (
+                SELECT DISTINCT ON (hotel_id)
+                    hotel_id, return_date
+                FROM tours
+                WHERE price > 0 AND departure_date >= CURRENT_DATE::text
+                ORDER BY hotel_id, departure_date ASC, price ASC
+            ),
+            agg AS (
+                SELECT
+                    hotel_id,
+                    MIN(price)                        AS min_price,
+                    MAX(price)                        AS max_price,
+                    COUNT(*)                          AS available_dates,
+                    MIN(departure_date)               AS next_departure,
+                    MAX(COALESCE(is_last_minute,  0)) AS has_last_minute,
+                    MAX(COALESCE(is_first_minute, 0)) AS has_first_minute
+                FROM tours
+                WHERE price > 0 AND departure_date >= CURRENT_DATE::text
+                GROUP BY hotel_id
+            )
+            INSERT INTO hotel_stats
+                (hotel_id, min_price, max_price, available_dates, next_departure,
+                 next_return_date, has_last_minute, has_first_minute, updated_at)
             SELECT
-                hotel_id,
-                MIN(price)                        AS min_price,
-                MAX(price)                        AS max_price,
-                COUNT(*)                          AS available_dates,
-                MIN(departure_date)               AS next_departure,
-                MAX(COALESCE(is_last_minute,  0)) AS has_last_minute,
-                MAX(COALESCE(is_first_minute, 0)) AS has_first_minute
-            FROM tours
-            WHERE price > 0 AND departure_date >= CURRENT_DATE::text
-            GROUP BY hotel_id
-        )
-        INSERT INTO hotel_stats
-            (hotel_id, min_price, max_price, available_dates, next_departure,
-             next_return_date, has_last_minute, has_first_minute, updated_at)
-        SELECT
-            a.hotel_id, a.min_price, a.max_price, a.available_dates, a.next_departure,
-            n.return_date,
-            a.has_last_minute, a.has_first_minute, NOW()
-        FROM agg a
-        LEFT JOIN next_dep n ON n.hotel_id = a.hotel_id
-        ON CONFLICT (hotel_id) DO UPDATE SET
-            min_price        = EXCLUDED.min_price,
-            max_price        = EXCLUDED.max_price,
-            available_dates  = EXCLUDED.available_dates,
-            next_departure   = EXCLUDED.next_departure,
-            next_return_date = EXCLUDED.next_return_date,
-            has_last_minute  = EXCLUDED.has_last_minute,
-            has_first_minute = EXCLUDED.has_first_minute,
-            updated_at       = EXCLUDED.updated_at
-    """)
-    conn.execute("""
-        DELETE FROM hotel_stats
-        WHERE hotel_id NOT IN (
-            SELECT DISTINCT hotel_id FROM tours
-            WHERE price > 0 AND departure_date >= CURRENT_DATE::text
-        )
-    """)
-    conn.commit()
-    n = conn.execute("SELECT COUNT(*) AS n FROM hotel_stats").fetchone()["n"]
-    logger.info(f"  hotel_stats: {n} hotelů aktualizováno")
+                a.hotel_id, a.min_price, a.max_price, a.available_dates, a.next_departure,
+                n.return_date,
+                a.has_last_minute, a.has_first_minute, NOW()
+            FROM agg a
+            LEFT JOIN next_dep n ON n.hotel_id = a.hotel_id
+            ON CONFLICT (hotel_id) DO UPDATE SET
+                min_price        = EXCLUDED.min_price,
+                max_price        = EXCLUDED.max_price,
+                available_dates  = EXCLUDED.available_dates,
+                next_departure   = EXCLUDED.next_departure,
+                next_return_date = EXCLUDED.next_return_date,
+                has_last_minute  = EXCLUDED.has_last_minute,
+                has_first_minute = EXCLUDED.has_first_minute,
+                updated_at       = EXCLUDED.updated_at
+        """)
+        conn.execute("""
+            DELETE FROM hotel_stats
+            WHERE hotel_id NOT IN (
+                SELECT DISTINCT hotel_id FROM tours
+                WHERE price > 0 AND departure_date >= CURRENT_DATE::text
+            )
+        """)
+        conn.commit()
+        n = conn.execute("SELECT COUNT(*) AS n FROM hotel_stats").fetchone()["n"]
+        logger.info(f"  hotel_stats: {n} hotelů aktualizováno")
+    finally:
+        _refresh_lock.release()
 
 
 # ---------------------------------------------------------------------------
@@ -915,21 +950,46 @@ def run_cycle(cycle: int, skip_email: bool = False):
             "error": "", "log_tail": "", "skipped": True,
         }
 
+    # Rozdělíme na přeskočené (checkpoint) a spustitelné
+    to_run: list[dict] = []
     for scraper in SCRAPERS:
         agency = scraper["agency"]
         agency_counts = get_counts(conn, agency)
         if agency in already_done and agency_counts["hotels"] > 0:
             logger.info(f"✓ {agency} — přeskočeno (checkpoint z dnešního cyklu)")
             results.append(_make_skipped(agency))
-            continue
-        if _shutdown:
-            break
-        result = run_scraper(scraper, conn)
-        results.append(result)
-        try:
-            refresh_hotel_stats(conn)
-        except Exception:
-            logger.exception("Chyba při průběžné aktualizaci hotel_stats")
+        else:
+            to_run.append(scraper)
+
+    # Paralelní spuštění scraperů — každý dostane vlastní DB connection (conn=None)
+    max_workers = MAX_PARALLEL if MAX_PARALLEL > 0 else len(to_run)
+    if to_run and not _shutdown:
+        logger.info(
+            f"Spouštím {len(to_run)} scraperů paralelně "
+            f"(max {max_workers} souběžně): {', '.join(s['agency'] for s in to_run)}"
+        )
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, max_workers)) as executor:
+            future_to_scraper = {executor.submit(run_scraper, s): s for s in to_run}
+            for future in concurrent.futures.as_completed(future_to_scraper):
+                if _shutdown:
+                    for f in future_to_scraper:
+                        f.cancel()
+                    break
+                s = future_to_scraper[future]
+                try:
+                    result = future.result()
+                except Exception as e:
+                    agency = s["agency"]
+                    logger.exception(f"Neočekávaná chyba při {agency}")
+                    before = get_counts(conn, agency)
+                    result = {
+                        "agency": agency,
+                        "hotels_before": before["hotels"], "hotels_after": before["hotels"],
+                        "tours_before":  before["tours"],  "tours_after":  before["tours"],
+                        "stale_removed": 0, "duration_sec": 0.0,
+                        "error": str(e)[:200], "log_tail": "", "skipped": False,
+                    }
+                results.append(result)
 
     # Post-processing
     expired = 0

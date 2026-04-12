@@ -1,9 +1,14 @@
 # Témata cestovních článků pro Zaleto.cz
-# Každý řádek = jedno téma článku (Gemini vygeneruje plný SEO článek)
-# Řádky začínající # jsou komentáře a přeskočí se
+# Každý řádek = jedno téma článku
+# Řádky začínající # jsou komentáře
 #
 # Formát: [Kategorie: ]Název tématu
 # Kategorie: Průvodce | Inspirace | Tipy | Destinace
+
+
+# =========================
+# PŮVODNÍ OBSAH (OK – necháváme)
+# =========================
 
 Inspirace: 10 nejkrásnějších pláží na Maledivách
 Průvodce: Bali - Co navštívit, co ochutnat a kde spát
@@ -15,3 +20,125 @@ Inspirace: Skryté perly Chorvatska mimo turistické trasy
 Tipy: Jak ušetřit na dovolené - 8 osvědčených triků
 Průvodce: Thajsko pro první návštěvníky - kompletní průvodce
 Destinace: Kanárské ostrovy - který ostrov vybrat a proč
+
+
+# =========================
+# PILLAR ČLÁNKY (hlavní SEO tahouni)
+# =========================
+
+Destinace: Kam na dovolenou 2026 k moři – kompletní přehled (ceny, destinace, tipy)
+Destinace: Levná dovolená u moře 2026 – kam jet podle rozpočtu
+Destinace: All inclusive dovolená 2026 – nejlepší destinace a hotely
+Destinace: Kam na dovolenou v zimě 2026 za teplem – top exotické destinace
+Destinace: Kam na dovolenou s dětmi k moři 2026 – nejlepší destinace a hotely
+
+
+# =========================
+# CLUSTER – PODLE OBDOBÍ
+# =========================
+
+Destinace: Kam na dovolenou v létě 2026 k moři – nejlepší destinace podle ceny
+Destinace: Kam na dovolenou v červnu 2026 k moři – bez davů a levně
+Destinace: Kam na dovolenou v červenci a srpnu 2026 – top destinace a ceny
+Destinace: Kam na dovolenou v září 2026 k moři – teplo a méně turistů
+Destinace: Kam na dovolenou v říjnu 2026 k moři – levné destinace
+Destinace: Kam na dovolenou na jaře 2026 k moři – duben a květen
+
+
+# =========================
+# CLUSTER – KONKRÉTNÍ DESTINACE
+# =========================
+
+Průvodce: Egypt dovolená 2026 – ceny, hotely, kdy jet a kam
+Průvodce: Turecko all inclusive 2026 – nejlepší hotely a oblasti
+Průvodce: Řecko dovolená 2026 – který ostrov vybrat
+Průvodce: Mallorca dovolená 2026 – kde bydlet a kolik to stojí
+Průvodce: Tenerife dovolená 2026 – kde bydlet a co vidět
+Průvodce: Dubaj dovolená 2026 – ceny, hotely a tipy
+Průvodce: Zanzibar dovolená 2026 – kdy jet a nejlepší resorty
+Průvodce: Maledivy dovolená 2026 – kolik stojí a jak vybrat
+Průvodce: Kapverdy dovolená 2026 – počasí, ceny a hotely
+Průvodce: Thajsko dovolená 2026 – kam jet poprvé
+
+
+# =========================
+# MONEY ČLÁNKY 💰 (nejdůležitější pro prodej)
+# =========================
+
+Průvodce: Nejlepší hotely v Egyptě all inclusive 2026 – srovnání a recenze
+Průvodce: Nejlepší hotely v Turecku pro rodiny s dětmi
+Průvodce: Nejlepší hotely v Řecku u moře – kde se vyplatí bydlet
+Průvodce: Nejlepší adults only hotely u moře 2026
+Průvodce: Hotely s aquaparkem u moře – nejlepší výběr 2026
+Průvodce: Luxusní resorty u moře 2026 – top výběr
+Průvodce: Nejlépe hodnocené hotely u moře – recenze a tipy
+Průvodce: Hotely přímo na pláži – nejlepší výběr 2026
+
+Destinace: Kolik stojí dovolená u moře 2026 – kompletní přehled cen
+Destinace: Kolik stojí all inclusive dovolená 2026 – reálné ceny
+Destinace: Nejlevnější destinace u moře 2026 – srovnání cen
+Destinace: Last minute dovolená 2026 – kde najít nejlepší nabídky
+Destinace: Nejlepší poměr cena/výkon – kam na dovolenou 2026
+
+
+# =========================
+# ROZHODOVÁNÍ (SROVNÁNÍ)
+# =========================
+
+Destinace: Egypt nebo Turecko – kde je lepší all inclusive?
+Destinace: Kréta vs Rhodos – který ostrov vybrat
+Destinace: Phuket vs Krabi vs Koh Samui – kam jet v Thajsku
+Destinace: Mallorca vs Ibiza – kam na dovolenou
+Destinace: Egypt vs Kapverdy – kam na zimní dovolenou
+Destinace: Dubaj vs Maledivy – luxusní dovolená srovnání
+Destinace: Zanzibar vs Dominikánská republika – kam za exotikou
+Destinace: Turecko vs Tunisko – kde se víc vyplatí all inclusive
+
+
+# =========================
+# DESTINACE – KONKRÉTNÍ SITUACE
+# =========================
+
+Destinace: Kam na dovolenou u moře bez pasu – přehled destinací 2026
+Destinace: Kam na dovolenou u moře s krátkým letem do 3 hodin
+Destinace: Kam na dovolenou u moře na týden – nejlepší poměr cena/výkon
+Destinace: Nejbezpečnější destinace u moře 2026 – kam jet bez obav
+Destinace: Kam na dovolenou u moře pro seniory – klidné destinace
+Destinace: Kam na dovolenou u moře pro mladé – party destinace
+Destinace: Dovolená u moře s odletem z Ostravy – kam se létá
+Destinace: Dovolená u moře s odletem z Brna – přehled destinací
+
+
+# =========================
+# TIPY (TRANSAKČNÍ)
+# =========================
+
+Tipy: Jak vybrat all inclusive dovolenou – kompletní průvodce
+Tipy: Kdy kupovat dovolenou 2026 – first minute vs last minute
+Tipy: Jak najít nejlevnější dovolenou u moře
+Tipy: Jak ušetřit tisíce korun na dovolené
+Tipy: Jak vybrat hotel podle recenzí a lokality
+Tipy: Co si zkontrolovat před koupí zájezdu
+Tipy: Jak fungují ceny zájezdů a kdy jsou nejnižší
+Tipy: Jak poznat kvalitní hotel a vyhnout se zklamání
+Tipy: Jak vybrat nejlepší all inclusive nabídku krok za krokem
+Tipy: Jak vybrat cestovní pojištění na dovolenou
+Tipy: Jak se vyhnout skrytým poplatkům u zájezdů
+
+
+# =========================
+# INSPIRACE (traffic)
+# =========================
+
+Inspirace: Nejlepší destinace na dovolenou u moře 2026
+Inspirace: Nejkrásnější pláže světa dostupné z Česka
+Inspirace: Kam na romantickou dovolenou u moře
+Inspirace: Nejlepší destinace pro dovolenou ve dvou
+Inspirace: Kam na dovolenou bez davů turistů
+Inspirace: Nejlepší exotické destinace 2026
+Inspirace: Kam na první dovolenou k moři
+Inspirace: Nejlepší destinace pro aktivní dovolenou u moře
+Inspirace: Nejkrásnější pláže v Evropě 2026
+Inspirace: Kam na dovolenou za teplem v zimě levně
+Inspirace: Nejlepší destinace pro šnorchlování z pláže
+Inspirace: Nejhezčí západy slunce u moře

@@ -17,11 +17,13 @@ Použití:
 """
 
 import argparse
+import concurrent.futures
 import json
 import logging
 import os
 import random
 import re
+import threading
 import time
 import unicodedata
 import urllib.parse
@@ -491,8 +493,22 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
     }
 
     base_url = hotel_url.split("?")[0]
+    available_dates = api_data.get("availableDates", [])
+    # Diagnostika: pokud API vrátí availableDates ale všechny mají cenu 0 / neznámý formát,
+    # zalogujeme klíče prvního záznamu — pomůže identifikovat změnu struktury Exim API.
+    if available_dates and logger.isEnabledFor(logging.DEBUG):
+        sample = available_dates[0]
+        logger.debug(f"Exim availableDates[0] klíče: {list(sample.keys())} | hodnoty: {sample}")
+    elif available_dates:
+        sample = available_dates[0]
+        price_sample = sample.get("pricePerPerson") or sample.get("price", 0.0)
+        if not price_sample:
+            logger.warning(
+                f"Exim: availableDates má {len(available_dates)} záznamů, ale cena=0 "
+                f"(klíče: {list(sample.keys())}, hodnoty: {sample})"
+            )
     tours = []
-    for d in api_data.get("availableDates", []):
+    for d in available_dates:
         raw_date = d.get("date", "")[:10]
         price    = d.get("pricePerPerson") or d.get("price", 0.0)
         if not raw_date or price <= 0:
@@ -701,6 +717,13 @@ def update_hotel_tours(session: requests.Session, db: ZaletoDB,
         if airport_tours:
             all_tours.extend(airport_tours)
     if not all_tours:
+        # Zachovej stávající termíny — API může vrátit prázdno kvůli sezóně nebo dočasné chybě.
+        # Aktualizujeme updated_at, aby purge_stale_tours v run_all.py termíny nesmazal.
+        db.conn.execute(
+            "UPDATE tours SET updated_at = NOW() WHERE hotel_id = %s AND agency = %s",
+            (hotel_id, AGENCY),
+        )
+        db.commit()
         return 0
     db.conn.execute("DELETE FROM tours WHERE hotel_id = %s AND agency = %s", (hotel_id, AGENCY))
     for t in all_tours:
@@ -710,13 +733,16 @@ def update_hotel_tours(session: requests.Session, db: ZaletoDB,
 
 
 def _run_update_only(db: ZaletoDB, session: requests.Session,
-                     delay: float, airports: list[int]) -> int:
+                     delay: float, airports: list[int], workers: int = 1) -> int:
+    """
+    workers > 1: paralelní zpracování, každý worker má vlastní session + DB spojení.
+    """
     rows = db.conn.execute(
         "SELECT id, slug, api_config FROM hotels WHERE agency = %s AND api_config IS NOT NULL",
         (AGENCY,)
     ).fetchall()
     total = len(rows)
-    logger.info(f"Update-only: {total} hotelů k aktualizaci")
+    logger.info(f"Update-only: {total} hotelů k aktualizaci (workers={workers})")
     slug_counter: dict = {}
     for (s,) in db.conn.execute("SELECT slug FROM hotels WHERE agency = %s", (AGENCY,)).fetchall():
         parts = s.rsplit("-", 1)
@@ -724,40 +750,80 @@ def _run_update_only(db: ZaletoDB, session: requests.Session,
             slug_counter[parts[0]] = max(slug_counter.get(parts[0], 0), int(parts[1]) + 1)
         else:
             slug_counter[s] = max(slug_counter.get(s, 0), 1)
-    done_keys   = db.get_done_keys(AGENCY)
-    total_saved = 0
-    for i, (hotel_id, slug, api_config_str) in enumerate(rows, 1):
-        ck = f"upd:{hotel_id}"
-        if ck in done_keys:
-            logger.info(f"[{i}/{total}] ✓ checkpoint: {slug}")
-            continue
+
+    done_keys  = db.get_done_keys(AGENCY)
+    to_process = [(hid, slug, cfg) for (hid, slug, cfg) in rows if f"upd:{hid}" not in done_keys]
+
+    if not to_process:
+        logger.info("Update-only: vše zpracováno z checkpointu")
+        return 0
+
+    _counter = [0]
+    _saved   = [0]
+    _lock    = threading.Lock()
+
+    def _process_one(hotel_id: int, slug: str, api_config_str: str) -> int:
         try:
             cfg = json.loads(api_config_str) if api_config_str else {}
         except Exception:
             cfg = {}
         hotel_path = cfg.get("_hotelPath", "")
         hotel_url  = f"{BASE_URL}{hotel_path}" if hotel_path else ""
-        if cfg.get("_hotelDataKey") and hotel_url:
-            logger.info(f"[{i}/{total}] (fast) {slug}")
-            try:
-                saved = update_hotel_tours(session, db, hotel_id, api_config_str, airports)
-                total_saved += saved
-                db.mark_done(AGENCY, ck)
-            except Exception as e:
-                logger.error(f"Chyba (fast) {slug}: {e}")
-        elif hotel_url:
-            logger.info(f"[{i}/{total}] (full fallback) {slug}")
-            try:
-                saved = scrape_hotel(session, db, hotel_url, slug_counter, airports)
-                total_saved += saved
-                db.mark_done(AGENCY, ck)
-            except Exception as e:
-                logger.error(f"Chyba (full fallback) {slug}: {e}")
+        if not hotel_url:
+            logger.debug(f"Přeskakuji {slug} — chybí _hotelPath")
+            return 0
+
+        if workers > 1:
+            w_session = _make_session()
+            w_db      = ZaletoDB()
         else:
-            logger.debug(f"[{i}/{total}] Přeskakuji {slug} — chybí _hotelPath")
-        if i < total:
-            time.sleep(delay + random.uniform(0, delay * 0.4))
-    return total_saved
+            w_session, w_db = session, db
+
+        try:
+            if cfg.get("_hotelDataKey"):
+                saved = update_hotel_tours(w_session, w_db, hotel_id, api_config_str, airports)
+                w_db.mark_done(AGENCY, f"upd:{hotel_id}")
+                with _lock:
+                    _saved[0]   += saved
+                    _counter[0] += 1
+                    logger.info(f"[{_counter[0]}/{len(to_process)}] (fast) {slug} → {saved} termínů")
+                return saved
+            else:
+                with _lock:
+                    saved = scrape_hotel(w_session, w_db, hotel_url, slug_counter, airports)
+                    _saved[0]   += saved
+                    _counter[0] += 1
+                    w_db.mark_done(AGENCY, f"upd:{hotel_id}")
+                    logger.info(f"[{_counter[0]}/{len(to_process)}] (full fallback) {slug} → {saved} termínů")
+                return saved
+        except Exception as e:
+            logger.error(f"Chyba {slug}: {e}")
+            return 0
+        finally:
+            if workers > 1:
+                time.sleep(delay + random.uniform(0, delay * 0.4))
+                w_db.close()
+                w_session.close()
+
+    if workers <= 1:
+        for i, (hotel_id, slug, api_config_str) in enumerate(rows, 1):
+            if f"upd:{hotel_id}" in done_keys:
+                logger.info(f"[{i}/{total}] ✓ checkpoint: {slug}")
+                continue
+            _process_one(hotel_id, slug, api_config_str)
+            if i < total:
+                time.sleep(delay + random.uniform(0, delay * 0.4))
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [executor.submit(_process_one, hid, slug, cfg)
+                       for hid, slug, cfg in to_process]
+            for f in concurrent.futures.as_completed(futures):
+                try:
+                    f.result()
+                except Exception as e:
+                    logger.error(f"Worker neočekávaná chyba: {e}")
+
+    return _saved[0]
 
 
 def delete_all(db: ZaletoDB):
@@ -774,7 +840,8 @@ def delete_all(db: ZaletoDB):
 # ---------------------------------------------------------------------------
 
 def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
-        airports: list[int] | None = None, update_only: bool = False):
+        airports: list[int] | None = None, update_only: bool = False,
+        workers: int = 1):
     if airports is None:
         airports = list(AIRPORT_NAMES.keys())
 
@@ -787,7 +854,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
 
     if update_only:
         logger.info("Režim: UPDATE-ONLY (přeskočení GET stránek, jen API aktualizace termínů)")
-        total_saved = _run_update_only(db, session, delay, airports)
+        total_saved = _run_update_only(db, session, delay, airports, workers=workers)
         db.close()
         logger.info(f"Update-only hotovo. Celkem uloženo: {total_saved} termínů.")
         return total_saved
@@ -843,8 +910,9 @@ if __name__ == "__main__":
     parser.add_argument("--delete",      action="store_true",     help="Smaž Exim data před startem")
     parser.add_argument("--update-only", action="store_true",     help="Jen API aktualizace termínů, bez GET stránek")
     parser.add_argument("--airports",    type=str,   default="",  help="Čárkou oddělená ID letišť")
+    parser.add_argument("--workers",     type=int,   default=1,   help="Počet paralelních workerů pro update-only (default: 1)")
     args = parser.parse_args()
 
     airports = [int(x) for x in args.airports.split(",") if x.strip().isdigit()] or None
     run(limit=args.limit, delay=args.delay, delete=args.delete,
-        airports=airports, update_only=args.update_only)
+        airports=airports, update_only=args.update_only, workers=args.workers)

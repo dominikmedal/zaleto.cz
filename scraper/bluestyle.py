@@ -86,8 +86,46 @@ def _make_session() -> requests.Session:
     return s
 
 
-_blocked = False  # globální flag — IP je zablokovaná, přestaň posílat požadavky
 _CONNECTION_ERRORS = (ReqConnectionError, ChunkedEncodingError, TimeoutError)
+
+# ---------------------------------------------------------------------------
+# Proxy rotátor
+# ---------------------------------------------------------------------------
+# Nastav env var BLUESTYLE_PROXIES jako čárkou oddělený seznam proxy URL, např.:
+#   BLUESTYLE_PROXIES=http://user:pass@proxy1:port,http://user:pass@proxy2:port
+# Prázdná hodnota nebo nepřítomnost = přímé připojení (žádný proxy).
+# Při 429 / 403 / GQL ban se automaticky přepne na další proxy.
+# Pokud jsou všechny proxy vyčerpány, scraper se zastaví.
+
+_raw_proxies = [p.strip() for p in os.environ.get("BLUESTYLE_PROXIES", "").split(",") if p.strip()]
+# Každá proxy je dict pro requests: {"http": url, "https": url} nebo {} pro přímé připojení
+_PROXIES: list[dict] = [{"http": p, "https": p} for p in _raw_proxies] if _raw_proxies else [{}]
+_proxy_idx = 0   # index aktuálně aktivní proxy
+_blocked   = False  # True = všechny proxy vyčerpány
+
+
+def _current_proxy() -> dict:
+    return _PROXIES[_proxy_idx]
+
+
+def _rotate_proxy(reason: str) -> bool:
+    """Přepne na další proxy. Vrátí False pokud žádná zbývá."""
+    global _proxy_idx, _blocked
+    next_idx = _proxy_idx + 1
+    if next_idx < len(_PROXIES):
+        old = _raw_proxies[_proxy_idx] if _raw_proxies else "přímé připojení"
+        new = _raw_proxies[next_idx] if _raw_proxies else "přímé připojení"
+        logger.warning(f"Proxy rotace ({reason}): {old} → {new} [{next_idx+1}/{len(_PROXIES)}]")
+        _proxy_idx = next_idx
+        return True
+    logger.error(f"Proxy rotace ({reason}): všechny proxy vyčerpány — zastavuji scraper")
+    _blocked = True
+    return False
+
+
+def _apply_proxy(session: requests.Session):
+    """Nastaví aktuální proxy na session."""
+    session.proxies.update(_current_proxy())
 
 
 def gql(session: requests.Session, query: str, variables: dict = None) -> dict | None:
@@ -101,11 +139,15 @@ def gql(session: requests.Session, query: str, variables: dict = None) -> dict |
 
     for attempt in range(3):
         try:
+            _apply_proxy(session)
             r = session.post(GQL_URL, json=payload, timeout=35)
-            if r.status_code == 429 or r.status_code == 403:
-                logger.error(f"GraphQL HTTP {r.status_code} — IP pravděpodobně zablokována Blue Style")
-                _blocked = True
-                return None
+            if r.status_code in (429, 403):
+                logger.warning(f"GraphQL HTTP {r.status_code} — IP zablokována, zkouším proxy rotaci")
+                if not _rotate_proxy(f"HTTP {r.status_code}"):
+                    return None
+                _apply_proxy(session)
+                time.sleep(5 + random.uniform(0, 3))
+                continue  # zkus znovu s novou proxy
             if r.status_code != 200:
                 logger.warning(f"GraphQL HTTP {r.status_code}")
                 return None
@@ -116,11 +158,16 @@ def gql(session: requests.Session, query: str, variables: dict = None) -> dict |
                     msg = str(e.get("message", ""))
                     code = e.get("code")
                     if code == 429 or "zablokovali" in msg or "odblokovani@" in msg:
-                        logger.error("GraphQL: IP zablokována Blue Style — zastavuji scraper")
-                        _blocked = True
-                        return None
-                logger.warning(f"GraphQL errors: {errs[:2]}")
-                return None
+                        logger.warning("GraphQL: GQL ban — zkouším proxy rotaci")
+                        if not _rotate_proxy("GQL ban"):
+                            return None
+                        _apply_proxy(session)
+                        time.sleep(5 + random.uniform(0, 3))
+                        break  # zkus celý request znovu
+                else:
+                    logger.warning(f"GraphQL errors: {errs[:2]}")
+                    return None
+                continue  # opakuj request po rotaci
             return data.get("data")
         except _CONNECTION_ERRORS as e:
             if attempt < 2:
@@ -735,9 +782,9 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
                     if page >= page_count or not hotels_raw:
                         break
                     page += 1
-                    time.sleep(delay)
+                    time.sleep(delay + random.uniform(0, delay * 0.5))
 
-                time.sleep(delay)
+                time.sleep(delay + random.uniform(0, delay * 0.5))
 
         # Všechny date × arr_city kombinace pro tento dep_city hotovy
         db.mark_done(AGENCY, str(dep_city))
@@ -830,8 +877,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Blue Style scraper → zaleto.db")
     parser.add_argument("--limit", type=int, default=0,
                         help="Max počet nových hotelů (0 = všechny); existující hotely dostávají termíny i po dosažení limitu")
-    parser.add_argument("--delay", type=float, default=0.5,
-                        help="Pauza mezi API požadavky v sekundách")
+    parser.add_argument("--delay", type=float, default=2.0,
+                        help="Pauza mezi API požadavky v sekundách (default: 2.0)")
     parser.add_argument("--dep-cities", type=str, default='',
                         help=f"ID výchozích letišť oddělená čárkou (default: všechna ze SearchForm). Př: --dep-cities 2,5,8")
     parser.add_argument("--delete", action="store_true",

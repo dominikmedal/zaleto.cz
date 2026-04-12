@@ -14,11 +14,13 @@ Použití:
 """
 
 import argparse
+import concurrent.futures
 import json
 import logging
 import os
 import random
 import re
+import threading
 import time
 import unicodedata
 import urllib.parse
@@ -781,6 +783,13 @@ def update_hotel_tours(session: requests.Session, db: ZaletoDB,
             all_tours.extend(airport_tours)
 
     if not all_tours:
+        # Zachovej stávající termíny — API může vrátit prázdno kvůli sezóně nebo dočasné chybě.
+        # Aktualizujeme updated_at, aby purge_stale_tours v run_all.py termíny nesmazal.
+        db.conn.execute(
+            "UPDATE tours SET updated_at = NOW() WHERE hotel_id = %s AND agency = %s",
+            (hotel_id, AGENCY),
+        )
+        db.commit()
         return 0
 
     db.conn.execute("DELETE FROM tours WHERE hotel_id = %s AND agency = %s", (hotel_id, AGENCY))
@@ -802,18 +811,19 @@ def delete_all(db: ZaletoDB):
 
 
 def _run_update_only(db: ZaletoDB, session: requests.Session,
-                     delay: float, airports: list[int]) -> int:
+                     delay: float, airports: list[int], workers: int = 1) -> int:
     """
     Rychlá aktualizace termínů bez GET hotelových stránek.
     Pro každý Fischer hotel v DB použije uložený api_config → rovnou volá API.
     Hotely bez _hotelDataKey (stará verze scraperu) scrape-uje plně.
+    workers > 1: paralelní zpracování, každý worker má vlastní session + DB spojení.
     """
     rows = db.conn.execute(
         "SELECT id, slug, api_config FROM hotels WHERE agency = %s AND api_config IS NOT NULL",
         (AGENCY,)
     ).fetchall()
     total = len(rows)
-    logger.info(f"Update-only: {total} hotelů k aktualizaci")
+    logger.info(f"Update-only: {total} hotelů k aktualizaci (workers={workers})")
 
     slug_counter: dict = {}
     for (s,) in db.conn.execute("SELECT slug FROM hotels WHERE agency = %s", (AGENCY,)).fetchall():
@@ -823,15 +833,20 @@ def _run_update_only(db: ZaletoDB, session: requests.Session,
         else:
             slug_counter[s] = max(slug_counter.get(s, 0), 1)
 
-    done_keys = db.get_done_keys(AGENCY)
-    total_saved = 0
+    done_keys   = db.get_done_keys(AGENCY)
+    to_process  = [(hid, slug, cfg) for (hid, slug, cfg) in rows if f"upd:{hid}" not in done_keys]
 
-    for i, (hotel_id, slug, api_config_str) in enumerate(rows, 1):
-        ck = f"upd:{hotel_id}"
-        if ck in done_keys:
-            logger.info(f"[{i}/{total}] ✓ checkpoint: {slug}")
-            continue
+    if not to_process:
+        logger.info("Update-only: vše zpracováno z checkpointu")
+        return 0
 
+    # Atomický čítač pro průběžné logování
+    _counter = [0]
+    _saved   = [0]
+    _lock    = threading.Lock()
+
+    def _process_one(hotel_id: int, slug: str, api_config_str: str) -> int:
+        """Zpracuje jeden hotel — volá se z workeru i sekvenčně."""
         try:
             cfg = json.loads(api_config_str) if api_config_str else {}
         except Exception:
@@ -840,34 +855,70 @@ def _run_update_only(db: ZaletoDB, session: requests.Session,
         hotel_path = cfg.get("_hotelPath", "")
         hotel_url  = f"{BASE_URL}{hotel_path}" if hotel_path else ""
 
-        if cfg.get("_hotelDataKey") and hotel_url:
-            logger.info(f"[{i}/{total}] (fast) {slug}")
-            try:
-                saved = update_hotel_tours(session, db, hotel_id, api_config_str, airports)
-                total_saved += saved
-                db.mark_done(AGENCY, ck)
-            except Exception as e:
-                logger.error(f"Chyba (fast) {slug}: {e}")
-        elif hotel_url:
-            # Starý api_config bez _hotelDataKey — full scrape tohoto hotelu + uloží nový api_config
-            logger.info(f"[{i}/{total}] (full fallback) {slug}")
-            try:
-                saved = scrape_hotel(session, db, hotel_url, slug_counter, airports)
-                total_saved += saved
-                db.mark_done(AGENCY, ck)
-            except Exception as e:
-                logger.error(f"Chyba (full fallback) {slug}: {e}")
+        if not hotel_url:
+            logger.debug(f"Přeskakuji {slug} — chybí _hotelPath")
+            return 0
+
+        if workers > 1:
+            # Vlastní session + DB spojení pro každý worker
+            w_session = _make_session()
+            w_db      = ZaletoDB()
         else:
-            logger.debug(f"[{i}/{total}] Přeskakuji {slug} — chybí _hotelPath")
+            w_session, w_db = session, db
 
-        if i < total:
-            time.sleep(delay + random.uniform(0, delay * 0.4))
+        try:
+            if cfg.get("_hotelDataKey"):
+                saved = update_hotel_tours(w_session, w_db, hotel_id, api_config_str, airports)
+                w_db.mark_done(AGENCY, f"upd:{hotel_id}")
+                with _lock:
+                    _saved[0]   += saved
+                    _counter[0] += 1
+                    logger.info(f"[{_counter[0]}/{len(to_process)}] (fast) {slug} → {saved} termínů")
+                return saved
+            else:
+                # Starý api_config bez _hotelDataKey — full scrape; přístup k slug_counter pod zámkem
+                with _lock:
+                    saved = scrape_hotel(w_session, w_db, hotel_url, slug_counter, airports)
+                    _saved[0]   += saved
+                    _counter[0] += 1
+                    w_db.mark_done(AGENCY, f"upd:{hotel_id}")
+                    logger.info(f"[{_counter[0]}/{len(to_process)}] (full fallback) {slug} → {saved} termínů")
+                return saved
+        except Exception as e:
+            logger.error(f"Chyba {slug}: {e}")
+            return 0
+        finally:
+            if workers > 1:
+                # Pauza per-worker zabraňuje zahlcení API i přes paralelní běh
+                time.sleep(delay + random.uniform(0, delay * 0.4))
+                w_db.close()
+                w_session.close()
 
-    return total_saved
+    if workers <= 1:
+        # Sekvenční zpracování (původní chování)
+        for i, (hotel_id, slug, api_config_str) in enumerate(rows, 1):
+            if f"upd:{hotel_id}" in done_keys:
+                logger.info(f"[{i}/{total}] ✓ checkpoint: {slug}")
+                continue
+            _process_one(hotel_id, slug, api_config_str)
+            if i < total:
+                time.sleep(delay + random.uniform(0, delay * 0.4))
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [executor.submit(_process_one, hid, slug, cfg)
+                       for hid, slug, cfg in to_process]
+            for f in concurrent.futures.as_completed(futures):
+                try:
+                    f.result()
+                except Exception as e:
+                    logger.error(f"Worker neočekávaná chyba: {e}")
+
+    return _saved[0]
 
 
 def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
-        airports: list[int] | None = None, update_only: bool = False):
+        airports: list[int] | None = None, update_only: bool = False,
+        workers: int = 1):
     if airports is None:
         airports = list(AIRPORT_NAMES.keys())
 
@@ -880,7 +931,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
 
     if update_only:
         logger.info("Režim: UPDATE-ONLY (přeskočení GET stránek, jen API aktualizace termínů)")
-        total_saved = _run_update_only(db, session, delay, airports)
+        total_saved = _run_update_only(db, session, delay, airports, workers=workers)
         db.close()
         logger.info(f"Update-only hotovo. Celkem uloženo: {total_saved} termínů.")
         return total_saved
@@ -946,10 +997,12 @@ if __name__ == "__main__":
                         help="Přeskočí GET hotelových stránek — pouze aktualizuje termíny a ceny přes API")
     parser.add_argument("--airports", type=str, default='',
                         help=f"ID letišť oddělená čárkou (default: všechna = {','.join(str(k) for k in AIRPORT_NAMES)}). Př: --airports 4312,4313")
+    parser.add_argument("--workers", type=int, default=1,
+                        help="Počet paralelních workerů pro update-only mód (default: 1 = sekvenční). Doporučeno: 3–5.")
     args = parser.parse_args()
     if args.airports:
         airports = [int(x.strip()) for x in args.airports.split(",") if x.strip()]
     else:
         airports = None  # použij výchozí = všechna letiště
     run(limit=args.limit, delay=args.delay, delete=args.delete,
-        airports=airports, update_only=args.update_only)
+        airports=airports, update_only=args.update_only, workers=args.workers)
