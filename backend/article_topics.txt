@@ -113,14 +113,14 @@ Destinace: Dovolená u moře s odletem z Brna – přehled destinací
 # TIPY (TRANSAKČNÍ)
 # =========================
 
-Tipy: Jak vybrat all inclusive dovolenou – kompletní průvodce
-Tipy: Kdy kupovat dovolenou 2026 – first minute vs last minute
-Tipy: Jak najít nejlevnější dovolenou u moře
-Tipy: Jak ušetřit tisíce korun na dovolené
-Tipy: Jak vybrat hotel podle recenzí a lokality
-Tipy: Co si zkontrolovat před koupí zájezdu
-Tipy: Jak fungují ceny zájezdů a kdy jsou nejnižší
-Tipy: Jak poznat kvalitní hotel a vyhnout se zklamání
+#Tipy: Jak vybrat all inclusive dovolenou – kompletní průvodce
+#Tipy: Kdy kupovat dovolenou 2026 – first minute vs last minute
+#Tipy: Jak najít nejlevnější dovolenou u moře
+#Tipy: Jak ušetřit tisíce korun na dovolené
+#Tipy: Jak vybrat hotel podle recenzí a lokality
+#Tipy: Co si zkontrolovat před koupí zájezdu
+#Tipy: Jak fungují ceny zájezdů a kdy jsou nejnižší
+#Tipy: Jak poznat kvalitní hotel a vyhnout se zklamání
 Tipy: Jak vybrat nejlepší all inclusive nabídku krok za krokem
 Tipy: Jak vybrat cestovní pojištění na dovolenou
 Tipy: Jak se vyhnout skrytým poplatkům u zájezdů
@@ -130,14 +130,14 @@ Tipy: Jak se vyhnout skrytým poplatkům u zájezdů
 # INSPIRACE (traffic)
 # =========================
 
-Inspirace: Nejlepší destinace na dovolenou u moře 2026
+#Inspirace: Nejlepší destinace na dovolenou u moře 2026
 Inspirace: Nejkrásnější pláže světa dostupné z Česka
-Inspirace: Kam na romantickou dovolenou u moře
-Inspirace: Nejlepší destinace pro dovolenou ve dvou
+#Inspirace: Kam na romantickou dovolenou u moře
+#Inspirace: Nejlepší destinace pro dovolenou ve dvou
 Inspirace: Kam na dovolenou bez davů turistů
-Inspirace: Nejlepší exotické destinace 2026
-Inspirace: Kam na první dovolenou k moři
-Inspirace: Nejlepší destinace pro aktivní dovolenou u moře
+#Inspirace: Nejlepší exotické destinace 2026
+#Inspirace: Kam na první dovolenou k moři
+#Inspirace: Nejlepší destinace pro aktivní dovolenou u moře
 Inspirace: Nejkrásnější pláže v Evropě 2026
 Inspirace: Kam na dovolenou za teplem v zimě levně
 Inspirace: Nejlepší destinace pro šnorchlování z pláže

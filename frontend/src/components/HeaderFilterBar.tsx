@@ -414,48 +414,56 @@ export default function HeaderFilterBar() {
               openPanel('dest')
             }
           }}
-          className={`flex-1 min-w-0 flex flex-col justify-center px-5 cursor-text transition-colors rounded-l-full border-r border-[rgba(0,147,255,0.08)] ${
+          className={`flex-[1.6] min-w-0 flex items-center gap-2.5 px-4 cursor-text transition-all duration-200 rounded-l-full border-r border-[rgba(0,147,255,0.10)] ${
             activePanel === 'dest'
-              ? 'bg-[rgba(0,147,255,0.07)]'
+              ? 'bg-[rgba(0,147,255,0.08)]'
               : destination.length > 0
-              ? 'hover:bg-[rgba(237,246,255,0.50)]'
-              : 'bg-transparent hover:bg-[rgba(0,147,255,0.04)]'
+              ? 'bg-[rgba(0,147,255,0.04)] hover:bg-[rgba(0,147,255,0.07)]'
+              : 'bg-[rgba(0,147,255,0.03)] hover:bg-[rgba(0,147,255,0.06)]'
           }`}
         >
-          {/* On mobile, show combined label when date is set */}
-          <span className={`${microLabel} flex items-center gap-1.5`}>
+          {/* Ikona lupy s blikající tečkou */}
+          <div className="relative flex-shrink-0">
+            <PiMagnifyingGlass className={`w-4 h-4 transition-colors ${activePanel === 'dest' || destination.length > 0 ? 'text-[#008afe]' : 'text-[#008afe]/70'}`} />
             {!destSummary && activePanel !== 'dest' && (
-              <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#008afe] opacity-60" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#008afe]" />
+              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#008afe] opacity-50" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#008afe]" />
               </span>
             )}
-            <span className={!destSummary && activePanel !== 'dest' ? 'text-[#008afe]' : ''}>
-              <span className="sm:hidden" suppressHydrationWarning>
-                {destSummary ? 'Destinace' : dateSummary ? 'Termín' : 'Destinace'}
-              </span>
-              <span className="hidden sm:inline">Destinace</span>
-            </span>
-          </span>
-          {/* Mobile: show date summary if no dest selected */}
-          {!destSummary && dateSummary && (
-            <span className={`sm:hidden ${subLabel} text-gray-700 font-medium truncate`} suppressHydrationWarning>{dateSummary}</span>
-          )}
-          {destSummary ? (
-            <span className={`${subLabel} text-gray-700 font-medium truncate`}>{destSummary}</span>
-          ) : !dateSummary ? (
-            <span className="relative h-[14px] overflow-hidden block mt-0.5">
-              <span
-                className="absolute inset-0 text-xs leading-none text-[#008afe]/65 whitespace-nowrap overflow-hidden text-ellipsis transition-all duration-[280ms] ease-in-out"
-                style={{
-                  opacity:   phVisible ? 1 : 0,
-                  transform: phVisible ? 'translateY(0)' : 'translateY(-5px)',
-                }}
-              >
-                {PLACEHOLDER_CYCLE[phIdx]}
+          </div>
+
+          <div className="flex flex-col justify-center flex-1 min-w-0">
+            <span className="text-[10px] font-bold leading-none flex items-center gap-1">
+              <span className={!destSummary && activePanel !== 'dest' ? 'text-[#008afe]' : 'text-gray-900'}>
+                <span className="sm:hidden" suppressHydrationWarning>
+                  {destSummary ? 'Destinace' : dateSummary ? 'Termín' : 'Destinace'}
+                </span>
+                <span className="hidden sm:inline">Destinace</span>
               </span>
             </span>
-          ) : null}
+
+            {/* Mobile: date fallback */}
+            {!destSummary && dateSummary && (
+              <span className={`sm:hidden ${subLabel} text-gray-700 font-medium truncate`} suppressHydrationWarning>{dateSummary}</span>
+            )}
+
+            {destSummary ? (
+              <span className="text-[13px] font-semibold text-gray-800 truncate leading-tight mt-0.5">{destSummary}</span>
+            ) : !dateSummary ? (
+              <span className="relative h-[16px] overflow-hidden block mt-0.5">
+                <span
+                  className="absolute inset-0 text-[13px] font-semibold leading-none text-[#008afe] whitespace-nowrap overflow-hidden text-ellipsis transition-all duration-[280ms] ease-in-out"
+                  style={{
+                    opacity:   phVisible ? 1 : 0,
+                    transform: phVisible ? 'translateY(0)' : 'translateY(-5px)',
+                  }}
+                >
+                  {PLACEHOLDER_CYCLE[phIdx]}
+                </span>
+              </span>
+            ) : null}
+          </div>
         </div>
 
         {/* Termín — hidden on xs */}

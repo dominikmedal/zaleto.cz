@@ -2,11 +2,11 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Check } from 'lucide-react'
-import { PiMagnifyingGlass, PiSpinner, PiMapPin, PiBuildings, PiGlobe } from 'react-icons/pi'
+import { PiMagnifyingGlass, PiSpinner, PiMapPin, PiBuildings, PiGlobe, PiArrowRight } from 'react-icons/pi'
 import { fetchHotelSearch } from '@/lib/api'
 
 const PLACEHOLDER_CYCLE = [
-  'Vyhledat destinaci…',
+  'Kam chcete letět?',
   'Zkuste Egypt…',
   'Zkuste Řecko…',
   'Zkuste Turecko…',
@@ -107,6 +107,20 @@ interface HotelResult {
   slug: string; name: string; country: string; resort_town: string | null; stars: number | null; thumbnail_url: string | null
 }
 
+/** Zvýrazní hledaný výraz v textu */
+function Highlight({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>
+  const idx = text.toLowerCase().indexOf(query.toLowerCase())
+  if (idx === -1) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-[#0093FF]/15 text-[#0093FF] font-semibold rounded-sm px-0.5 not-italic">{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
+  )
+}
+
 export default function DestinationAutocomplete({ destinations, value, onChange, noLabel, defaultOpen, loading }: Props) {
   const router = useRouter()
   const [query,        setQuery]        = useState('')
@@ -115,6 +129,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
   const [hotelResults, setHotelResults] = useState<HotelResult[]>([])
   const [phIdx,        setPhIdx]        = useState(0)
   const [phVisible,    setPhVisible]    = useState(true)
+  const [showAll,      setShowAll]      = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef     = useRef<HTMLInputElement>(null)
   const listRef      = useRef<HTMLDivElement>(null)
@@ -171,6 +186,9 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
     }
   }, [highlighted])
 
+  // Reset showAll when dropdown closes
+  useEffect(() => { if (!open) setShowAll(false) }, [open])
+
   const toggle = useCallback((val: string) => {
     onChange(value.includes(val) ? value.filter(v => v !== val) : [...value, val])
   }, [value, onChange])
@@ -205,6 +223,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
     const isHighlighted = highlighted === idx
     const isResort      = item.level === 'resort'
     const isCountry     = item.level === 'country'
+    const q             = query.trim()
 
     if (isCountry) {
       return (
@@ -220,7 +239,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
         >
           <span className="text-lg leading-none flex-shrink-0">{item.flag}</span>
           <span className={`text-[11px] font-bold uppercase tracking-widest flex-1 ${selected ? 'text-[#0093FF]' : 'text-gray-400'}`}>
-            {item.label}
+            <Highlight text={item.label} query={q} />
           </span>
           {selected && (
             <span className="w-4 h-4 rounded-full bg-[#0093FF] flex items-center justify-center flex-shrink-0">
@@ -245,7 +264,9 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
         >
           <span className="flex items-center gap-2 min-w-0">
             <span className="w-1 h-1 rounded-full bg-gray-300 flex-shrink-0" />
-            <span className={`text-[12px] truncate ${selected ? 'text-[#0093FF] font-medium' : 'text-gray-500'}`}>{item.label}</span>
+            <span className={`text-[12px] truncate ${selected ? 'text-[#0093FF] font-medium' : 'text-gray-500'}`}>
+              <Highlight text={item.label} query={q} />
+            </span>
             {query && <span className="text-[10px] text-gray-400 flex-shrink-0">{item.destination}</span>}
           </span>
           {selected && (
@@ -271,7 +292,9 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
       >
         <span className="flex items-center gap-2 min-w-0">
           <PiMapPin className={`w-3.5 h-3.5 flex-shrink-0 ${selected ? 'text-[#0093FF]' : 'text-gray-300'}`} />
-          <span className={`text-[13px] font-medium truncate ${selected ? 'text-[#0093FF]' : 'text-gray-700'}`}>{item.label}</span>
+          <span className={`text-[13px] font-medium truncate ${selected ? 'text-[#0093FF]' : 'text-gray-700'}`}>
+            <Highlight text={item.label} query={q} />
+          </span>
           {query && <span className="text-[11px] text-gray-400 flex-shrink-0">{item.country}</span>}
         </span>
         <span className={`w-4 h-4 rounded-md flex items-center justify-center flex-shrink-0 ml-3 transition-all border ${
@@ -319,29 +342,151 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
     })
   }
 
+  /** Populární destinace — top 8 zemí jako karty */
+  const renderPopular = () => {
+    const top = hierarchy.slice(0, 8)
+    return (
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Populární destinace</span>
+          </div>
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); setOpen(false); setQuery(''); router.push('/destinace') }}
+            className="text-[11px] font-semibold text-[#0093FF] hover:text-[#0070E0] flex items-center gap-0.5 transition-colors"
+          >
+            Vše <PiArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+
+        {/* Country chips grid */}
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {top.map(country => {
+            const total = country.destinations.reduce((s, d) => s + d.count, 0)
+            const sel   = value.includes(country.label)
+            return (
+              <button
+                key={country.label}
+                type="button"
+                onMouseDown={e => {
+                  e.preventDefault()
+                  toggle(country.label)
+                }}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all duration-150 ${
+                  sel
+                    ? 'bg-[#0093FF] text-white shadow-md shadow-[#0093FF]/25'
+                    : 'bg-gray-50 hover:bg-[rgba(0,147,255,0.06)] hover:border-[rgba(0,147,255,0.2)] border border-transparent'
+                }`}
+              >
+                <span className="text-xl leading-none flex-shrink-0">{country.flag}</span>
+                <div className="min-w-0">
+                  <p className={`text-[13px] font-semibold leading-tight truncate ${sel ? 'text-white' : 'text-gray-800'}`}>
+                    {country.label}
+                  </p>
+                  <p className={`text-[10px] leading-tight mt-0.5 ${sel ? 'text-white/75' : 'text-gray-400'}`}>
+                    {total} hotelů
+                  </p>
+                </div>
+                {sel && (
+                  <span className="ml-auto flex-shrink-0 w-4 h-4 rounded-full bg-white/25 flex items-center justify-center">
+                    <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Top resorts as small chips */}
+        {hierarchy[0]?.destinations?.length > 0 && (
+          <>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Oblíbená střediska</p>
+            <div className="flex flex-wrap gap-1.5">
+              {hierarchy.flatMap(c =>
+                c.destinations.slice(0, 2).map(d => ({ label: d.label, count: d.count, flag: c.flag, country: c.label }))
+              ).sort((a, b) => b.count - a.count).slice(0, 10).map(d => {
+                const sel = value.includes(d.label)
+                return (
+                  <button
+                    key={d.label}
+                    type="button"
+                    onMouseDown={e => { e.preventDefault(); toggle(d.label) }}
+                    className={`inline-flex items-center gap-1 text-[12px] font-medium px-2.5 py-1 rounded-full transition-all ${
+                      sel
+                        ? 'bg-[#0093FF] text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-[rgba(0,147,255,0.08)] hover:text-[#0093FF]'
+                    }`}
+                  >
+                    <span className="text-sm leading-none">{d.flag}</span>
+                    {d.label}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
+
   const showAnimatedPh = !open && query === '' && value.length === 0
+  const totalResults   = filtered.length + hotelResults.length
 
   return (
     <div ref={containerRef} className="relative">
-      {!noLabel && <label className="block text-xs font-medium text-gray-500 mb-1.5">Destinace</label>}
+      {!noLabel && <label className="block text-xs font-semibold text-gray-500 mb-1.5 tracking-wide">Destinace</label>}
 
-      {/* Input trigger */}
+      {/* Pulzující kroužek — viditelný pouze v idle stavu */}
+      {showAnimatedPh && (
+        <span
+          className="pointer-events-none absolute inset-0 rounded-2xl z-0"
+          style={{
+            boxShadow: '0 0 0 0 rgba(0,147,255,0.35)',
+            animation: 'dest-pulse 2.4s ease-in-out infinite',
+          }}
+        />
+      )}
+
+      <style>{`
+        @keyframes dest-pulse {
+          0%   { box-shadow: 0 0 0 0   rgba(0,147,255,0.30); }
+          60%  { box-shadow: 0 0 0 8px rgba(0,147,255,0.00); }
+          100% { box-shadow: 0 0 0 0   rgba(0,147,255,0.00); }
+        }
+      `}</style>
+
+      {/* Input trigger — prominent */}
       <div
-        className="relative min-h-[42px] w-full px-2.5 py-1.5 flex flex-wrap items-center gap-1.5 rounded-xl cursor-text transition-all duration-200"
+        className="relative z-10 min-h-[58px] w-full px-4 py-3 flex flex-wrap items-center gap-1.5 rounded-2xl cursor-text transition-all duration-200"
         style={{
-          background: open ? 'rgba(255,255,255,0.95)' : 'rgba(237,246,255,0.72)',
+          background: open ? 'rgba(255,255,255,0.99)' : 'rgba(237,246,255,0.90)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           border: open
-            ? '1px solid rgba(0,147,255,0.40)'
-            : '1px solid rgba(200,227,255,0.65)',
+            ? '2px solid rgba(0,147,255,0.55)'
+            : '2px solid rgba(0,147,255,0.22)',
           boxShadow: open
-            ? '0 0 0 3px rgba(0,147,255,0.08), 0 2px 12px rgba(0,147,255,0.10)'
-            : '0 1px 4px rgba(0,147,255,0.06)',
+            ? '0 0 0 4px rgba(0,147,255,0.10), 0 6px 24px rgba(0,147,255,0.14)'
+            : '0 2px 12px rgba(0,147,255,0.10)',
         }}
         onClick={() => { inputRef.current?.focus(); setOpen(true) }}
       >
-        <PiMagnifyingGlass className={`w-4 h-4 flex-shrink-0 ml-0.5 transition-colors ${open ? 'text-[#0093FF]' : 'text-gray-400'}`} />
+        {/* Ikona hledání s tečkou živosti */}
+        <div className="relative flex-shrink-0 ml-0.5">
+          <PiMagnifyingGlass className={`w-5 h-5 transition-colors ${open ? 'text-[#0093FF]' : 'text-[#0093FF]/60'}`} />
+          {showAnimatedPh && (
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#0093FF] border-2 border-white"
+              style={{ animation: 'dot-blink 1.8s ease-in-out infinite' }}
+            />
+          )}
+          <style>{`
+            @keyframes dot-blink {
+              0%, 100% { opacity: 1; transform: scale(1); }
+              50%       { opacity: 0.4; transform: scale(0.7); }
+            }
+          `}</style>
+        </div>
 
         {value.map(dest => (
           <span
@@ -356,31 +501,34 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
           </span>
         ))}
 
-        <div className="relative flex-1 min-w-[80px] h-[22px]">
+        <div className="relative flex-1 min-w-[120px] h-[30px]">
           {showAnimatedPh && (
             <span
-              className="absolute inset-0 flex items-center text-sm text-gray-400 pointer-events-none select-none transition-all duration-300"
-              style={{ opacity: phVisible ? 1 : 0, transform: phVisible ? 'translateY(0)' : 'translateY(-4px)' }}
+              className="absolute inset-0 flex items-center pointer-events-none select-none transition-all duration-300"
+              style={{ opacity: phVisible ? 1 : 0, transform: phVisible ? 'translateY(0)' : 'translateY(-5px)' }}
             >
-              {PLACEHOLDER_CYCLE[phIdx]}
+              <span className="text-[16px] font-semibold text-gray-500">{PLACEHOLDER_CYCLE[phIdx]}</span>
             </span>
           )}
           <input
             ref={inputRef}
             type="text"
             value={query}
-            placeholder=""
+            placeholder={open && value.length === 0 && !query ? 'Hledat destinaci nebo hotel…' : ''}
             onChange={e => { setQuery(e.target.value); setOpen(true); setHighlighted(-1) }}
             onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
-            className="absolute inset-0 w-full text-sm outline-none bg-transparent py-0.5"
+            className="absolute inset-0 w-full text-[16px] font-semibold outline-none bg-transparent py-0.5 text-gray-800"
           />
         </div>
 
-        {value.length > 0 && (
-          <button type="button" onMouseDown={e => { e.preventDefault(); onChange([]) }}
-            className="flex-shrink-0 p-0.5 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
-            <X className="w-3.5 h-3.5" />
+        {(value.length > 0 || query) && (
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); if (query) { setQuery('') } else { onChange([]) } }}
+            className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors"
+          >
+            <X className="w-3.5 h-3.5 text-gray-500" />
           </button>
         )}
       </div>
@@ -391,17 +539,17 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
           ref={listRef}
           className="absolute z-50 left-0 right-0 mt-2 rounded-2xl overflow-hidden"
           style={{
-            background: 'rgba(255,255,255,0.95)',
+            background: 'rgba(255,255,255,0.97)',
             backdropFilter: 'blur(28px) saturate(160%)',
             WebkitBackdropFilter: 'blur(28px) saturate(160%)',
             border: '1px solid rgba(200,227,255,0.70)',
             boxShadow: '0 8px 40px rgba(0,147,255,0.14), 0 2px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
-            maxHeight: 380,
+            maxHeight: 420,
             overflowY: 'auto',
           }}
         >
           {/* Active filters strip */}
-          {value.length > 0 && (
+          {value.length > 0 && !query && (
             <div
               className="px-4 py-2.5 flex items-center justify-between flex-shrink-0"
               style={{ borderBottom: '1px solid rgba(0,147,255,0.08)', background: 'rgba(0,147,255,0.03)' }}
@@ -421,75 +569,112 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
               <span className="text-xs text-gray-400">Načítám destinace…</span>
             </div>
 
-          ) : filtered.length === 0 && hotelResults.length === 0 ? (
-            <div className="px-4 py-8 text-center">
-              <PiGlobe className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">Žádné výsledky pro „{query}"</p>
+          ) : query ? (
+            /* ── Výsledky hledání ── */
+            <div className="py-1.5">
+              {filtered.length === 0 && hotelResults.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <PiGlobe className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 font-medium">Žádné výsledky pro „{query}"</p>
+                  <p className="text-xs text-gray-400 mt-1">Zkuste jinou destinaci nebo název hotelu</p>
+                </div>
+              ) : (
+                <>
+                  {/* Destination results */}
+                  {filtered.length > 0 && (
+                    <>
+                      <div className="px-4 py-1.5 flex items-center gap-1.5">
+                        <PiMapPin className="w-3 h-3 text-[#0093FF]" />
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                          Destinace
+                        </span>
+                        <span className="ml-auto text-[10px] text-gray-300 font-medium">{filtered.length} shod</span>
+                      </div>
+                      {filtered.map((item, idx) => renderItem(item, idx))}
+                    </>
+                  )}
+
+                  {/* Hotel results */}
+                  {hotelResults.length > 0 && (
+                    <>
+                      <div
+                        className="px-4 py-1.5 mt-1 flex items-center gap-1.5"
+                        style={{ borderTop: filtered.length > 0 ? '1px solid rgba(0,147,255,0.07)' : undefined }}
+                      >
+                        <PiBuildings className="w-3 h-3 text-[#0093FF]" />
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Hotely</span>
+                        <span className="ml-auto text-[10px] text-gray-300 font-medium">{hotelResults.length} hotelů</span>
+                      </div>
+                      {hotelResults.map((hotel, i) => {
+                        const idx = filtered.length + i
+                        const isHighlighted = highlighted === idx
+                        return (
+                          <button
+                            key={hotel.slug}
+                            data-idx={idx}
+                            type="button"
+                            onMouseDown={e => { e.preventDefault(); handleHotelClick(hotel.slug) }}
+                            onMouseEnter={() => setHighlighted(idx)}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                              isHighlighted ? 'bg-[rgba(0,147,255,0.05)]' : 'hover:bg-[rgba(0,147,255,0.03)]'
+                            }`}
+                          >
+                            {hotel.thumbnail_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={hotel.thumbnail_url} alt={hotel.name} className="w-12 h-9 rounded-xl object-cover flex-shrink-0 shadow-sm" />
+                            ) : (
+                              <div className="w-12 h-9 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(0,147,255,0.08)' }}>
+                                <PiBuildings className="w-4.5 h-4.5 text-[#0093FF]" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13px] font-semibold text-gray-800 truncate leading-tight">
+                                <Highlight text={hotel.name} query={query.trim()} />
+                              </p>
+                              <p className="text-[11px] text-gray-400 mt-0.5">
+                                {hotel.stars ? <span className="text-amber-400 mr-1">{'★'.repeat(hotel.stars)}</span> : null}
+                                {hotel.resort_town ? `${hotel.resort_town}, ` : ''}{hotel.country}
+                              </p>
+                            </div>
+                            <span className="flex-shrink-0 flex items-center gap-1 text-[11px] font-semibold text-[#0093FF] bg-[rgba(0,147,255,0.08)] px-2 py-0.5 rounded-full">
+                              Detail <PiArrowRight className="w-3 h-3" />
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </>
+                  )}
+
+                  {/* Footer — count + hint */}
+                  {totalResults > 0 && (
+                    <div className="px-4 py-2 flex items-center justify-between border-t border-gray-50 mt-1">
+                      <span className="text-[10px] text-gray-400">{totalResults} výsledků</span>
+                      <span className="text-[10px] text-gray-300">↑↓ pohyb · Enter výběr · Esc zavřít</span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
-          ) : query ? (
-            <div className="py-1.5">
-              {/* Destination results */}
-              {filtered.length > 0 && (
-                <>
-                  <div className="px-4 py-1.5 flex items-center gap-1.5">
-                    <PiMapPin className="w-3 h-3 text-[#0093FF]" />
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Destinace</span>
-                  </div>
-                  {filtered.map((item, idx) => renderItem(item, idx))}
-                </>
-              )}
-              {/* Hotel results */}
-              {hotelResults.length > 0 && (
-                <>
-                  <div
-                    className="px-4 py-1.5 mt-1 flex items-center gap-1.5"
-                    style={{ borderTop: '1px solid rgba(0,147,255,0.07)' }}
-                  >
-                    <PiBuildings className="w-3 h-3 text-[#0093FF]" />
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Hotely</span>
-                  </div>
-                  {hotelResults.map((hotel, i) => {
-                    const idx = filtered.length + i
-                    const isHighlighted = highlighted === idx
-                    return (
-                      <button
-                        key={hotel.slug}
-                        data-idx={idx}
-                        type="button"
-                        onMouseDown={e => { e.preventDefault(); handleHotelClick(hotel.slug) }}
-                        onMouseEnter={() => setHighlighted(idx)}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                          isHighlighted ? 'bg-[rgba(0,147,255,0.05)]' : 'hover:bg-[rgba(0,147,255,0.03)]'
-                        }`}
-                      >
-                        {hotel.thumbnail_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={hotel.thumbnail_url} alt={hotel.name} className="w-10 h-8 rounded-lg object-cover flex-shrink-0" />
-                        ) : (
-                          <div className="w-10 h-8 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(0,147,255,0.08)' }}>
-                            <PiBuildings className="w-4 h-4 text-[#0093FF]" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-semibold text-gray-800 truncate leading-tight">{hotel.name}</p>
-                          <p className="text-[11px] text-gray-400 mt-0.5">{hotel.resort_town ? `${hotel.resort_town}, ` : ''}{hotel.country}</p>
-                        </div>
-                        <div className="flex-shrink-0 flex items-center gap-1.5">
-                          {hotel.stars ? <span className="text-[10px] text-amber-400">{'★'.repeat(hotel.stars)}</span> : null}
-                          <span className="text-[10px] font-semibold text-[#0093FF]">→</span>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </>
-              )}
-            </div>
+          ) : showAll ? (
+            /* ── Plný seznam ── */
+            <>
+              <div className="px-4 py-2.5 flex items-center gap-2 border-b border-gray-50">
+                <button
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); setShowAll(false) }}
+                  className="text-[11px] font-semibold text-[#0093FF] flex items-center gap-1"
+                >
+                  ← Populární
+                </button>
+                <span className="text-[11px] text-gray-400 ml-1">Všechny destinace</span>
+              </div>
+              <div className="py-1">{renderHierarchy()}</div>
+            </>
 
           ) : (
-            <div className="py-1">
-              {renderHierarchy()}
-            </div>
+            /* ── Populární destinace ── */
+            renderPopular()
           )}
 
           <div className="h-1.5" />

@@ -210,9 +210,9 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   // Articles — homepage (no filters) or destination page
   const articles = (noFilters && !singleDest && !tourType)
-    ? await fetchArticles(3).catch(() => [])
+    ? await fetchArticles(6).catch(() => [])
     : singleDest
-    ? await fetchArticles(3, singleDest).catch(() => [])
+    ? await fetchArticles(6, singleDest).catch(() => [])
     : []
 
   // Photos for articles
@@ -224,7 +224,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   articleLocations.forEach((loc, i) => { articleImageMap[loc] = articlePhotoResults[i] })
 
   // Filter out articles without a location (guaranteed no photo); articles with location show photo or gradient
-  const articlesWithPhotos = articles.filter(a => Boolean(a.location))
+  const articlesWithPhotos = articles.filter(a => Boolean(a.location)).slice(0, 3)
 
   const countryCount = new Set(destinations.map(d => d.country)).size
 
@@ -386,7 +386,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                         />
                       </div>
                       {/* Desktop: tall side panel — takes all remaining space */}
-                      <div className="hidden lg:block flex-1 min-w-0">
+                      <div className="hidden lg:flex flex-1 min-w-0 flex-col gap-2" style={{ minHeight: 360 }}>
                         <DestinationCarousel
                           items={topRegionsWithPhotos.map(({ region, count, thumb }) => ({
                             region,

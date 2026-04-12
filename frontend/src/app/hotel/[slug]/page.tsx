@@ -299,10 +299,14 @@ export default async function HotelDetailPage({ params }: Props) {
           <div className="flex items-center justify-between gap-4 px-4 pt-4 pb-3 bg-gradient-to-b from-emerald-50/50 to-white">
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em] mb-1">Nejnižší cena od osoby</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-black text-emerald-600 tabular-nums">{formatPriceShort(minTourPrice)}</span>
-                <span className="text-sm font-semibold text-gray-400">Kč</span>
-              </div>
+              {minTourPrice ? (
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-emerald-600 tabular-nums">{formatPriceShort(minTourPrice)}</span>
+                  <span className="text-sm font-semibold text-gray-400">Kč</span>
+                </div>
+              ) : (
+                <span className="text-sm font-semibold text-gray-400 opacity-60">Aktualizuje se…</span>
+              )}
             </div>
             <ScrollToButton
               targetId="terminy"
@@ -515,8 +519,14 @@ export default async function HotelDetailPage({ params }: Props) {
                 <div className="px-5 pt-5 pb-5 bg-[#e1f2f3]">
                   <p className="text-[10px] font-bold text-[#0d4f52] uppercase tracking-[0.12em] mb-1.5">Nejnižší cena od osoby</p>
                   <div className="flex items-baseline gap-1.5 mb-4">
-                    <span className="text-[42px] font-bold text-[#0d4f52] leading-none tabular-nums">{formatPriceShort(minTourPrice)}</span>
-                    <span className="text-lg font-semibold text-[#0d4f52]">Kč</span>
+                    {minTourPrice ? (
+                      <>
+                        <span className="text-[42px] font-bold text-[#0d4f52] leading-none tabular-nums">{formatPriceShort(minTourPrice)}</span>
+                        <span className="text-lg font-semibold text-[#0d4f52]">Kč</span>
+                      </>
+                    ) : (
+                      <span className="text-base font-semibold text-[#0d4f52] opacity-60">Ceny se aktualizují…</span>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-2.5">

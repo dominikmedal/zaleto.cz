@@ -1,20 +1,36 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { PiMagnifyingGlass, PiMapPin, PiBuildings, PiX } from 'react-icons/pi'
+import { PiMagnifyingGlass, PiMapPin, PiBuildings, PiX, PiArrowRight } from 'react-icons/pi'
 import { fetchDestinations, fetchHotelSearch } from '@/lib/api'
+import { getCountryFlag } from '@/lib/countryFlags'
 
 interface DestRow { country: string; destination: string; resort_town: string | null; hotel_count: number }
-interface HotelResult { slug: string; name: string; country: string; resort_town: string | null; stars: number | null }
-interface DestOption { label: string; href: string; kind: 'country' | 'region' | 'resort' }
+interface HotelResult { slug: string; name: string; country: string; resort_town: string | null; stars: number | null; thumbnail_url?: string | null }
+interface DestOption { label: string; href: string; kind: 'country' | 'region' | 'resort'; flag?: string; count?: number }
 
 function buildDestOptions(rows: DestRow[]): DestOption[] {
-  const seen = new Set<string>()
+  const seen    = new Set<string>()
   const out: DestOption[] = []
+  const counts  = new Map<string, number>()
+
   for (const r of rows) {
+    counts.set(r.country, (counts.get(r.country) || 0) + r.hotel_count)
+  }
+
+  // Sort rows by country hotel count (desc)
+  const sorted = [...rows].sort((a, b) => (counts.get(b.country) || 0) - (counts.get(a.country) || 0))
+
+  for (const r of sorted) {
     if (!seen.has(r.country)) {
       seen.add(r.country)
-      out.push({ label: r.country, href: `/?destination=${encodeURIComponent(r.country)}`, kind: 'country' })
+      out.push({
+        label: r.country,
+        href: `/?destination=${encodeURIComponent(r.country)}`,
+        kind: 'country',
+        flag: getCountryFlag(r.country) ?? '🌍',
+        count: counts.get(r.country),
+      })
     }
     const parts  = r.destination.split('/').map(s => s.trim())
     const region = parts[1] ?? parts[0]
@@ -30,7 +46,19 @@ function buildDestOptions(rows: DestRow[]): DestOption[] {
   return out
 }
 
-const KIND_LABEL = { country: 'Země', region: 'Oblast', resort: 'Středisko' } as const
+/** Zvýrazní hledaný výraz */
+function Highlight({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>
+  const idx = text.toLowerCase().indexOf(query.toLowerCase())
+  if (idx === -1) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-[#0093FF]/15 text-[#0093FF] font-semibold rounded-sm px-0.5 not-italic">{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
+  )
+}
 
 export default function HeaderSearch() {
   const router = useRouter()
@@ -68,11 +96,16 @@ export default function HeaderSearch() {
   }, [])
 
   const q = query.trim().toLowerCase()
+
+  // Při psaní: filtruj destinace; prázdný stav: top 8 zemí jako popular chips
   const filteredDest = q.length >= 1
-    ? destOptions.filter(d => d.label.toLowerCase().includes(q)).slice(0, 5)
-    : destOptions.filter(d => d.kind === 'country').slice(0, 6)
+    ? destOptions.filter(d => d.label.toLowerCase().includes(q)).slice(0, 6)
+    : []
+  const popularCountries = destOptions.filter(d => d.kind === 'country').slice(0, 8)
+
   const totalItems = filteredDest.length + hotelResults.length
   const hasResults = filteredDest.length > 0 || hotelResults.length > 0
+  const isSearching = q.length >= 1
 
   const navigate = (href: string) => { setOpen(false); setQuery(''); setHighlighted(-1); router.push(href) }
 
@@ -84,23 +117,24 @@ export default function HeaderSearch() {
       if (highlighted >= 0 && highlighted < filteredDest.length) { e.preventDefault(); navigate(filteredDest[highlighted].href); return }
       const hotel = hotelResults[highlighted - filteredDest.length]
       if (hotel) { e.preventDefault(); navigate(`/hotel/${hotel.slug}`); return }
-      // Enter with no highlight → search by query
       if (q.length >= 1) { e.preventDefault(); navigate(`/?destination=${encodeURIComponent(query.trim())}`) }
     }
   }
 
+  const showDropdown = open && (isSearching ? (hasResults || q.length >= 2) : destLoaded)
+
   return (
     <div ref={containerRef} className="relative flex-1 max-w-lg mx-3 sm:mx-6">
-      {/* Input pill */}
+      {/* Input pill — prominent */}
       <div
-        className={`flex items-center gap-2.5 h-10 px-4 rounded-full border transition-all cursor-text ${
+        className={`flex items-center gap-2.5 h-11 px-4 rounded-full border-2 transition-all duration-200 cursor-text ${
           open
-            ? 'bg-white border-blue-400 ring-4 ring-blue-500/10 shadow-md'
-            : 'bg-white border-gray-200 shadow-sm hover:border-gray-300 hover:shadow'
+            ? 'bg-white border-[#0093FF]/60 shadow-[0_0_0_4px_rgba(0,147,255,0.10),0_4px_16px_rgba(0,147,255,0.12)]'
+            : 'bg-white border-gray-200 shadow-sm hover:border-[#0093FF]/30 hover:shadow-md'
         }`}
         onClick={() => { setOpen(true); inputRef.current?.focus() }}
       >
-        <PiMagnifyingGlass className={`w-4 h-4 flex-shrink-0 transition-colors ${open ? 'text-blue-500' : 'text-gray-400'}`} />
+        <PiMagnifyingGlass className={`w-[18px] h-[18px] flex-shrink-0 transition-colors ${open ? 'text-[#0093FF]' : 'text-gray-400'}`} />
         <input
           ref={inputRef}
           type="text"
@@ -109,9 +143,9 @@ export default function HeaderSearch() {
           onChange={e => { setQuery(e.target.value); setOpen(true); setHighlighted(-1) }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400 text-gray-800 min-w-0"
+          className="flex-1 bg-transparent text-[14px] font-medium outline-none placeholder:text-gray-400 placeholder:font-normal text-gray-800 min-w-0"
         />
-        {query && (
+        {query ? (
           <button
             type="button"
             onMouseDown={e => { e.preventDefault(); setQuery(''); setHighlighted(-1) }}
@@ -119,84 +153,144 @@ export default function HeaderSearch() {
           >
             <PiX className="w-3 h-3 text-gray-500" />
           </button>
+        ) : (
+          <span className="flex-shrink-0 text-[11px] font-semibold text-gray-300 bg-gray-100 px-1.5 py-0.5 rounded hidden sm:block">
+            /
+          </span>
         )}
       </div>
 
       {/* Dropdown */}
-      {open && (hasResults || q.length >= 2) && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-gray-100 shadow-2xl shadow-black/8 overflow-hidden z-50">
+      {showDropdown && (
+        <div className="absolute top-full left-0 right-0 mt-2.5 bg-white rounded-2xl border border-gray-100 shadow-2xl shadow-black/10 overflow-hidden z-50">
 
-          {/* Destinations */}
-          {filteredDest.length > 0 && (
-            <div className="py-1.5">
-              {!q && (
-                <p className="px-4 pt-1 pb-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  Populární destinace
-                </p>
-              )}
-              {filteredDest.map((d, i) => (
-                <button
-                  key={d.href}
-                  type="button"
-                  onMouseDown={e => { e.preventDefault(); navigate(d.href) }}
-                  onMouseEnter={() => setHighlighted(i)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${highlighted === i ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-                >
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${d.kind === 'country' ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <PiMapPin className={`w-3.5 h-3.5 ${d.kind === 'country' ? 'text-blue-400' : 'text-gray-400'}`} />
-                  </div>
-                  <span className="flex-1 text-sm text-gray-800 font-medium">{d.label}</span>
-                  <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-medium">
-                    {KIND_LABEL[d.kind]}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Hotels */}
-          {hotelResults.length > 0 && (
+          {isSearching ? (
+            /* ── Výsledky hledání ── */
             <>
-              {filteredDest.length > 0 && <div className="border-t border-gray-50 mx-3" />}
-              <div className="py-1.5">
-                <p className="px-4 pt-1 pb-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  Hotely
-                </p>
-                {hotelResults.map((h, i) => {
-                  const idx = filteredDest.length + i
-                  return (
+              {filteredDest.length > 0 && (
+                <div className="py-1.5">
+                  <div className="px-4 pt-2 pb-1.5 flex items-center gap-1.5">
+                    <PiMapPin className="w-3 h-3 text-[#0093FF]" />
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Destinace</span>
+                  </div>
+                  {filteredDest.map((d, i) => (
                     <button
-                      key={h.slug}
+                      key={d.href}
                       type="button"
-                      onMouseDown={e => { e.preventDefault(); navigate(`/hotel/${h.slug}`) }}
-                      onMouseEnter={() => setHighlighted(idx)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${highlighted === idx ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                      onMouseDown={e => { e.preventDefault(); navigate(d.href) }}
+                      onMouseEnter={() => setHighlighted(i)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${highlighted === i ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                     >
-                      <div className="w-7 h-7 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0">
-                        <PiBuildings className="w-3.5 h-3.5 text-gray-400" />
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${d.kind === 'country' ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                        {d.flag
+                          ? <span className="text-base leading-none">{d.flag}</span>
+                          : <PiMapPin className="w-3.5 h-3.5 text-gray-400" />
+                        }
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-gray-800 block truncate">{h.name}</span>
-                        <span className="text-[11px] text-gray-400">
-                          {h.stars ? '★'.repeat(h.stars) + ' · ' : ''}{h.resort_town ? `${h.resort_town}, ` : ''}{h.country}
+                        <span className="text-sm text-gray-800 font-medium block">
+                          <Highlight text={d.label} query={query.trim()} />
                         </span>
+                        {d.count && <span className="text-[11px] text-gray-400">{d.count} hotelů</span>}
                       </div>
-                      <span className="text-[10px] text-blue-400 font-semibold flex-shrink-0">detail →</span>
+                      <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+                        {d.kind === 'country' ? 'Země' : d.kind === 'region' ? 'Oblast' : 'Středisko'}
+                      </span>
                     </button>
-                  )
-                })}
-              </div>
-            </>
-          )}
+                  ))}
+                </div>
+              )}
 
-          {/* No results */}
-          {!hasResults && q.length >= 2 && (
-            <div className="px-4 py-8 text-center">
-              <p className="text-sm font-medium text-gray-500">Žádné výsledky pro „{query}"</p>
-              <p className="text-xs text-gray-400 mt-1">Zkuste jiný výraz nebo procházejte destinace níže</p>
+              {hotelResults.length > 0 && (
+                <>
+                  {filteredDest.length > 0 && <div className="border-t border-gray-50 mx-3" />}
+                  <div className="py-1.5">
+                    <div className="px-4 pt-2 pb-1.5 flex items-center gap-1.5">
+                      <PiBuildings className="w-3 h-3 text-[#0093FF]" />
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Hotely</span>
+                    </div>
+                    {hotelResults.map((h, i) => {
+                      const idx = filteredDest.length + i
+                      return (
+                        <button
+                          key={h.slug}
+                          type="button"
+                          onMouseDown={e => { e.preventDefault(); navigate(`/hotel/${h.slug}`) }}
+                          onMouseEnter={() => setHighlighted(idx)}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${highlighted === idx ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                        >
+                          {h.thumbnail_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={h.thumbnail_url} alt={h.name} className="w-11 h-8 rounded-lg object-cover flex-shrink-0 shadow-sm" />
+                          ) : (
+                            <div className="w-11 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                              <PiBuildings className="w-4 h-4 text-[#0093FF]/60" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-semibold text-gray-800 block truncate">
+                              <Highlight text={h.name} query={query.trim()} />
+                            </span>
+                            <span className="text-[11px] text-gray-400">
+                              {h.stars ? <span className="text-amber-400 mr-1">{'★'.repeat(h.stars)}</span> : null}
+                              {h.resort_town ? `${h.resort_town}, ` : ''}{h.country}
+                            </span>
+                          </div>
+                          <span className="flex-shrink-0 flex items-center gap-1 text-[11px] font-semibold text-[#0093FF]">
+                            <PiArrowRight className="w-3.5 h-3.5" />
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+
+              {!hasResults && q.length >= 2 && (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-sm font-medium text-gray-500">Žádné výsledky pro „{query}"</p>
+                  <p className="text-xs text-gray-400 mt-1">Zkuste jinou destinaci nebo název hotelu</p>
+                </div>
+              )}
+
+              {/* Keyboard hint */}
+              {hasResults && (
+                <div className="px-4 py-2 border-t border-gray-50 flex items-center justify-end">
+                  <span className="text-[10px] text-gray-300">↑↓ pohyb · Enter výběr · Esc zavřít</span>
+                </div>
+              )}
+            </>
+
+          ) : (
+            /* ── Populární destinace (prázdný stav) ── */
+            <div className="p-4">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Populární destinace</p>
+
+              {/* Country chips grid */}
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {popularCountries.map(d => (
+                  <button
+                    key={d.href}
+                    type="button"
+                    onMouseDown={e => { e.preventDefault(); navigate(d.href) }}
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left bg-gray-50 hover:bg-[rgba(0,147,255,0.06)] hover:border-[rgba(0,147,255,0.2)] border border-transparent transition-all"
+                  >
+                    <span className="text-xl leading-none flex-shrink-0">{d.flag}</span>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold text-gray-800 truncate leading-tight">{d.label}</p>
+                      {d.count && <p className="text-[10px] text-gray-400 mt-0.5">{d.count} hotelů</p>}
+                    </div>
+                    <PiArrowRight className="w-3.5 h-3.5 text-gray-300 ml-auto flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+
+              {/* Hint */}
+              <p className="text-[11px] text-gray-400 text-center">
+                Začněte psát pro vyhledání destinace nebo hotelu
+              </p>
             </div>
           )}
-
         </div>
       )}
     </div>

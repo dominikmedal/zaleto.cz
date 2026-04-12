@@ -592,7 +592,7 @@ router.get('/:slug', async (req, res) => {
                  COUNT(*)::integer AS available_dates, MIN(t.departure_date) AS next_departure,
                  MAX(t.updated_at) AS tours_updated_at
           FROM tours t JOIN hotels h ON h.id = t.hotel_id
-          WHERE h.canonical_slug = ? AND t.departure_date >= CURRENT_DATE::text
+          WHERE h.canonical_slug = ? AND t.price > 0 AND t.departure_date >= CURRENT_DATE::text
         `, [canonicalSlug]),
         db.query(
           `SELECT agency, description FROM hotels WHERE canonical_slug = ? AND description IS NOT NULL ORDER BY agency`,
@@ -604,19 +604,34 @@ router.get('/:slug', async (req, res) => {
         SELECT MIN(price) AS min_price, MAX(price) AS max_price,
                COUNT(*)::integer AS available_dates, MIN(departure_date) AS next_departure,
                MAX(updated_at) AS tours_updated_at
-        FROM tours WHERE hotel_id = ? AND departure_date >= CURRENT_DATE::text
+        FROM tours WHERE hotel_id = ? AND price > 0 AND departure_date >= CURRENT_DATE::text
       `, [hotel.id])
       descR = { rows: hotel.description ? [{ agency: hotel.agency, description: hotel.description }] : [] }
     }
-    const stats = statsR.rows[0]
+    let stats = statsR.rows[0]
     const agencyDescriptions = descR.rows
+
+    // Fallback na hotel_stats pokud live query vrátila 0 (race condition při scrape,
+    // nebo canonical_slug grouping nenašel žádné termíny).
+    if (!stats?.available_dates) {
+      const fallbackHotelId = canonicalSlug
+        ? (await db.query('SELECT id FROM hotels WHERE slug = ?', [canonicalSlug])).rows[0]?.id ?? hotel.id
+        : hotel.id
+      const fbR = await db.query(
+        'SELECT min_price, available_dates, next_departure, next_return_date FROM hotel_stats WHERE hotel_id = ?',
+        [fallbackHotelId]
+      )
+      if (fbR.rows[0]?.available_dates) {
+        stats = { ...stats, ...fbR.rows[0] }
+      }
+    }
 
     // Primární popis: Fischer pokud dostupný, jinak vlastní
     const fischerDesc = agencyDescriptions.find(r => r.agency === 'Fischer')
     const description = fischerDesc?.description ?? hotel.description
 
     const result = { ...hotel, description, agencyDescriptions, ...stats }
-    if (stats.available_dates > 0) {
+    if (stats?.available_dates > 0) {
       hotelDetailCache.set(`hotel_${slug}`, result)
     }
     res.set('X-Cache', 'MISS').json(result)
