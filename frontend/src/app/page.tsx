@@ -329,70 +329,118 @@ export default async function HomePage({ searchParams }: PageProps) {
             {noFilters && !singleDest && !tourType ? (
 
               /* ═══ DEFAULT HOMEPAGE — editorial split hero ═══ */
-              <div className="py-6 lg:py-10">
-                <div className="flex flex-col lg:flex-row items-stretch justify-between gap-10 lg:gap-16">
+              <div className="py-4 lg:py-8">
+                <style>{`
+                  @keyframes _hero_up {
+                    from { opacity: 0; transform: translateY(16px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                  }
+                  ._hu { animation: _hero_up 0.55s cubic-bezier(.22,.68,0,1.15) both; }
+                  ._hu1 { animation-delay: 0ms; }
+                  ._hu2 { animation-delay: 80ms; }
+                  ._hu3 { animation-delay: 160ms; }
+                  ._hu4 { animation-delay: 220ms; }
+                  @keyframes _stat_in {
+                    from { opacity: 0; transform: translateY(8px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                  }
+                  ._si { animation: _stat_in 0.4s ease-out both; }
+                  ._si1 { animation-delay: 320ms; }
+                  ._si2 { animation-delay: 380ms; }
+                  ._si3 { animation-delay: 440ms; }
+                  ._si4 { animation-delay: 500ms; }
+                `}</style>
 
-                  {/* Left: heading + stats */}
-                  <div className="flex-shrink-0 lg:max-w-[400px]">
+                <div className="flex flex-col lg:flex-row items-stretch justify-between gap-8 lg:gap-12">
 
-                    {/* Eyebrow badge */}
-                    <div className="inline-flex items-center gap-2 glass-pill px-3 py-1.5 rounded-full mb-5">
-                      <PiAirplane className="w-3.5 h-3.5 text-[#0093FF] flex-shrink-0" />
-                      <span className="text-[11px] font-semibold text-[#0093FF] tracking-[0.05em]">Srovnávač zájezdů</span>
+                  {/* ── Left: heading + stats ── */}
+                  <div className="flex-shrink-0 lg:max-w-[400px] flex flex-col relative">
+
+                    {/* Ambient glow behind heading */}
+                    <div className="absolute -top-8 -left-8 w-72 h-72 rounded-full pointer-events-none"
+                      style={{ background: 'radial-gradient(circle, rgba(0,147,255,0.07) 0%, transparent 70%)', zIndex: 0 }} />
+
+                    {/* Eyebrow */}
+                    <div className="_hu _hu1 glass-pill inline-flex items-center gap-2 self-start mb-6 px-3.5 py-1.5 rounded-full relative z-10">
+                      <PiAirplane className="w-3.5 h-3.5 text-[#0093FF]" />
+                      <span className="text-[11px] font-bold text-[#0093FF] tracking-[0.06em] uppercase">Nejlepší vyhledávač a srovnávač zájezdů</span>
                     </div>
 
-                    <h1
-                      className="font-bold text-gray-900 leading-[1.0] tracking-tight mb-4"
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(52px, 6vw, 88px)' }}
-                    >
-                      Najdi svůj<br />
-                      <em className="not-italic text-[#0093FF]">zájezd</em><br />
-                      snadno.
-                    </h1>
+                    {/* Heading */}
+                    <div className="_hu _hu2 relative z-10 mb-5">
+                      <h1 className="font-bold text-gray-900 leading-[0.95] tracking-tight"
+                        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(50px, 5.6vw, 80px)' }}>
+                        Najdi svůj<br />
+                        {/* "zájezd" with blue highlight slab behind it */}
+                        <span className="relative inline-block">
+                          <span className="absolute inset-x-0 bottom-[6%] h-[38%] rounded-md pointer-events-none"
+                            style={{ background: 'rgba(0,147,255,0.11)', zIndex: 0 }} />
+                          <em className="not-italic text-[#0093FF] relative" style={{ zIndex: 1 }}>zájezd</em>
+                        </span><br />
+                        snadno.
+                      </h1>
+                    </div>
 
-                    <p className="text-gray-500 text-base leading-relaxed mb-7">
-                      Porovnejte termíny a ceny od předních cestovních kanceláří na jednom místě.
-                    </p>
+                    {/* Subtitle with decorative left bar */}
+                    <div className="_hu _hu3 flex gap-3 mb-7 relative z-10">
+                      <span className="flex-shrink-0 w-[3px] rounded-full self-stretch"
+                        style={{ background: 'linear-gradient(to bottom, #0093FF, rgba(0,147,255,0.0))' }} />
+                      <p className="text-gray-500 text-[15px] leading-relaxed">
+                        Porovnejte termíny a ceny od předních cestovních kanceláří na jednom místě.
+                      </p>
+                    </div>
 
-                    {/* Stats grid */}
-                    <div className="grid grid-cols-2 gap-2.5">
+                    {/* ── Stats grid — liquid glass pills ── */}
+                    <div className="_hu _hu4 grid grid-cols-2 gap-2.5 relative z-10">
                       {[
-                        { value: fmtShort(meta.totalHotels ?? 0),                   label: 'hotelů'    },
-                        { value: fmtShort(meta.totalTours ?? 0),                    label: 'termínů'   },
-                        { value: String(countryCount),                              label: 'zemí'      },
-                        { value: `od ${fmtShort(meta.priceRange?.min ?? null)} Kč`, label: 'cena / os.' },
-                      ].map(s => (
-                        <div key={s.label} className="glass-pill rounded-xl px-4 py-3">
-                          <p className="text-[19px] font-bold text-gray-900 tabular-nums leading-none tracking-tight">{s.value}</p>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.11em] text-gray-400 mt-1.5">{s.label}</p>
+                        { value: fmtShort(meta.totalHotels ?? 0),                          label: 'hotelů',    accent: false },
+                        { value: fmtShort(meta.totalTours ?? 0),                           label: 'termínů',   accent: false },
+                        { value: String(countryCount),                                      label: 'zemí',      accent: false },
+                        { value: `od\u00a0${fmtShort(meta.priceRange?.min ?? null)}\u00a0Kč`, label: 'cena / os.', accent: true  },
+                      ].map((s, i) => (
+                        <div
+                          key={s.label}
+                          className={`_si _si${i + 1} glass-pill rounded-2xl px-4 py-3.5 flex flex-col gap-1.5`}
+                          style={s.accent ? {
+                            background: 'rgba(0,147,255,0.09)',
+                            border: '1px solid rgba(0,147,255,0.22)',
+                            boxShadow: '0 2px 12px rgba(0,147,255,0.12), inset 0 1px 0 rgba(255,255,255,0.85)',
+                          } : undefined}
+                        >
+                          <p className={`text-[22px] font-bold tabular-nums leading-none tracking-tight ${s.accent ? 'text-[#0075d4]' : 'text-gray-900'}`}>
+                            {s.value}
+                          </p>
+                          <p className={`text-[10px] font-bold uppercase tracking-[0.12em] ${s.accent ? 'text-[#0093FF]/60' : 'text-gray-400'}`}>
+                            {s.label}
+                          </p>
                         </div>
                       ))}
                     </div>
 
                   </div>
 
-                  {/* Right: scrollable destination carousel */}
+                  {/* ── Right: destination mosaic carousel ── */}
                   {topRegionsWithPhotos.length >= 1 && (
                     <>
-                      {/* Mobile: full-width strip below hero text */}
-                      <div className="block lg:hidden w-full h-44">
+                      {/* Mobile */}
+                      <div className="block lg:hidden w-full">
                         <DestinationCarousel
                           items={topRegionsWithPhotos.map(({ region, count, thumb }) => ({
-                            region,
-                            count,
-                            thumb,
-                            minPrice: regionMinPrice.get(region) ?? null,
+                            region, count, thumb,
+                            minPrice: regionMinPrice.get(region)
+                              ?? regionMinPrice.get(regionCountryMap.get(region) ?? '')
+                              ?? null,
                           }))}
                         />
                       </div>
-                      {/* Desktop: tall side panel — takes all remaining space */}
-                      <div className="hidden lg:flex flex-1 min-w-0 flex-col gap-2" style={{ minHeight: 360 }}>
+                      {/* Desktop */}
+                      <div className="hidden lg:flex flex-1 min-w-0 flex-col" style={{ minHeight: 380 }}>
                         <DestinationCarousel
                           items={topRegionsWithPhotos.map(({ region, count, thumb }) => ({
-                            region,
-                            count,
-                            thumb,
-                            minPrice: regionMinPrice.get(region) ?? null,
+                            region, count, thumb,
+                            minPrice: regionMinPrice.get(region)
+                              ?? regionMinPrice.get(regionCountryMap.get(region) ?? '')
+                              ?? null,
                           }))}
                         />
                       </div>

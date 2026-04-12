@@ -21,7 +21,7 @@ body {
   font-family: 'Poppins', system-ui, sans-serif;
   background:
     radial-gradient(ellipse 55% 45% at 50% 50%,  rgba(0, 147, 255, 0.14) 0%, transparent 100%),
-    radial-gradient(ellipse 50% 40% at 10% 92%, rgba(0, 147, 255, 0.1) 0%, transparent 100%),
+    radial-gradient(ellipse 50% 40% at 10% 92%, rgba(0, 147, 255, 0.15) 0%, transparent 100%),
     white;
   background-attachment: fixed;
   color: #111827;
