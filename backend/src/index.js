@@ -37,7 +37,11 @@ const destAIRouter         = require('./routes/destinationAI')
 const weatherAIRouter      = require('./routes/weatherAI')
 const contactRouter        = require('./routes/contact')
 const articlesRouter       = require('./routes/articles')
+const adminRouter          = require('./routes/admin')
+const { UPLOADS_DIR }      = require('./routes/admin')
 
+app.use('/uploads', express.static(UPLOADS_DIR))
+app.use('/api/admin', adminRouter)
 app.use('/api/hotels', hotelsRouter)
 app.use('/api/hotels/:slug/tours', toursRouter)
 const redirectLimiter = rateLimit({

@@ -924,10 +924,6 @@ def run_cycle(cycle: int, skip_email: bool = False):
     ensure_checkpoint_table(conn)
     clear_checkpoints(conn)
 
-    already_done = get_recently_completed(conn)
-    if already_done:
-        logger.info(f"Checkpoint ({CHECKPOINT_HOURS}h okno): přeskakuji již dokončené CK: {', '.join(sorted(already_done))}")
-
     # Spusť AI generování: nejprve počasí, pak popisky destinací — obojí na pozadí,
     # scraping startuje okamžitě souběžně (není třeba čekat).
     hotel_count = conn.execute("SELECT COUNT(*) AS n FROM hotels").fetchone()["n"]
@@ -940,26 +936,8 @@ def run_cycle(cycle: int, skip_email: bool = False):
 
     results: list[dict] = []
 
-    def _make_skipped(agency: str) -> dict:
-        before = get_counts(conn, agency)
-        return {
-            "agency": agency,
-            "hotels_before": before["hotels"], "tours_before": before["tours"],
-            "hotels_after":  before["hotels"], "tours_after":  before["tours"],
-            "stale_removed": 0, "duration_sec": 0.0,
-            "error": "", "log_tail": "", "skipped": True,
-        }
-
-    # Rozdělíme na přeskočené (checkpoint) a spustitelné
-    to_run: list[dict] = []
-    for scraper in SCRAPERS:
-        agency = scraper["agency"]
-        agency_counts = get_counts(conn, agency)
-        if agency in already_done and agency_counts["hotels"] > 0:
-            logger.info(f"✓ {agency} — přeskočeno (checkpoint z dnešního cyklu)")
-            results.append(_make_skipped(agency))
-        else:
-            to_run.append(scraper)
+    # Všechny scrapery vždy spustit — bez checkpoint přeskakování
+    to_run: list[dict] = list(SCRAPERS)
 
     # Paralelní spuštění scraperů — každý dostane vlastní DB connection (conn=None)
     max_workers = MAX_PARALLEL if MAX_PARALLEL > 0 else len(to_run)

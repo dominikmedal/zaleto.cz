@@ -206,6 +206,7 @@ async function initSchema() {
       `ALTER TABLE destination_ai ADD COLUMN IF NOT EXISTS food TEXT`,
       `ALTER TABLE destination_ai ADD COLUMN IF NOT EXISTS trips TEXT`,
       `ALTER TABLE hotels ADD COLUMN IF NOT EXISTS static_fetched_at TIMESTAMPTZ`,
+      `ALTER TABLE articles ADD COLUMN IF NOT EXISTS custom_image_url TEXT`,
     ]
     for (const sql of migrations) {
       try { await client.query(sql) } catch (e) {
