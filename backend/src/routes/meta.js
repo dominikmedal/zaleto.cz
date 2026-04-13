@@ -9,12 +9,14 @@ router.get('/destinations', async (req, res) => {
   if (cached) return res.json(cached)
 
   try {
-    // Fast path: hotel_stats (small materialized table, ~ms)
+    // Fast path: hotel_stats — only hotels with future departures
     let r = await db.query(`
       SELECT h.country, h.destination, h.resort_town, COUNT(DISTINCT h.id)::integer AS hotel_count
       FROM hotels h
       INNER JOIN hotel_stats s ON s.hotel_id = h.id
       WHERE h.destination IS NOT NULL
+        AND s.min_price IS NOT NULL
+        AND s.next_departure >= CURRENT_DATE::text
       GROUP BY h.country, h.destination, h.resort_town
       ORDER BY h.country, h.destination, hotel_count DESC
     `)
@@ -64,7 +66,7 @@ router.get('/filters', async (req, res) => {
       db.query(`SELECT transport, COUNT(*)::integer AS count FROM tours WHERE transport IS NOT NULL AND transport != '' GROUP BY transport ORDER BY count DESC`),
       db.query(`SELECT COUNT(*)::integer AS total_tours FROM tours WHERE price > 0 AND departure_date >= CURRENT_DATE::text`),
       db.query(`SELECT departure_city, COUNT(*)::integer AS count FROM tours WHERE departure_city IS NOT NULL AND departure_city != '' GROUP BY departure_city ORDER BY count DESC`),
-      db.query(`SELECT COUNT(*)::integer AS total_hotels FROM hotel_stats WHERE min_price IS NOT NULL AND next_departure >= CURRENT_DATE::text`),
+      db.query(`SELECT COUNT(*)::integer AS total_hotels FROM hotel_stats s JOIN hotels h ON h.id = s.hotel_id WHERE s.min_price IS NOT NULL AND s.next_departure >= CURRENT_DATE::text AND h.destination IS NOT NULL`),
     ])
 
     const result = {

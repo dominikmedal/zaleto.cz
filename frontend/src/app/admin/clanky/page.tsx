@@ -15,6 +15,7 @@ function fmtDate(s: string) {
 
 interface EditState {
   id: number
+  slug: string
   title: string
   excerpt: string
   category: string
@@ -48,7 +49,7 @@ export default function ClankyPage() {
   useEffect(() => { load() }, [load])
 
   const openEdit = (a: AdminArticle) => setEdit({
-    id: a.id, title: a.title, excerpt: a.excerpt ?? '',
+    id: a.id, slug: a.slug, title: a.title, excerpt: a.excerpt ?? '',
     category: a.category ?? '', location: a.location ?? '',
     reading_time: String(a.reading_time ?? ''),
     custom_image_url: a.custom_image_url ?? '',
@@ -59,6 +60,7 @@ export default function ClankyPage() {
     setSaving(true)
     try {
       await updateArticle(edit.id, {
+        slug: edit.slug,
         title: edit.title || undefined,
         excerpt: edit.excerpt || undefined,
         category: edit.category || undefined,

@@ -1,4 +1,13 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+const BASE     = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+const FRONTEND = typeof window !== 'undefined' ? window.location.origin : ''
+
+async function revalidateFrontend(path: string) {
+  await fetch(`${FRONTEND}/api/revalidate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path }),
+  })
+}
 
 function getToken(): string {
   if (typeof window === 'undefined') return ''
@@ -99,8 +108,13 @@ export function fetchAdminArticles(params: Record<string, string | number>) {
   const qs = new URLSearchParams(params as Record<string, string>).toString()
   return api<ArticleList>(`/articles?${qs}`)
 }
-export function updateArticle(id: number, body: Partial<AdminArticle>) {
-  return api(`/articles/${id}`, { method: 'PUT', body: JSON.stringify(body) })
+export async function updateArticle(id: number, body: Partial<AdminArticle> & { slug?: string }) {
+  await api(`/articles/${id}`, { method: 'PUT', body: JSON.stringify(body) })
+  // Revalidate article page cache
+  if (body.slug) {
+    await revalidateFrontend(`/clanky/${body.slug}`).catch(() => {})
+  }
+  await revalidateFrontend('/clanky').catch(() => {})
 }
 export function deleteArticle(id: number) {
   return api(`/articles/${id}`, { method: 'DELETE' })
@@ -114,8 +128,9 @@ export function fetchAdminDests(params: Record<string, string | number>) {
   const qs = new URLSearchParams(params as Record<string, string>).toString()
   return api<DestList>(`/destinations?${qs}`)
 }
-export function updateDest(name: string, photo_url: string) {
-  return api(`/destinations/${encodeURIComponent(name)}`, { method: 'PUT', body: JSON.stringify({ photo_url }) })
+export async function updateDest(name: string, photo_url: string) {
+  await api(`/destinations/${encodeURIComponent(name)}`, { method: 'PUT', body: JSON.stringify({ photo_url }) })
+  await revalidateFrontend(`/destinace`).catch(() => {})
 }
 
 // ── Upload ────────────────────────────────────────────────────────────

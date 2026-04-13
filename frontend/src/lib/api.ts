@@ -225,7 +225,7 @@ export type Article = {
   published_at: string
 }
 
-export type ArticleFull = Article & { content: string | null; topic: string }
+export type ArticleFull = Article & { content: string | null; topic: string; custom_image_url: string | null }
 
 export async function fetchArticles(limit = 3, location?: string): Promise<Article[]> {
   try {
@@ -243,7 +243,7 @@ export async function fetchArticles(limit = 3, location?: string): Promise<Artic
 export async function fetchArticle(slug: string): Promise<ArticleFull | null> {
   try {
     const res = await fetch(`${API}/api/articles/${encodeURIComponent(slug)}`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 300, tags: [`article-${slug}`] },
       signal: timeout(),
     })
     if (!res.ok) return null

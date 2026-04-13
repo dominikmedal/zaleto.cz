@@ -102,8 +102,8 @@ export default async function ArticlePage({ params }: Props) {
   const article = await fetchArticle(params.slug).catch(() => null)
   if (!article) notFound()
 
-  const [photo, byDestResult, fallbackResult, relatedArticles] = await Promise.all([
-    article.location
+  const [destPhoto, byDestResult, fallbackResult, relatedArticles] = await Promise.all([
+    article.location && !article.custom_image_url
       ? fetchDestinationPhoto(article.location).catch(() => null)
       : Promise.resolve(null),
     article.location
@@ -112,6 +112,8 @@ export default async function ArticlePage({ params }: Props) {
     fetchHotels({ limit: 3, sort: 'price_asc' }).catch(() => null),
     fetchArticles(6).catch(() => []),
   ])
+
+  const heroImage = article.custom_image_url ?? destPhoto
 
   const featuredHotels =
     (byDestResult?.hotels?.length ?? 0) > 0
@@ -166,9 +168,9 @@ export default async function ArticlePage({ params }: Props) {
             )}
 
             {/* Hero image */}
-            {photo && (
+            {heroImage && (
               <div className="relative rounded-2xl overflow-hidden mb-10" style={{ aspectRatio: '16/7' }}>
-                <Image src={photo} alt={article.title} fill className="object-cover" unoptimized priority />
+                <Image src={heroImage} alt={article.title} fill className="object-cover" unoptimized priority />
               </div>
             )}
 

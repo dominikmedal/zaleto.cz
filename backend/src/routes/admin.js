@@ -24,6 +24,7 @@ const multer  = require('multer')
 const path    = require('path')
 const fs      = require('fs')
 const db      = require('../db')
+const { metaCache } = require('../cache')
 
 const router = express.Router()
 
@@ -41,7 +42,9 @@ function adminAuth(req, res, next) {
 
 // ── File upload ───────────────────────────────────────────────────────────────
 
-const UPLOADS_DIR = path.join(__dirname, '../../uploads')
+// On Railway: store in /data/uploads (persistent volume). Locally: backend/uploads/
+const UPLOADS_DIR = process.env.UPLOADS_DIR
+  || (process.env.NODE_ENV === 'production' ? '/data/uploads' : path.join(__dirname, '../../uploads'))
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true })
 
 const upload = multer({
@@ -262,6 +265,10 @@ router.put('/articles/:id', adminAuth, async (req, res) => {
       [title ?? null, excerpt ?? null, content ?? null, category ?? null,
        location ?? null, reading_time ?? null, custom_image_url ?? null, req.params.id]
     )
+    // Invalidate backend cache for this article + article lists
+    const slugRow = await db.query('SELECT slug FROM articles WHERE id = ?', [req.params.id])
+    if (slugRow.rows[0]) metaCache.delete(`article_${slugRow.rows[0].slug}`)
+    metaCache.deletePrefix('articles_')
     res.json({ ok: true })
   } catch (e) {
     res.status(500).json({ error: e.message })

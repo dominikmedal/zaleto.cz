@@ -23,7 +23,7 @@ RUN pip3 install --no-cache-dir --break-system-packages -r ./scraper/requirement
 COPY scraper/*.py ./scraper/
 
 # Data directory — Railway persistent volume mounts here
-RUN mkdir -p /data
+RUN mkdir -p /data/uploads
 
 # Start script
 COPY start.sh .

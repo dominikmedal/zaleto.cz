@@ -31,6 +31,16 @@ class TTLCache {
     this.store.set(key, { value, ts: Date.now() })
   }
 
+  delete(key) {
+    this.store.delete(key)
+  }
+
+  deletePrefix(prefix) {
+    for (const key of this.store.keys()) {
+      if (key.startsWith(prefix)) this.store.delete(key)
+    }
+  }
+
   invalidate() {
     this.store.clear()
   }
