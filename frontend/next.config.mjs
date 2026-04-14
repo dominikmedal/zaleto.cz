@@ -8,8 +8,11 @@ const nextConfig = {
     return config
   },
   images: {
-    loader: 'custom',
-    loaderFile: './src/lib/imageLoader.ts',
+    unoptimized: true,
+    remotePatterns: [
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http',  hostname: '**' },
+    ],
   },
 }
 

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useTransition, useCallback } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { PiX, PiSpinner, PiCaretDown, PiSliders, PiUserPlus, PiUserMinus, PiTimer, PiCalendarStar } from 'react-icons/pi'
+import { PiX, PiSpinner, PiCaretDown, PiSliders, PiUserPlus, PiUserMinus, PiTimer, PiCalendarStar, PiSun } from 'react-icons/pi'
 import DateRangePicker from './DateRangePicker'
 import DestinationAutocomplete from './DestinationAutocomplete'
 
@@ -181,7 +181,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
     ...depCity.map(c => ({ label: `Odlet: ${c}`, clear: () => setDepCity(p => p.filter(x => x !== c)) })),
   ]
 
-  const advancedCount = [duration, minPrice, maxPrice, transport, tourType].filter(Boolean).length + stars.length + mealPlan.length + depCity.length
+  const advancedCount = [duration, minPrice, maxPrice, transport].filter(Boolean).length + stars.length + mealPlan.length + depCity.length
 
   const divider = '1px solid rgba(0,147,255,0.08)'
 
@@ -197,6 +197,87 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
           <div className="h-full bg-[#0093FF] animate-pulse w-full" />
         </div>
       )}
+
+      {/* ── Quick shortcuts row ── */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3" style={{ borderBottom: divider }}>
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Typ nabídky</span>
+        <button
+          type="button"
+          onClick={() => setTourType(t => t === 'last_minute' ? '' : 'last_minute')}
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all whitespace-nowrap"
+          style={tourType === 'last_minute' ? {
+            background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+            color: '#fff',
+            border: '1px solid #ef4444',
+            boxShadow: '0 2px 8px rgba(239,68,68,0.28)',
+          } : {
+            background: 'rgba(237,246,255,0.70)',
+            color: '#4b5563',
+            border: '1px solid rgba(200,227,255,0.65)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <PiTimer className="w-3.5 h-3.5 flex-shrink-0" />
+          Last minute
+        </button>
+        <button
+          type="button"
+          onClick={() => setTourType(t => t === 'first_minute' ? '' : 'first_minute')}
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all whitespace-nowrap"
+          style={tourType === 'first_minute' ? {
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            color: '#fff',
+            border: '1px solid #10b981',
+            boxShadow: '0 2px 8px rgba(16,185,129,0.28)',
+          } : {
+            background: 'rgba(237,246,255,0.70)',
+            color: '#4b5563',
+            border: '1px solid rgba(200,227,255,0.65)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <PiCalendarStar className="w-3.5 h-3.5 flex-shrink-0" />
+          First minute
+        </button>
+
+        {/* Divider */}
+        <span className="w-px self-stretch bg-[rgba(0,147,255,0.08)] mx-1" aria-hidden="true" />
+
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Kdy jet</span>
+        {[
+          { label: 'Cerven', display: 'Červen', from: '2026-06-01', to: '2026-06-30' },
+          { label: 'Cervenec', display: 'Červenec', from: '2026-07-01', to: '2026-07-31' },
+          { label: 'Srpen', display: 'Srpen', from: '2026-08-01', to: '2026-08-31' },
+          { label: 'Zari', display: 'Září', from: '2026-09-01', to: '2026-09-30' },
+        ].map(m => {
+          const isActive = dateFrom === m.from && dateTo === m.to
+          return (
+            <button
+              key={m.label}
+              type="button"
+              onClick={() => {
+                if (isActive) { setDateFrom(''); setDateTo('') }
+                else { setDateFrom(m.from); setDateTo(m.to) }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all whitespace-nowrap"
+              style={isActive ? {
+                background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+                color: '#fff',
+                border: '1px solid #0093FF',
+                boxShadow: '0 2px 8px rgba(0,147,255,0.28)',
+              } : {
+                background: 'rgba(237,246,255,0.70)',
+                color: '#4b5563',
+                border: '1px solid rgba(200,227,255,0.65)',
+                backdropFilter: 'blur(8px)',
+              }}
+            >
+              <PiSun className="w-3.5 h-3.5 flex-shrink-0" />
+              {m.display}
+            </button>
+          )
+        })}
+      </div>
 
       {/* ── Main search row ── */}
       <div className="flex flex-col sm:flex-row sm:items-stretch" style={{ borderBottom: showAdvanced || chips.length > 0 ? divider : undefined }}>
@@ -329,49 +410,6 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
           }}
         >
           <div className="flex flex-wrap gap-x-8 gap-y-5 items-start">
-
-            {/* Typ nabídky */}
-            <div>
-              <p className={microLabel}>Typ nabídky</p>
-              <div className="flex gap-1.5 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setTourType(t => t === 'last_minute' ? '' : 'last_minute')}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all"
-                  style={tourType === 'last_minute' ? {
-                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                    color: '#fff',
-                    border: '1px solid #ef4444',
-                    boxShadow: '0 2px 8px rgba(239,68,68,0.28)',
-                  } : {
-                    background: 'rgba(237,246,255,0.70)',
-                    color: '#4b5563',
-                    border: '1px solid rgba(200,227,255,0.65)',
-                  }}
-                >
-                  <PiTimer className="w-3.5 h-3.5 flex-shrink-0" />
-                  Last minute
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTourType(t => t === 'first_minute' ? '' : 'first_minute')}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all"
-                  style={tourType === 'first_minute' ? {
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    color: '#fff',
-                    border: '1px solid #10b981',
-                    boxShadow: '0 2px 8px rgba(16,185,129,0.28)',
-                  } : {
-                    background: 'rgba(237,246,255,0.70)',
-                    color: '#4b5563',
-                    border: '1px solid rgba(200,227,255,0.65)',
-                  }}
-                >
-                  <PiCalendarStar className="w-3.5 h-3.5 flex-shrink-0" />
-                  First minute
-                </button>
-              </div>
-            </div>
 
             {/* Hvězdičky */}
             {meta.stars.length > 0 && (

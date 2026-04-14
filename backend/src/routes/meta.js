@@ -17,6 +17,7 @@ router.get('/destinations', async (req, res) => {
       WHERE h.destination IS NOT NULL
         AND s.min_price IS NOT NULL
         AND s.next_departure >= CURRENT_DATE::text
+        AND (h.canonical_slug IS NULL OR h.canonical_slug = h.slug)
       GROUP BY h.country, h.destination, h.resort_town
       ORDER BY h.country, h.destination, hotel_count DESC
     `)
@@ -66,7 +67,7 @@ router.get('/filters', async (req, res) => {
       db.query(`SELECT transport, COUNT(*)::integer AS count FROM tours WHERE transport IS NOT NULL AND transport != '' GROUP BY transport ORDER BY count DESC`),
       db.query(`SELECT COUNT(*)::integer AS total_tours FROM tours WHERE price > 0 AND departure_date >= CURRENT_DATE::text`),
       db.query(`SELECT departure_city, COUNT(*)::integer AS count FROM tours WHERE departure_city IS NOT NULL AND departure_city != '' GROUP BY departure_city ORDER BY count DESC`),
-      db.query(`SELECT COUNT(*)::integer AS total_hotels FROM hotel_stats s JOIN hotels h ON h.id = s.hotel_id WHERE s.min_price IS NOT NULL AND s.next_departure >= CURRENT_DATE::text AND h.destination IS NOT NULL`),
+      db.query(`SELECT COUNT(*)::integer AS total_hotels FROM hotel_stats s JOIN hotels h ON h.id = s.hotel_id WHERE s.min_price IS NOT NULL AND s.next_departure >= CURRENT_DATE::text AND (h.canonical_slug IS NULL OR h.canonical_slug = h.slug)`),
     ])
 
     const result = {

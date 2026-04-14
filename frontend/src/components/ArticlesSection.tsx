@@ -81,14 +81,14 @@ export default function ArticlesSection({ articles, imageMap, label = 'Cestovní
                   {/* Title — Playfair Display, same treatment as hotel name */}
                   <h3
                     className="font-bold text-gray-900 leading-snug line-clamp-2 mb-2 group-hover:text-[#0093FF] transition-colors duration-200"
-                    style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1rem' }}
+                    style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.1rem' }}
                   >
                     {article.title}
                   </h3>
 
                   {/* Excerpt — muted, optional */}
                   {article.excerpt && (
-                    <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-2 mb-3">
+                    <p className="text-[12px] text-gray-400 leading-relaxed line-clamp-2 mb-3">
                       {article.excerpt}
                     </p>
                   )}

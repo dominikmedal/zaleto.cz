@@ -145,6 +145,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   }
 
   const singleDest = filters.destination && !filters.destination.includes(',') ? filters.destination : null
+  const multiDests = filters.destination ? filters.destination.split(',').map(d => d.trim()).filter(Boolean) : []
   const tourType = filters.tour_type
   const noFilters = !hasActiveFilter(filters)
 
@@ -210,7 +211,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   // Articles — homepage (no filters) or destination page
   const articles = (noFilters && !singleDest && !tourType)
-    ? await fetchArticles(6).catch(() => [])
+    ? await fetchArticles(12).catch(() => [])
     : singleDest
     ? await fetchArticles(6, singleDest).catch(() => [])
     : []
@@ -223,8 +224,8 @@ export default async function HomePage({ searchParams }: PageProps) {
   const articleImageMap: Record<string, string | null> = {}
   articleLocations.forEach((loc, i) => { articleImageMap[loc] = articlePhotoResults[i] })
 
-  // Filter out articles without a location (guaranteed no photo); articles with location show photo or gradient
-  const articlesWithPhotos = articles.filter(a => Boolean(a.location)).slice(0, 3)
+  // Show up to 6 articles; those without a location will render a gradient placeholder
+  const articlesWithPhotos = articles.slice(0, 6)
 
   const countryCount = new Set(destinations.map(d => d.country)).size
 
@@ -451,6 +452,37 @@ export default async function HomePage({ searchParams }: PageProps) {
 
               </div>
 
+            ) : multiDests.length > 1 ? (
+
+              /* ═══ MULTI-DESTINATION HERO ═══ */
+              <div className="py-4 lg:py-6">
+                <div className="flex flex-wrap gap-2.5 mb-4">
+                  {multiDests.map(d => {
+                    const flag = getCountryFlag(d)
+                    const destRow = destinations.find(dest =>
+                      dest.country === d ||
+                      dest.destination.split('/').map((s: string) => s.trim())[0] === d ||
+                      dest.destination.split('/').map((s: string) => s.trim())[1] === d
+                    )
+                    return (
+                      <div key={d} className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white border border-gray-100 shadow-sm">
+                        {flag && <span className="text-[1.6rem] leading-none">{flag}</span>}
+                        <div>
+                          <p className="font-bold text-gray-900 text-[15px] leading-tight">{d}</p>
+                          {destRow && <p className="text-[11px] text-gray-400 mt-0.5">{destRow.hotel_count} hotelů</p>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2">
+                  Zájezdy: {multiDests.join(' + ')}
+                </h1>
+                <p className="text-gray-500 text-sm sm:text-base leading-relaxed">
+                  Srovnání termínů a cen od předních cestovních kanceláří pro vybrané destinace.
+                </p>
+              </div>
+
             ) : (
 
               /* ═══ FILTERED / DESTINATION / TOUR TYPE HERO ═══ */
@@ -484,7 +516,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                       ? <span className="text-red-500 inline-flex items-center gap-2"><PiTimer className="w-7 h-7 sm:w-9 sm:h-9" />Last minute 2026</span>
                       : tourType === 'first_minute'
                       ? <span className="text-emerald-500 inline-flex items-center gap-2"><PiCalendarStar className="w-7 h-7 sm:w-9 sm:h-9" />First minute 2026</span>
-                      : <>Najdi svůj zájezd <span className="text-[#008afe]">snadno a rychle</span>.</>}
+                      : <span className="text-gray-900">Filtrované zájezdy</span>}
                   </h1>
                   <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-3xl">
                     {singleDest
@@ -493,7 +525,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                       ? 'Zájezdy s odletem v nejbližších dnech za zvýhodněné ceny. Vyber, rezervuj a jeď.'
                       : tourType === 'first_minute'
                       ? 'Výhodné zájezdy pro ty, kdo plánují s předstihem. Nejlepší ceny pro včasné rezervace.'
-                      : 'Porovnejte termíny a ceny od předních cestovních kanceláří na jednom místě.'}
+                      : 'Výsledky odpovídají nastaveným filtrům.'}
                   </p>
                 </div>
 
