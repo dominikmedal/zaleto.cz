@@ -144,13 +144,42 @@ router.get('/hotels', adminAuth, async (req, res) => {
   }
 })
 
+router.post('/hotels', adminAuth, async (req, res) => {
+  try {
+    const { name, agency = 'Ruční', country, destination, resort_town, stars, thumbnail_url, description } = req.body
+    if (!name) return res.status(400).json({ error: 'name je povinné' })
+    const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 80)
+      + '-' + Date.now().toString(36)
+    await db.query(
+      `INSERT INTO hotels (slug, name, agency, country, destination, resort_town, stars, thumbnail_url, description, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [slug, name, agency, country ?? null, destination ?? null, resort_town ?? null,
+       stars ?? null, thumbnail_url ?? null, description ?? null]
+    )
+    res.json({ ok: true, slug })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
 router.put('/hotels/:id', adminAuth, async (req, res) => {
   try {
-    const { stars, thumbnail_url, description } = req.body
+    const { name, agency, country, destination, resort_town, stars, thumbnail_url, description } = req.body
     await db.query(
-      `UPDATE hotels SET stars = COALESCE(?, stars), thumbnail_url = COALESCE(?, thumbnail_url),
-       description = COALESCE(?, description), updated_at = NOW() WHERE id = ?`,
-      [stars ?? null, thumbnail_url ?? null, description ?? null, req.params.id]
+      `UPDATE hotels SET
+         name         = COALESCE(?, name),
+         agency       = COALESCE(?, agency),
+         country      = COALESCE(?, country),
+         destination  = COALESCE(?, destination),
+         resort_town  = COALESCE(?, resort_town),
+         stars        = COALESCE(?, stars),
+         thumbnail_url = COALESCE(?, thumbnail_url),
+         description  = COALESCE(?, description),
+         updated_at   = NOW()
+       WHERE id = ?`,
+      [name ?? null, agency ?? null, country ?? null, destination ?? null, resort_town ?? null,
+       stars ?? null, thumbnail_url ?? null, description ?? null, req.params.id]
     )
     res.json({ ok: true })
   } catch (e) {
@@ -209,6 +238,50 @@ router.get('/tours', adminAuth, async (req, res) => {
   }
 })
 
+router.post('/tours', adminAuth, async (req, res) => {
+  try {
+    const { hotel_id, agency = 'Ruční', departure_date, return_date, duration, price,
+            transport, meal_plan, adults = 2, departure_city, url } = req.body
+    if (!hotel_id || !departure_date || !price) return res.status(400).json({ error: 'hotel_id, departure_date a price jsou povinné' })
+    const tourUrl = url || `manual-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    await db.query(
+      `INSERT INTO tours (hotel_id, agency, departure_date, return_date, duration, price, transport, meal_plan, adults, departure_city, url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [hotel_id, agency, departure_date, return_date ?? null, duration ?? null, price,
+       transport ?? null, meal_plan ?? null, adults, departure_city ?? null, tourUrl]
+    )
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+router.put('/tours/:id', adminAuth, async (req, res) => {
+  try {
+    const { departure_date, return_date, duration, price, transport, meal_plan, adults, departure_city, agency } = req.body
+    await db.query(
+      `UPDATE tours SET
+         departure_date = COALESCE(?, departure_date),
+         return_date    = COALESCE(?, return_date),
+         duration       = COALESCE(?, duration),
+         price          = COALESCE(?, price),
+         transport      = COALESCE(?, transport),
+         meal_plan      = COALESCE(?, meal_plan),
+         adults         = COALESCE(?, adults),
+         departure_city = COALESCE(?, departure_city),
+         agency         = COALESCE(?, agency),
+         updated_at     = NOW()
+       WHERE id = ?`,
+      [departure_date ?? null, return_date ?? null, duration ?? null, price ?? null,
+       transport ?? null, meal_plan ?? null, adults ?? null, departure_city ?? null,
+       agency ?? null, req.params.id]
+    )
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
 router.delete('/tours/:id', adminAuth, async (req, res) => {
   try {
     await db.query('DELETE FROM tours WHERE id = ?', [req.params.id])
@@ -244,6 +317,28 @@ router.get('/articles', adminAuth, async (req, res) => {
       db.query(`SELECT COUNT(*) AS n FROM articles ${where}`, params),
     ])
     res.json({ articles: rows.rows, total: parseInt(total.rows[0].n) })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+router.post('/articles', adminAuth, async (req, res) => {
+  try {
+    const { title, topic, excerpt, content, category, location, reading_time, custom_image_url } = req.body
+    if (!title) return res.status(400).json({ error: 'title je povinné' })
+    const slug = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 80)
+      + '-' + Date.now().toString(36)
+    const topicVal = topic || title
+    await db.query(
+      `INSERT INTO articles (topic, slug, title, category, location, excerpt, content, reading_time, custom_image_url, published_at, generated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [topicVal, slug, title, category ?? null, location ?? null, excerpt ?? null,
+       content ?? null, reading_time ?? 5, custom_image_url ?? null]
+    )
+    metaCache.deletePrefix('articles_')
+    metaCache.delete('article_slugs')
+    res.json({ ok: true, slug })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }

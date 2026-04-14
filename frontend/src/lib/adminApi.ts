@@ -71,6 +71,9 @@ export function fetchAdminHotels(params: Record<string, string | number>) {
   const qs = new URLSearchParams(params as Record<string, string>).toString()
   return api<HotelList>(`/hotels?${qs}`)
 }
+export function createHotel(body: Partial<AdminHotel>) {
+  return api<{ ok: boolean; slug: string }>('/hotels', { method: 'POST', body: JSON.stringify(body) })
+}
 export function updateHotel(id: number, body: Partial<AdminHotel>) {
   return api(`/hotels/${id}`, { method: 'PUT', body: JSON.stringify(body) })
 }
@@ -84,12 +87,19 @@ export interface AdminTour {
   duration: number | null; price: number; transport: string | null
   meal_plan: string | null; adults: number; departure_city: string | null
   hotel_name: string; country: string; resort_town: string | null; hotel_slug: string
+  hotel_id?: number
 }
 export interface TourList { tours: AdminTour[]; total: number; page: number; limit: number }
 
 export function fetchAdminTours(params: Record<string, string | number>) {
   const qs = new URLSearchParams(params as Record<string, string>).toString()
   return api<TourList>(`/tours?${qs}`)
+}
+export function createTour(body: Partial<AdminTour> & { hotel_id: number; price: number; departure_date: string }) {
+  return api('/tours', { method: 'POST', body: JSON.stringify(body) })
+}
+export function updateTour(id: number, body: Partial<AdminTour>) {
+  return api(`/tours/${id}`, { method: 'PUT', body: JSON.stringify(body) })
 }
 export function deleteTour(id: number) {
   return api(`/tours/${id}`, { method: 'DELETE' })
@@ -99,7 +109,7 @@ export function deleteTour(id: number) {
 export interface AdminArticle {
   id: number; slug: string; topic: string; title: string
   category: string | null; location: string | null; excerpt: string | null
-  reading_time: number | null; custom_image_url: string | null
+  content?: string | null; reading_time: number | null; custom_image_url: string | null
   published_at: string; generated_at: string
 }
 export interface ArticleList { articles: AdminArticle[]; total: number }
@@ -108,12 +118,14 @@ export function fetchAdminArticles(params: Record<string, string | number>) {
   const qs = new URLSearchParams(params as Record<string, string>).toString()
   return api<ArticleList>(`/articles?${qs}`)
 }
+export async function createArticle(body: Partial<AdminArticle>) {
+  const result = await api<{ ok: boolean; slug: string }>('/articles', { method: 'POST', body: JSON.stringify(body) })
+  await revalidateFrontend('/clanky').catch(() => {})
+  return result
+}
 export async function updateArticle(id: number, body: Partial<AdminArticle> & { slug?: string }) {
   await api(`/articles/${id}`, { method: 'PUT', body: JSON.stringify(body) })
-  // Revalidate article page cache
-  if (body.slug) {
-    await revalidateFrontend(`/clanky/${body.slug}`).catch(() => {})
-  }
+  if (body.slug) await revalidateFrontend(`/clanky/${body.slug}`).catch(() => {})
   await revalidateFrontend('/clanky').catch(() => {})
 }
 export function deleteArticle(id: number) {

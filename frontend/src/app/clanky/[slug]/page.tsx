@@ -6,7 +6,17 @@ import { notFound } from 'next/navigation'
 import { PiMapPin, PiClock, PiArrowLeft, PiArrowRight, PiNewspaper } from 'react-icons/pi'
 import Header from '@/components/Header'
 import { FeaturedHotelsBarVertical } from '@/components/FeaturedHotelCard'
-import { fetchArticle, fetchArticles, fetchDestinationPhoto, fetchHotels } from '@/lib/api'
+import { fetchArticle, fetchArticles, fetchAllArticleSlugs, fetchDestinationPhoto, fetchHotels } from '@/lib/api'
+
+export const revalidate = 300       // 5 min ISR — on-demand revalidace je primární
+export const dynamicParams = true   // nové články nevyžadují rebuild
+
+export async function generateStaticParams() {
+  try {
+    const slugs = await fetchAllArticleSlugs()
+    return slugs.map(({ slug }) => ({ slug }))
+  } catch { return [] }
+}
 
 interface Props {
   params: { slug: string }
@@ -113,10 +123,7 @@ export default async function ArticlePage({ params }: Props) {
     fetchArticles(6).catch(() => []),
   ])
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
-  const resolveImg = (url: string | null) =>
-    url?.startsWith('/uploads/') ? `${API_URL}${url}` : url ?? null
-  const heroImage = resolveImg(article.custom_image_url) ?? destPhoto
+  const heroImage = article.custom_image_url ?? destPhoto
 
   const featuredHotels =
     (byDestResult?.hotels?.length ?? 0) > 0

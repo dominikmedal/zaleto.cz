@@ -3,13 +3,13 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { fetchAdminDests, updateDest, uploadImage, AdminDest } from '@/lib/adminApi'
 import {
   PiMagnifyingGlass, PiSpinner, PiPencil, PiCaretLeft, PiCaretRight,
-  PiUploadSimple, PiCheckCircle, PiX, PiImage, PiRobot
+  PiUploadSimple, PiCheckCircle, PiX, PiImage, PiRobot, PiPlus
 } from 'react-icons/pi'
 
 const LIMIT = 50
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
-interface EditState { name: string; photo_url: string }
+interface EditState { name: string; photo_url: string; isNew?: boolean }
 
 export default function DestinacePage() {
   const [q,        setQ]        = useState('')
@@ -60,9 +60,16 @@ export default function DestinacePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[22px] font-bold text-gray-800">Destinace</h1>
-        {data && <p className="text-sm text-gray-500">{data.total} destinací celkem</p>}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-[22px] font-bold text-gray-800">Destinace</h1>
+          {data && <p className="text-sm text-gray-500">{data.total} destinací celkem</p>}
+        </div>
+        <button onClick={() => setEdit({ name: '', photo_url: '', isNew: true })}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-all"
+          style={{ background: 'linear-gradient(135deg, #0093FF, #0060CC)' }}>
+          <PiPlus className="w-4 h-4" /> Přidat destinaci
+        </button>
       </div>
 
       <div className="relative max-w-md">
@@ -140,15 +147,24 @@ export default function DestinacePage() {
           <div className="absolute inset-0 bg-black/40" onClick={() => setEdit(null)} />
           <div className="relative ml-auto w-full max-w-md bg-white h-full overflow-y-auto shadow-2xl flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-gray-800">Foto destinace</h2>
+              <h2 className="font-bold text-gray-800">{edit.isNew ? 'Přidat destinaci' : 'Upravit destinaci'}</h2>
               <button onClick={() => setEdit(null)} className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-gray-100">
                 <PiX className="w-4 h-4 text-gray-500" />
               </button>
             </div>
             <div className="flex-1 p-6 space-y-4">
               <div>
-                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Destinace</p>
-                <p className="font-semibold text-gray-800">{edit.name}</p>
+                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                  Název destinace<span className="text-red-400 ml-0.5">*</span>
+                </label>
+                {edit.isNew ? (
+                  <input type="text" value={edit.name}
+                    onChange={e => setEdit(prev => prev ? { ...prev, name: e.target.value } : prev)}
+                    placeholder="např. Řecko"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-[13px] outline-none focus:border-[#0093FF] focus:ring-4 focus:ring-[#0093FF]/8" />
+                ) : (
+                  <p className="font-semibold text-gray-800">{edit.name}</p>
+                )}
               </div>
 
               <div>
@@ -188,11 +204,11 @@ export default function DestinacePage() {
             <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
               <button onClick={() => setEdit(null)}
                 className="flex-1 py-2.5 border border-gray-200 rounded-xl text-[13px] font-semibold text-gray-600 hover:bg-gray-50">Zrušit</button>
-              <button onClick={handleSave} disabled={saving || !edit.photo_url}
+              <button onClick={handleSave} disabled={saving || !edit.photo_url || (!!edit.isNew && !edit.name.trim())}
                 className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-60"
                 style={{ background: 'linear-gradient(135deg, #0093FF, #0060CC)' }}>
                 {saving ? <PiSpinner className="w-4 h-4 animate-spin" /> : <PiCheckCircle className="w-4 h-4" />}
-                Uložit
+                {edit.isNew ? 'Přidat' : 'Uložit'}
               </button>
             </div>
           </div>

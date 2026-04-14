@@ -18,6 +18,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'upload.wikimedia.org' },
       { protocol: 'https', hostname: 'cdn.siteone.io' },
       { protocol: 'https', hostname: 'r.cdn.redgalaxy.com' },
+      { protocol: 'https', hostname: '**.railway.app' },
     ],
   },
 }

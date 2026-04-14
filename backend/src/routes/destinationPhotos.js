@@ -3,6 +3,14 @@ const router = express.Router()
 const db = require('../db')
 const { metaCache } = require('../cache')
 
+function resolveUrl(url) {
+  if (!url || !url.startsWith('/uploads/')) return url
+  const base = process.env.BACKEND_URL
+    || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null)
+    || `http://localhost:${process.env.PORT || 3001}`
+  return `${base}${url}`
+}
+
 const DEST_EN = {
   'Egypt': 'Egypt beach Red Sea', 'Řecko': 'Greece travel island', 'Turecko': 'Turkey beach resort',
   'Španělsko': 'Spain travel beach', 'Thajsko': 'Thailand beach tropical', 'Maldivky': 'Maldives beach overwater',
@@ -51,8 +59,9 @@ router.get('/:name', async (req, res) => {
     if (row) {
       const ageDays = (Date.now() - new Date(row.updated_at).getTime()) / 86400000
       if (ageDays < STALE_DAYS) {
-        metaCache.set(cacheKey, row.photo_url)
-        return res.json({ url: row.photo_url })
+        const resolved = resolveUrl(row.photo_url)
+        metaCache.set(cacheKey, resolved)
+        return res.json({ url: resolved })
       }
     }
 

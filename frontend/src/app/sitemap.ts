@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { fetchAllHotelSlugs, fetchDestinations } from '@/lib/api'
+import { fetchAllHotelSlugs, fetchAllArticleSlugs, fetchDestinations } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 
 // Nevygenerovat při buildu — Railway by timeoutovalo.
@@ -13,12 +13,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // ── Statické stránky ──────────────────────────────────────────────────────
   const staticPages: MetadataRoute.Sitemap = [
-    { url: base,                          lastModified: now, changeFrequency: 'hourly',  priority: 1.0 },
-    { url: `${base}/?tour_type=last_minute`,  lastModified: now, changeFrequency: 'hourly',  priority: 0.9 },
-    { url: `${base}/?tour_type=first_minute`, lastModified: now, changeFrequency: 'daily',   priority: 0.85 },
-    { url: `${base}/faq`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${base}/kontakt`,             lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
-    { url: `${base}/o-zaleto`,            lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
+    { url: base,                               lastModified: now, changeFrequency: 'hourly',  priority: 1.0 },
+    { url: `${base}/?tour_type=last_minute`,   lastModified: now, changeFrequency: 'hourly',  priority: 0.9 },
+    { url: `${base}/?tour_type=first_minute`,  lastModified: now, changeFrequency: 'daily',   priority: 0.85 },
+    { url: `${base}/destinace`,                lastModified: now, changeFrequency: 'daily',   priority: 0.85 },
+    { url: `${base}/clanky`,                   lastModified: now, changeFrequency: 'daily',   priority: 0.8 },
+    { url: `${base}/faq`,                      lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${base}/kontakt`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${base}/o-zaleto`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
   ]
 
   // ── Stránky destinací ─────────────────────────────────────────────────────
@@ -79,7 +81,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   } catch {}
 
-  // ── Detaily hotelů — všechny najednou přes /slugs ─────────────────────────
+  // ── Detaily hotelů ────────────────────────────────────────────────────────
   let hotelUrls: MetadataRoute.Sitemap = []
   try {
     const slugs = await fetchAllHotelSlugs()
@@ -91,5 +93,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
   } catch {}
 
-  return [...staticPages, ...destUrls, ...weatherUrls, ...hotelUrls]
+  // ── Články ────────────────────────────────────────────────────────────────
+  let articleUrls: MetadataRoute.Sitemap = []
+  try {
+    const articleSlugs = await fetchAllArticleSlugs()
+    articleUrls = articleSlugs.map(({ slug, published_at }) => ({
+      url: `${base}/clanky/${slug}`,
+      lastModified: published_at ? new Date(published_at) : now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    }))
+  } catch {}
+
+  return [...staticPages, ...destUrls, ...weatherUrls, ...hotelUrls, ...articleUrls]
 }

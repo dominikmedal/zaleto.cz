@@ -5,6 +5,14 @@ const path    = require('path')
 const db      = require('../db')
 const { metaCache } = require('../cache')
 
+function resolveUrl(url) {
+  if (!url || !url.startsWith('/uploads/')) return url
+  const base = process.env.BACKEND_URL
+    || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null)
+    || `http://localhost:${process.env.PORT || 3001}`
+  return `${base}${url}`
+}
+
 // Queue — staggered 40s between calls (shares Gemini key, starts 6 min after dest-ai)
 let aiQueue    = Promise.resolve()
 let queuePending = 0
@@ -233,8 +241,22 @@ router.get('/:slug', async (req, res) => {
 
     const r = await db.query('SELECT * FROM articles WHERE slug = ?', [slug])
     if (!r.rows[0]) return res.status(404).json({ error: 'Not found' })
-    metaCache.set(cacheKey, r.rows[0])
-    res.json(r.rows[0])
+    const article = { ...r.rows[0], custom_image_url: resolveUrl(r.rows[0].custom_image_url) }
+    metaCache.set(cacheKey, article)
+    res.json(article)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// GET /api/articles/slugs — for sitemap + generateStaticParams
+router.get('/slugs', async (req, res) => {
+  try {
+    const cached = metaCache.get('article_slugs')
+    if (cached) return res.json(cached)
+    const r = await db.query('SELECT slug, published_at FROM articles ORDER BY published_at DESC')
+    metaCache.set('article_slugs', r.rows)
+    res.json(r.rows)
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
