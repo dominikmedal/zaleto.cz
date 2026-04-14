@@ -129,10 +129,26 @@ export default async function DestinacePage({ params }: Props) {
   const dest = await resolveDestination(params.slug)
   if (!dest) notFound()
 
-  const [destAI, heroPhoto] = await Promise.all([
+  const [destAI, heroPhoto, allDestinations] = await Promise.all([
     fetchDestinationAI(dest.name).catch(() => null),
     fetchDestinationPhoto(dest.name).catch(() => null),
+    fetchDestinations().catch(() => [] as Awaited<ReturnType<typeof fetchDestinations>>),
   ])
+
+  // Collect unique resort towns for this destination (exclude the destination name itself)
+  const resortTowns = Array.from(new Set(
+    allDestinations
+      .filter(d => {
+        const region = d.destination?.split('/')[1]?.trim() ?? d.destination?.split('/')[0]?.trim()
+        return (
+          d.country === dest.country ||
+          region === dest.name ||
+          d.country === dest.name
+        )
+      })
+      .map(d => d.resort_town)
+      .filter((t): t is string => Boolean(t) && t !== dest.name)
+  )).sort()
 
   // Use AI description if available, otherwise fall back to Wikipedia
   const aiHeroText = destAI?.description

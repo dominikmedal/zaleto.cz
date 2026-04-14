@@ -89,13 +89,13 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
             {/* Content — bottom */}
             <div className="absolute bottom-0 left-0 right-0 p-4">
               <p className="text-white font-bold leading-tight mb-2.5 drop-shadow-md"
-                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2vw, 28px)' }}>
+                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 2.3vw, 34px)' }}>
                 {featured.region}
               </p>
               {featured.minPrice != null ? (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                   style={{ background: 'linear-gradient(135deg, #0093FF, #0070E0)', boxShadow: '0 2px 12px rgba(0,147,255,0.45)' }}>
-                  <span className="text-[12px] font-bold text-white tracking-wide">od {fmtKc(featured.minPrice)}</span>
+                  <span className="text-[13px] font-bold text-white tracking-wide">od {fmtKc(featured.minPrice)}</span>
                 </div>
               ) : (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
@@ -131,11 +131,12 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/8 to-transparent" />
 
             <div className="absolute bottom-0 left-0 right-0 p-2.5">
-              <p className="text-white font-bold text-[12px] leading-tight truncate drop-shadow-sm">{item.region}</p>
+              <p className="text-white font-bold text-[14px] leading-tight truncate drop-shadow-sm"
+                style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{item.region}</p>
               {item.minPrice != null ? (
-                <p className="text-white/80 text-[10px] font-semibold mt-0.5">od {fmtKc(item.minPrice)}</p>
+                <p className="text-white/80 text-[12px] font-semibold mt-0.5">od {fmtKc(item.minPrice)}</p>
               ) : (
-                <p className="text-white/45 text-[10px] mt-0.5">{item.count} hotelů</p>
+                <p className="text-white/45 text-[11px] mt-0.5">{item.count} hotelů</p>
               )}
             </div>
           </Link>
@@ -164,13 +165,14 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-3">
-              <p className="text-white font-bold text-[14px] leading-tight drop-shadow-sm">{item.region}</p>
+              <p className="text-white font-bold text-[16px] leading-tight drop-shadow-sm"
+                style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{item.region}</p>
               {item.minPrice != null ? (
                 <div className="inline-flex items-center mt-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,147,255,0.85)' }}>
-                  <span className="text-[10px] font-bold text-white">od {fmtKc(item.minPrice)}</span>
+                  <span className="text-[11px] font-bold text-white">od {fmtKc(item.minPrice)}</span>
                 </div>
               ) : (
-                <p className="text-white/55 text-[11px] mt-0.5">{item.count} hotelů</p>
+                <p className="text-white/55 text-[12px] mt-0.5">{item.count} hotelů</p>
               )}
             </div>
           </Link>

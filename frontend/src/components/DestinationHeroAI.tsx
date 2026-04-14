@@ -37,16 +37,7 @@ export default function DestinationHeroAI({ data }: { data: DestinationAIData })
   return (
     <div>
       {/* ── Tab bar ── */}
-      <div
-        className="inline-flex flex-wrap gap-1.5 p-1.5 rounded-2xl"
-        style={{
-          background: 'rgba(255,255,255,0.58)',
-          backdropFilter: 'blur(20px) saturate(150%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(150%)',
-          border: '1px solid rgba(255,255,255,0.75)',
-          boxShadow: '0 1px 8px rgba(0,147,255,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
-        }}
-      >
+      <div className="flex flex-wrap gap-2">
         {panels.map(({ key, title, Icon }) => {
           const isActive = openKey === key
           return (
@@ -54,28 +45,54 @@ export default function DestinationHeroAI({ data }: { data: DestinationAIData })
               key={key}
               type="button"
               onClick={() => setOpenKey(isActive ? null : key)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13px] font-semibold transition-all duration-200 whitespace-nowrap"
-              style={
-                isActive
-                  ? {
-                      background: 'linear-gradient(135deg, rgba(0,147,255,0.12) 0%, rgba(0,112,224,0.10) 100%)',
-                      border: '1px solid rgba(0,147,255,0.28)',
-                      color: '#0068CC',
-                      boxShadow: '0 2px 10px rgba(0,147,255,0.14), inset 0 1px 0 rgba(255,255,255,0.8)',
-                    }
-                  : {
-                      background: 'rgba(255,255,255,0.55)',
-                      border: '1px solid rgba(200,227,255,0.45)',
-                      color: '#4b5563',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)',
-                    }
-              }
+              className="group relative inline-flex items-center gap-3 px-5 py-3 rounded-2xl whitespace-nowrap transition-all duration-200"
+              style={isActive ? {
+                background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+                color: '#fff',
+                boxShadow: '0 6px 20px rgba(0,147,255,0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
+                transform: 'translateY(-1px)',
+              } : {
+                background: '#fff',
+                border: '1.5px solid rgba(0,147,255,0.14)',
+                color: '#374151',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+              }}
             >
-              <Icon
-                className="w-4 h-4 flex-shrink-0 transition-colors duration-200"
-                style={{ color: isActive ? '#0093FF' : '#9ca3af' }}
-              />
-              {title}
+              {/* Icon circle */}
+              <span
+                className="flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 transition-all duration-200"
+                style={isActive ? {
+                  background: 'rgba(255,255,255,0.25)',
+                  boxShadow: '0 0 0 1px rgba(255,255,255,0.15)',
+                } : {
+                  background: '#EDF6FF',
+                  boxShadow: '0 0 0 1px rgba(0,147,255,0.12)',
+                }}
+              >
+                <Icon
+                  className="w-4.5 h-4.5 transition-colors duration-200"
+                  style={{ color: isActive ? '#fff' : '#0093FF', width: '18px', height: '18px' }}
+                />
+              </span>
+
+              <span
+                className="font-semibold transition-colors duration-200"
+                style={{ fontSize: '14px', letterSpacing: '-0.01em' }}
+              >
+                {title}
+              </span>
+
+              {/* Chevron — rotates when open */}
+              <svg
+                className="w-3.5 h-3.5 flex-shrink-0 transition-all duration-200"
+                style={{
+                  color: isActive ? 'rgba(255,255,255,0.7)' : '#9ca3af',
+                  transform: isActive ? 'rotate(180deg)' : 'rotate(0deg)',
+                }}
+                fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
+              >
+                <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
           )
         })}
@@ -86,19 +103,19 @@ export default function DestinationHeroAI({ data }: { data: DestinationAIData })
         style={{
           maxHeight: openKey ? '700px' : '0px',
           overflow: 'hidden',
-          transition: 'max-height 0.28s ease-in-out',
+          transition: 'max-height 0.30s cubic-bezier(0.4,0,0.2,1)',
         }}
       >
         {panels.map(({ key, Icon, items, text }) => (
           <div key={key} className={key === openKey ? 'block' : 'hidden'}>
             <div
-              className="mt-2 rounded-2xl p-4 sm:p-5"
+              className="mt-2.5 rounded-2xl p-4 sm:p-5"
               style={{
-                background: 'rgba(255,255,255,0.65)',
+                background: 'rgba(255,255,255,0.68)',
                 backdropFilter: 'blur(24px) saturate(160%)',
                 WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-                border: '1px solid rgba(255,255,255,0.78)',
-                boxShadow: '0 0 0 0.5px rgba(0,147,255,0.07), 0 4px 20px rgba(0,147,255,0.08), inset 0 1px 0 rgba(255,255,255,0.92)',
+                border: '1px solid rgba(0,147,255,0.10)',
+                boxShadow: '0 2px 16px rgba(0,147,255,0.07), inset 0 1px 0 rgba(255,255,255,0.95)',
               }}
             >
               {text && (
@@ -107,24 +124,62 @@ export default function DestinationHeroAI({ data }: { data: DestinationAIData })
                 </p>
               )}
               {Array.isArray(items) && items.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {items.map((item, i) => (
                     <div
                       key={i}
-                      className="group flex flex-col gap-2 p-3.5 rounded-xl transition-all duration-200"
+                      className="group relative flex items-start gap-4 p-4 rounded-2xl cursor-default overflow-hidden"
                       style={{
-                        background: 'rgba(255,255,255,0.62)',
-                        backdropFilter: 'blur(8px)',
-                        WebkitBackdropFilter: 'blur(8px)',
-                        border: '1px solid rgba(200,227,255,0.50)',
-                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)',
+                        background: '#fff',
+                        border: '1px solid rgba(0,147,255,0.10)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                        transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
+                      }}
+                      onMouseEnter={e => {
+                        const el = e.currentTarget as HTMLDivElement
+                        el.style.transform = 'translateY(-2px)'
+                        el.style.boxShadow = '0 8px 24px rgba(0,147,255,0.13)'
+                        el.style.borderColor = 'rgba(0,147,255,0.28)'
+                      }}
+                      onMouseLeave={e => {
+                        const el = e.currentTarget as HTMLDivElement
+                        el.style.transform = 'translateY(0)'
+                        el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)'
+                        el.style.borderColor = 'rgba(0,147,255,0.10)'
                       }}
                     >
-                      <Icon className="w-4 h-4 text-[#0093FF] flex-shrink-0" />
-                      <div>
-                        <p className="text-[12px] font-semibold text-gray-800 leading-snug mb-0.5 group-hover:text-[#0093FF] transition-colors duration-200">{item.name}</p>
+                      {/* Left blue accent bar */}
+                      <div
+                        className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        style={{ background: 'linear-gradient(to bottom, #0093FF, #0070E0)' }}
+                      />
+
+                      {/* Icon */}
+                      <span
+                        className="inline-flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(0,147,255,0.12) 0%, rgba(0,112,224,0.07) 100%)',
+                          boxShadow: '0 1px 4px rgba(0,147,255,0.12)',
+                        }}
+                      >
+                        <Icon className="w-5 h-5 text-[#0093FF]" />
+                      </span>
+
+                      {/* Text */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <p
+                            className="font-bold text-gray-900 leading-snug group-hover:text-[#0093FF] transition-colors duration-200"
+                            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '16px' }}
+                          >
+                            {item.name}
+                          </p>
+                          <span className="text-[10px] font-semibold text-gray-300 flex-shrink-0 mt-1 tabular-nums">
+                            {String(i + 1).padStart(2, '0')}
+                          </span>
+                        </div>
                         {item.description && (
-                          <p className="text-[10px] text-gray-400 leading-relaxed">{item.description}</p>
+                          <p className="text-[13px] text-gray-500 leading-relaxed">{item.description}</p>
                         )}
                       </div>
                     </div>

@@ -1,6 +1,22 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
+import { Poppins, Playfair_Display } from 'next/font/google'
 import './globals.css'
+
+const poppins = Poppins({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-poppins',
+  display: 'swap',
+})
+
+const playfair = Playfair_Display({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['700', '800', '900'],
+  style: ['normal', 'italic'],
+  variable: '--font-playfair',
+  display: 'swap',
+})
 import ScrollToTop from '@/components/ScrollToTop'
 import Footer from '@/components/Footer'
 import NavigationProgress from '@/components/NavigationProgress'
@@ -74,7 +90,7 @@ const orgSchema = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="cs">
+    <html lang="cs" className={`${poppins.variable} ${playfair.variable}`}>
       <head>
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-HPE9HH5VG3" strategy="afterInteractive" />
         <Script id="ga-init" strategy="afterInteractive">{`

@@ -224,8 +224,8 @@ export default async function HomePage({ searchParams }: PageProps) {
   const articleImageMap: Record<string, string | null> = {}
   articleLocations.forEach((loc, i) => { articleImageMap[loc] = articlePhotoResults[i] })
 
-  // Show up to 6 articles; those without a location will render a gradient placeholder
-  const articlesWithPhotos = articles.slice(0, 6)
+  // Show up to 3 most recent articles
+  const articlesWithPhotos = articles.slice(0, 3)
 
   const countryCount = new Set(destinations.map(d => d.country)).size
 

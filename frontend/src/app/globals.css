@@ -6,8 +6,6 @@
 @import 'leaflet.markercluster/dist/MarkerCluster.css';
 @import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800&display=swap');
 
 * {
   box-sizing: border-box;
@@ -18,7 +16,7 @@ html {
 }
 
 body {
-  font-family: 'Poppins', system-ui, sans-serif;
+  font-family: var(--font-poppins), system-ui, sans-serif;
   background:
     radial-gradient(ellipse 55% 45% at 50% 50%,  rgba(0, 147, 255, 0.14) 0%, transparent 100%),
     radial-gradient(ellipse 50% 40% at 10% 92%, rgba(0, 147, 255, 0.15) 0%, transparent 100%),
