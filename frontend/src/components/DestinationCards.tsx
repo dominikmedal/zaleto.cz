@@ -29,7 +29,7 @@ export default function DestinationCards({ items }: { items: Item[] }) {
               alt={region}
               fill
               className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-              unoptimized
+             
             />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-[#0093FF] to-blue-700" />

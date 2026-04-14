@@ -277,7 +277,7 @@ export default async function HomePage({ searchParams }: PageProps) {
             fill
             className="object-cover"
             style={{ filter: 'brightness(1.05) saturate(1.05)' }}
-            unoptimized
+           
             priority
           />
           {/* Left gradient — content readable */}
@@ -515,7 +515,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   className="group block rounded-2xl overflow-hidden bg-gray-100 relative"
                   style={{ aspectRatio: '16/7', boxShadow: '0 1px 6px rgba(0,0,0,0.07), 0 4px 16px rgba(0,80,180,0.06)' }}
                 >
-                  <Image src={dailyTip.thumbnail_url!} alt={dailyTip.name} fill className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" unoptimized />
+                  <Image src={dailyTip.thumbnail_url!} alt={dailyTip.name} fill className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
 
                   {/* Badge */}
@@ -559,7 +559,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   className="group block rounded-2xl overflow-hidden bg-gray-100 relative"
                   style={{ aspectRatio: '16/7', boxShadow: '0 1px 6px rgba(0,0,0,0.07), 0 4px 16px rgba(0,80,180,0.06)' }}
                 >
-                  <Image src={weeklyTip.thumbnail_url!} alt={weeklyTip.name} fill className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" unoptimized />
+                  <Image src={weeklyTip.thumbnail_url!} alt={weeklyTip.name} fill className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
 
                   {/* Badge */}

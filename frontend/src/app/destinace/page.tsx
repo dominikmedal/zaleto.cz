@@ -142,7 +142,7 @@ export default async function DestinacePage() {
                     alt={country.name}
                     fill
                     className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
-                    unoptimized
+                   
                   />
                 ) : (
                   <div className="absolute inset-0 bg-gradient-to-br from-[#0093FF] to-blue-700" />

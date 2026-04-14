@@ -70,7 +70,7 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
           >
             {featured.thumb ? (
               <Image src={featured.thumb} alt={featured.region} fill
-                className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" unoptimized />
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-[#0093FF] to-blue-700" />
             )}
@@ -124,7 +124,7 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
           >
             {item.thumb ? (
               <Image src={item.thumb} alt={item.region} fill
-                className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.07]" unoptimized />
+                className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.07]" />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-[#0093FF] to-blue-700" />
             )}
@@ -158,7 +158,7 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
           >
             {item.thumb ? (
               <Image src={item.thumb} alt={item.region} fill
-                className="object-cover transition-transform duration-500 group-hover:scale-[1.05]" unoptimized />
+                className="object-cover transition-transform duration-500 group-hover:scale-[1.05]" />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-[#0093FF] to-blue-700" />
             )}

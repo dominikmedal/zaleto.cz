@@ -21,7 +21,7 @@ export default function DestinationInfo({ wiki, destination }: Props) {
             alt={destination}
             fill
             className="object-cover"
-            unoptimized
+           
             priority
           />
         </div>

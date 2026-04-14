@@ -45,7 +45,7 @@ export function FeaturedHotelCardCompact({ hotel }: { hotel: Hotel }) {
       {/* Photo */}
       <div className="relative h-44 flex-shrink-0">
         {photo ? (
-          <Image src={photo} alt={hotel.name} fill className="object-cover" unoptimized />
+          <Image src={photo} alt={hotel.name} fill className="object-cover" />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-[#008afe]/10 to-sky-100 flex items-center justify-center">
             <PiMapPin className="w-10 h-10 text-[#008afe]/30" />
@@ -239,7 +239,7 @@ export function FeaturedHotelsBar({ hotels }: { hotels: Hotel[] }) {
             {/* Photo */}
             <div className="relative w-24 h-[108px] flex-shrink-0 bg-white/10">
               {photo ? (
-                <Image src={photo} alt={hotel.name} fill className="object-cover opacity-90 group-hover:opacity-100 transition-opacity" unoptimized />
+                <Image src={photo} alt={hotel.name} fill className="object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <PiMapPin className="w-6 h-6 text-white/20" />
@@ -309,7 +309,7 @@ export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
             >
               <div className="relative h-28 overflow-hidden flex-shrink-0" style={{ background: 'rgba(4,150,105,0.06)' }}>
                 {photo && (
-                  <Image src={photo} alt={hotel.name} fill className="object-cover group-hover:scale-[1.03] transition-transform duration-300" unoptimized />
+                  <Image src={photo} alt={hotel.name} fill className="object-cover group-hover:scale-[1.03] transition-transform duration-300" />
                 )}
               </div>
               <div className="px-3 py-2.5">
@@ -346,7 +346,7 @@ export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
             >
               <div className="relative h-24 overflow-hidden" style={{ background: 'rgba(4,150,105,0.06)' }}>
                 {photo && (
-                  <Image src={photo} alt={hotel.name} fill className="object-cover" unoptimized />
+                  <Image src={photo} alt={hotel.name} fill className="object-cover" />
                 )}
               </div>
               <div className="px-3 py-2">

@@ -180,7 +180,7 @@ export default async function ArticlePage({ params }: Props) {
             {/* Hero image */}
             {heroImage && (
               <div className="relative rounded-2xl overflow-hidden mb-10" style={{ aspectRatio: '16/7' }}>
-                <Image src={heroImage} alt={article.title} fill className="object-cover" unoptimized priority />
+                <Image src={heroImage} alt={article.title} fill className="object-cover" priority />
               </div>
             )}
 

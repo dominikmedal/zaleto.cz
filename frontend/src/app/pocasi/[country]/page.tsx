@@ -156,7 +156,7 @@ export default async function CountryWeatherPage({ params }: Props) {
       {/* ── Hero ── */}
       {heroPhoto ? (
         <div className="relative min-h-[300px] sm:min-h-[380px]">
-          <Image src={heroPhoto} alt={info.name} fill className="object-cover" unoptimized priority
+          <Image src={heroPhoto} alt={info.name} fill className="object-cover" priority
             style={{ filter: 'brightness(1.05) saturate(1.05)' }} />
           <div className="absolute inset-0" style={{
             background: 'linear-gradient(to right, rgba(245,250,255,1) 0%, rgba(245,250,255,0.88) 30%, rgba(245,250,255,0.55) 58%, rgba(245,250,255,0.0) 100%)'

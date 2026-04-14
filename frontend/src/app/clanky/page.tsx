@@ -48,7 +48,7 @@ export default async function ClankyPage() {
                 <Link key={article.slug} href={`/clanky/${article.slug}`} className="group flex flex-col">
                   <div className="relative rounded-2xl overflow-hidden bg-gray-100 flex-shrink-0" style={{ aspectRatio: '16/9' }}>
                     {photo ? (
-                      <Image src={photo} alt={article.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
+                      <Image src={photo} alt={article.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
                     ) : (
                       <div className="absolute inset-0 bg-gradient-to-br from-[#0093FF]/80 to-blue-700" />
                     )}

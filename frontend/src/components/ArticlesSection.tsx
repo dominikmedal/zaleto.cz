@@ -40,7 +40,7 @@ export default function ArticlesSection({ articles, imageMap, label = 'Cestovní
                       alt={article.title}
                       fill
                       className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
-                      unoptimized
+                     
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-[#0093FF]/60 to-blue-700" />

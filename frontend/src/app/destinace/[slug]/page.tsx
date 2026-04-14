@@ -186,7 +186,7 @@ export default async function DestinacePage({ params }: Props) {
             fill
             className="object-cover"
             style={{ filter: 'brightness(1.05) saturate(1.05)' }}
-            unoptimized
+           
             priority
           />
           {/* Left gradient */}
