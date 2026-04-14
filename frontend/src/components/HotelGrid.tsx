@@ -15,14 +15,6 @@ type PageResult = { hotels: Hotel[]; pagination: Pagination }
 
 const EMPTY_PAG: Pagination = { total: 0, page: 1, limit: 24, totalPages: 0, hasMore: false }
 
-function preloadImages(hotels: Hotel[]) {
-  if (typeof window === 'undefined') return
-  hotels.forEach(h => {
-    if (!h.thumbnail_url) return
-    const img = new window.Image()
-    img.src = h.thumbnail_url
-  })
-}
 
 async function fetchPage(
   sp: URLSearchParams,
@@ -130,11 +122,9 @@ export default function HotelGrid({ adults = 2, forcedDestination }: { adults?: 
       .then(({ hotels: h, pagination: p }: PageResult) => {
         setHotels(h)
         setPagination(p)
-        preloadImages(h)
         setInitialDone(true)
         if (p.hasMore) {
           prefetchRef.current = fetchPage(sp, 2, p.limit, view, p.total)
-            .then(res => { preloadImages(res.hotels); return res })
             .catch(() => null) as Promise<PageResult>
         }
       })
@@ -160,7 +150,6 @@ export default function HotelGrid({ adults = 2, forcedDestination }: { adults?: 
       setPagination(nextPag)
       if (nextPag.hasMore) {
         prefetchRef.current = fetchPage(sp, nextPag.page + 1, nextPag.limit, view, nextPag.total)
-          .then(res => { preloadImages(res.hotels); return res })
           .catch(() => null) as Promise<PageResult>
       }
     } catch { /* ignore */ } finally {
@@ -240,7 +229,7 @@ export default function HotelGrid({ adults = 2, forcedDestination }: { adults?: 
       {view === 'grid' && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
-            {hotels.map(hotel => <HotelCard key={hotel.id} hotel={hotel} adults={adults} activeTourType={activeTourType} />)}
+            {hotels.map((hotel, i) => <HotelCard key={hotel.id} hotel={hotel} adults={adults} activeTourType={activeTourType} priority={i < 4} />)}
           </div>
           <div ref={sentinelRef} className="h-4 mt-8" />
           {loading && initialDone && <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 text-[#008afe] animate-spin" /></div>}

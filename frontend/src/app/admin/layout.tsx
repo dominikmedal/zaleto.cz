@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { adminCheck, adminLogout } from '@/lib/adminApi'
 import {
   PiHouse, PiBuildings, PiAirplane, PiNewspaper, PiMapPin,
@@ -55,10 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         lg:translate-x-0 lg:static lg:z-auto
       `}>
         <div className="flex items-center gap-2.5 px-5 h-16 border-b border-gray-100 flex-shrink-0">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0093FF, #0060CC)' }}>
-            <PiAirplane className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-bold text-gray-800 text-[15px]">zaleto <span className="text-[#0093FF]">admin</span></span>
+          <Image src="/img/logo/logo.png" alt="Zaleto" width={100} height={28} className="object-contain" priority />
           <button className="ml-auto lg:hidden" onClick={() => setMobile(false)}>
             <PiX className="w-5 h-5 text-gray-400" />
           </button>
@@ -97,7 +95,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button onClick={() => setMobile(true)} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100">
             <PiList className="w-5 h-5 text-gray-600" />
           </button>
-          <span className="font-bold text-gray-800">zaleto admin</span>
+          <Image src="/img/logo/logo.png" alt="Zaleto" width={80} height={22} className="object-contain" />
         </header>
 
         <main className="flex-1 p-6 lg:p-8 min-w-0">

@@ -132,8 +132,7 @@ export default function FeaturedHotelCard({ hotel }: { hotel: Hotel }) {
               alt={hotel.name}
               fill
               className="object-cover"
-              unoptimized
-            />
+                         />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-[#008afe]/10 to-sky-100 flex items-center justify-center">
               <PiMapPin className="w-12 h-12 text-[#008afe]/30" />

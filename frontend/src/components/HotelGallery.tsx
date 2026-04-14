@@ -62,6 +62,7 @@ export default function HotelGallery({ photos, name }: Props) {
                 className="object-cover"
                 sizes="100vw"
                 priority={i === 0}
+                loading={i === 0 ? undefined : 'lazy'}
               />
               {/* Counter badge */}
               <span className="absolute top-3 right-3 text-[11px] font-semibold text-white bg-black/40 backdrop-blur-sm px-2 py-1 rounded-lg leading-none">
@@ -107,7 +108,7 @@ export default function HotelGallery({ photos, name }: Props) {
             className="relative cursor-pointer group overflow-hidden rounded-2xl"
             onClick={() => open(i + 1)}
           >
-            <Image src={photo} alt={`${name} ${i + 2}`} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.05]" sizes="25vw" />
+            <Image src={photo} alt={`${name} ${i + 2}`} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.05]" sizes="25vw" loading="eager" />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
 
             {i === 3 && hidden > 0 && (

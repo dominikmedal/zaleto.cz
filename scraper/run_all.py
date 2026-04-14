@@ -158,8 +158,8 @@ SCRAPERS: list[dict] = [
 # Checkpoint — přežije restart kontejneru (deploy)
 # ---------------------------------------------------------------------------
 
-FULL_SCRAPE_DAYS = 14   # po kolika dnech se spustí plný scrape (Fischer / Exim / NevDama)
-UPDATE_ONLY_AGENCIES = {"Fischer", "Exim Tours", "Nev-Dama"}  # CK podporující --update-only
+FULL_SCRAPE_DAYS = 14   # po kolika dnech se spustí plný scrape (Fischer / Exim)
+UPDATE_ONLY_AGENCIES = {"Fischer", "Exim Tours"}  # CK podporující --update-only
 
 def ensure_checkpoint_table(conn):
     conn.execute("""

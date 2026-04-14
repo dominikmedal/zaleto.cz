@@ -39,10 +39,12 @@ export default function HotelCard({
   hotel,
   adults = 2,
   activeTourType,
+  priority = false,
 }: {
   hotel: Hotel
   adults?: number
   activeTourType?: string
+  priority?: boolean
 }) {
   const meal  = parseMealPlan(hotel.food_options ?? null)
   const isLM  = hotel.has_last_minute === 1
@@ -111,6 +113,7 @@ export default function HotelCard({
                     fill
                     className={`object-cover transition-opacity duration-500 ${i === activeIdx ? 'opacity-100' : 'opacity-0'}`}
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                    priority={priority && i === 0}
                   />
                 ))}
               </div>
