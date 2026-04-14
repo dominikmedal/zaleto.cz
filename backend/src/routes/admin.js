@@ -339,8 +339,8 @@ router.post('/upload', adminAuth, upload.single('image'), (req, res) => {
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
     const filepath = path.join(UPLOADS_DIR, filename)
     fs.writeFileSync(filepath, req.file.buffer)
-    const backendBase = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3001}`
-    res.json({ ok: true, url: `${backendBase}/uploads/${filename}`, filename })
+    // Store relative path — frontend prepends NEXT_PUBLIC_API_URL
+    res.json({ ok: true, url: `/uploads/${filename}`, filename })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }

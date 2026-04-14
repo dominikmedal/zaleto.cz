@@ -113,7 +113,10 @@ export default async function ArticlePage({ params }: Props) {
     fetchArticles(6).catch(() => []),
   ])
 
-  const heroImage = article.custom_image_url ?? destPhoto
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+  const resolveImg = (url: string | null) =>
+    url?.startsWith('/uploads/') ? `${API_URL}${url}` : url ?? null
+  const heroImage = resolveImg(article.custom_image_url) ?? destPhoto
 
   const featuredHotels =
     (byDestResult?.hotels?.length ?? 0) > 0
