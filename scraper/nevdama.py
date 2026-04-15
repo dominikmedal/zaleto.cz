@@ -544,6 +544,10 @@ def _get_offer(session: requests.Session, p: dict,
 LAST_MINUTE_DAYS  = 21
 FIRST_MINUTE_DAYS = 180
 
+# Minimální rozumná cena za osobu — filtruje příplatky / dílčí ceny vrácené API
+# místo celkové ceny balíčku. Česká republika → jakákoliv destinace = min. ~1 000 Kč.
+MIN_TOUR_PRICE = 1000
+
 
 def _detect_tour_type(dep_dt: datetime) -> tuple[bool, bool]:
     today      = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -608,8 +612,11 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
     tours = []
     for d in api_data.get("availableDates", []):
         raw_date = d.get("date", "")[:10]
-        price    = d.get("pricePerPerson") or d.get("price", 0.0)
-        if not raw_date or price <= 0:
+        # Jako u Fischeru: pricePerPerson je cena za osobu zobrazovaná na webu.
+        # Nepoužíváme fallback na 'price' — pro kapacitní/campingové hotely
+        # může 'price' obsahovat jen příplatek (např. 500 Kč), ne celkovou cenu balíčku.
+        price = d.get("pricePerPerson") or 0.0
+        if not raw_date or price < MIN_TOUR_PRICE:
             continue
         try:
             dep_dt = datetime.strptime(raw_date, "%Y-%m-%d")
@@ -680,8 +687,8 @@ def _scrape_bus_hotel(hotel_url: str, p: dict, db: ZaletoDB, slug_counter: dict)
     nights    = int(min_price.get("lengthOfStay") or 7)
     price     = float(min_price.get("amount") or 0)
 
-    if not dep_date or price <= 0:
-        logger.debug(f"Bus hotel bez minPrice: {hotel_url}")
+    if not dep_date or price < MIN_TOUR_PRICE:
+        logger.debug(f"Bus hotel bez platné ceny (price={price}): {hotel_url}")
         return 0
 
     try:
@@ -689,7 +696,10 @@ def _scrape_bus_hotel(hotel_url: str, p: dict, db: ZaletoDB, slug_counter: dict)
     except ValueError:
         return 0
 
-    tip    = dict(urllib.parse.parse_qsl(p.get("tour_filter_query", "")))
+    tip = dict(urllib.parse.parse_qsl(p.get("tour_filter_query", "")))
+    # Odstraň expirující / nevalidní parametry (stejně jako flight path)
+    for _ep in ("PC", "IFC", "OFC", "DPR", "PID", "GIATA", "ERM", "DS", "TrustYou"):
+        tip.pop(_ep, None)
     tip["DD"]  = dep_date
     tip["RD"]  = ret_date
     tip["NN"]  = str(nights)
@@ -810,15 +820,19 @@ def scrape_hotel(session: requests.Session, db: ZaletoDB,
             all_tours.extend(airport_tours)
             logger.debug(f"  Letiště {airport}: {len(airport_tours)} termínů")
 
-    if hotel_dict is None:
-        # Fallback: letecká cesta nevrátila termíny — zkus capacity/bus cestu přes minPrice
+    if hotel_dict is None or not all_tours:
+        # Fallback: letecká cesta nevrátila žádné platné termíny (nebo všechny ceny
+        # pod MIN_TOUR_PRICE) — zkus capacity/bus cestu přes minPrice
         if first_embedded:
             info = first_embedded.get("hotelDetailInfo", first_embedded)
             if info.get("minPrice"):
                 cap_p = _parse_embedded_capacity(info, first_embedded)
                 if cap_p:
                     return _scrape_bus_hotel(hotel_url, cap_p, db, slug_counter)
-        logger.warning(f"Žádné termíny ani data: {hotel_url}")
+        if hotel_dict is not None and not all_tours:
+            logger.warning(f"Všechny ceny pod {MIN_TOUR_PRICE} Kč — hotel přeskočen: {hotel_url}")
+        else:
+            logger.warning(f"Žádné termíny ani data: {hotel_url}")
         return 0
 
     base_slug = slugify(hotel_dict["name"])

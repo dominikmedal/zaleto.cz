@@ -204,7 +204,7 @@ router.get('/', async (req, res) => {
 
     const r = location
       ? await db.query(
-          `SELECT id, slug, title, category, location, excerpt, reading_time, published_at
+          `SELECT id, slug, title, category, location, excerpt, reading_time, published_at, custom_image_url
            FROM articles
            WHERE LOWER(location) = LOWER(?)
            ORDER BY published_at DESC
@@ -212,14 +212,15 @@ router.get('/', async (req, res) => {
           [location, limit, offset]
         )
       : await db.query(
-          `SELECT id, slug, title, category, location, excerpt, reading_time, published_at
+          `SELECT id, slug, title, category, location, excerpt, reading_time, published_at, custom_image_url
            FROM articles
            ORDER BY published_at DESC
            LIMIT ? OFFSET ?`,
           [limit, offset]
         )
-    metaCache.set(cacheKey, r.rows)
-    res.json(r.rows)
+    const rows = r.rows.map(a => ({ ...a, custom_image_url: resolveUrl(a.custom_image_url) }))
+    metaCache.set(cacheKey, rows)
+    res.json(rows)
   } catch (e) {
     console.error('[articles] GET / error:', e.message)
     res.json([])

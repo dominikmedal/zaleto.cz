@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const db = require('../db')
 const { metaCache } = require('../cache')
+const { normalizeMealPlan, MEAL_ORDER } = require('../mealPlanUtils')
 
 // GET /api/destinations
 router.get('/destinations', async (req, res) => {
@@ -70,8 +71,19 @@ router.get('/filters', async (req, res) => {
       db.query(`SELECT COUNT(*)::integer AS total_hotels FROM hotel_stats s JOIN hotels h ON h.id = s.hotel_id WHERE s.min_price IS NOT NULL AND s.next_departure >= CURRENT_DATE::text AND (h.canonical_slug IS NULL OR h.canonical_slug = h.slug)`),
     ])
 
+    // Aggregate raw values into canonical groups
+    const mealCounts = {}
+    for (const row of mealR.rows) {
+      const canonical = normalizeMealPlan(row.meal_plan)
+      if (!canonical) continue
+      mealCounts[canonical] = (mealCounts[canonical] || 0) + row.count
+    }
+    const mealPlans = MEAL_ORDER
+      .filter(mp => mealCounts[mp] > 0)
+      .map(mp => ({ meal_plan: mp, count: mealCounts[mp] }))
+
     const result = {
-      mealPlans:      mealR.rows,
+      mealPlans,
       priceRange:     priceR.rows[0],
       durations:      durR.rows,
       stars:          starsR.rows,

@@ -40,9 +40,11 @@ const SORT_OPTIONS = [
 ]
 
 const MEAL_LABELS: Record<string, string> = {
-  'All inclusive': 'All inclusive', 'Ultra All inclusive': 'Ultra All incl.',
-  'Plná penze': 'Plná penze', 'Polopenze': 'Polopenze',
-  'Snídaně': 'Snídaně', 'Bez stravy': 'Bez stravy',
+  'All Inclusive': 'All Inclusive',
+  'Plná penze':    'Plná penze',
+  'Polopenze':     'Polopenze',
+  'Snídaně':       'Snídaně',
+  'Bez stravy':    'Bez stravy',
 }
 
 const STORAGE_KEY = 'zaleto-filters'

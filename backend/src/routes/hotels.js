@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const db = require('../db')
 const { hotelsCache, hotelDetailCache } = require('../cache')
+const { MEAL_SQL } = require('../mealPlanUtils')
 
 // Lazy-initialised — set after first DB check or cache invalidation
 let statsPopulated = null
@@ -240,7 +241,16 @@ router.get('/', async (req, res) => {
 
       if (meal_plan) {
         const arr = String(meal_plan).split(',').filter(Boolean)
-        if (arr.length) { tourConds.push(`t.meal_plan IN (${arr.map(() => '?').join(',')})`); tourParams.push(...arr) }
+        if (arr.length) {
+          const sqlParts = arr.map(mp => MEAL_SQL[mp]).filter(Boolean)
+          if (sqlParts.length) {
+            tourConds.push(`(${sqlParts.join(' OR ')})`)
+          } else {
+            // fallback: přesná shoda pro neznámé hodnoty
+            tourConds.push(`t.meal_plan IN (${arr.map(() => '?').join(',')})`)
+            tourParams.push(...arr)
+          }
+        }
       }
 
       if (transport) { tourConds.push('t.transport ILIKE ?'); tourParams.push(`%${transport}%`) }

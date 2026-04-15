@@ -223,6 +223,7 @@ export type Article = {
   excerpt: string | null
   reading_time: number
   published_at: string
+  custom_image_url: string | null
 }
 
 export type ArticleFull = Article & { content: string | null; topic: string; custom_image_url: string | null }

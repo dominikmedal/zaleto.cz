@@ -24,7 +24,7 @@ export default function ArticlesSection({ articles, imageMap, label = 'Cestovní
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
         {articles.map((article) => {
-          const photo = imageMap[article.location ?? ''] ?? null
+          const photo = article.custom_image_url ?? imageMap[article.location ?? ''] ?? null
           return (
             <Link key={article.slug} href={`/clanky/${article.slug}`} className="group block">
               <article>
