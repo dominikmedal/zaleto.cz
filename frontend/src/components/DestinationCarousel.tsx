@@ -131,12 +131,12 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/8 to-transparent" />
 
             <div className="absolute bottom-0 left-0 right-0 p-2.5">
-              <p className="text-white font-bold text-[14px] leading-tight truncate drop-shadow-sm"
+              <p className="text-white font-bold text-[16px] leading-tight truncate drop-shadow-sm"
                 style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{item.region}</p>
               {item.minPrice != null ? (
-                <p className="text-white/80 text-[12px] font-semibold mt-0.5">od {fmtKc(item.minPrice)}</p>
+                <p className="text-white/80 text-[14px] font-semibold mt-0.5">od {fmtKc(item.minPrice)}</p>
               ) : (
-                <p className="text-white/45 text-[11px] mt-0.5">{item.count} hotelů</p>
+                <p className="text-white/45 text-[14px] mt-0.5">{item.count} hotelů</p>
               )}
             </div>
           </Link>

@@ -50,8 +50,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger("cedok")
 
-# Výchozí destinační slugy pro vyhledávání
-DEFAULT_DEST_SLUGS = [
+# Záložní seznam destinačních slugů — použije se jen pokud se nepodaří
+# dynamicky získat slugy ze sitemapy Čedoku.
+FALLBACK_DEST_SLUGS = [
     # Egypt
     "egypt",
     # Turecko
@@ -70,11 +71,23 @@ DEFAULT_DEST_SLUGS = [
     "italie",
     # Kanárské ostrovy
     "kanarske-ostrovy", "fuerteventura", "tenerife", "gran-canaria", "lanzarote",
-    # Ostatní oblíbené
-    "thajsko", "bulharsko", "tunisko",
-    "dominikanska-republika", "albanie", "kena", "maledivy", "zanzibar",
-    "mexiko", "kuba", "mauricius", "kapverdske-ostrovy", "madeira",
-    "maroko", "jordansko", "bali", "srilanka", "vietnam",
+    # Blízký východ / Arabský poloostrov
+    "spojene-arabske-emiraty", "dubai", "izrael",
+    # Afrika
+    "thajsko", "bulharsko", "tunisko", "maroko",
+    "kena", "zanzibar", "seychely",
+    # Ameriky + Karibik
+    "dominikanska-republika", "mexiko", "kuba",
+    "florida", "barbados", "jamajka",
+    # Asie + Oceánie
+    "maledivy", "bali", "srilanka", "vietnam", "japonsko",
+    "filipiny", "singapur", "kambodza",
+    # Indický oceán
+    "mauricius", "kapverdske-ostrovy", "madeira",
+    # Evropa + Balkán
+    "albanie", "cerna-hora", "jordansko",
+    # Různé
+    "portugal", "azorske-ostrovy",
 ]
 
 COUNTRY_MAP = {
@@ -368,6 +381,62 @@ def _parse_rate(rate: dict, hotel_links: dict, dest_slug: str) -> tuple[dict, di
 # Stažení jedné destinace (s paginací)
 # ---------------------------------------------------------------------------
 
+def _discover_dest_slugs(session: requests.Session) -> list[str] | None:
+    """
+    Dynamicky zjistí všechny destinační slugy ze sitemapy Čedoku.
+    Hledá URL ve tvaru /vysledky-vyhledavani/dovolena/{slug}/
+    Vrátí seznam slugů nebo None pokud se discovery nepodaří.
+    """
+    slug_re = re.compile(
+        r'/vysledky-vyhledavani/dovolena/([a-z0-9][a-z0-9-]+[a-z0-9])/'
+    )
+    found: list[str] = []
+
+    # 1. Zkus sitemap index
+    sitemap_urls = []
+    try:
+        r = session.get(f"{BASE_URL}/sitemap.xml", timeout=20)
+        if r.status_code == 200:
+            # Sitemap index — hledej pod-sitemapy
+            sub = re.findall(r'<loc>(https://www\.cedok\.cz/[^<]*sitemap[^<]*)</loc>', r.text)
+            if sub:
+                sitemap_urls = sub
+            else:
+                # Přímá sitemap — prohledej přímo
+                for m in slug_re.finditer(r.text):
+                    found.append(m.group(1))
+    except Exception as e:
+        logger.debug(f"Čedok sitemap.xml: {e}")
+
+    # 2. Projdi pod-sitemapy
+    for surl in sitemap_urls[:20]:
+        try:
+            r = session.get(surl, timeout=20)
+            if r.status_code == 200:
+                for m in slug_re.finditer(r.text):
+                    found.append(m.group(1))
+        except Exception:
+            pass
+
+    # 3. Fallback: prohledej hlavní stránku dovolená (navigace)
+    if not found:
+        try:
+            r = session.get(f"{BASE_URL}/dovolena/", timeout=20)
+            if r.status_code == 200:
+                for m in slug_re.finditer(r.text):
+                    found.append(m.group(1))
+        except Exception as e:
+            logger.debug(f"Čedok /dovolena/: {e}")
+
+    if not found:
+        return None
+
+    # Deduplikace, zachovej pořadí
+    result = list(dict.fromkeys(found))
+    logger.info(f"Čedok discovery: nalezeno {len(result)} destinačních slugů ze sitemapy")
+    return result
+
+
 def _fetch_dest_slug(session: requests.Session, dest_slug: str, delay: float) -> list[tuple[dict, dict, str]]:
     """
     Stahuje výsledky pro daný slug. Paginuje přes ?skip=N.
@@ -633,8 +702,12 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
         logger.info("--delete: mažu stávající Čedok data...")
         delete_all(db)
 
-    slugs = dest_slugs or DEFAULT_DEST_SLUGS
-    logger.info(f"Destinace ke stažení: {slugs}")
+    if dest_slugs:
+        slugs = dest_slugs
+    else:
+        # Dynamické discovery ze sitemapy — vždy aktuální seznam
+        slugs = _discover_dest_slugs(session) or FALLBACK_DEST_SLUGS
+    logger.info(f"Destinace ke stažení ({len(slugs)}): {slugs}")
 
     total_hotels = 0
     total_tours  = 0

@@ -15,6 +15,7 @@ import JsonLd from '@/components/JsonLd'
 import FilteringBar from '@/components/FilteringBar'
 import DestinationHeroAI from '@/components/DestinationHeroAI'
 import { getCountryFlag } from '@/lib/countryFlags'
+import ActiveFiltersBar from '@/components/ActiveFiltersBar'
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
   const destination = Array.isArray(searchParams.destination)
@@ -527,6 +528,11 @@ export default async function HomePage({ searchParams }: PageProps) {
                       ? 'Výhodné zájezdy pro ty, kdo plánují s předstihem. Nejlepší ceny pro včasné rezervace.'
                       : 'Výsledky odpovídají nastaveným filtrům.'}
                   </p>
+                  {!singleDest && !tourType && (
+                    <Suspense fallback={null}>
+                      <ActiveFiltersBar />
+                    </Suspense>
+                  )}
                 </div>
 
               </div>

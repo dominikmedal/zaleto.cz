@@ -42,7 +42,9 @@ AGENCY     = "Blue Style"
 DEP_CITY   = 2      # Praha Václav Havel (default, pokud není --dep-cities)
 ADULTS     = 2
 # Délky pobytů k vyhledávání — [7] by vynechalo hotely nabízející jen 10 nebo 14 nocí
-DURATIONS  = [7, 10, 14]
+# Fallback délky pobytů — použijí se jen pokud SearchForm nevrátí seznam délek.
+# SearchForm GraphQL vrací pole `durations` se všemi délkami které Blue Style nabízí.
+DURATIONS_FALLBACK = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 21]
 
 LAST_MINUTE_DAYS  = 21
 FIRST_MINUTE_DAYS = 180
@@ -434,7 +436,7 @@ def _process_tours(h: dict, dep_city_name: str = "", adults: int = ADULTS) -> li
 
     dep_date   = (term.get("flightDate") or "")[:10]
     ret_date   = (term.get("returnDate") or "")[:10]
-    nights     = int(term.get("nights") or DURATIONS[0])
+    nights     = int(term.get("nights") or DURATIONS_FALLBACK[0])
     arr_city   = int(term.get("arrCity") or 0)
     dep_city   = int(term.get("depCity") or DEP_CITY)
     flight_no  = term.get("flightNumber") or ""
@@ -595,8 +597,11 @@ def get_search_form(session: requests.Session) -> dict:
     dates = sorted(set(dates))
     arr_ids = list(dict.fromkeys(arr_ids))
 
-    logger.info(f"SearchForm: {len(arr_ids)} destinací, {len(dates)} termínů, {len(dep_city_names)} dep cities")
-    return {"arr_cities": arr_ids, "dates": dates, "dep_city_names": dep_city_names}
+    # Délky pobytů ze SearchForm — přesný seznam co Blue Style nabízí
+    raw_durations = form.get("durations") or []
+    durations = sorted({int(d) for d in raw_durations if str(d).isdigit()}) or DURATIONS_FALLBACK
+    logger.info(f"SearchForm: {len(arr_ids)} destinací, {len(dates)} termínů, {len(dep_city_names)} dep cities, délky: {durations}")
+    return {"arr_cities": arr_ids, "dates": dates, "dep_city_names": dep_city_names, "durations": durations}
 
 
 # ---------------------------------------------------------------------------
@@ -605,12 +610,13 @@ def get_search_form(session: requests.Session) -> dict:
 
 def search_hotels(session: requests.Session, arr_city: str, date: str,
                   page: int = 1, dep_city: int = DEP_CITY,
-                  adults: int = ADULTS) -> dict | None:
+                  adults: int = ADULTS,
+                  durations: list[int] | None = None) -> dict | None:
     """Vrátí data ze SearchResults pro danou destinaci a datum."""
     request: dict = {
         "depCity":  dep_city,
         "arrCity":  [int(arr_city)],
-        "durations": DURATIONS,
+        "durations": durations or DURATIONS_FALLBACK,
         "rooms":    [{"adults": adults, "children": []}],
         "page":     page,
     }
@@ -656,9 +662,10 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
 
     # 1. Načti SearchForm
     form_data = get_search_form(session)
-    arr_cities = form_data["arr_cities"]
-    dates      = form_data["dates"]
+    arr_cities     = form_data["arr_cities"]
+    dates          = form_data["dates"]
     dep_city_names = form_data.get("dep_city_names") or {}
+    durations      = form_data.get("durations") or DURATIONS_FALLBACK
 
     # Pokud nejsou dep_cities zadány, použij všechna z SearchForm
     if dep_cities is None:
@@ -707,7 +714,7 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
                     break
                 page = 1
                 while True:
-                    result = search_hotels(session, arr_city, date, page, dep_city)
+                    result = search_hotels(session, arr_city, date, page, dep_city, durations=durations)
                     if _blocked:
                         break
                     if not result:
@@ -806,7 +813,7 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
                     break
                 page = 1
                 while True:
-                    result = search_hotels(session, arr_city, date, page, dep_city, adults=1)
+                    result = search_hotels(session, arr_city, date, page, dep_city, adults=1, durations=durations)
                     if _blocked:
                         break
                     if not result:
@@ -821,7 +828,7 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
                             continue
                         term = h.get("defaultSearchTerm") or {}
                         dep_date  = (term.get("flightDate") or "")[:10]
-                        nights    = int(term.get("nights") or DURATIONS[0])
+                        nights    = int(term.get("nights") or DURATIONS_FALLBACK[0])
                         arr_city_id = int(term.get("arrCity") or 0)
                         dep_city_id = int(term.get("depCity") or dep_city)
                         flight_no   = term.get("flightNumber") or ""

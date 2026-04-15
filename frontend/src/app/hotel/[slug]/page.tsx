@@ -280,7 +280,6 @@ export default async function HotelDetailPage({ params }: Props) {
               <span className="w-px h-4 bg-gray-200 flex-shrink-0" />
               <div className="flex items-center gap-1.5">
                 <span className="text-[15px] font-bold text-gray-900 tabular-nums leading-none">{hotel.review_score.toFixed(1)}</span>
-                <span className="text-[11px] text-gray-400">/ 10 hodnocení</span>
               </div>
             </>)}
 
@@ -295,51 +294,76 @@ export default async function HotelDetailPage({ params }: Props) {
         <HotelGallery photos={photos} name={hotel.name} />
 
         {/* ── Cena zájezdu — mobile only, right after gallery ── */}
-        <div className="lg:hidden mt-4 rounded-2xl border border-gray-100 overflow-hidden shadow-[0_4px_32px_-4px_rgba(0,138,254,0.13)]">
-          <div className="flex items-center justify-between gap-4 px-4 pt-4 pb-3 bg-gradient-to-b from-emerald-50/50 to-white">
+        <div className="lg:hidden mt-4 rounded-2xl overflow-hidden" style={{
+          background: 'rgba(245,248,255,0.95)',
+          border: '1px solid rgba(200,227,255,0.65)',
+          boxShadow: '0 4px 24px -4px rgba(0,138,254,0.13)',
+        }}>
+          {/* Header: eyebrow + heading + count */}
+          <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)' }}>
             <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em] mb-1">Nejnižší cena od osoby</p>
-              {minTourPrice ? (
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-emerald-600 tabular-nums">{formatPriceShort(minTourPrice)}</span>
-                  <span className="text-sm font-semibold text-gray-400">Kč</span>
-                </div>
-              ) : (
-                <span className="text-sm font-semibold text-gray-400 opacity-60">Aktualizuje se…</span>
-              )}
+              <p className="text-[10px] font-bold text-[#0093FF]/60 uppercase tracking-widest mb-0.5">Rezervace</p>
+              <h3 className="font-bold text-gray-900 leading-tight tracking-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '15px' }}>
+                Nejbližší termíny
+              </h3>
             </div>
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-white px-2.5 py-1 rounded-full flex-shrink-0" style={{ background: 'linear-gradient(135deg, #0093FF, #0070E0)', boxShadow: '0 2px 8px rgba(0,147,255,0.28)' }}>
+              <PiCalendarBlank className="w-3 h-3" />
+              {tourCount}
+            </span>
+          </div>
+          {/* Next departure + price */}
+          <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)' }}>
+            {hotel.next_departure ? (
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#10b981', boxShadow: '0 0 0 3px rgba(16,185,129,0.18)' }} />
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-bold text-gray-900 leading-tight">
+                      {formatDep(hotel.next_departure)}
+                      {hotel.next_return_date && <span className="font-normal text-gray-400"> → {formatDep(hotel.next_return_date)}</span>}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Nejbližší dostupný termín</p>
+                  </div>
+                </div>
+                {minTourPrice && (
+                  <div className="flex items-baseline gap-0.5 flex-shrink-0">
+                    <span className="text-[22px] font-black tabular-nums leading-none" style={{ color: '#049669' }}>{formatPriceShort(minTourPrice)}</span>
+                    <span className="text-xs font-semibold text-gray-400 ml-0.5">Kč</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">Aktualizuje se…</p>
+            )}
+          </div>
+          {/* CTA */}
+          <div className="px-4 py-3 space-y-2">
             <ScrollToButton
               targetId="terminy"
-              className="flex-shrink-0 bg-[#008afe] hover:bg-[#0079e5] active:scale-[0.98] text-white font-bold py-3 px-5 rounded-xl flex items-center gap-2 text-sm whitespace-nowrap shadow-md shadow-[#008afe]/25 transition-all"
+              className="w-full flex items-center justify-center gap-2 text-sm font-bold text-white py-3 px-4 rounded-xl transition-all active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)', boxShadow: '0 4px 14px rgba(0,147,255,0.32)' }}
             >
               <PiCalendarBlank className="w-4 h-4" />
-              Vybrat termín
+              Zobrazit všechny termíny
             </ScrollToButton>
+            <div className="flex gap-2">
+              <FavoriteButton slug={params.slug} name={hotel.name} variant="detail" className="flex-1 justify-center" />
+              <ShareButton slug={params.slug} name={hotel.name} />
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-px border-t border-gray-50">
-            <div className="px-4 py-3">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em] mb-1">Termíny</p>
-              <span className="inline-flex items-center gap-1.5 bg-blue-50 text-[#008afe] text-xs font-bold px-2 py-0.5 rounded-full">
-                <PiCalendarBlank className="w-3 h-3" />
-                {tourCount}
+          {/* Trust badges */}
+          <div className="px-4 pb-3 pt-1 flex flex-wrap gap-1.5" style={{ borderTop: '1px solid rgba(0,147,255,0.06)' }}>
+            {[
+              { icon: <PiShieldCheck className="w-3 h-3" />, label: 'Přímé rezervace' },
+              { icon: <PiCheck className="w-3 h-3" />, label: 'Bez poplatků' },
+              { icon: <PiCheckCircle className="w-3 h-3" />, label: 'Ověřené CK' },
+            ].map(({ icon, label }) => (
+              <span key={label} className="inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full text-[10px] font-semibold text-gray-600" style={{ background: 'rgba(245,248,255,0.90)', border: '1px solid rgba(200,227,255,0.70)' }}>
+                <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.09)' }}>{icon}</span>
+                {label}
               </span>
-            </div>
-            <div className="px-4 py-3 border-l border-gray-50">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em] mb-1">Nejbližší odjezd</p>
-              {hotel.next_departure ? (
-                <ScrollToButton targetId="terminy" className="flex items-center gap-1.5 text-left group">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-                  <p className="text-xs font-semibold text-gray-700 group-hover:text-[#008afe] transition-colors">
-                    {formatDep(hotel.next_departure)}
-                    {hotel.next_return_date && <span className="font-normal text-gray-400"> → {formatDep(hotel.next_return_date)}</span>}
-                  </p>
-                </ScrollToButton>
-              ) : <p className="text-xs font-semibold text-gray-400">—</p>}
-            </div>
-          </div>
-          <div className="px-4 pb-4 pt-3 border-t border-gray-50 flex gap-2">
-            <FavoriteButton slug={params.slug} name={hotel.name} variant="detail" className="flex-1 justify-center" />
-            <ShareButton slug={params.slug} name={hotel.name} />
+            ))}
           </div>
         </div>
 
@@ -357,36 +381,69 @@ export default async function HotelDetailPage({ params }: Props) {
 
           {/* ── Left column ── */}
           <div className="lg:col-span-2">
-            <div className="glass-card rounded-2xl px-6">
+            <div className="glass-card rounded-2xl px-5 sm:px-6">
 
               {/* ── Marketing highlights ── */}
               {highlights.length > 0 && (
                 <section className="py-6 border-b" style={{ borderColor: 'rgba(0,147,255,0.08)' }}>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Výhody</p>
-                  <h2 className="flex items-center gap-2 text-[16px] font-semibold text-gray-900 mb-4">
-                    <PiSparkle className="w-5 h-5 text-[#0093FF] flex-shrink-0" />
+                  <p className="text-[10px] font-bold text-[#0093FF]/60 uppercase tracking-widest mb-1">Výhody</p>
+                  <h2 className="flex items-center gap-2 mb-4" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(15px, 2vw, 18px)', fontWeight: 700, color: '#111827', letterSpacing: '-0.02em' }}>
+                    <span className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,147,255,0.10)' }}>
+                      <PiSparkle className="w-3.5 h-3.5 text-[#0093FF]" />
+                    </span>
                     Proč tento zájezd?
                   </h2>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {highlights.slice(0, 6).map((item, i) => (
+
+                  {/* Core benefits — always first 2 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                    {highlights.slice(0, 2).map((item, i) => (
                       <div
                         key={i}
-                        className="flex items-start gap-3 rounded-xl px-3.5 py-3 transition-colors duration-200 hover:bg-[#F8FBFF]"
-                        style={{ background: '#F3F8FF', border: '1px solid rgba(0,147,255,0.10)' }}
+                        className="flex items-center gap-3 rounded-2xl px-4 py-3.5"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(0,147,255,0.09) 0%, rgba(0,112,224,0.05) 100%)',
+                          border: '1px solid rgba(0,147,255,0.18)',
+                          boxShadow: '0 1px 6px rgba(0,147,255,0.07), inset 0 1px 0 rgba(255,255,255,0.90)',
+                        }}
                       >
                         <div
-                          className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mt-0.5"
-                          style={{ background: 'rgba(0,147,255,0.08)' }}
+                          className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                          style={{ background: 'rgba(0,147,255,0.13)', border: '1px solid rgba(0,147,255,0.15)' }}
                         >
                           <span className="text-[#0093FF]">{item.icon}</span>
                         </div>
-                        <div>
-                          <p className="text-xs font-semibold text-gray-800 leading-snug">{item.title}</p>
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-bold text-gray-900 leading-tight tracking-tight">{item.title}</p>
                           <p className="text-[11px] text-gray-500 leading-snug mt-0.5">{item.desc}</p>
                         </div>
                       </div>
                     ))}
                   </div>
+
+                  {/* Dynamic highlights — pills */}
+                  {highlights.length > 2 && (
+                    <div className="flex flex-wrap gap-2">
+                      {highlights.slice(2, 6).map((item, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-2 pl-2 pr-3.5 py-1.5 rounded-full text-[11px] font-semibold text-gray-700"
+                          style={{
+                            background: 'rgba(245,248,255,0.90)',
+                            border: '1px solid rgba(200,227,255,0.70)',
+                            boxShadow: '0 1px 4px rgba(0,147,255,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
+                          }}
+                        >
+                          <span
+                            className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ background: 'rgba(0,147,255,0.09)' }}
+                          >
+                            <span className="text-[#0093FF] [&>svg]:w-3.5 [&>svg]:h-3.5">{item.icon}</span>
+                          </span>
+                          {item.title}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </section>
               )}
 
@@ -403,12 +460,18 @@ export default async function HotelDetailPage({ params }: Props) {
 
               {amenitiesList.length > 0 && (
                 <CollapsibleSection title="Vybavení a výhody" icon={<PiSparkle className="w-5 h-5" />}>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-2.5 gap-x-4">
+                  <div className="flex flex-wrap gap-1.5">
                     {amenitiesList.map((item, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                        <PiCheckCircle className="w-4 h-4 text-[#008afe] flex-shrink-0" />
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1.5 pl-1.5 pr-3 py-1 rounded-full text-[11px] font-medium text-gray-700"
+                        style={{ background: 'rgba(245,248,255,0.90)', border: '1px solid rgba(200,227,255,0.65)', boxShadow: '0 1px 3px rgba(0,147,255,0.05)' }}
+                      >
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.09)' }}>
+                          <PiCheckCircle className="w-3 h-3" />
+                        </span>
                         {item}
-                      </div>
+                      </span>
                     ))}
                   </div>
                 </CollapsibleSection>
@@ -416,17 +479,19 @@ export default async function HotelDetailPage({ params }: Props) {
 
               {distancesList.length > 0 && (
                 <CollapsibleSection title="Vzdálenosti" icon={<PiRuler className="w-5 h-5" />}>
-                  <div className="divide-y divide-gray-50">
+                  <div className="space-y-1.5">
                     {distancesList.map((d, i) => {
                       const [label, ...rest] = d.split(':')
                       const val = rest.join(':').trim() || d
                       return (
-                        <div key={i} className="flex items-center justify-between py-2 text-sm">
-                          <span className="flex items-center gap-2 text-gray-500">
-                            <PiMapPin className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
-                            {label.trim()}
+                        <div key={i} className="flex items-center justify-between gap-4 px-3 py-2 rounded-xl" style={{ background: i % 2 === 0 ? 'rgba(245,248,255,0.80)' : 'transparent', border: i % 2 === 0 ? '1px solid rgba(200,227,255,0.50)' : '1px solid transparent' }}>
+                          <span className="flex items-center gap-2 text-[12px] text-gray-500 min-w-0">
+                            <span className="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.08)' }}>
+                              <PiMapPin className="w-3 h-3" />
+                            </span>
+                            <span className="truncate">{label.trim()}</span>
                           </span>
-                          <span className="font-semibold text-gray-800 tabular-nums">{val}</span>
+                          <span className="text-[12px] font-bold text-gray-800 tabular-nums flex-shrink-0">{val}</span>
                         </div>
                       )
                     })}
@@ -436,27 +501,38 @@ export default async function HotelDetailPage({ params }: Props) {
 
               {hotel.food_options && (
                 <CollapsibleSection title="Stravování" icon={<PiForkKnife className="w-5 h-5" />}>
-                  {hotel.food_options && (
-                    <div className="divide-y divide-gray-50">
-                      {parseFoodOptions(hotel.food_options).map((row, i) => (
-                        <div key={i} className="flex items-center justify-between py-2 text-sm">
-                          <span className="text-gray-500">{row.label}</span>
-                          {row.price && <span className="font-semibold text-emerald-600 tabular-nums">{row.price}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="space-y-1.5">
+                    {parseFoodOptions(hotel.food_options).map((row, i) => (
+                      <div key={i} className="flex items-center justify-between gap-4 px-3 py-2 rounded-xl" style={{ background: i % 2 === 0 ? 'rgba(245,248,255,0.80)' : 'transparent', border: i % 2 === 0 ? '1px solid rgba(200,227,255,0.50)' : '1px solid transparent' }}>
+                        <span className="flex items-center gap-2 text-[12px] text-gray-600 min-w-0">
+                          <span className="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.08)' }}>
+                            <PiForkKnife className="w-3 h-3" />
+                          </span>
+                          <span className="truncate">{row.label}</span>
+                        </span>
+                        {row.price && (
+                          <span className="text-[12px] font-bold tabular-nums flex-shrink-0" style={{ color: '#049669' }}>{row.price}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </CollapsibleSection>
               )}
 
               {priceIncludesList.length > 0 && (
                 <CollapsibleSection title="Co je v ceně" icon={<PiWallet className="w-5 h-5" />}>
-                  <div className="grid sm:grid-cols-2 gap-y-2.5 gap-x-6">
+                  <div className="flex flex-wrap gap-1.5">
                     {priceIncludesList.map((item, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                        <PiCheck className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1.5 pl-1.5 pr-3 py-1 rounded-full text-[11px] font-medium text-gray-700"
+                        style={{ background: 'rgba(240,253,244,0.90)', border: '1px solid rgba(52,211,153,0.22)', boxShadow: '0 1px 3px rgba(16,185,129,0.06)' }}
+                      >
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-emerald-500" style={{ background: 'rgba(52,211,153,0.12)' }}>
+                          <PiCheck className="w-3 h-3" />
+                        </span>
                         {item}
-                      </div>
+                      </span>
                     ))}
                   </div>
                 </CollapsibleSection>
@@ -513,83 +589,92 @@ export default async function HotelDetailPage({ params }: Props) {
             <div className="lg:sticky lg:top-[116px] space-y-3">
 
               {/* Booking widget — hidden on mobile (shown above gallery instead) */}
-              <div className="hidden lg:block rounded-2xl border border-gray-100 overflow-hidden shadow-[0_4px_32px_-4px_rgba(0,138,254,0.13)]">
+              <div className="hidden lg:block rounded-2xl overflow-hidden" style={{
+                background: 'rgba(245,248,255,0.95)',
+                border: '1px solid rgba(200,227,255,0.65)',
+                boxShadow: '0 4px 32px -4px rgba(0,138,254,0.13)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+              }}>
 
-                {/* Price hero */}
-                <div className="px-5 pt-5 pb-5 bg-[#e1f2f3]">
-                  <p className="text-[10px] font-bold text-[#0d4f52] uppercase tracking-[0.12em] mb-1.5">Nejnižší cena od osoby</p>
-                  <div className="flex items-baseline gap-1.5 mb-4">
-                    {minTourPrice ? (
-                      <>
-                        <span className="text-[42px] font-bold text-[#0d4f52] leading-none tabular-nums">{formatPriceShort(minTourPrice)}</span>
-                        <span className="text-lg font-semibold text-[#0d4f52]">Kč</span>
-                      </>
-                    ) : (
-                      <span className="text-base font-semibold text-[#0d4f52] opacity-60">Ceny se aktualizují…</span>
-                    )}
+                {/* Header: eyebrow + heading + tour count */}
+                <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-4" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)' }}>
+                  <div>
+                    <p className="text-[10px] font-bold text-[#0093FF]/60 uppercase tracking-widest mb-0.5">Rezervace</p>
+                    <h3 className="font-bold text-gray-900 leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '18px', letterSpacing: '-0.02em' }}>
+                      Nejbližší termíny
+                    </h3>
                   </div>
-
-                  <div className="flex flex-col gap-2.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="inline-flex items-center gap-1.5 bg-[#0d4f52] text-white text-xs font-bold px-2.5 py-1 rounded-full">
-                        <PiCalendarBlank className="w-3.5 h-3.5" />
-                        {tourCount} {tourCount === 1 ? 'termín' : tourCount < 5 ? 'termíny' : 'termínů'}
-                      </span>
-                      {[hotel.resort_town, hotel.destination, hotel.country].filter(Boolean)[0] && (
-                        <Link
-                          href={`/destinace/${slugify([hotel.resort_town, hotel.destination, hotel.country].filter(Boolean)[0]!)}`}
-                          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0d4f52] transition-colors"
-                        >
-                          <PiMapPin className="w-3.5 h-3.5 text-[#0d4f52] flex-shrink-0" />
-                          {[hotel.resort_town, hotel.country].filter(Boolean).join(', ')}
-                        </Link>
-                      )}
-                    </div>
-
-                    {hotel.next_departure && (
-                      <ScrollToButton targetId="terminy" className="flex items-center gap-2 text-xs w-fit group">
-                        <span className="w-2 h-2 rounded-full bg-[#0d4f52] flex-shrink-0 ring-2 ring-emerald-100" />
-                        <span className="text-[#0d4f52]">
-                          Nejbližší:{' '}
-                          <span className="font-semibold">
-                            {formatDep(hotel.next_departure)}{hotel.next_return_date ? ` → ${formatDep(hotel.next_return_date)}` : ''}
-                          </span>
-                        </span>
-                      </ScrollToButton>
-                    )}
-                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white px-3 py-1.5 rounded-full flex-shrink-0" style={{ background: 'linear-gradient(135deg, #0093FF, #0070E0)', boxShadow: '0 3px 12px rgba(0,147,255,0.28)' }}>
+                    <PiCalendarBlank className="w-3.5 h-3.5" />
+                    {tourCount} {tourCount === 1 ? 'termín' : tourCount < 5 ? 'termíny' : 'termínů'}
+                  </span>
                 </div>
 
-                {/* Upcoming departures */}
-                <div className="px-5 py-3 border-t border-gray-50">
-                  <Suspense fallback={null}>
+                {/* Upcoming departures — main selling section */}
+                <div className="px-3 py-2" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)' }}>
+                  <Suspense fallback={
+                    <div className="space-y-1 py-2">
+                      {[1,2,3].map(i => <div key={i} className="h-12 rounded-xl animate-pulse" style={{ background: 'rgba(0,147,255,0.05)' }} />)}
+                    </div>
+                  }>
                     <UpcomingDepartures slug={params.slug} />
                   </Suspense>
                 </div>
 
-                {/* CTA */}
-                <div className="px-5 pb-5 pt-3 border-t border-gray-100 space-y-2.5">
+                {/* Price strip */}
+                <div className="px-5 py-4 flex items-center justify-between gap-3" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)', background: 'rgba(237,246,255,0.40)' }}>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Nejnižší cena od osoby</p>
+                    {minTourPrice ? (
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-[30px] font-black tabular-nums leading-none" style={{ color: '#049669' }}>{formatPriceShort(minTourPrice)}</span>
+                        <span className="text-sm font-semibold text-gray-400 ml-0.5">Kč</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400">Aktualizuje se…</span>
+                    )}
+                  </div>
+                  {[hotel.resort_town, hotel.country].filter(Boolean)[0] && (
+                    <Link
+                      href={`/destinace/${slugify([hotel.resort_town, hotel.destination, hotel.country].filter(Boolean)[0]!)}`}
+                      className="inline-flex items-center gap-1.5 pl-2 pr-3 py-1.5 rounded-full text-[11px] font-semibold text-gray-600 hover:text-[#0093FF] transition-colors flex-shrink-0"
+                      style={{ background: 'rgba(245,248,255,0.90)', border: '1px solid rgba(200,227,255,0.70)' }}
+                    >
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.09)' }}>
+                        <PiMapPin className="w-3 h-3" />
+                      </span>
+                      {[hotel.resort_town, hotel.country].filter(Boolean).join(', ')}
+                    </Link>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="px-5 pb-5 pt-4 space-y-2.5">
                   <ViewersBadge />
                   <ScrollToButton
                     targetId="terminy"
-                    className="w-full bg-[#008afe] hover:bg-[#0079e5] active:scale-[0.98] text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-[#008afe]/25 text-sm tracking-wide"
+                    className="w-full flex items-center justify-center gap-2 text-sm font-bold text-white py-3.5 px-4 rounded-xl transition-all active:scale-[0.98]"
+                    style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)', boxShadow: '0 4px 16px rgba(0,147,255,0.30)' }}
                   >
                     <PiCalendarBlank className="w-4 h-4" />
-                    Vybrat termín
+                    Zobrazit všechny termíny
                   </ScrollToButton>
                   <div className="flex gap-2">
                     <FavoriteButton slug={params.slug} name={hotel.name} variant="detail" className="flex-1 justify-center" />
                     <ShareButton slug={params.slug} name={hotel.name} />
                   </div>
-                  <div className="flex items-center justify-center gap-3 pt-0.5">
-                    {['Přímé rezervace', 'Bez poplatků', 'Ověřené CK'].map((label, i) => (
-                      <React.Fragment key={label}>
-                        {i > 0 && <span className="w-px h-3 bg-gray-200 flex-shrink-0" />}
-                        <span className="flex items-center gap-1 text-[12px] text-[#0c4d50]">
-                          <PiCheck className="w-3 h-3 text-[#0c4d50] flex-shrink-0" />
-                          {label}
-                        </span>
-                      </React.Fragment>
+                  {/* Trust badges */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {[
+                      { icon: <PiShieldCheck className="w-3 h-3" />, label: 'Přímé rezervace' },
+                      { icon: <PiCheck className="w-3 h-3" />, label: 'Bez poplatků' },
+                      { icon: <PiCheckCircle className="w-3 h-3" />, label: 'Ověřené CK' },
+                    ].map(({ icon, label }) => (
+                      <span key={label} className="inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full text-[10px] font-semibold text-gray-600" style={{ background: 'rgba(245,248,255,0.90)', border: '1px solid rgba(200,227,255,0.70)' }}>
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.09)' }}>{icon}</span>
+                        {label}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -648,7 +733,7 @@ export default async function HotelDetailPage({ params }: Props) {
 }
 
 async function UpcomingDepartures({ slug }: { slug: string }) {
-  const { fetchHotelTours } = await import('@/lib/api')
+  const { fetchHotelTours, API } = await import('@/lib/api')
   let tours: import('@/lib/types').Tour[] = []
   try {
     const data = await fetchHotelTours(slug)
@@ -664,32 +749,66 @@ async function UpcomingDepartures({ slug }: { slug: string }) {
     return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })
   }
 
-  function TourTransportIcon({ transport }: { transport: string | null }) {
+  function fmtPrice(p: number) {
+    return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(p)
+  }
+
+  function transportIcon(transport: string | null) {
     const t = (transport ?? '').toLowerCase()
-    if (t.includes('autobus') || t.includes('vlak')) return <Bus className="w-3 h-3" />
-    if (t.includes('vlastní') || t.includes('vlastni')) return <Car className="w-3 h-3" />
-    if (t.includes('leteck') || /[A-Z]{3}[→>-][A-Z]{3}/.test(transport ?? '')) return <Plane className="w-3 h-3" />
-    return null
+    if (t.includes('autobus') || t.includes('vlak')) return <Bus className="w-3.5 h-3.5" />
+    if (t.includes('vlastní') || t.includes('vlastni')) return <Car className="w-3.5 h-3.5" />
+    return <Plane className="w-3.5 h-3.5" />
   }
 
   return (
-    <div className="space-y-2">
-      {tours.map(tour => {
+    <div>
+      {tours.map((tour, i) => {
         const dep = fmtShort(tour.departure_date)
         const ret = fmtShort(tour.return_date ?? null)
+        const params = new URLSearchParams({
+          date:   tour.departure_date || '',
+          nights: String(tour.duration || 7),
+          adults: '2',
+        })
+        if (tour.url) params.set('tour_url', tour.url)
+        const href = `${API}/api/redirect/${slug}?${params}`
         return (
-          <div key={tour.id} className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-gray-700">
-              {dep}
-              {ret && <span className="font-normal text-gray-400"> → {ret}</span>}
-            </span>
-            <div className="flex items-center gap-1 text-[#0093FF] flex-shrink-0">
-              <TourTransportIcon transport={tour.transport} />
-              {tour.departure_city && (
-                <span className="text-[10px] text-gray-400 truncate max-w-[60px]">{tour.departure_city}</span>
-              )}
+          <a
+            key={tour.id}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between gap-2 px-2 py-2.5 rounded-xl group transition-colors hover:bg-[rgba(0,147,255,0.06)]"
+            style={{ background: i % 2 !== 0 ? 'rgba(237,246,255,0.40)' : undefined }}
+          >
+            {/* Left: transport icon + dates */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.09)', border: '1px solid rgba(0,147,255,0.12)' }}>
+                {transportIcon(tour.transport)}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[12px] font-bold text-gray-900 leading-tight">
+                  {dep ?? '—'}
+                  {ret && <span className="font-normal text-gray-400"> → {ret}</span>}
+                </p>
+                <p className="text-[10px] text-gray-400 mt-0.5">
+                  {tour.duration ? `${tour.duration} nocí` : ''}
+                  {tour.departure_city ? `${tour.duration ? ' · ' : ''}${tour.departure_city}` : ''}
+                </p>
+              </div>
             </div>
-          </div>
+            {/* Right: price + arrow */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {tour.price > 0 && (
+                <span className="text-[13px] font-black tabular-nums" style={{ color: '#049669' }}>
+                  {fmtPrice(tour.price)} <span className="text-[10px] font-semibold text-gray-400">Kč</span>
+                </span>
+              )}
+              <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[#0093FF] opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'rgba(0,147,255,0.09)' }}>
+                <PiArrowRight className="w-3 h-3" />
+              </span>
+            </div>
+          </a>
         )
       })}
     </div>

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Plane, Moon, Utensils, ExternalLink, X, Loader2 } from 'lucide-react'
-import { PiCalendarBlank, PiUserMinus, PiUserPlus, PiArrowsDownUp, PiTag, PiX } from 'react-icons/pi'
+import { PiCalendarBlank, PiUserMinus, PiUserPlus, PiArrowsDownUp, PiTag, PiX, PiCalendarStar } from 'react-icons/pi'
 import type { Tour } from '@/lib/types'
 import { API } from '@/lib/api'
 
@@ -14,6 +14,11 @@ function formatPrice(p: number) {
 function formatDateShort(s: string | null) {
   if (!s) return '—'
   return new Date(s).toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric' })
+}
+
+function formatDateMini(s: string) {
+  if (!s) return ''
+  return new Date(s + 'T00:00:00').toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })
 }
 
 function bookingUrl(slug: string, tour: Tour, adults: number) {
@@ -170,15 +175,31 @@ interface Props {
   onClose: () => void
 }
 
+const STORAGE_KEY = 'zaleto-filters'
+
 export default function ToursModal({ slug, name, onClose }: Props) {
-  const [allTours,   setAllTours]   = useState<Tour[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [sortBy,     setSortBy]     = useState<'date_asc' | 'price_asc'>('date_asc')
-  const [adults,     setAdults]     = useState(2)
-  const [cityFilter, setCityFilter] = useState<string[]>([])
-  const [page,       setPage]       = useState(1)
+  const [allTours,      setAllTours]      = useState<Tour[]>([])
+  const [loading,       setLoading]       = useState(true)
+  const [sortBy,        setSortBy]        = useState<'date_asc' | 'price_asc'>('date_asc')
+  const [adults,        setAdults]        = useState(2)
+  const [cityFilter,    setCityFilter]    = useState<string[]>([])
+  const [page,          setPage]          = useState(1)
+  const [filterDateFrom, setFilterDateFrom] = useState('')
+  const [filterDateTo,   setFilterDateTo]   = useState('')
   const sentinelRef = useRef<HTMLDivElement>(null)
   const scrollRef   = useRef<HTMLDivElement>(null)
+
+  // Read date filter from sessionStorage (set by HeaderFilterBar, valid on all pages)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const p = new URLSearchParams(saved)
+        setFilterDateFrom(p.get('date_from') || '')
+        setFilterDateTo(p.get('date_to')   || '')
+      }
+    } catch {}
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -201,9 +222,16 @@ export default function ToursModal({ slug, name, onClose }: Props) {
 
   const availableCities = Array.from(new Set(allTours.map(t => t.departure_city).filter(Boolean) as string[]))
 
-  const filtered = cityFilter.length > 0
-    ? allTours.filter(t => cityFilter.includes(t.departure_city || ''))
-    : allTours
+  const dateActive = !!(filterDateFrom || filterDateTo)
+
+  const filtered = allTours.filter(t => {
+    if (cityFilter.length > 0 && !cityFilter.includes(t.departure_city || '')) return false
+    if (dateActive && t.departure_date) {
+      if (filterDateFrom && t.departure_date < filterDateFrom) return false
+      if (filterDateTo   && t.departure_date > filterDateTo)   return false
+    }
+    return true
+  })
 
   const visible = filtered.slice(0, page * PAGE_SIZE)
   const hasMore = filtered.length > visible.length
@@ -267,7 +295,9 @@ export default function ToursModal({ slug, name, onClose }: Props) {
             <p className="text-[12px] text-gray-400 mt-1 h-4">
               {loading
                 ? <span className="inline-flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin text-[#0093FF]" /> Načítám termíny…</span>
-                : <>{filtered.length !== allTours.length ? `${filtered.length} / ` : ''}{allTours.length} {tourLabel(allTours.length)}</>
+                : filtered.length !== allTours.length
+                ? <>{filtered.length} z {allTours.length} {tourLabel(allTours.length)}</>
+                : <>{allTours.length} {tourLabel(allTours.length)}</>
               }
             </p>
           </div>
@@ -327,6 +357,35 @@ export default function ToursModal({ slug, name, onClose }: Props) {
             </button>
           </div>
 
+          {/* Active date filter badge */}
+          {dateActive && !loading && (
+            <span
+              className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full text-[11px] font-semibold"
+              style={{
+                background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+                color: '#fff',
+                border: '1px solid rgba(0,147,255,0.50)',
+                boxShadow: '0 2px 6px rgba(0,147,255,0.22)',
+              }}
+            >
+              <PiCalendarBlank className="w-3 h-3 flex-shrink-0" />
+              <span>
+                {filterDateFrom && filterDateTo
+                  ? `${formatDateMini(filterDateFrom)} – ${formatDateMini(filterDateTo)}`
+                  : filterDateFrom ? `od ${formatDateMini(filterDateFrom)}`
+                  : `do ${formatDateMini(filterDateTo)}`}
+              </span>
+              <button
+                type="button"
+                aria-label="Zrušit filtr datumu"
+                onClick={() => { setFilterDateFrom(''); setFilterDateTo('') }}
+                className="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded-full hover:bg-white/25 transition-colors ml-0.5"
+              >
+                <PiX className="w-2.5 h-2.5" />
+              </button>
+            </span>
+          )}
+
           {/* City filters */}
           {availableCities.length > 1 && (
             <div className="flex gap-1.5 flex-wrap">
@@ -364,10 +423,16 @@ export default function ToursModal({ slug, name, onClose }: Props) {
           ) : filtered.length === 0 ? (
             <div className="text-center py-12">
               <PiCalendarBlank className="w-10 h-10 mx-auto mb-3" style={{ color: 'rgba(0,147,255,0.25)' }} />
-              <p className="text-gray-500 font-medium">Žádné dostupné termíny</p>
+              <p className="text-gray-500 font-medium">
+                {dateActive && allTours.length > 0 ? 'Žádné termíny ve zvoleném období' : 'Žádné dostupné termíny'}
+              </p>
+              {dateActive && allTours.length > 0 && (
+                <button type="button" onClick={() => { setFilterDateFrom(''); setFilterDateTo('') }}
+                  className="mt-2 text-sm text-[#0093FF] hover:underline">Zobrazit všechny termíny</button>
+              )}
               {cityFilter.length > 0 && (
                 <button type="button" onClick={() => setCityFilter([])}
-                  className="mt-2 text-sm text-[#0093FF] hover:underline">Zrušit filtr letiště</button>
+                  className="mt-2 text-sm text-[#0093FF] hover:underline block mx-auto">Zrušit filtr letiště</button>
               )}
             </div>
           ) : (
