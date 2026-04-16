@@ -1,9 +1,11 @@
 'use client'
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { PiCaretLeft, PiCaretRight, PiArrowRight, PiMapPin } from 'react-icons/pi'
 import { slugify } from '@/lib/slugify'
+
+const AUTOPLAY_MS = 7000
 
 interface Item {
   region: string
@@ -27,6 +29,13 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
   const prev = useCallback(() => setPage(p => Math.max(0, p - 1)), [])
   const next = useCallback(() => setPage(p => Math.min(totalPages - 1, p + 1)), [totalPages])
 
+  // Auto-advance every AUTOPLAY_MS, loops around
+  useEffect(() => {
+    if (totalPages <= 1) return
+    const id = setInterval(() => setPage(p => (p + 1) % totalPages), AUTOPLAY_MS)
+    return () => clearInterval(id)
+  }, [totalPages])
+
   const pageItems = useMemo(
     () => items.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
     [items, page]
@@ -49,6 +58,10 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
         ._m3 { animation-delay: 80ms; }
         ._m4 { animation-delay: 110ms; }
         ._m5 { animation-delay: 140ms; }
+        @keyframes _dp_fill {
+          from { width: 0%; }
+          to   { width: 100%; }
+        }
       `}</style>
 
       {/* ── Desktop: magazine mosaic (1 featured + 4 compact) ── */}
@@ -184,8 +197,18 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
         <div className="flex items-center gap-1.5">
           {Array.from({ length: totalPages }).map((_, i) => (
             <button key={i} onClick={() => setPage(i)} aria-label={`Strana ${i + 1}`}
-              className={`rounded-full transition-all duration-200 ${i === page ? 'w-6 h-2 bg-[#0093FF]' : 'w-2 h-2 bg-gray-200 hover:bg-[#0093FF]/50'}`}
-            />
+              className={`rounded-full transition-all duration-200 overflow-hidden relative ${
+                i === page ? 'w-6 h-2 bg-[#0093FF]/20' : 'w-2 h-2 bg-gray-200 hover:bg-[#0093FF]/50'
+              }`}
+            >
+              {i === page && (
+                <span
+                  key={page}
+                  className="absolute inset-y-0 left-0 rounded-full bg-[#0093FF]"
+                  style={{ animation: `_dp_fill ${AUTOPLAY_MS}ms linear forwards` }}
+                />
+              )}
+            </button>
           ))}
         </div>
         <div className="flex items-center gap-2">

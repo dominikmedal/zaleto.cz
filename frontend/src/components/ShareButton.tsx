@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { PiShareNetwork, PiLink, PiCheck, PiEnvelope, PiWhatsappLogo, PiFacebookLogo } from 'react-icons/pi'
 
 interface Props {
@@ -79,7 +80,7 @@ export default function ShareButton({ slug, name, className = '' }: Props) {
         <span>Sdílet</span>
       </button>
 
-      {open && (
+      {open && typeof document !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
           style={dropdownStyle}
@@ -124,7 +125,8 @@ export default function ShareButton({ slug, name, className = '' }: Props) {
             <PiEnvelope className="w-4 h-4 flex-shrink-0 text-gray-400" />
             <span>E-mail</span>
           </a>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
