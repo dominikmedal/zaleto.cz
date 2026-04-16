@@ -11,7 +11,7 @@ export interface CarDestination {
   dcPath: string         // DiscoverCars URL path after /car-hire/
   dcSearchTerm: string   // English term for DC autocomplete API (airport/city name)
   popular: boolean
-  emoji: string
+  emoji?: string
 }
 
 // ─── URL builder ──────────────────────────────────────────────────────────────
