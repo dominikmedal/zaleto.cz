@@ -16,6 +16,10 @@
  *   DELETE /api/admin/articles/:id
  *   GET    /api/admin/destinations
  *   PUT    /api/admin/destinations/:name
+ *   GET    /api/admin/car-destinations
+ *   POST   /api/admin/car-destinations
+ *   PUT    /api/admin/car-destinations/:id
+ *   DELETE /api/admin/car-destinations/:id
  *   POST   /api/admin/upload
  */
 
@@ -419,6 +423,115 @@ router.put('/destinations/:name', adminAuth, async (req, res) => {
        ON CONFLICT (name) DO UPDATE SET photo_url = EXCLUDED.photo_url, updated_at = NOW()`,
       [name, photo_url]
     )
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── Car destinations ──────────────────────────────────────────────────────────
+
+// Ensure table exists on first use
+async function ensureCarDestinationsTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS car_destinations (
+      id           SERIAL PRIMARY KEY,
+      slug         VARCHAR(120) UNIQUE NOT NULL,
+      name         VARCHAR(255) NOT NULL,
+      country      VARCHAR(100) NOT NULL,
+      country_slug VARCHAR(100) NOT NULL,
+      dc_path      VARCHAR(255) NOT NULL DEFAULT '',
+      dc_search_term VARCHAR(255) NOT NULL DEFAULT '',
+      popular      BOOLEAN NOT NULL DEFAULT FALSE,
+      active       BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+}
+
+router.get('/car-destinations', adminAuth, async (req, res) => {
+  try {
+    await ensureCarDestinationsTable()
+    const { q = '', page = '1', limit = '50' } = req.query
+    const offset = (parseInt(page) - 1) * parseInt(limit)
+    const params = []
+    const conds  = []
+    if (q) {
+      conds.push('(name ILIKE ? OR country ILIKE ? OR slug ILIKE ?)')
+      const like = `%${q}%`
+      params.push(like, like, like)
+    }
+    const where = conds.length ? `WHERE ${conds.join(' AND ')}` : ''
+    const [rows, total] = await Promise.all([
+      db.query(
+        `SELECT id, slug, name, country, country_slug, dc_path, dc_search_term, popular, active, updated_at
+         FROM car_destinations ${where}
+         ORDER BY country ASC, name ASC
+         LIMIT ? OFFSET ?`,
+        [...params, parseInt(limit), offset]
+      ),
+      db.query(`SELECT COUNT(*) AS n FROM car_destinations ${where}`, params),
+    ])
+    res.json({ destinations: rows.rows, total: parseInt(total.rows[0].n) })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+router.post('/car-destinations', adminAuth, async (req, res) => {
+  try {
+    await ensureCarDestinationsTable()
+    const { slug, name, country, country_slug, dc_path = '', dc_search_term = '', popular = false } = req.body
+    if (!slug || !name || !country || !country_slug) {
+      return res.status(400).json({ error: 'slug, name, country, country_slug jsou povinné' })
+    }
+    const { rows } = await db.query(
+      `INSERT INTO car_destinations (slug, name, country, country_slug, dc_path, dc_search_term, popular)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       RETURNING id`,
+      [slug, name, country, country_slug, dc_path, dc_search_term, popular]
+    )
+    res.json({ ok: true, id: rows[0].id })
+  } catch (e) {
+    if (e.message?.includes('unique') || e.message?.includes('duplicate')) {
+      return res.status(409).json({ error: `Slug "${req.body.slug}" již existuje` })
+    }
+    res.status(500).json({ error: e.message })
+  }
+})
+
+router.put('/car-destinations/:id', adminAuth, async (req, res) => {
+  try {
+    await ensureCarDestinationsTable()
+    const { slug, name, country, country_slug, dc_path, dc_search_term, popular, active } = req.body
+    await db.query(
+      `UPDATE car_destinations
+       SET slug = COALESCE(?, slug),
+           name = COALESCE(?, name),
+           country = COALESCE(?, country),
+           country_slug = COALESCE(?, country_slug),
+           dc_path = COALESCE(?, dc_path),
+           dc_search_term = COALESCE(?, dc_search_term),
+           popular = COALESCE(?, popular),
+           active = COALESCE(?, active),
+           updated_at = NOW()
+       WHERE id = ?`,
+      [slug ?? null, name ?? null, country ?? null, country_slug ?? null,
+       dc_path ?? null, dc_search_term ?? null,
+       popular != null ? popular : null, active != null ? active : null,
+       req.params.id]
+    )
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+router.delete('/car-destinations/:id', adminAuth, async (req, res) => {
+  try {
+    await ensureCarDestinationsTable()
+    await db.query('DELETE FROM car_destinations WHERE id = ?', [req.params.id])
     res.json({ ok: true })
   } catch (e) {
     res.status(500).json({ error: e.message })

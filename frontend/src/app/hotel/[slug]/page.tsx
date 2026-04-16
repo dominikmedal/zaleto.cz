@@ -22,6 +22,7 @@ import AgencyDescriptionSwitcher from '@/components/AgencyDescriptionSwitcher'
 import WeatherWidget from '@/components/WeatherWidget'
 import CollapsibleSection from '@/components/CollapsibleSection'
 import ShareButton from '@/components/ShareButton'
+import CarRentalBanner from '@/components/CarRentalBanner'
 
 // Leaflet needs browser APIs → dynamic import, no SSR
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false })
@@ -717,6 +718,14 @@ export default async function HotelDetailPage({ params }: Props) {
             </div>
             <TourDatesList slug={params.slug} />
           </div>
+        </div>
+
+        {/* ── Car rental banner ── */}
+        <div className="mt-8">
+          <CarRentalBanner
+            place={hotel.resort_town ?? hotel.destination ?? hotel.country ?? ''}
+            country={hotel.country ?? ''}
+          />
         </div>
 
         {/* ── Nearby hotels — full width, below dates ── */}

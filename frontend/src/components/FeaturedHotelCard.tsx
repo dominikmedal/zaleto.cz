@@ -272,6 +272,7 @@ export function FeaturedHotelsBar({ hotels }: { hotels: Hotel[] }) {
 /** Vertical sidebar strip — liquid glass with green accent */
 export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
   if (!hotels.length) return null
+  const shown = hotels.slice(0, 2)
   return (
     <div
       className="rounded-2xl overflow-hidden"
@@ -297,7 +298,7 @@ export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
 
       {/* Desktop: vertical stack */}
       <div className="hidden lg:block">
-        {hotels.map((hotel, idx) => {
+        {shown.map((hotel, idx) => {
           const photo = getPhoto(hotel)
           const stars = hotel.stars ? '★'.repeat(Math.min(hotel.stars, 5)) : null
           return (
@@ -332,9 +333,44 @@ export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
         })}
       </div>
 
+      {/* Car rental banner — desktop only, below hotel list */}
+      <div className="hidden lg:block" style={{ borderTop: '1px solid rgba(4,150,105,0.10)' }}>
+        <Link href="/pujcovna-aut" className="group relative block overflow-hidden" style={{ minHeight: 180 }}>
+          <Image
+            src="/img/1509.jpg"
+            alt="Půjčovna aut"
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            sizes="280px"
+          />
+          <div className="absolute inset-0" style={{
+            background: 'linear-gradient(to top, rgba(0,15,40,0.88) 0%, rgba(0,15,40,0.55) 50%, rgba(0,15,40,0.15) 100%)'
+          }} />
+          <div className="relative px-4 pt-4 pb-4 flex flex-col justify-end" style={{ minHeight: 180 }}>
+            <p className="text-[9px] font-bold text-white/50 uppercase tracking-[0.16em] mb-1.5">Půjčovna aut v zahraničí</p>
+            <p
+              className="font-bold text-white leading-snug mb-1.5"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '15px' }}
+            >
+              Dovolená na vlastní pěst — bez autobusů, bez čekání
+            </p>
+            <p className="text-[11px] text-white/60 leading-relaxed mb-3">
+              Srovnejte přes <strong className="text-white/85">500 půjčoven</strong> — garantovaná cena, pojištění v ceně.
+            </p>
+            <span
+              className="inline-flex items-center gap-1.5 self-start text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all group-hover:scale-[1.03]"
+              style={{ background: 'rgba(255,255,255,0.93)', color: '#0068CC' }}
+            >
+              Srovnat ceny aut
+              <PiArrowRight className="w-3.5 h-3.5" />
+            </span>
+          </div>
+        </Link>
+      </div>
+
       {/* Mobile: horizontal scrollable row */}
       <div className="lg:hidden flex overflow-x-auto gap-0 snap-x snap-mandatory">
-        {hotels.map((hotel, idx) => {
+        {shown.map((hotel, idx) => {
           const photo = getPhoto(hotel)
           const stars = hotel.stars ? '★'.repeat(Math.min(hotel.stars, 5)) : null
           return (

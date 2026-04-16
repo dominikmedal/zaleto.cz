@@ -27,6 +27,21 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Location input — prominent pulsing glow ── */
+@keyframes location-glow {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(0,147,255,0.18), 0 2px 12px rgba(0,147,255,0.12); }
+  50%       { box-shadow: 0 0 0 4px rgba(0,147,255,0.28), 0 4px 20px rgba(0,147,255,0.22); }
+}
+.location-input-prominent {
+  animation: location-glow 2.4s ease-in-out infinite;
+  border-color: rgba(0,147,255,0.45) !important;
+  background: rgba(237,246,255,0.85) !important;
+}
+.location-input-prominent:focus {
+  animation: none;
+  box-shadow: 0 0 0 3px rgba(0,147,255,0.15), 0 2px 12px rgba(0,147,255,0.14) !important;
+}
+
 /* ── Section island — liquid glass container with blue spot glows ── */
 .section-island {
   background: rgba(255, 255, 255, 0.62);
@@ -174,6 +189,22 @@ body {
 }
 .btn-secondary:active {
   transform: scale(0.98);
+}
+
+/* ── Car search loading animation ── */
+@keyframes car-bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0px); }
+  50%       { transform: translateX(-50%) translateY(-6px); }
+}
+@keyframes road-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-car-bounce {
+  animation: car-bounce 0.7s ease-in-out infinite;
+}
+.animate-road-scroll {
+  animation: road-scroll 1.1s linear infinite;
 }
 
 /* Filter bar sweep animation */

@@ -545,7 +545,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         {/* ── Tips ── */}
         {noFilters && (dailyTip || weeklyTip) && (
           <section className="section-island">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Tipy pro vás</p>
+            <p className="text-xs font-bold text-[#0093FF] uppercase tracking-widest mb-4">Tipy pro vás</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {dailyTip && (
                 <Link
@@ -636,18 +636,69 @@ export default async function HomePage({ searchParams }: PageProps) {
                 </Link>
               )}
             </div>
+
           </section>
         )}
 
         {/* ── AI destination description + excursions ── */}
         {singleDest && destAI && (
-          <DestinationHeroAI data={destAI} />
+          <DestinationHeroAI
+            data={destAI}
+            destName={singleDest}
+            country={destinations.find(d =>
+              d.country === singleDest ||
+              d.destination.split('/').map(s => s.trim()).includes(singleDest) ||
+              d.resort_town === singleDest
+            )?.country ?? ''}
+          />
         )}
 
         {/* ── Articles — homepage ── */}
         {noFilters && !singleDest && !tourType && articlesWithPhotos.length > 0 && (
           <div className="section-island">
             <ArticlesSection articles={articlesWithPhotos} imageMap={articleImageMap} />
+
+            {/* Car rental banner — below article items */}
+            <Link
+              href="/pujcovna-aut"
+              className="group mt-5 relative block rounded-2xl overflow-hidden"
+              style={{ minHeight: 130 }}
+            >
+              <Image
+                src="/img/1602.jpg"
+                alt="Půjčovna aut v zahraničí"
+                fill
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                sizes="100vw"
+              />
+              <div className="absolute inset-0" style={{
+                background: 'linear-gradient(to right, rgba(0,20,60,0.78) 0%, rgba(0,20,60,0.55) 50%, rgba(0,20,60,0.20) 100%)'
+              }} />
+              <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-6 py-5 sm:px-8 sm:py-6 h-full">
+                <div className="max-w-xl">
+                  <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-white/70 uppercase tracking-[0.14em] mb-2">
+                    <PiAirplane className="w-3 h-3" />
+                    Půjčovna aut v zahraničí
+                  </div>
+                  <p
+                    className="font-bold text-white leading-tight mb-1.5"
+                    style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(17px, 2.2vw, 24px)' }}
+                  >
+                    Dovolená jinak — prozkoumejte destinaci za volantem
+                  </p>
+                  <p className="text-white/65 text-[12px] sm:text-[13px] leading-relaxed">
+                    Přes <strong className="text-white/90">500 půjčoven aut</strong> ve více než 20 destinacích. Řecko, Turecko, Chorvatsko a další — vždy garantovaná cena, pojištění v ceně.
+                  </p>
+                </div>
+                <div
+                  className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[13px] text-[#0068CC] transition-all group-hover:scale-[1.04] whitespace-nowrap self-start sm:self-auto"
+                  style={{ background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 12px rgba(0,0,0,0.15)' }}
+                >
+                  Srovnat ceny aut
+                  <PiArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+            </Link>
           </div>
         )}
 

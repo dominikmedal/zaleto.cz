@@ -16,7 +16,7 @@ export default function ArticlesSection({ articles, imageMap, label = 'Cestovní
     <section>
       {/* Header row */}
       <div className="flex items-center justify-between mb-5">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">{label}</p>
+        <p className="text-xs font-bold text-[#0093FF] uppercase tracking-widest">{label}</p>
         <Link href="/clanky" className="hidden sm:flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-gray-700 transition-colors">
           Všechny články <PiArrowRight className="w-3 h-3" />
         </Link>

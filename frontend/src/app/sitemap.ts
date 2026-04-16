@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
-import { fetchAllHotelSlugs, fetchAllArticleSlugs, fetchDestinations } from '@/lib/api'
+import { fetchAllHotelSlugs, fetchAllArticleSlugs, fetchDestinations, fetchDynamicCarDestinations } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
+import { CAR_DESTINATIONS, mergeDestinations } from '@/lib/carRental'
 
 // Nevygenerovat při buildu — Railway by timeoutovalo.
 // Sitemap se vygeneruje on-demand a Vercel ji cachuje 24 hodin.
@@ -21,6 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/faq`,                      lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${base}/kontakt`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${base}/o-zaleto`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${base}/pujcovna-aut`,             lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
   ]
 
   // ── Stránky destinací ─────────────────────────────────────────────────────
@@ -105,5 +107,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
   } catch {}
 
-  return [...staticPages, ...destUrls, ...weatherUrls, ...hotelUrls, ...articleUrls]
+  // ── Půjčovny aut ─────────────────────────────────────────────────────────
+  const dynamicCarDests = await fetchDynamicCarDestinations().catch(() => [])
+  const allCarDests = mergeDestinations(dynamicCarDests)
+  const carRentalUrls: MetadataRoute.Sitemap = allCarDests.map(d => ({
+    url: `${base}/pujcovna-aut/${d.slug}`,
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
+    priority: d.popular ? 0.80 : 0.70,
+  }))
+
+  return [...staticPages, ...destUrls, ...weatherUrls, ...hotelUrls, ...articleUrls, ...carRentalUrls]
 }

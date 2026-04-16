@@ -19,11 +19,11 @@ const staticLinks = [
   {
     heading: 'Zaleto',
     items: [
-      { label: 'Časté otázky (FAQ)', href: '/faq' },
-      { label: 'Kontakt',           href: '/kontakt' },
-      { label: 'Co je Zaleto?',     href: '/o-zaleto' },
+      { label: 'Půjčovna aut',      href: '/pujcovna-aut' },
       { label: 'Cestovní inspirace',href: '/clanky' },
       { label: 'Počasí & klima',    href: '/pocasi' },
+      { label: 'Časté otázky (FAQ)', href: '/faq' },
+      { label: 'Co je Zaleto?',     href: '/o-zaleto' },
     ],
   },
 ]

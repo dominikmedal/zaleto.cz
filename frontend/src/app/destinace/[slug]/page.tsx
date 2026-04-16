@@ -218,7 +218,7 @@ export default async function DestinacePage({ params }: Props) {
               <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
                 <Link href="/" className="hover:text-[#008afe] transition-colors">Všechny zájezdy</Link>
                 {dest.breadcrumb.map((crumb, i) => (
-                  <span key={crumb.href} className="flex items-center gap-1">
+                  <span key={i} className="flex items-center gap-1">
                     <span className="text-gray-200">/</span>
                     {i === dest.breadcrumb.length - 1
                       ? <span className="text-gray-700 font-medium">{crumb.label}</span>
@@ -298,7 +298,7 @@ export default async function DestinacePage({ params }: Props) {
 
         {/* ── AI info cards (side by side, below hero) ── */}
         {hasHeroAI && destAI && (
-          <DestinationHeroAI data={destAI} />
+          <DestinationHeroAI data={destAI} destName={dest.name} country={dest.country ?? ''} />
         )}
 
         {/* ── Filter animation bar ── */}

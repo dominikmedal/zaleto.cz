@@ -1,7 +1,12 @@
 'use client'
 import { useState } from 'react'
-import { PiSun, PiMapPin, PiForkKnife, PiMapTrifold, PiCompass } from 'react-icons/pi'
+import Image from 'next/image'
+import Link from 'next/link'
+import { PiSun, PiMapPin, PiForkKnife, PiMapTrifold, PiCompass, PiCar } from 'react-icons/pi'
+import { Shield, Clock, BadgeCheck } from 'lucide-react'
 import type { DestinationAIData, DestinationAIItem } from '@/lib/api'
+import { CAR_DESTINATIONS } from '@/lib/carRental'
+import { slugify } from '@/lib/slugify'
 
 interface Panel {
   key: string
@@ -9,10 +14,31 @@ interface Panel {
   Icon: React.ElementType
   items?: DestinationAIItem[]
   text?: string
+  carRental?: boolean
 }
 
-export default function DestinationHeroAI({ data }: { data: DestinationAIData }) {
+function findCarDest(destName: string, country: string) {
+  const norm = (s: string) => slugify(s)
+  const byPlace = CAR_DESTINATIONS.find(d => norm(d.name) === norm(destName) || d.slug === norm(destName))
+  if (byPlace) return byPlace
+  const byCountry = CAR_DESTINATIONS.filter(d => norm(d.country) === norm(country))
+  return byCountry.find(d => d.popular) ?? byCountry[0] ?? null
+}
+
+export default function DestinationHeroAI({
+  data,
+  destName = '',
+  country = '',
+}: {
+  data: DestinationAIData
+  destName?: string
+  country?: string
+}) {
   const [openKey, setOpenKey] = useState<string | null>(null)
+
+  const carDest = findCarDest(destName, country)
+  const carHref = carDest ? `/pujcovna-aut/${carDest.slug}` : '/pujcovna-aut'
+  const carLabel = carDest?.name ?? destName ?? country
 
   const panels: Panel[] = ([
     data.best_time
@@ -29,6 +55,9 @@ export default function DestinationHeroAI({ data }: { data: DestinationAIData })
       : null,
     (data.excursions ?? []).length > 0
       ? { key: 'excursions', title: 'Co zažít', Icon: PiCompass, items: data.excursions }
+      : null,
+    destName
+      ? { key: 'car_rental', title: `Půjčovna aut v ${carLabel}`, Icon: PiCar, carRental: true }
       : null,
   ] as (Panel | null)[]).filter((p): p is Panel => p !== null)
 
@@ -106,7 +135,7 @@ export default function DestinationHeroAI({ data }: { data: DestinationAIData })
           transition: 'max-height 0.30s cubic-bezier(0.4,0,0.2,1)',
         }}
       >
-        {panels.map(({ key, Icon, items, text }) => (
+        {panels.map(({ key, Icon, items, text, carRental }) => (
           <div key={key} className={key === openKey ? 'block' : 'hidden'}>
             <div
               className="mt-2.5 rounded-2xl p-4 sm:p-5"
@@ -118,6 +147,53 @@ export default function DestinationHeroAI({ data }: { data: DestinationAIData })
                 boxShadow: '0 2px 16px rgba(0,147,255,0.07), inset 0 1px 0 rgba(255,255,255,0.95)',
               }}
             >
+              {/* ── Car rental panel ── */}
+              {carRental && (
+                <div className="flex flex-col sm:flex-row gap-5 sm:gap-7 items-start sm:items-center">
+                  {/* Photo */}
+                  <div className="relative w-full sm:w-52 h-36 sm:h-32 rounded-xl overflow-hidden flex-shrink-0">
+                    <Image
+                      src="/img/header-car.jpg"
+                      alt="Půjčovna aut"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, 208px"
+                    />
+                  </div>
+                  {/* Text */}
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="font-bold text-gray-900 leading-snug mb-2"
+                      style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '18px' }}
+                    >
+                      Auto z dovolené udělá úplně jiný zážitek
+                    </p>
+                    <p className="text-[13px] text-gray-500 leading-relaxed mb-4">
+                      Skryté zátoky, horské vesničky a místní trhy dostupné jen autem — prozkoumejte{' '}
+                      <strong className="text-gray-700">{carLabel}</strong> na vlastní pěst, bez autobusů a bez čekání.
+                      Srovnáme přes <strong className="text-gray-700">500 půjčoven</strong> a najdeme nejlepší cenu.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                      {[
+                        { icon: <Shield className="w-3 h-3 text-[#0093FF]" />, label: 'Pojištění v ceně' },
+                        { icon: <Clock className="w-3 h-3 text-[#0093FF]" />, label: 'Zdarma storno 48 h' },
+                        { icon: <BadgeCheck className="w-3 h-3 text-[#0093FF]" />, label: 'Garantovaná cena' },
+                      ].map(({ icon, label }) => (
+                        <span
+                          key={label}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 glass-pill px-2.5 py-1 rounded-full"
+                        >
+                          {icon}{label}
+                        </span>
+                      ))}
+                    </div>
+                    <Link href={carHref} className="btn-cta inline-flex text-[13px] py-2.5 px-5">
+                      <PiCar className="w-4 h-4" />
+                      Srovnat půjčovny aut — {carLabel}
+                    </Link>
+                  </div>
+                </div>
+              )}
               {text && (
                 <p className="text-sm text-gray-600 leading-relaxed">
                   {text.split(/\n\n+/)[0]}

@@ -154,6 +154,35 @@ export async function updateDest(name: string, photo_url: string) {
   await revalidateFrontend(`/destinace`).catch(() => {})
 }
 
+// ── Car destinations ──────────────────────────────────────────────────
+export interface AdminCarDest {
+  id: number
+  slug: string
+  name: string
+  country: string
+  country_slug: string
+  dc_path: string
+  dc_search_term: string
+  popular: boolean
+  active: boolean
+  updated_at: string
+}
+export interface CarDestList { destinations: AdminCarDest[]; total: number }
+
+export function fetchAdminCarDests(params: Record<string, string | number> = {}) {
+  const qs = new URLSearchParams(params as Record<string, string>).toString()
+  return api<CarDestList>(`/car-destinations${qs ? `?${qs}` : ''}`)
+}
+export function createCarDest(body: Omit<AdminCarDest, 'id' | 'updated_at'>) {
+  return api<{ ok: boolean; id: number }>('/car-destinations', { method: 'POST', body: JSON.stringify(body) })
+}
+export function updateCarDest(id: number, body: Partial<AdminCarDest>) {
+  return api(`/car-destinations/${id}`, { method: 'PUT', body: JSON.stringify(body) })
+}
+export function deleteCarDest(id: number) {
+  return api(`/car-destinations/${id}`, { method: 'DELETE' })
+}
+
 // ── Upload ────────────────────────────────────────────────────────────
 export async function uploadImage(file: File): Promise<{ url: string; filename: string }> {
   const form = new FormData()

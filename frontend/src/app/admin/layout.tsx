@@ -5,16 +5,17 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { adminCheck, adminLogout } from '@/lib/adminApi'
 import {
-  PiHouse, PiBuildings, PiAirplane, PiNewspaper, PiMapPin,
+  PiHouse, PiBuildings, PiAirplane, PiNewspaper, PiMapPin, PiCar,
   PiSignOut, PiSpinner, PiList, PiX
 } from 'react-icons/pi'
 
 const NAV = [
-  { href: '/admin/prehled',   label: 'Přehled',    icon: PiHouse },
-  { href: '/admin/hotely',    label: 'Hotely',      icon: PiBuildings },
-  { href: '/admin/zajezdy',   label: 'Zájezdy',     icon: PiAirplane },
-  { href: '/admin/clanky',    label: 'Články',      icon: PiNewspaper },
-  { href: '/admin/destinace', label: 'Destinace',   icon: PiMapPin },
+  { href: '/admin/prehled',      label: 'Přehled',       icon: PiHouse },
+  { href: '/admin/hotely',       label: 'Hotely',         icon: PiBuildings },
+  { href: '/admin/zajezdy',      label: 'Zájezdy',        icon: PiAirplane },
+  { href: '/admin/clanky',       label: 'Články',         icon: PiNewspaper },
+  { href: '/admin/destinace',    label: 'Destinace',      icon: PiMapPin },
+  { href: '/admin/pujcovna-aut', label: 'Půjčovna aut',   icon: PiCar },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

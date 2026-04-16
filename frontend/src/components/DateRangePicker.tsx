@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { PiCaretLeft, PiCaretRight, PiCalendarBlank, PiX } from 'react-icons/pi'
 import { Loader2 } from 'lucide-react'
 import { fetchCalendarPrices } from '@/lib/api'
@@ -18,6 +19,7 @@ interface Props {
   onComplete?: () => void
   flex?: boolean
   onFlexChange?: (v: boolean) => void
+  noPrices?: boolean
 }
 
 function toYMD(d: Date): string {
@@ -62,9 +64,10 @@ interface MonthGridProps {
   priceMap: Map<string, DayPrice>; allPrices: number[]
   dateFrom: string; dateTo: string; hover: string; picking: 'from' | 'to'; today: string
   onDayClick: (d: string) => void; onDayHover: (d: string) => void
+  noPrices?: boolean
 }
 
-function MonthGrid({ year, month, priceMap, allPrices, dateFrom, dateTo, hover, picking, today, onDayClick, onDayHover }: MonthGridProps) {
+function MonthGrid({ year, month, priceMap, allPrices, dateFrom, dateTo, hover, picking, today, onDayClick, onDayHover, noPrices }: MonthGridProps) {
   const days   = getDaysInMonth(year, month)
   const offset = getFirstDayOffset(year, month)
   const cells: (number | null)[] = [...Array(offset).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)]
@@ -119,10 +122,10 @@ function MonthGrid({ year, month, priceMap, allPrices, dateFrom, dateTo, hover, 
               <span className={`font-semibold text-[13px] leading-none ${sel ? 'text-white' : past ? 'text-gray-400' : 'text-gray-800'}`}>
                 {day}
               </span>
-              {info
+              {!noPrices && (info
                 ? <span className={`text-[9px] leading-none mt-0.5 font-medium ${sel ? 'text-white/75' : priceColor(info.min_price, allPrices)}`}>{fmtPrice(info.min_price)}</span>
                 : <span className="text-[9px] leading-none mt-0.5">&nbsp;</span>
-              }
+              )}
             </div>
           )
         })}
@@ -131,7 +134,7 @@ function MonthGrid({ year, month, priceMap, allPrices, dateFrom, dateTo, hover, 
   )
 }
 
-export default function DateRangePicker({ dateFrom, dateTo, destination, onDateFromChange, onDateToChange, defaultOpen, noLabel, inline, onComplete, flex, onFlexChange }: Props) {
+export default function DateRangePicker({ dateFrom, dateTo, destination, onDateFromChange, onDateToChange, defaultOpen, noLabel, inline, onComplete, flex, onFlexChange, noPrices }: Props) {
   const today = toYMD(new Date())
   const init  = dateFrom
     ? (() => { const [y, m] = dateFrom.split('-').map(Number); return { year: y, month: m - 1 } })()
@@ -145,9 +148,29 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
   const [priceMap,  setPriceMap]  = useState<Map<string, DayPrice>>(new Map())
   const [allPrices, setAllPrices] = useState<number[]>([])
   const [loading,   setLoading]   = useState(false)
+  const [popPos,    setPopPos]    = useState<{ top: number; left: number; width: number } | null>(null)
 
   const popRef     = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
+
+  const calcPos = useCallback(() => {
+    if (!triggerRef.current) return
+    const r = triggerRef.current.getBoundingClientRect()
+    const popW = Math.min(680, window.innerWidth - 32)
+    const left = Math.min(r.left, window.innerWidth - popW - 16)
+    setPopPos({ top: r.bottom + 8, left: Math.max(8, left), width: popW })
+  }, [])
+
+  // Keep popup anchored to trigger while scrolling / resizing
+  useEffect(() => {
+    if (!open) return
+    window.addEventListener('scroll', calcPos, true)
+    window.addEventListener('resize', calcPos)
+    return () => {
+      window.removeEventListener('scroll', calcPos, true)
+      window.removeEventListener('resize', calcPos)
+    }
+  }, [open, calcPos])
   const month2     = addMonths(viewYear, viewMonth, 1)
 
   const loadPrices = useCallback(async () => {
@@ -160,7 +183,7 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
     setPriceMap(map); setAllPrices(prices); setLoading(false)
   }, [viewYear, viewMonth, destination])
 
-  useEffect(() => { if (open || inline) loadPrices() }, [open, inline, loadPrices])
+  useEffect(() => { if ((open || inline) && !noPrices) loadPrices() }, [open, inline, noPrices, loadPrices])
 
   useEffect(() => {
     if (!open) return
@@ -228,10 +251,10 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onMouseLeave={() => setHover('')}>
         <MonthGrid year={viewYear} month={viewMonth} priceMap={priceMap} allPrices={allPrices}
           dateFrom={dateFrom} dateTo={dateTo} hover={hover} picking={picking} today={today}
-          onDayClick={handleDayClick} onDayHover={setHover} />
+          onDayClick={handleDayClick} onDayHover={setHover} noPrices={noPrices} />
         <MonthGrid year={month2.year} month={month2.month} priceMap={priceMap} allPrices={allPrices}
           dateFrom={dateFrom} dateTo={dateTo} hover={hover} picking={picking} today={today}
-          onDayClick={handleDayClick} onDayHover={setHover} />
+          onDayClick={handleDayClick} onDayHover={setHover} noPrices={noPrices} />
       </div>
 
       {/* Footer */}
@@ -239,16 +262,18 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
         className="mt-5 pt-4 flex flex-wrap items-center gap-4 text-[11px] text-gray-500"
         style={{ borderTop: '1px solid rgba(0,147,255,0.08)' }}
       >
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />Levné
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />Průměrné
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />Dražší
-        </span>
-        <span className="text-gray-300 text-[10px]">Ceny od osoby / 2 os.</span>
+        {!noPrices && <>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />Levné
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />Průměrné
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />Dražší
+          </span>
+          <span className="text-gray-300 text-[10px]">Ceny od osoby / 2 os.</span>
+        </>}
 
         {onFlexChange && (
           <div className="glass-pill rounded-xl p-0.5 ml-auto flex items-center gap-0.5">
@@ -291,7 +316,7 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
       {/* Trigger — same glass style as DestinationAutocomplete */}
       <button
         type="button"
-        onClick={() => { setOpen(o => !o); setPicking('from') }}
+        onClick={() => { const next = !open; if (next) calcPos(); setOpen(next); setPicking('from') }}
         className="w-full px-3 py-2.5 text-sm rounded-xl text-left flex items-center gap-2 cursor-pointer transition-all duration-200"
         style={{
           background: open ? 'rgba(255,255,255,0.95)' : 'rgba(237,246,255,0.72)',
@@ -316,13 +341,17 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
         )}
       </button>
 
-      {/* Popup */}
-      {open && (
+      {/* Popup — rendered via portal so overflow:hidden ancestors can't clip it */}
+      {open && popPos && typeof document !== 'undefined' && createPortal(
         <div
           ref={popRef}
-          className="absolute top-full left-0 mt-2 z-50 rounded-2xl p-5 overflow-hidden"
+          className="rounded-2xl p-5"
           style={{
-            width: 'min(680px, calc(100vw - 2rem))',
+            position: 'fixed',
+            top: popPos.top,
+            left: popPos.left,
+            width: popPos.width,
+            zIndex: 9999,
             background: 'rgba(248,251,255,0.97)',
             backdropFilter: 'blur(28px) saturate(160%)',
             WebkitBackdropFilter: 'blur(28px) saturate(160%)',
@@ -331,7 +360,8 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
           }}
         >
           {calendarContent}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

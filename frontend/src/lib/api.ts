@@ -260,6 +260,135 @@ export async function fetchArticle(slug: string): Promise<ArticleFull | null> {
   } catch { return null }
 }
 
+// ─── Car rental (DiscoverCars proxy) ─────────────────────────────────────────
+
+export interface CarOffer {
+  carName: string
+  category: string
+  sipp: string
+  image: string | null
+  seats: number | null
+  bags: number | null
+  transmission: string | null
+  ac: boolean
+  fuelPolicy: string | null
+  price: { total: number | null; perDay: number | null; formatted: string | null; currency: string }
+  supplier: { name: string; logo: string | null; rating: number | null }
+  bookUrl: string | null  // direct DC booking link with affiliate already appended
+  offerHash: string | null
+}
+
+export interface CarSearchResult {
+  cars: CarOffer[]
+  sq?: string   // DC search token — used to build /offer/{hash}?sq=... direct links
+  location?: { name: string; place: string; city: string; country: string; placeID?: number } | null
+  isComplete?: boolean
+  error?: string
+}
+
+export async function fetchCarSearch(params: {
+  location: string       // English search term, e.g. "heraklion airport"
+  pickupDate: string     // YYYY-MM-DD
+  dropoffDate: string    // YYYY-MM-DD
+  pickupTime?: string    // HH:MM, default 12:00
+  dropoffTime?: string   // HH:MM, default 12:00
+  driverAge?: number
+  residence?: string
+}): Promise<CarSearchResult> {
+  try {
+    const p = new URLSearchParams({
+      location:      params.location,
+      pickup_date:   params.pickupDate,
+      dropoff_date:  params.dropoffDate,
+      pickup_time:   params.pickupTime  ?? '12:00',
+      dropoff_time:  params.dropoffTime ?? '12:00',
+      driver_age:    String(params.driverAge ?? 30),
+      residence:     params.residence ?? 'CZ',
+    })
+    const res = await fetch(`${API}/api/car-rental/search?${p}`, {
+      signal: AbortSignal.timeout(35_000),
+    })
+    if (!res.ok) return { cars: [] }
+    return res.json()
+  } catch {
+    return { cars: [] }
+  }
+}
+
+export interface DynamicCarDestination {
+  slug: string
+  name: string
+  country: string
+  countrySlug: string
+  dcPath: string
+  dcSearchTerm: string
+  placeID?: number
+  cityID?: number
+  countryID?: number
+  popular: false
+  dynamic: true
+}
+
+async function fetchEnrichedCarDestinations(): Promise<DynamicCarDestination[]> {
+  try {
+    const res = await fetch(`${API}/api/car-rental/enriched-destinations`, {
+      next: { revalidate: 21600 },
+      signal: timeout(30_000),
+    })
+    if (!res.ok) return []
+    return res.json()
+  } catch { return [] }
+}
+
+async function fetchCustomCarDestinations(): Promise<DynamicCarDestination[]> {
+  try {
+    const res = await fetch(`${API}/api/car-rental/custom-destinations`, {
+      next: { revalidate: 3600 },
+      signal: timeout(10_000),
+    })
+    if (!res.ok) return []
+    const rows = await res.json()
+    // Map DB column names to DynamicCarDestination shape
+    return rows.map((r: { slug: string; name: string; country: string; country_slug: string; dc_path: string; dc_search_term: string; popular: boolean }) => ({
+      slug:          r.slug,
+      name:          r.name,
+      country:       r.country,
+      countrySlug:   r.country_slug,
+      dcPath:        r.dc_path,
+      dcSearchTerm:  r.dc_search_term,
+      popular:       r.popular,
+      dynamic:       true as const,
+    }))
+  } catch { return [] }
+}
+
+/** Fetches all dynamic destinations: admin-managed (DB) + auto-enriched from tours */
+export async function fetchDynamicCarDestinations(): Promise<DynamicCarDestination[]> {
+  const [custom, enriched] = await Promise.all([
+    fetchCustomCarDestinations(),
+    fetchEnrichedCarDestinations(),
+  ])
+  // Custom (admin-managed) override enriched on same slug
+  const customSlugs = new Set(custom.map(d => d.slug))
+  return [...custom, ...enriched.filter(d => !customSlugs.has(d.slug))]
+}
+
+export async function fetchCarAutocomplete(q: string): Promise<{
+  location: string; place: string; city: string; country: string
+  countryID: number; cityID: number; placeID: number; type: string
+}[]> {
+  if (q.trim().length < 2) return []
+  try {
+    const res = await fetch(`${API}/api/car-rental/autocomplete?q=${encodeURIComponent(q.trim())}`)
+    if (!res.ok) return []
+    return res.json()
+  } catch {
+    return []
+  }
+}
+
+// ─── Filters ──────────────────────────────────────────────────────────────────
+
 export async function fetchFilters(): Promise<{
   mealPlans: { meal_plan: string; count: number }[]
   priceRange: { min: number; max: number }
