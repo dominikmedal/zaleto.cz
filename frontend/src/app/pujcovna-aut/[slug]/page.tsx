@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!dest) return { title: 'Půjčovna aut | Zaleto' }
 
   const year = new Date().getFullYear()
-  const title = `Půjčovna aut ${dest.name} ${year} – Aktuální ceny | Zaleto`
+  const title = `Půjčovna aut ${dest.name} ${year} – Aktuální ceny`
   const description =
     `Půjčte si auto v destinaci ${dest.name}. Porovnejte nabídky přes 500 půjčoven — garantovaná cena bez skrytých poplatků.`
   const canonical = `https://zaleto.cz/pujcovna-aut/${dest.slug}`
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description,
     alternates: { canonical },
     openGraph: {
-      title: `Půjčovna aut ${dest.name} ${year} | Zaleto`,
+      title: `Půjčovna aut ${dest.name} ${year}`,
       description,
       url: canonical,
       type: 'website',

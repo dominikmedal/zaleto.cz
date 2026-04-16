@@ -13,13 +13,13 @@ export const revalidate = 86400
 const year = new Date().getFullYear()
 
 export const metadata: Metadata = {
-  title: `Půjčovna aut v zahraničí ${year} – Srovnání cen | Zaleto`,
+  title: `Půjčovna aut v zahraničí ${year} – Srovnání cen`,
   description:
     `Porovnejte ceny půjčoven aut ve více než 20 destinacích – Řecko, Turecko, Chorvatsko, Španělsko a další. ` +
     `Vyberte si auto od ${year} snadno a rychle s garancí nejlepší ceny.`,
   alternates: { canonical: 'https://zaleto.cz/pujcovna-aut' },
   openGraph: {
-    title: `Půjčovna aut v zahraničí ${year} | Zaleto`,
+    title: `Půjčovna aut v zahraničí ${year}`,
     description: 'Srovnejte ceny půjčoven aut ve více než 20 populárních destinacích. Bez skrytých poplatků.',
     url: 'https://zaleto.cz/pujcovna-aut',
     type: 'website',
