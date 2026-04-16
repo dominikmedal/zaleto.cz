@@ -241,7 +241,7 @@ export async function fetchArticles(limit = 3, location?: string): Promise<Artic
     const params = new URLSearchParams({ limit: String(limit) })
     if (location) params.set('location', location)
     const res = await fetch(`${API}/api/articles?${params}`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 3600, tags: ['articles'] },
       signal: timeout(),
     })
     if (!res.ok) return []

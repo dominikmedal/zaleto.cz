@@ -41,6 +41,21 @@ CDN_BASE   = "https://cdn.siteone.io/img.siteone.cz/o_jpeg/www.blue-style.cz"
 AGENCY     = "Blue Style"
 DEP_CITY   = 2      # Praha Václav Havel (default, pokud není --dep-cities)
 ADULTS     = 2
+
+# Mapování názvu odletového města → IATA kód (pro formát "letecky PRG→AYT")
+_DEP_CITY_IATA: dict[str, str] = {
+    "Praha":       "PRG",
+    "Brno":        "BRQ",
+    "Ostrava":     "OSR",
+    "Bratislava":  "BTS",
+    "Wien":        "VIE",
+    "Vídeň":       "VIE",
+    "Vienna":      "VIE",
+    "Katowice":    "KTW",
+    "Pardubice":   "PED",
+    "Kraków":      "KRK",
+    "Krakow":      "KRK",
+}
 # Délky pobytů k vyhledávání — [7] by vynechalo hotely nabízející jen 10 nebo 14 nocí
 # Fallback délky pobytů — použijí se jen pokud SearchForm nevrátí seznam délek.
 # SearchForm GraphQL vrací pole `durations` se všemi délkami které Blue Style nabízí.
@@ -445,11 +460,18 @@ def _process_tours(h: dict, dep_city_name: str = "", adults: int = ADULTS) -> li
     if not dep_date:
         return tours
 
+    # Lookup IATA kódu odletového města z názvu
+    dep_code = next(
+        (iata for city, iata in _DEP_CITY_IATA.items() if city.lower() in dep_city_name.lower()),
+        ""
+    )
     transport = "letecky"
-    if arr_code:
-        transport = f"letecky → {arr_code}"
+    if dep_code and arr_code:
+        transport = f"letecky {dep_code}→{arr_code}"
+    elif arr_code:
+        transport = f"letecky →{arr_code}"
     if flight_no:
-        transport += f" ({flight_no})"
+        transport += f" {flight_no}"
 
     # Pro každý typ stravování / pokoje v rooms
     rooms = h.get("rooms") or []

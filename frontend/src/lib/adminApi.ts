@@ -125,7 +125,8 @@ export function fetchAdminArticles(params: Record<string, string | number>) {
 }
 export async function createArticle(body: Partial<AdminArticle>) {
   const result = await api<{ ok: boolean; slug: string }>('/articles', { method: 'POST', body: JSON.stringify(body) })
-  await revalidateFrontend('/clanky').catch(() => {})
+  await revalidateFrontend('/clanky', 'articles').catch(() => {})
+  await revalidateFrontend('/').catch(() => {})
   return result
 }
 export async function updateArticle(id: number, body: Partial<AdminArticle> & { slug?: string }) {
@@ -133,7 +134,8 @@ export async function updateArticle(id: number, body: Partial<AdminArticle> & { 
   if (body.slug) {
     await revalidateFrontend(`/clanky/${body.slug}`, `article-${body.slug}`).catch(() => {})
   }
-  await revalidateFrontend('/clanky').catch(() => {})
+  await revalidateFrontend('/clanky', 'articles').catch(() => {})
+  await revalidateFrontend('/').catch(() => {})
 }
 export function deleteArticle(id: number) {
   return api(`/articles/${id}`, { method: 'DELETE' })

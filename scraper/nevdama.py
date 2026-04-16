@@ -262,41 +262,49 @@ def _parse_embedded_capacity(info: dict, embedded: dict) -> dict | None:
             main_from = main_from[:10]
             main_to   = main_to[:10]
 
+        # Typ dopravy z TT: "1"=letecky, "2"=autobusem, "3"=vlastní doprava
+        tt_code = tip.get("TT", "3")
+
+        # Destination IDs z D param (pokud jsou v termsFilter)
+        cap_dest_ids = [int(d) for d in tip.get("D", "").split("|") if d.isdigit()]
+
         min_price = info.get("minPrice") or {}
+        nights    = int(min_price.get("lengthOfStay") or tip.get("NN") or 7)
 
         return {
-            "hotel_data_key":    {"hotelId": cap_id, "giata": 0, "dataSource": data_src,
-                                  "bedBank": "NevDama", "bedBankID": str(cap_id)},
-            "hotel_id":          cap_id,
-            "hotel_name":        name,
-            "stars":             star,
-            "review_score":      None,
-            "description":       description,
-            "images":            images,
-            "amenities":         ", ".join(amenities_list),
-            "tags":              "",
-            "distances":         "",
-            "latitude":          latitude,
-            "longitude":         longitude,
-            "destination":       destination,
-            "resort_town":       resort_town,
-            "country":           country,
-            "destination_ids":   [],
-            "transport_origin":  [],
-            "meal_code":         "",
-            "room_code":         "",
-            "nights":            int(min_price.get("lengthOfStay") or 7),
-            "all_nights":        [int(min_price.get("lengthOfStay") or 7)],
-            "adults":            2,
-            "departure_date":    (min_price.get("departureDate") or "")[:10],
-            "package_id":        "",
-            "main_filter_from":  main_from,
-            "main_filter_to":    main_to,
-            "tour_filter_query": terms,
-            "_offer_filter":     {},
-            "_bus_hotel":        True,
-            "_min_price":        min_price,
-            "_hotel_url_base":   info.get("url", ""),
+            "hotel_data_key":       {"hotelId": cap_id, "giata": 0, "dataSource": data_src,
+                                     "bedBank": "NevDama", "bedBankID": str(cap_id)},
+            "hotel_id":             cap_id,
+            "hotel_name":           name,
+            "stars":                star,
+            "review_score":         None,
+            "description":          description,
+            "images":               images,
+            "amenities":            ", ".join(amenities_list),
+            "tags":                 "",
+            "distances":            "",
+            "latitude":             latitude,
+            "longitude":            longitude,
+            "destination":          destination,
+            "resort_town":          resort_town,
+            "country":              country,
+            "destination_ids":      cap_dest_ids,
+            "transport_origin":     [],
+            "meal_code":            tip.get("MC", ""),
+            "room_code":            tip.get("RC", ""),
+            "nights":               nights,
+            "all_nights":           [nights],
+            "adults":               2,
+            "departure_date":       (min_price.get("departureDate") or "")[:10],
+            "package_id":           "",
+            "main_filter_from":     main_from,
+            "main_filter_to":       main_to,
+            "tour_filter_query":    terms,
+            "_offer_filter":        {},
+            "_bus_hotel":           True,
+            "_min_price":           min_price,
+            "_hotel_url_base":      info.get("url", ""),
+            "_transport_type_code": tt_code,
         }
     except Exception as e:
         logger.error(f"parse_embedded_capacity: {e}")
@@ -476,7 +484,8 @@ def _parse_embedded(embedded: dict) -> dict | None:
 
 def _get_offer(session: requests.Session, p: dict,
                date_from: str, date_to: str,
-               nights_override: int | None = None) -> dict | None:
+               nights_override: int | None = None,
+               transport_type: int = 1) -> dict | None:
     mf_from = f"{p['main_filter_from']}T00:00:00" if p['main_filter_from'] else f"{date_from}T00:00:00"
     mf_to   = f"{p['main_filter_to']}T00:00:00"   if p['main_filter_to']   else f"{date_to}T00:00:00"
     adults  = p["adults"]
@@ -504,7 +513,7 @@ def _get_offer(session: requests.Session, p: dict,
         }],
         "stopOver":        p["_offer_filter"].get("stopOver"),
         "transportOrigin": p["transport_origin"],
-        "transportType":   1,
+        "transportType":   transport_type,
         "tourFilterQuery": p["tour_filter_query"],
     }
 
@@ -634,7 +643,9 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
         params["NN"]  = str(nights)
         params["AC1"] = str(p["adults"])
         params["KC1"] = "0"
-        params["TT"]  = "1"
+        # Zachovej TT z termsFilter — neperpisuj na "1" (letecky) pro všechny typy
+        if "TT" not in params:
+            params["TT"] = "1"
 
         if "D" not in params and p.get("destination_ids"):
             params["D"] = "|".join(str(x) for x in p["destination_ids"])
@@ -677,39 +688,23 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
 
 
 # ---------------------------------------------------------------------------
-# Zpracování bus/kapacitního hotelu — pouze minPrice termín
+# Zpracování kapacitního hotelu (bus / vlastní doprava) — všechny termíny via API
 # ---------------------------------------------------------------------------
 
+# Mapování TT kódu na transport string a int pro API
+_TT_TO_STR  = {"1": "letecky", "2": "autobusem", "3": "vlastní doprava"}
+_TT_TO_INT  = {"1": 1,         "2": 2,            "3": 3}
+_TT_DEFAULT = "3"   # vlastní doprava pokud TT chybí
+
+
 def _scrape_bus_hotel(hotel_url: str, p: dict, db: ZaletoDB, slug_counter: dict) -> int:
+    tt_code   = str(p.get("_transport_type_code") or _TT_DEFAULT)
+    transport = _TT_TO_STR.get(tt_code, "vlastní doprava")
+    tt_int    = _TT_TO_INT.get(tt_code, 3)
+
     min_price = p.get("_min_price") or {}
-    dep_date  = (min_price.get("departureDate") or "")[:10]
-    ret_date  = (min_price.get("returnDate")    or "")[:10]
-    nights    = int(min_price.get("lengthOfStay") or 7)
-    price     = float(min_price.get("amount") or 0)
-
-    if not dep_date or price < MIN_TOUR_PRICE:
-        logger.debug(f"Bus hotel bez platné ceny (price={price}): {hotel_url}")
-        return 0
-
-    try:
-        dep_dt = datetime.strptime(dep_date, "%Y-%m-%d")
-    except ValueError:
-        return 0
-
-    tip = dict(urllib.parse.parse_qsl(p.get("tour_filter_query", "")))
-    # Odstraň expirující / nevalidní parametry (stejně jako flight path)
-    for _ep in ("PC", "IFC", "OFC", "DPR", "PID", "GIATA", "ERM", "DS", "TrustYou"):
-        tip.pop(_ep, None)
-    tip["DD"]  = dep_date
-    tip["RD"]  = ret_date
-    tip["NN"]  = str(nights)
-    tip["AC1"] = "2"
-    tip["KC1"] = "0"
-    qs = "&".join(f"{k}={urllib.parse.quote(str(v), safe='|,')}" for k, v in tip.items() if v)
+    nights    = int(min_price.get("lengthOfStay") or p.get("nights") or 7)
     base_url  = (p.get("_hotel_url_base") or hotel_url).split("?")[0]
-    tour_url  = f"{base_url}?{qs}" if qs else base_url
-
-    is_lm, is_fm = _detect_tour_type(dep_dt)
 
     hotel_dict = {
         "name":           p["hotel_name"],
@@ -732,23 +727,109 @@ def _scrape_bus_hotel(hotel_url: str, p: dict, db: ZaletoDB, slug_counter: dict)
         "api_config":     json.dumps({"_hotelPath": "/" + base_url.split("nev-dama.cz/", 1)[-1]}),
     }
 
-    tour = {
-        "agency":          AGENCY,
-        "departure_date":  dep_date,
-        "return_date":     ret_date,
-        "duration":        nights,
-        "price":           price,
-        "transport":       "autobusem",
-        "meal_plan":       "",
-        "adults":          2,
-        "room_code":       "",
-        "url":             tour_url,
-        "url_single":      None,
-        "price_single":    None,
-        "is_last_minute":  is_lm,
-        "is_first_minute": is_fm,
-        "departure_city":  "",
-    }
+    # --- Zkus načíst všechny termíny přes GetOfferWithOptions ---
+    today      = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+    date_from  = today.strftime("%Y-%m-%d")
+    date_to    = (today + timedelta(days=365)).strftime("%Y-%m-%d")
+    session    = _make_session()
+    api_data   = None
+    if p.get("hotel_data_key") and p["hotel_data_key"].get("hotelId"):
+        try:
+            api_data = _get_offer(session, p, date_from, date_to,
+                                  nights_override=nights, transport_type=tt_int)
+        except Exception as e:
+            logger.debug(f"Capacity API error ({transport}): {e}")
+
+    all_tours: list[dict] = []
+
+    if api_data and api_data.get("availableDates"):
+        for d in api_data["availableDates"]:
+            raw_date = d.get("date", "")[:10]
+            price    = float(d.get("pricePerPerson") or 0.0)
+            if not raw_date or price < MIN_TOUR_PRICE:
+                continue
+            try:
+                dep_dt = datetime.strptime(raw_date, "%Y-%m-%d")
+                ret_dt = dep_dt + timedelta(days=nights + 1)
+            except ValueError:
+                continue
+
+            tip = dict(urllib.parse.parse_qsl(p.get("tour_filter_query", ""), keep_blank_values=False))
+            for _ep in ("PC", "IFC", "OFC", "DPR", "PID", "GIATA", "ERM", "DS", "TrustYou"):
+                tip.pop(_ep, None)
+            tip["DD"]  = raw_date
+            tip["NN"]  = str(nights)
+            tip["AC1"] = "2"
+            tip["KC1"] = "0"
+            if "TT" not in tip:
+                tip["TT"] = tt_code
+            qs = "&".join(f"{k}={urllib.parse.quote(str(v), safe='|,')}" for k, v in tip.items() if v)
+            tour_url = f"{base_url}?{qs}" if qs else base_url
+
+            is_lm, is_fm = _detect_tour_type(dep_dt)
+            all_tours.append({
+                "agency":          AGENCY,
+                "departure_date":  raw_date,
+                "return_date":     ret_dt.strftime("%Y-%m-%d"),
+                "duration":        nights,
+                "price":           price,
+                "transport":       transport,
+                "meal_plan":       api_data.get("offer", {}).get("mealName", ""),
+                "adults":          2,
+                "room_code":       "",
+                "url":             tour_url,
+                "url_single":      None,
+                "price_single":    None,
+                "is_last_minute":  is_lm,
+                "is_first_minute": is_fm,
+                "departure_city":  "",
+            })
+        if all_tours:
+            logger.info(f"  Capacity API ({transport}): {len(all_tours)} termínů — {hotel_dict['name']}")
+
+    # --- Fallback: minPrice jako jediný termín ---
+    if not all_tours:
+        dep_date = (min_price.get("departureDate") or "")[:10]
+        ret_date = (min_price.get("returnDate")    or "")[:10]
+        price    = float(min_price.get("amount") or 0)
+        if not dep_date or price < MIN_TOUR_PRICE:
+            logger.debug(f"Capacity hotel bez platné ceny (price={price}): {hotel_url}")
+            return 0
+        try:
+            dep_dt = datetime.strptime(dep_date, "%Y-%m-%d")
+            ret_dt = datetime.strptime(ret_date, "%Y-%m-%d") if ret_date else dep_dt + timedelta(days=nights + 1)
+        except ValueError:
+            return 0
+        tip = dict(urllib.parse.parse_qsl(p.get("tour_filter_query", "")))
+        for _ep in ("PC", "IFC", "OFC", "DPR", "PID", "GIATA", "ERM", "DS", "TrustYou"):
+            tip.pop(_ep, None)
+        tip["DD"]  = dep_date
+        tip["RD"]  = ret_date
+        tip["NN"]  = str(nights)
+        tip["AC1"] = "2"
+        tip["KC1"] = "0"
+        if "TT" not in tip:
+            tip["TT"] = tt_code
+        qs = "&".join(f"{k}={urllib.parse.quote(str(v), safe='|,')}" for k, v in tip.items() if v)
+        tour_url = f"{base_url}?{qs}" if qs else base_url
+        is_lm, is_fm = _detect_tour_type(dep_dt)
+        all_tours = [{
+            "agency":          AGENCY,
+            "departure_date":  dep_date,
+            "return_date":     ret_dt.strftime("%Y-%m-%d"),
+            "duration":        nights,
+            "price":           price,
+            "transport":       transport,
+            "meal_plan":       "",
+            "adults":          2,
+            "room_code":       "",
+            "url":             tour_url,
+            "url_single":      None,
+            "price_single":    None,
+            "is_last_minute":  is_lm,
+            "is_first_minute": is_fm,
+            "departure_city":  "",
+        }]
 
     base_slug = slugify(hotel_dict["name"])
     slug = base_slug
@@ -759,10 +840,11 @@ def _scrape_bus_hotel(hotel_url: str, p: dict, db: ZaletoDB, slug_counter: dict)
 
     hotel_id = db.upsert_hotel(slug, hotel_dict)
     db.conn.execute("DELETE FROM tours WHERE hotel_id = %s AND agency = %s", (hotel_id, AGENCY))
-    db.upsert_tour(hotel_id, tour)
+    for t in all_tours:
+        db.upsert_tour(hotel_id, t)
     db.commit()
-    logger.debug(f"Bus hotel uložen: {hotel_dict['name']} @ {dep_date} = {price} Kč")
-    return 1
+    logger.debug(f"Capacity hotel uložen: {hotel_dict['name']} — {len(all_tours)} termínů ({transport})")
+    return len(all_tours)
 
 
 # ---------------------------------------------------------------------------

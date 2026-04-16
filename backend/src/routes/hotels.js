@@ -605,7 +605,10 @@ router.get('/:slug', async (req, res) => {
           WHERE h.canonical_slug = ? AND t.price > 0 AND t.departure_date >= CURRENT_DATE::text
         `, [canonicalSlug]),
         db.query(
-          `SELECT agency, description FROM hotels WHERE canonical_slug = ? AND description IS NOT NULL ORDER BY agency`,
+          `SELECT DISTINCT ON (agency) agency, description
+           FROM hotels
+           WHERE canonical_slug = ? AND description IS NOT NULL
+           ORDER BY agency, length(description) DESC`,
           [canonicalSlug]
         ),
       ])

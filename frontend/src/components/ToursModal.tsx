@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Plane, Moon, Utensils, ExternalLink, X, Loader2 } from 'lucide-react'
+import { Plane, Bus, Car, Moon, Utensils, ExternalLink, X, Loader2 } from 'lucide-react'
 import { PiCalendarBlank, PiUserMinus, PiUserPlus, PiArrowsDownUp, PiTag, PiX, PiCalendarStar } from 'react-icons/pi'
 import type { Tour } from '@/lib/types'
 import { API } from '@/lib/api'
@@ -36,6 +36,28 @@ function parseRoute(transport: string | null): { dep: string; arr: string } | nu
   const m = transport.match(/([A-Z]{3})[→>-]([A-Z]{3})/)
   if (!m) return null
   return { dep: m[1], arr: m[2] }
+}
+
+function isFlying(transport: string | null): boolean {
+  if (!transport) return false
+  const t = transport.toLowerCase()
+  return t.includes('leteck') || /[A-Z]{3}[→>-][A-Z]{3}/.test(transport)
+}
+
+function TransportIcon({ transport, className }: { transport: string | null; className?: string }) {
+  const t = (transport ?? '').toLowerCase()
+  if (t.includes('autobus') || t.includes('vlak')) return <Bus className={className} />
+  if (t.includes('vlastní') || t.includes('vlastni')) return <Car className={className} />
+  return <Plane className={className} />
+}
+
+function transportLabel(transport: string | null): string {
+  if (!transport) return 'Doprava'
+  const t = transport.toLowerCase()
+  if (t.includes('autobus')) return 'Autobusem'
+  if (t.includes('vlak'))    return 'Vlakem'
+  if (t.includes('vlastní') || t.includes('vlastni')) return 'Vlastní dopravou'
+  return 'Letecky'
 }
 
 const IATA_CITIES: Record<string, string> = {
@@ -84,33 +106,48 @@ function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: 
       >
         {/* Route */}
         <div className="px-4 pt-4 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 min-w-[52px]">
-              {depIata ? (
+          {isFlying(tour.transport) ? (
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 min-w-[52px]">
+                {depIata ? (
+                  <>
+                    <div className="text-[22px] font-black text-gray-900 leading-none tracking-tight">{depIata}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">{depCityName}</div>
+                  </>
+                ) : (
+                  <div className="text-xs text-gray-400">{depCityName ?? '—'}</div>
+                )}
+              </div>
+              <div className="flex-1 flex items-center gap-2 min-w-0">
+                <div className="flex-1 border-t border-dashed" style={{ borderColor: 'rgba(0,147,255,0.20)' }} />
+                <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(0,147,255,0.08)' }}>
+                  <Plane className="w-3 h-3 text-[#0093FF]" />
+                </div>
+                <div className="flex-1 border-t border-dashed" style={{ borderColor: 'rgba(0,147,255,0.20)' }} />
+              </div>
+              <div className="flex-shrink-0 min-w-[52px] text-right">
+                {arrIata ? (
+                  <>
+                    <div className="text-[22px] font-black text-gray-900 leading-none tracking-tight">{arrIata}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">{arrCity}</div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(0,147,255,0.08)' }}>
+                <TransportIcon transport={tour.transport} className="w-3 h-3 text-[#0093FF]" />
+              </div>
+              <span className="text-sm font-semibold text-gray-800">{transportLabel(tour.transport)}</span>
+              {tour.departure_city && (
                 <>
-                  <div className="text-[22px] font-black text-gray-900 leading-none tracking-tight">{depIata}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5 truncate">{depCityName}</div>
+                  <span className="text-gray-300 select-none">·</span>
+                  <span className="text-xs text-gray-500">z {tour.departure_city}</span>
                 </>
-              ) : (
-                <div className="text-xs text-gray-400">{depCityName ?? '—'}</div>
               )}
             </div>
-            <div className="flex-1 flex items-center gap-2 min-w-0">
-              <div className="flex-1 border-t border-dashed" style={{ borderColor: 'rgba(0,147,255,0.20)' }} />
-              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(0,147,255,0.08)' }}>
-                <Plane className="w-3 h-3 text-[#0093FF]" />
-              </div>
-              <div className="flex-1 border-t border-dashed" style={{ borderColor: 'rgba(0,147,255,0.20)' }} />
-            </div>
-            <div className="flex-shrink-0 min-w-[52px] text-right">
-              {arrIata ? (
-                <>
-                  <div className="text-[22px] font-black text-gray-900 leading-none tracking-tight">{arrIata}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5 truncate">{arrCity}</div>
-                </>
-              ) : null}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Tear line */}
