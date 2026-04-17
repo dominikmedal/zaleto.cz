@@ -335,6 +335,7 @@ async function _searchHandler(req, res) {
         name: loc.location, place: loc.place, city: loc.city, country: loc.country,
         placeID: loc.placeID,    // used by frontend for DC deep link fallback
       },
+      dropoffLocation: dropoffLoc ? { place: dropoffLoc.place || dropoffLoc.location, placeID: dropoffLoc.placeID } : null,
       isComplete: results?.data?.isComplete ?? true,
     }
 
