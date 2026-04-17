@@ -14,17 +14,23 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
 app.use(compression())
 app.use(express.json())
 
+const ALLOWED_ORIGINS = new Set([
+  'https://zaleto.cz', 'https://www.zaleto.cz',
+  'https://mallorca-pujcovna.cz', 'https://www.mallorca-pujcovna.cz',
+])
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true
+  if (ALLOWED_ORIGINS.has(origin)) return true
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true
+  if (origin.endsWith('.vercel.app') || origin.endsWith('.railway.app')) return true
+  return false
+}
+
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
-        origin === 'https://zaleto.cz' || origin === 'https://www.zaleto.cz' ||
-        origin === 'https://mallorca-pujcovna.cz' || origin === 'https://www.mallorca-pujcovna.cz' ||
-        (origin || '').endsWith('.vercel.app') ||
-        (origin || '').endsWith('.railway.app')) {
-      cb(null, true)
-    } else {
-      cb(new Error('Not allowed by CORS'))
-    }
+    if (isAllowedOrigin(origin)) cb(null, true)
+    else cb(new Error('Not allowed by CORS'))
   },
   credentials: true,
 }))
@@ -86,7 +92,14 @@ app.post('/api/cache/invalidate', async (req, res) => {
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }))
 app.use((err, req, res, next) => {
-  console.error(err)
+  // Ensure CORS headers are present even on unhandled errors
+  const origin = req.headers.origin
+  if (origin && isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Vary', 'Origin')
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+  }
+  console.error('[error]', err.message || err)
   res.status(500).json({ error: 'Internal server error' })
 })
 

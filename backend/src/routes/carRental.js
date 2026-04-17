@@ -226,7 +226,33 @@ function normalizeOffer(offer) {
 // Params: location (string), pickup_date (YYYY-MM-DD), dropoff_date (YYYY-MM-DD),
 //         pickup_time (HH:MM, default 12:00), dropoff_time (HH:MM, default 12:00),
 //         driver_age (number, default 30), residence (2-letter country, default CZ)
-router.get('/search', async (req, res) => {
+// GET /api/car-rental/click?url=<encoded_discovercars_url>
+// Logs the click and 302-redirects so discovercars sees api.zaleto.cz as referrer (affiliate tracking).
+router.get('/click', (req, res) => {
+  const raw = req.query.url
+  if (!raw) return res.status(400).send('Missing url')
+  let dest
+  try {
+    dest = new URL(raw)
+  } catch {
+    return res.status(400).send('Invalid url')
+  }
+  if (!dest.hostname.endsWith('discovercars.com')) {
+    return res.status(403).send('Forbidden')
+  }
+  // Ensure affiliate tag is present
+  if (!dest.searchParams.get('a_aid')) {
+    dest.searchParams.set('a_aid', 'dominikmedal')
+  }
+  console.log(`[car-rental/click] → ${dest.toString()}`)
+  res.redirect(302, dest.toString())
+})
+
+router.get('/search', (req, res, next) => {
+  _searchHandler(req, res).catch(next)
+})
+
+async function _searchHandler(req, res) {
   const { location, pickup_date, dropoff_date, pickup_time = '12:00', dropoff_time = '12:00', driver_age = '30', residence = 'CZ' } = req.query
 
   if (!location || !pickup_date || !dropoff_date) {
@@ -304,7 +330,7 @@ router.get('/search', async (req, res) => {
     console.error('[car-rental] search error:', err.message || err)
     return res.json({ cars: [], error: 'server_error' })
   }
-})
+}
 
 // ─── GET /api/car-rental/custom-destinations — DB-managed (admin) destinations ─
 router.get('/custom-destinations', async (_req, res) => {
