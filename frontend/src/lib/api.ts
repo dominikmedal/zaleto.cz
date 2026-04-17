@@ -288,6 +288,7 @@ export interface CarSearchResult {
 
 export async function fetchCarSearch(params: {
   location: string       // English search term, e.g. "heraklion airport"
+  dropoffLocation?: string  // separate return location, if different
   pickupDate: string     // YYYY-MM-DD
   dropoffDate: string    // YYYY-MM-DD
   pickupTime?: string    // HH:MM, default 12:00
@@ -305,6 +306,9 @@ export async function fetchCarSearch(params: {
       driver_age:    String(params.driverAge ?? 30),
       residence:     params.residence ?? 'CZ',
     })
+    if (params.dropoffLocation && params.dropoffLocation !== params.location) {
+      p.set('dropoff_location', params.dropoffLocation)
+    }
     const res = await fetch(`${API}/api/car-rental/search?${p}`, {
       signal: AbortSignal.timeout(35_000),
     })

@@ -244,6 +244,10 @@ interface CarRentalCtxValue {
   locText: string;     setLocText: (v: string) => void
   locSel: { placeID: number; searchTerm: string; label: string } | null
   setLocSel: (v: { placeID: number; searchTerm: string; label: string } | null) => void
+  sameLocation: boolean; setSameLocation: (v: boolean) => void
+  dropoffLocText: string; setDropoffLocText: (v: string) => void
+  dropoffLocSel: { placeID: number; searchTerm: string; label: string } | null
+  setDropoffLocSel: (v: { placeID: number; searchTerm: string; label: string } | null) => void
   status: 'idle' | 'loading' | 'done' | 'error'
   cars: CarOffer[]
   locInfo: string | null
@@ -268,9 +272,12 @@ export function CarRentalProvider({ destination, children }: { destination?: Car
   const [pickupTime,  setPickupTime]  = useState('12:00')
   const [dropoffTime, setDropoffTime] = useState('12:00')
   const [driverAge,   setDriverAge]   = useState(30)
-  const [locText,     setLocText]     = useState('')
-  const [locSel,      setLocSel]      = useState<{ placeID: number; searchTerm: string; label: string } | null>(null)
-  const [status,      setStatus]      = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [locText,          setLocText]          = useState('')
+  const [locSel,           setLocSel]           = useState<{ placeID: number; searchTerm: string; label: string } | null>(null)
+  const [sameLocation,     setSameLocation]     = useState(true)
+  const [dropoffLocText,   setDropoffLocText]   = useState('')
+  const [dropoffLocSel,    setDropoffLocSel]    = useState<{ placeID: number; searchTerm: string; label: string } | null>(null)
+  const [status,           setStatus]           = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [cars,        setCars]        = useState<CarOffer[]>([])
   const [locInfo,     setLocInfo]     = useState<string | null>(null)
   const [placeID,     setPlaceID]     = useState<number | null>(null)
@@ -282,8 +289,10 @@ export function CarRentalProvider({ destination, children }: { destination?: Car
     if (!searchTerm) return
     setStatus('loading'); setCars([]); setActivecat(null)
 
+    const dropoffSearchTerm = !sameLocation ? (dropoffLocSel?.searchTerm || undefined) : undefined
     const result = await fetchCarSearch({
-      location: searchTerm, pickupDate: pickup, dropoffDate: dropoff,
+      location: searchTerm, dropoffLocation: dropoffSearchTerm,
+      pickupDate: pickup, dropoffDate: dropoff,
       pickupTime, dropoffTime, driverAge: age, residence: 'CZ',
     })
 
@@ -294,7 +303,7 @@ export function CarRentalProvider({ destination, children }: { destination?: Car
     setLocInfo(result.location?.place ?? result.location?.name ?? null)
     setPlaceID(result.location?.placeID ?? null)
     setStatus('done')
-  }, [destination, locSel, pickupTime, dropoffTime])
+  }, [destination, locSel, sameLocation, dropoffLocSel, pickupTime, dropoffTime])
 
   useEffect(() => {
     if (!destination || searchedRef.current) return
@@ -321,6 +330,7 @@ export function CarRentalProvider({ destination, children }: { destination?: Car
       destination, pickupDate, setPickupDate, dropoffDate, setDropoffDate,
       pickupTime, setPickupTime, dropoffTime, setDropoffTime,
       driverAge, setDriverAge, locText, setLocText, locSel, setLocSel,
+      sameLocation, setSameLocation, dropoffLocText, setDropoffLocText, dropoffLocSel, setDropoffLocSel,
       status, cars, locInfo, placeID, activecat, setActivecat,
       categories, visibleCars, fallbackUrl, allUrl, canSearch, inputBase, handleSearch,
     }}>
@@ -336,6 +346,7 @@ export function CarRentalForm({ className = '' }: { className?: string }) {
     destination, pickupDate, setPickupDate, dropoffDate, setDropoffDate,
     pickupTime, setPickupTime, dropoffTime, setDropoffTime,
     driverAge, setDriverAge, locText, setLocText, setLocSel,
+    sameLocation, setSameLocation, dropoffLocText, setDropoffLocText, setDropoffLocSel,
     status, canSearch, inputBase, handleSearch,
   } = useContext(CarRentalCtx)
 
@@ -433,6 +444,35 @@ export function CarRentalForm({ className = '' }: { className?: string }) {
         </div>
       </div>
 
+      {/* Same return location toggle */}
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <label className="inline-flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={sameLocation}
+            onChange={e => {
+              setSameLocation(e.target.checked)
+              if (e.target.checked) { setDropoffLocText(''); setDropoffLocSel(null) }
+            }}
+            className="w-3.5 h-3.5 accent-[#0093FF] cursor-pointer"
+          />
+          Vrátit auto na stejném místě jako vyzvednutí
+        </label>
+        {!sameLocation && (
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap flex-shrink-0 flex items-center gap-1">
+              <MapPin className="w-3 h-3" /> Místo vrácení
+            </span>
+            <div className="flex-1 min-w-[180px]">
+              <LocationInput
+                value={dropoffLocText}
+                onChange={setDropoffLocText}
+                onSelect={s => setDropoffLocSel({ placeID: s.placeID, searchTerm: s.place || s.location, label: s.place || s.location })}
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
     </div>
   )

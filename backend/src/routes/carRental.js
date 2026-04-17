@@ -69,25 +69,29 @@ async function getLocation(searchTerm) {
 }
 
 // ─── Step 2 — Create search ───────────────────────────────────────────────────
-async function createSearch({ countryID, cityID, placeID, pickupDate, dropoffDate, pickupTime, dropoffTime, driverAge, residence }) {
+async function createSearch({ countryID, cityID, placeID, dropoffCountryID, dropoffCityID, dropoffPlaceID, pickupDate, dropoffDate, pickupTime, dropoffTime, driverAge, residence }) {
   const pt = pickupTime  || '12:00'
   const dt = dropoffTime || '12:00'
+  const dCountry = dropoffCountryID ?? countryID
+  const dCity    = dropoffCityID    ?? cityID
+  const dPlace   = dropoffPlaceID   ?? placeID
+  const isDifferent = dPlace !== placeID
   const body = new URLSearchParams({
     pick_up_country_id:   String(countryID),
     pick_up_city_id:      String(cityID),
     pick_up_location_id:  String(placeID),
-    drop_off_country_id:  String(countryID),
-    drop_off_city_id:     String(cityID),
-    drop_off_location_id: String(placeID),
+    drop_off_country_id:  String(dCountry),
+    drop_off_city_id:     String(dCity),
+    drop_off_location_id: String(dPlace),
     pickup_id:            String(placeID),
-    dropoff_id:           String(placeID),
+    dropoff_id:           String(dPlace),
     pickup_from:          `${pickupDate} ${pt}`,
     pickup_to:            `${dropoffDate} ${dt}`,
     pick_time:            pt,
     drop_time:            dt,
     driver_age:           String(driverAge || 30),
     residence_country:    residence || 'CZ',
-    is_drop_off:          '0',
+    is_drop_off:          isDifferent ? '1' : '0',
     partner_id:           '0',
     exclude_locations:    '0',
     luxOnly:              '0',
@@ -253,13 +257,14 @@ router.get('/search', (req, res, next) => {
 })
 
 async function _searchHandler(req, res) {
-  const { location, pickup_date, dropoff_date, pickup_time = '12:00', dropoff_time = '12:00', driver_age = '30', residence = 'CZ' } = req.query
+  const { location, dropoff_location, pickup_date, dropoff_date, pickup_time = '12:00', dropoff_time = '12:00', driver_age = '30', residence = 'CZ' } = req.query
 
   if (!location || !pickup_date || !dropoff_date) {
     return res.status(400).json({ error: 'Chybí parametry: location, pickup_date, dropoff_date' })
   }
 
-  const cacheKey = `search:${location}:${pickup_date}${pickup_time}:${dropoff_date}${dropoff_time}:${driver_age}:${residence}`
+  const dropoffTerm = dropoff_location && dropoff_location !== location ? dropoff_location : null
+  const cacheKey = `search:${location}:${dropoffTerm || ''}:${pickup_date}${pickup_time}:${dropoff_date}${dropoff_time}:${driver_age}:${residence}`
   const cached = cGet(cacheKey)
   if (cached) {
     res.set('X-Cache', 'HIT')
@@ -267,23 +272,33 @@ async function _searchHandler(req, res) {
   }
 
   try {
-    // 1. Autocomplete → location IDs
-    const loc = await getLocation(location)
+    // 1. Autocomplete → location IDs (pickup + optional separate dropoff)
+    const [loc, dropoffLoc] = await Promise.all([
+      getLocation(location),
+      dropoffTerm ? getLocation(dropoffTerm) : Promise.resolve(null),
+    ])
     if (!loc?.placeID) {
       console.warn(`[car-rental] location not found: "${location}"`)
+      return res.json({ cars: [], error: 'location_not_found', location: null })
+    }
+    if (dropoffTerm && !dropoffLoc?.placeID) {
+      console.warn(`[car-rental] dropoff location not found: "${dropoffTerm}"`)
       return res.json({ cars: [], error: 'location_not_found', location: null })
     }
 
     // 2. Create search
     const search = await createSearch({
-      countryID:   loc.countryID,
-      cityID:      loc.cityID,
-      placeID:     loc.placeID,
-      pickupDate:  pickup_date,
-      dropoffDate: dropoff_date,
-      pickupTime:  pickup_time,
-      dropoffTime: dropoff_time,
-      driverAge:   parseInt(driver_age, 10) || 30,
+      countryID:        loc.countryID,
+      cityID:           loc.cityID,
+      placeID:          loc.placeID,
+      dropoffCountryID: dropoffLoc?.countryID,
+      dropoffCityID:    dropoffLoc?.cityID,
+      dropoffPlaceID:   dropoffLoc?.placeID,
+      pickupDate:       pickup_date,
+      dropoffDate:      dropoff_date,
+      pickupTime:       pickup_time,
+      dropoffTime:      dropoff_time,
+      driverAge:        parseInt(driver_age, 10) || 30,
       residence,
     })
 
