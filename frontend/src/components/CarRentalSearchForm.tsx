@@ -503,8 +503,7 @@ export function CarRentalResults({ className = '' }: { className?: string }) {
           <div>
             <p className="font-semibold text-gray-900 text-sm">Lokaci se nepodařilo najít</p>
             <p className="text-sm text-gray-500 mt-1">
-              Zkuste zadat jiný název nebo hledejte přímo na{' '}
-              <a href={buildDCHubUrl()} target="_blank" rel="noopener noreferrer sponsored" className="text-[#0093FF] hover:underline">DiscoverCars.com</a>.
+              Zkuste zadat jiný název.
             </p>
           </div>
         </div>

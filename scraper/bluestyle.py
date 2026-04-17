@@ -892,7 +892,8 @@ def run(limit: int = 0, delay: float = 0.5, dep_cities: list[int] | None = None,
 
     db.close()
     logger.info(f"Hotovo. Uloženo: {hotel_count} hotelů, {tour_count} termínů.")
-    if hotel_count == 0:
+    all_checkpointed = all(str(dc) in done_dep_cities for dc in dep_cities)
+    if hotel_count == 0 and not all_checkpointed:
         logger.error("Scraper dokončen s 0 hotely — signalizuji chybu (exit 1)")
         sys.exit(1)
     return hotel_count
