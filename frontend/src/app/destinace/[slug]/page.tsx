@@ -151,7 +151,7 @@ export default async function DestinacePage({ params }: Props) {
   )).sort()
 
   // Use AI description if available, otherwise fall back to Wikipedia
-  const aiHeroText = destAI?.description
+  const aiHeroText = destAI?.description && destAI.description.length >= 20
     ? destAI.description.split(/\n\n+/)[0]
     : null
 

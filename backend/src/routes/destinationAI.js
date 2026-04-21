@@ -133,17 +133,21 @@ async function generateAI(name) {
  * Uses a global queue to avoid hitting Gemini rate limits.
  */
 async function generateAndStore(name) {
-  // Skip if already exists in DB
-  const r = await db.query('SELECT name FROM destination_ai WHERE name = ?', [name])
-  if (r.rows.length > 0) return
+  // Skip if already exists in DB with a valid description
+  const r = await db.query(
+    'SELECT description FROM destination_ai WHERE name = ?', [name]
+  )
+  if (r.rows.length > 0 && (r.rows[0].description?.length ?? 0) >= 50) return
 
   // Skip if already waiting in queue
   if (queuedNames.has(name)) return
 
   enqueue(name, async () => {
     // Re-check inside queue — another enqueued call may have already generated it
-    const r2 = await db.query('SELECT name FROM destination_ai WHERE name = ?', [name])
-    if (r2.rows.length > 0) return
+    const r2 = await db.query(
+      'SELECT description FROM destination_ai WHERE name = ?', [name]
+    )
+    if (r2.rows.length > 0 && (r2.rows[0].description?.length ?? 0) >= 50) return
 
     console.log(`[ai] → generuji: ${name} (${queuePending} ve frontě)`)
     let result = null
@@ -228,8 +232,10 @@ async function generateMissingAI() {
       if (row.resort_town) names.add(row.resort_town.trim())
     }
 
-    // Filter out names already in DB
-    const existingR = await db.query(`SELECT name FROM destination_ai WHERE description IS NOT NULL`)
+    // Filter out names already in DB with a valid description (>= 50 chars)
+    const existingR = await db.query(
+      `SELECT name FROM destination_ai WHERE description IS NOT NULL AND LENGTH(description) >= 50`
+    )
     const existing = new Set(existingR.rows.map(r => r.name))
     const missing = [...names].filter(n => !existing.has(n))
 
