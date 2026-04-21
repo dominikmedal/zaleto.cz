@@ -80,7 +80,10 @@ CHECKPOINT_HOURS  = int(os.environ.get("SCRAPE_CHECKPOINT_HOURS", "14"))
 # Maximální počet scraperů běžících paralelně.
 # 0 = neomezeno (všechny najednou). Výchozí: 3 (Fischer + Čedok + TUI souběžně,
 # Exim + Nev-Dama se přidají jakmile je slot volný).
-MAX_PARALLEL = int(os.environ.get("MAX_PARALLEL_SCRAPERS", "0"))
+# Výchozí limit 3: každý scraper drží 1 DB conn + 1 background refresh conn = 2 na scraper.
+# 3 scrapery = 6 conn + 1 run_all main + ~10 backend pool = ~17 → pod Railway limitem (~25).
+# Nastav MAX_PARALLEL_SCRAPERS=0 pro neomezený běh (riziko connection timeout).
+MAX_PARALLEL = int(os.environ.get("MAX_PARALLEL_SCRAPERS", "3"))
 # Počet paralelních workerů uvnitř každého scraperu (update-only mód).
 # Fischer/Exim/Nev-Dama otevřou tolik paralelních HTTP spojení najednou.
 # 0 = výchozí (1 — sekvenční). Doporučeno: 3–5.
@@ -395,20 +398,26 @@ def purge_mislabeled_tours(conn) -> int:
 
 def dedup_tours(conn) -> int:
     """
-    Odstraní duplicitní termíny — zachová záznam s nejnižší cenou.
+    Odstraní duplicitní termíny pomocí self-join — zachová záznam s nižším id.
+
+    Self-join DELETE je výrazně efektivnější než NOT IN (GROUP BY) na velké tabulce:
+    nevytváří obří hash set všech id v paměti a drží lock kratší dobu.
 
     Duplicity vznikaly kombinací mislabel bugu + nestabilních URL (DF=, cjevent=).
-    Po opravě scraperů by se nové duplicity neměly tvořit. Tato funkce
-    čistí historické zbytky při každém cyklu (rychlá na malé tabulce,
-    pomalejší na 16M řádcích — ale jednou projede a pak je tabulka čistá).
+    Po opravě scraperů by se nové duplicity neměly tvořit — tato funkce pak
+    projde tabulku rychle (žádný self-join match = žádný DELETE).
     """
     cur = conn.execute("""
-        DELETE FROM tours
-        WHERE id NOT IN (
-            SELECT MIN(id)
-            FROM tours
-            GROUP BY hotel_id, agency, departure_date, duration, meal_plan, room_code, departure_city
-        )
+        DELETE FROM tours t1
+        USING tours t2
+        WHERE t1.hotel_id      = t2.hotel_id
+          AND t1.agency        = t2.agency
+          AND t1.departure_date = t2.departure_date
+          AND t1.duration      = t2.duration
+          AND t1.meal_plan     = t2.meal_plan
+          AND t1.room_code     = t2.room_code
+          AND t1.departure_city = t2.departure_city
+          AND t1.id > t2.id
     """)
     conn.commit()
     deleted = cur.rowcount
@@ -491,13 +500,19 @@ def run_scraper(scraper: dict, conn=None) -> dict:
 
     def _bg_refresh():
         while not _stop_refresh.wait(120):
+            bg_conn = None
             try:
                 bg_conn = open_db()
                 refresh_hotel_stats(bg_conn)
-                bg_conn.close()
                 _invalidate_api_cache()
             except Exception:
                 pass
+            finally:
+                if bg_conn:
+                    try:
+                        bg_conn.close()
+                    except Exception:
+                        pass
 
     _refresh_thread = threading.Thread(target=_bg_refresh, daemon=True)
     _refresh_thread.start()
