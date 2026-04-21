@@ -372,6 +372,51 @@ def match_hotels(conn) -> int:
 # Spuštění jednoho scraperu
 # ---------------------------------------------------------------------------
 
+def purge_mislabeled_tours(conn) -> int:
+    """
+    Odstraní termíny chybně označené jiným scraperem.
+
+    Historická chyba: eximtours.py neobsahoval 'agency' v tour dict, takže
+    upsert_tour použil výchozí 'Fischer'. Tyto termíny nikdy nebyly mazány
+    (DELETE WHERE agency='Exim Tours' je nenašel) a hromadily se.
+    Bezpečné smazat: Exim hotel_id nikdy nenabízí Fischer termíny.
+    """
+    cur = conn.execute("""
+        DELETE FROM tours
+        WHERE agency = 'Fischer'
+          AND hotel_id IN (SELECT id FROM hotels WHERE agency = 'Exim Tours')
+    """)
+    conn.commit()
+    deleted = cur.rowcount
+    if deleted:
+        logger.info(f"Cleanup: smazáno {deleted} chybně označených termínů (Exim→Fischer bug)")
+    return deleted
+
+
+def dedup_tours(conn) -> int:
+    """
+    Odstraní duplicitní termíny — zachová záznam s nejnižší cenou.
+
+    Duplicity vznikaly kombinací mislabel bugu + nestabilních URL (DF=, cjevent=).
+    Po opravě scraperů by se nové duplicity neměly tvořit. Tato funkce
+    čistí historické zbytky při každém cyklu (rychlá na malé tabulce,
+    pomalejší na 16M řádcích — ale jednou projede a pak je tabulka čistá).
+    """
+    cur = conn.execute("""
+        DELETE FROM tours
+        WHERE id NOT IN (
+            SELECT MIN(id)
+            FROM tours
+            GROUP BY hotel_id, agency, departure_date, duration, meal_plan, room_code, departure_city
+        )
+    """)
+    conn.commit()
+    deleted = cur.rowcount
+    if deleted:
+        logger.info(f"Dedup: odstraněno {deleted} duplicitních termínů")
+    return deleted
+
+
 def purge_stale_tours(conn, agency: str, run_started: datetime) -> int:
     """
     Smaže termíny dané CK, které nebyly aktualizovány v tomto běhu scraperu.
@@ -979,6 +1024,18 @@ def run_cycle(cycle: int, skip_email: bool = False):
             logger.info(f"  Smazáno {expired} prošlých termínů")
         except Exception:
             logger.exception("Chyba při mazání prošlých termínů")
+
+        logger.info("Post-processing: oprava chybně označených termínů...")
+        try:
+            purge_mislabeled_tours(conn)
+        except Exception:
+            logger.exception("Chyba při čištění chybně označených termínů")
+
+        logger.info("Post-processing: deduplikace termínů...")
+        try:
+            dedup_tours(conn)
+        except Exception:
+            logger.exception("Chyba při deduplikaci termínů")
 
         logger.info("Post-processing: párování hotelů napříč CK...")
         try:

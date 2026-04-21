@@ -522,7 +522,9 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
         params = dict(urllib.parse.parse_qsl(
             p.get("tour_filter_query", ""), keep_blank_values=False
         ))
-        for _ep in ("PC", "IFC", "OFC", "DPR", "PID", "GIATA", "ERM", "DS", "TrustYou"):
+        for _ep in ("PC", "IFC", "OFC", "DPR", "PID", "GIATA", "ERM", "DS", "TrustYou",
+                    "DF", "cjevent", "cjdata", "utm_source", "utm_medium",
+                    "utm_campaign", "utm_content", "RD"):
             params.pop(_ep, None)
 
         params["DD"]  = raw_date
@@ -551,6 +553,7 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
         is_lm, is_fm = _detect_tour_type(dep_dt)
 
         tours.append({
+            "agency":          AGENCY,
             "departure_date":  raw_date,
             "return_date":     ret_dt.strftime("%Y-%m-%d"),
             "duration":        nights,
