@@ -334,8 +334,8 @@ export default function HeaderFilterBar() {
     }
   }, [meta])
 
-  // Pre-fetch destinations on mount so they're ready when user clicks
-  useEffect(() => { loadDest() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Pre-fetch destinations AND filters on mount so they're ready when user clicks
+  useEffect(() => { loadDest(); loadMeta() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const openPanel = useCallback((panel: 'dest' | 'date' | 'adv') => {
     setActivePanel(p => p === panel ? null : panel)

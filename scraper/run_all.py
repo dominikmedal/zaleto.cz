@@ -400,13 +400,25 @@ def dedup_tours(conn) -> int:
     """
     Odstraní duplicitní termíny pomocí self-join — zachová záznam s nižším id.
 
-    Self-join DELETE je výrazně efektivnější než NOT IN (GROUP BY) na velké tabulce:
-    nevytváří obří hash set všech id v paměti a drží lock kratší dobu.
-
     Duplicity vznikaly kombinací mislabel bugu + nestabilních URL (DF=, cjevent=).
-    Po opravě scraperů by se nové duplicity neměly tvořit — tato funkce pak
-    projde tabulku rychle (žádný self-join match = žádný DELETE).
+    Po opravě scraperů by se nové duplicity neměly tvořit. Rychlá pre-check query
+    ověří existenci duplikátů před spuštěním drahého self-join DELETE.
     """
+    check = conn.execute("""
+        SELECT 1 FROM tours t1
+        JOIN tours t2 ON t1.hotel_id = t2.hotel_id
+          AND t1.agency = t2.agency
+          AND t1.departure_date = t2.departure_date
+          AND t1.duration = t2.duration
+          AND t1.meal_plan = t2.meal_plan
+          AND t1.room_code = t2.room_code
+          AND t1.departure_city = t2.departure_city
+          AND t1.id > t2.id
+        LIMIT 1
+    """)
+    if not check.fetchone():
+        return 0
+
     cur = conn.execute("""
         DELETE FROM tours t1
         USING tours t2

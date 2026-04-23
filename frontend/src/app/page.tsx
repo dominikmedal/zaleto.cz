@@ -150,16 +150,19 @@ export default async function HomePage({ searchParams }: PageProps) {
   const tourType = filters.tour_type
   const noFilters = !hasActiveFilter(filters)
 
-  const [destinations, meta, wiki] = await Promise.all([
+  // Wave 1: všechny nezávislé fetche paralelně
+  const articlesNeeded = (noFilters && !singleDest && !tourType) ? 12 : singleDest ? 6 : 0
+  const [destinations, meta, wiki, tipHotelsRaw, heroPhoto, destAI, articlesRaw] = await Promise.all([
     fetchDestinations().catch(() => []),
     fetchFilters().catch(() => ({ mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], totalTours: 0, totalHotels: 0, departureCities: [] })),
     singleDest ? fetchWikiSummary(singleDest).catch(() => null) : Promise.resolve(null),
+    noFilters ? fetchHotels({ sort: 'price_asc', limit: 60 }).then(r => r.hotels.filter(h => h.thumbnail_url)).catch(() => []) : Promise.resolve([]),
+    singleDest ? fetchDestinationPhoto(singleDest).catch(() => null) : Promise.resolve(null),
+    singleDest ? fetchDestinationAI(singleDest).catch(() => null) : Promise.resolve(null),
+    articlesNeeded > 0 ? (singleDest ? fetchArticles(articlesNeeded, singleDest) : fetchArticles(articlesNeeded)).catch(() => []) : Promise.resolve([]),
   ])
 
-  // Hotels for tips (only on homepage with no filters)
-  const tipHotels = noFilters
-    ? await fetchHotels({ sort: 'price_asc', limit: 60 }).then(r => r.hotels.filter(h => h.thumbnail_url)).catch(() => [])
-    : []
+  const tipHotels = tipHotelsRaw as typeof tipHotelsRaw
 
   const now = new Date()
   const dayOfYear  = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
@@ -170,13 +173,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   const dailyTip  = tipHotels[dailyIdx]  ?? null
   const weeklyTip = tipHotels[weeklyIdx] ?? null
 
-  // Hero photo + AI content — parallel when destination selected
-  const [heroPhoto, destAI] = await Promise.all([
-    singleDest ? fetchDestinationPhoto(singleDest).catch(() => null) : Promise.resolve(null),
-    singleDest ? fetchDestinationAI(singleDest).catch(() => null) : Promise.resolve(null),
-  ])
-
-  // Top unique regions with hotel counts + country mapping
+  // Top unique regions with hotel counts + country mapping (závisí na destinations)
   const regionMap = new Map<string, number>()
   const regionCountryMap = new Map<string, string>()
   for (const d of destinations) {
@@ -200,28 +197,21 @@ export default async function HomePage({ searchParams }: PageProps) {
     if (h.country && !regionMinPrice.has(h.country)) regionMinPrice.set(h.country, h.min_price)
   }
 
-  // Fetch destination photos for carousel — Pexels (all parallel, cached via backend SQLite)
-  const regionPhotos = noFilters
-    ? await Promise.all(topRegions.map(({ region }) => fetchDestinationPhoto(region).catch(() => null)))
-    : []
+  // Wave 2: fotky závisí na výsledcích vlny 1 — spustíme oboje paralelně
+  const articleLocations = [...new Set((articlesRaw as typeof articlesRaw).map(a => a.location).filter(Boolean) as string[])]
+  const [regionPhotos, articlePhotoResults] = await Promise.all([
+    noFilters
+      ? Promise.all(topRegions.map(({ region }) => fetchDestinationPhoto(region).catch(() => null)))
+      : Promise.resolve([] as (string | null)[]),
+    Promise.all(articleLocations.map(loc => fetchDestinationPhoto(loc).catch(() => null))),
+  ])
 
   // Filter out regions without photos
   const topRegionsWithPhotos = topRegions
     .map((r, i) => ({ ...r, thumb: regionPhotos[i] }))
     .filter((r): r is typeof r & { thumb: string } => r.thumb != null)
 
-  // Articles — homepage (no filters) or destination page
-  const articles = (noFilters && !singleDest && !tourType)
-    ? await fetchArticles(12).catch(() => [])
-    : singleDest
-    ? await fetchArticles(6, singleDest).catch(() => [])
-    : []
-
-  // Photos for articles
-  const articleLocations = [...new Set(articles.map(a => a.location).filter(Boolean) as string[])]
-  const articlePhotoResults = await Promise.all(
-    articleLocations.map(loc => fetchDestinationPhoto(loc).catch(() => null))
-  )
+  const articles = articlesRaw
   const articleImageMap: Record<string, string | null> = {}
   articleLocations.forEach((loc, i) => { articleImageMap[loc] = articlePhotoResults[i] })
 

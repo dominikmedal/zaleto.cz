@@ -44,7 +44,7 @@ export async function fetchHotelTours(slug: string, filters: Partial<Filters> = 
 }
 
 export async function fetchDestinations(): Promise<{ country: string; destination: string; resort_town: string | null; hotel_count: number }[]> {
-  const res = await fetch(`${API}/api/destinations`, { next: { revalidate: 300 }, signal: timeout() })
+  const res = await fetch(`${API}/api/destinations`, { next: { revalidate: 3600 }, signal: timeout() })
   if (!res.ok) return []
   return res.json()
 }
@@ -403,7 +403,7 @@ export async function fetchFilters(): Promise<{
   totalHotels: number
   departureCities: { departure_city: string; count: number }[]
 }> {
-  const res = await fetch(`${API}/api/filters`, { next: { revalidate: 300 }, signal: timeout() })
+  const res = await fetch(`${API}/api/filters`, { next: { revalidate: 3600 }, signal: timeout() })
   if (!res.ok) return { mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], totalTours: 0, totalHotels: 0, departureCities: [] }
   return res.json()
 }

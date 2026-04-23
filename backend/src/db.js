@@ -148,6 +148,10 @@ async function initSchema() {
       'CREATE INDEX IF NOT EXISTS idx_reviews_hotel          ON reviews(hotel_id)',
       // Slow-path composite: GROUP BY hotel_id při filtrování dle data + stravování/dopravy
       'CREATE INDEX IF NOT EXISTS idx_tours_slow_path ON tours(departure_date, meal_plan, hotel_id, price) WHERE price > 0',
+      // Slow-path + return_date filter: pokrývá filtrování kdy je zadáno i date_to
+      'CREATE INDEX IF NOT EXISTS idx_tours_dep_ret_hotel ON tours(departure_date, return_date, hotel_id, price) WHERE price > 0',
+      // Dedup self-join: urychluje dedup_tours v run_all.py
+      'CREATE INDEX IF NOT EXISTS idx_tours_dedup ON tours(hotel_id, agency, departure_date, duration, meal_plan, room_code, departure_city)',
     ]
     for (const sql of indexes) {
       try {
@@ -207,6 +211,8 @@ async function initSchema() {
       `ALTER TABLE destination_ai ADD COLUMN IF NOT EXISTS trips TEXT`,
       `ALTER TABLE hotels ADD COLUMN IF NOT EXISTS static_fetched_at TIMESTAMPTZ`,
       `ALTER TABLE articles ADD COLUMN IF NOT EXISTS custom_image_url TEXT`,
+      // Agresivnější autovacuum pro tours (vysoký churn: ~4M řádků, desítky tisíc update/delete za den)
+      `ALTER TABLE tours SET (autovacuum_vacuum_scale_factor = 0.01, autovacuum_analyze_scale_factor = 0.005)`,
     ]
     for (const sql of migrations) {
       try { await client.query(sql) } catch (e) {
