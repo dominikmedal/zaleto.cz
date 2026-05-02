@@ -329,8 +329,20 @@ def _parse_all_offers_response(raw: list | dict, hotel_path: str) -> list[dict]:
         if price <= 0:
             continue
 
-        if offer_code:
-            tour_url = f"{BASE_URL}{hotel_path}OfferCodeWS/{offer_code}"
+        parsed = _parse_offer_code(offer_code) if offer_code else {}
+        dep_airport = parsed.get("dep_airport", "")
+        arr_airport = parsed.get("arr_airport", "")
+        dep_city    = parsed.get("dep_city", airport_name)
+
+        # Stabilní URL — OfferCodeWS kódy obsahují přesný čas odletu a expirují.
+        # Používáme parametrický formát jako DB klíč; redirect.js přesměruje na hotel stránku.
+        if dep_date and dep_airport:
+            _parts = f"dep={dep_airport}&date={dep_date}"
+            if duration:
+                _parts += f"&dur={duration}"
+            if room_code:
+                _parts += f"&rc={urllib.parse.quote(room_code, safe='')}"
+            tour_url = f"{BASE_URL}{hotel_path}?{_parts}"
         elif dep_date:
             tour_url = f"{BASE_URL}{hotel_path}?date={dep_date}"
         else:
@@ -339,11 +351,6 @@ def _parse_all_offers_response(raw: list | dict, hotel_path: str) -> list[dict]:
         if tour_url in seen_urls:
             continue
         seen_urls.add(tour_url)
-
-        parsed = _parse_offer_code(offer_code) if offer_code else {}
-        dep_airport = parsed.get("dep_airport", "")
-        arr_airport = parsed.get("arr_airport", "")
-        dep_city    = parsed.get("dep_city", airport_name)
 
         if not dep_date and parsed.get("dep_date"):
             dep_date = parsed["dep_date"]

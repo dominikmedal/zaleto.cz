@@ -258,7 +258,7 @@ export default function TourDatesList({ slug }: { slug: string }) {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 30_000)
     setLoading(true)
-    fetch(`${API}/api/hotels/${slug}/tours`, { signal: controller.signal })
+    fetch(`${API}/api/hotels/${slug}/tours?limit=300&sort=date_asc`, { signal: controller.signal })
       .then(r => r.ok ? r.json() : { tours: [] })
       .then(data => setTours(data.tours ?? []))
       .catch(() => setTours([]))

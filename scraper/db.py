@@ -269,6 +269,7 @@ class ZaletoDB:
                 %s, %s, NOW()
             )
             ON CONFLICT (url) DO UPDATE SET
+                agency          = EXCLUDED.agency,
                 price           = EXCLUDED.price,
                 transport       = EXCLUDED.transport,
                 meal_plan       = EXCLUDED.meal_plan,

@@ -303,6 +303,25 @@ def purge_expired_tours(conn) -> int:
     return cur.rowcount
 
 
+def vacuum_analyze():
+    """
+    Spustí VACUUM ANALYZE na hlavních tabulkách — uvolní mrtvé záznamy po masivních
+    DELETE operacích a aktualizuje statistiky pro query planner.
+    Musí běžet mimo transakci (autocommit), proto otevírá vlastní spojení.
+    """
+    import psycopg2
+    ssl = {"sslmode": "require"} if "localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL else {}
+    pg_conn = psycopg2.connect(DATABASE_URL, **ssl)
+    pg_conn.autocommit = True
+    try:
+        with pg_conn.cursor() as cur:
+            for table in ("tours", "hotels", "hotel_stats"):
+                cur.execute(f"VACUUM ANALYZE {table}")
+                logger.info(f"  VACUUM ANALYZE {table} OK")
+    finally:
+        pg_conn.close()
+
+
 # ---------------------------------------------------------------------------
 # Párování hotelů napříč CK (canonical_slug)
 # ---------------------------------------------------------------------------
@@ -1083,6 +1102,12 @@ def run_cycle(cycle: int, skip_email: bool = False):
             refresh_hotel_stats(conn)
         except Exception:
             logger.exception("Chyba při aktualizaci hotel_stats")
+
+        logger.info("Post-processing: VACUUM ANALYZE (uvolnění mrtvých záznamů)...")
+        try:
+            vacuum_analyze()
+        except Exception:
+            logger.exception("Chyba při VACUUM ANALYZE")
 
     conn.close()
 

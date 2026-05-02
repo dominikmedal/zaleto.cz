@@ -10,9 +10,9 @@ let statsPopulated = null
 // GET /api/hotels
 router.get('/', async (req, res) => {
   try {
-    // Cache lookup — klíč bez known_total
+    // Cache lookup — klíč bez known_total, seřazený pro konzistenci bez ohledu na pořadí params
     const { known_total, ...queryForKey } = req.query
-    const cacheKey = JSON.stringify(queryForKey)
+    const cacheKey = JSON.stringify(Object.fromEntries(Object.entries(queryForKey).sort()))
     const cached = hotelsCache.get(cacheKey)
     if (cached) {
       res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
@@ -253,7 +253,7 @@ router.get('/', async (req, res) => {
         }
       }
 
-      if (transport) { tourConds.push('t.transport ILIKE ?'); tourParams.push(`%${transport}%`) }
+      if (transport) { tourConds.push('t.transport ILIKE ?'); tourParams.push(`${transport}%`) }
 
       if (departure_city) {
         const cities = String(departure_city).split(',').filter(Boolean)
@@ -269,47 +269,67 @@ router.get('/', async (req, res) => {
       if (min_price) { havingConds.push('min_price >= ?'); havingParams.push(parseFloat(min_price)) }
       if (max_price) { havingConds.push('min_price <= ?'); havingParams.push(parseFloat(max_price)) }
 
-      // Unified WHERE: tour conditions first (so param order matches tourParams, then mainParams)
-      const allConds = [...tourConds, ...hotelConds]
-      const allParams = [...tourParams, ...mainParams]
-      const whereClause = `WHERE ${allConds.join(' AND ')}`
+      const tourWhereClause = `WHERE ${tourConds.join(' AND ')}`
+      const hotelWhereClause = hotelConds.length ? `AND ${hotelConds.join(' AND ')}` : ''
       const having = havingConds.length ? `HAVING ${havingConds.join(' AND ')}` : ''
 
-      // Tours jsou uloženy pod hotel_id agentury (Fischer, Exim...), nikoli pod canonical_slug hotelem.
-      // Proto musíme přes JOIN dup najít všechny duplikáty canonical hotelu a teprve na ně joinovat tours.
-      const slowSql = `
+      // Parametry: CTE WHERE → CTE HAVING → outer WHERE → LIMIT/OFFSET
+      const cteParams    = [...tourParams, ...havingParams]
+      const countParams  = [...cteParams, ...mainParams]
+      const dataParams   = [...cteParams, ...mainParams, limitNum, offset]
+
+      // CTE agreguje tours přímo přes canonical_slug — eliminuje dvojitý JOIN hotels×hotels.
+      // Původní přístup: hotels h → JOIN hotels dup (OR podmínka, nelze indexovat) → JOIN tours
+      // Nový přístup: tours → JOIN hotels h2 (jednoduchý equi-join) → GROUP BY canonical_slug
+      //              → JOIN na kanonický hotel (equi-join na slug)
+      const cteSql = `
+        WITH agg AS MATERIALIZED (
+          SELECT
+            COALESCE(h2.canonical_slug, h2.slug) AS cslug,
+            MIN(t.price)                                                                         AS min_price,
+            COUNT(t.id)::integer                                                                 AS available_dates,
+            MIN(t.departure_date)                                                                AS next_departure,
+            (ARRAY_AGG(t.return_date ORDER BY t.departure_date ASC, t.price ASC))[1]            AS next_return_date,
+            MAX(t.is_last_minute)                                                                AS has_last_minute,
+            MAX(t.is_first_minute)                                                               AS has_first_minute
+          FROM tours t
+          INNER JOIN hotels h2 ON h2.id = t.hotel_id
+          ${tourWhereClause}
+          GROUP BY COALESCE(h2.canonical_slug, h2.slug)
+          ${having}
+        )
         SELECT h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
                h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
                ${extraFields},
-          MIN(t.price) AS min_price, COUNT(t.id)::integer AS available_dates,
-          MIN(t.departure_date) AS next_departure,
-          (ARRAY_AGG(t.return_date ORDER BY t.departure_date ASC, t.price ASC))[1] AS next_return_date,
-          MAX(t.is_last_minute) AS has_last_minute, MAX(t.is_first_minute) AS has_first_minute
+               agg.min_price, agg.available_dates, agg.next_departure, agg.next_return_date,
+               agg.has_last_minute, agg.has_first_minute
         FROM hotels h
-        INNER JOIN hotels dup ON (dup.canonical_slug = h.slug OR (dup.slug = h.slug AND dup.canonical_slug IS NULL))
-        INNER JOIN tours t ON t.hotel_id = dup.id
-        ${whereClause}
-        GROUP BY h.id ${having} ORDER BY ${slowOrderBy} LIMIT ? OFFSET ?
+        INNER JOIN agg ON agg.cslug = h.slug
+        WHERE 1=1 ${hotelWhereClause}
+        ORDER BY ${slowOrderBy} LIMIT ? OFFSET ?
       `
-      const countSql = `
-        SELECT COUNT(*) AS total FROM (
-          SELECT h.id, MIN(t.price) AS min_price
-          FROM hotels h
-          INNER JOIN hotels dup ON (dup.canonical_slug = h.slug OR (dup.slug = h.slug AND dup.canonical_slug IS NULL))
-          INNER JOIN tours t ON t.hotel_id = dup.id
-          ${whereClause}
-          GROUP BY h.id ${having}
-        ) AS count_sub
+      const countCteSql = `
+        WITH agg AS MATERIALIZED (
+          SELECT COALESCE(h2.canonical_slug, h2.slug) AS cslug, MIN(t.price) AS min_price
+          FROM tours t
+          INNER JOIN hotels h2 ON h2.id = t.hotel_id
+          ${tourWhereClause}
+          GROUP BY COALESCE(h2.canonical_slug, h2.slug)
+          ${having}
+        )
+        SELECT COUNT(*) AS total
+        FROM hotels h
+        INNER JOIN agg ON agg.cslug = h.slug
+        WHERE 1=1 ${hotelWhereClause}
       `
-      const slowParams = [...allParams, ...havingParams]
 
       if (knownTotal !== null && pageNum > 1) {
         total = knownTotal
       } else {
-        const cr = await db.query(countSql, slowParams)
+        const cr = await db.query(countCteSql, countParams)
         total = parseInt(cr.rows[0].total)
       }
-      const hr = await db.query(slowSql, [...slowParams, limitNum, offset])
+      const hr = await db.query(cteSql, dataParams)
       hotels = hr.rows
     }
 

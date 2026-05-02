@@ -58,11 +58,11 @@ router.get('/', async (req, res) => {
     const countR = await db.query(`SELECT COUNT(*) AS n FROM tours ${where}`, params)
     const total = parseInt(countR.rows[0].n)
 
-    const limitNum  = limit  ? Math.min(200, Math.max(1, parseInt(limit)  || 50)) : null
+    const limitNum  = Math.min(500, Math.max(1, parseInt(limit) || 300))
     const offsetNum = offset ? Math.max(0, parseInt(offset) || 0) : 0
 
     const cols = 'id, hotel_id, agency, departure_date, return_date, duration, price, transport, meal_plan, adults, departure_city, url, is_last_minute, is_first_minute'
-    const pagination = limitNum ? `LIMIT ${limitNum} OFFSET ${offsetNum}` : ''
+    const pagination = `LIMIT ${limitNum} OFFSET ${offsetNum}`
 
     const toursR = await db.query(
       `SELECT ${cols} FROM tours ${where} ORDER BY ${orderBy} ${pagination}`,

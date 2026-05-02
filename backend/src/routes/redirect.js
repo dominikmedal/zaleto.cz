@@ -43,6 +43,27 @@ router.get('/:slug', async (req, res) => {
     // otherwise fall back to the hotel's own agency
     const effectiveAgency = agencyOverride || hotel.agency
 
+    // TUI: OfferCodeWS kódy expirují — přesměruj na hotel stránku TUI s datem
+    if (effectiveAgency.toLowerCase() === 'tui') {
+      let tuiUrl = tour_url
+      if (!tuiUrl) {
+        const tr = await db.query(
+          'SELECT url FROM tours WHERE hotel_id = ? AND departure_date = ? ORDER BY price ASC LIMIT 1',
+          [hotel.id, date]
+        )
+        tuiUrl = tr.rows[0]?.url
+      }
+      if (!tuiUrl) return res.status(404).json({ error: `Termín ${date} nenalezen` })
+      // Odstraň OfferCodeWS (stará data) nebo syntetické params (nová data) — vždy jen base hotel URL
+      const offerIdx = tuiUrl.indexOf('/OfferCodeWS/')
+      let baseUrl = offerIdx !== -1 ? tuiUrl.substring(0, offerIdx + 1) : tuiUrl.split('?')[0]
+      if (!baseUrl.endsWith('/')) baseUrl += '/'
+      if (date) baseUrl += `?date=${date}`
+      const destUrl = affiliateUrl(baseUrl, effectiveAgency)
+      console.log(`[redirect] tui ${slug} ${date} → ${destUrl}`)
+      return res.redirect(302, destUrl)
+    }
+
     // Čedok: URL already contains deeplink — wrap with affiliate, tour_url takes precedence
     if (effectiveAgency === 'Čedok') {
       let rawUrl = tour_url

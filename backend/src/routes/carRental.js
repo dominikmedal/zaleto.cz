@@ -408,7 +408,7 @@ router.get('/enriched-destinations', async (req, res) => {
         h.destination
       FROM hotels h
       INNER JOIN hotel_stats s ON s.hotel_id = h.id
-      WHERE s.departure_date >= CURRENT_DATE
+      WHERE s.next_departure >= CURRENT_DATE::text
         AND (h.resort_town IS NOT NULL OR h.destination IS NOT NULL)
       ORDER BY h.country, resort_town
     `)
