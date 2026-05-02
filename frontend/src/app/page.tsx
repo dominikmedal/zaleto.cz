@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { permanentRedirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -146,6 +147,18 @@ export default async function HomePage({ searchParams }: PageProps) {
   }
 
   const singleDest = filters.destination && !filters.destination.includes(',') ? filters.destination : null
+
+  // Přesměruj /?destination=X na kanonickou stránku /destinace/{slug}, pokud nejsou aktivní jiné filtry.
+  // Zajišťuje vizuální a obsahovou identitu mezi oběma URL.
+  const hasOnlyDestination = singleDest &&
+    !filters.date_from && !filters.date_to && !filters.duration &&
+    !filters.min_price && !filters.max_price && !filters.stars &&
+    !filters.meal_plan && !filters.transport && !filters.tour_type && !filters.departure_city
+  if (hasOnlyDestination) {
+    const slug = slugify(singleDest!)
+    const sortParam = filters.sort && filters.sort !== 'price_asc' ? `?sort=${filters.sort}` : ''
+    permanentRedirect(`/destinace/${slug}${sortParam}`)
+  }
   const multiDests = filters.destination ? filters.destination.split(',').map(d => d.trim()).filter(Boolean) : []
   const tourType = filters.tour_type
   const noFilters = !hasActiveFilter(filters)

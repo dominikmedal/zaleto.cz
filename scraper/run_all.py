@@ -129,11 +129,6 @@ SCRAPERS: list[dict] = [
         "args":       ["--delay", str(SCRAPER_DELAY)] + _worker_args(),
     },
     {
-        "agency":     "Nev-Dama",
-        "module":     "nevdama.py",
-        "args":       ["--delay", str(SCRAPER_DELAY)] + _worker_args(),
-    },
-    {
         "agency":     "Blue Style",
         "module":     "bluestyle.py",
         "args":       [],   # delay: výchozí 2.0s (definován v bluestyle.py)
@@ -285,6 +280,18 @@ def ensure_canonical_slug(conn):
         "WHERE canonical_slug IS NULL OR canonical_slug = ''"
     )
     conn.commit()
+
+
+def purge_nevdama_data(conn) -> tuple[int, int]:
+    """Smaže všechny hotely a termíny Nev-Dama (jednorázový cleanup po odebrání CK)."""
+    t = conn.execute("SELECT COUNT(*) AS n FROM tours  WHERE agency = 'Nev-Dama'").fetchone()["n"]
+    h = conn.execute("SELECT COUNT(*) AS n FROM hotels WHERE agency = 'Nev-Dama'").fetchone()["n"]
+    if t or h:
+        conn.execute("DELETE FROM tours  WHERE agency = 'Nev-Dama'")
+        conn.execute("DELETE FROM hotels WHERE agency = 'Nev-Dama'")
+        conn.commit()
+        logger.info(f"Nev-Dama cleanup: smazáno {h} hotelů a {t} termínů")
+    return h, t
 
 
 def purge_expired_tours(conn) -> int:
@@ -471,7 +478,7 @@ def run_scraper(scraper: dict, conn=None) -> dict:
     if _own_conn:
         conn = open_db()
 
-    # Fischer / Exim Tours / Nev-Dama: rozhodni full vs update-only
+    # Fischer / Exim Tours: rozhodni full vs update-only
     is_update_only = False
     if agency in UPDATE_ONLY_AGENCIES:
         last_full = last_full_scrape_date(conn, agency)
@@ -995,6 +1002,7 @@ def run_cycle(cycle: int, skip_email: bool = False):
     ensure_canonical_slug(conn)
     ensure_checkpoint_table(conn)
     clear_checkpoints(conn)
+    purge_nevdama_data(conn)
 
     # Spusť AI generování: nejprve počasí, pak popisky destinací — obojí na pozadí,
     # scraping startuje okamžitě souběžně (není třeba čekat).

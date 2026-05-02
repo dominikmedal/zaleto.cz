@@ -494,23 +494,33 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
 
     base_url = hotel_url.split("?")[0]
     available_dates = api_data.get("availableDates", [])
-    # Diagnostika: pokud API vrátí availableDates ale všechny mají cenu 0 / neznámý formát,
-    # zalogujeme klíče prvního záznamu — pomůže identifikovat změnu struktury Exim API.
-    if available_dates and logger.isEnabledFor(logging.DEBUG):
+    # Diagnostika ceny — logujeme vždy, abychom identifikovali chybné nebo nulové ceny.
+    if available_dates:
         sample = available_dates[0]
-        logger.debug(f"Exim availableDates[0] klíče: {list(sample.keys())} | hodnoty: {sample}")
-    elif available_dates:
-        sample = available_dates[0]
-        price_sample = sample.get("pricePerPerson") or sample.get("price", 0.0)
+        price_sample = (
+            sample.get("pricePerPerson") or sample.get("price") or
+            sample.get("totalPrice") or sample.get("totalPricePerPerson") or 0.0
+        )
         if not price_sample:
             logger.warning(
                 f"Exim: availableDates má {len(available_dates)} záznamů, ale cena=0 "
                 f"(klíče: {list(sample.keys())}, hodnoty: {sample})"
             )
+        elif price_sample < 500:
+            logger.warning(
+                f"Exim: podezřele nízká cena {price_sample} Kč — možná špatný klíč! "
+                f"Všechny klíče: {list(sample.keys())} | full: {sample}"
+            )
+        else:
+            logger.debug(f"Exim availableDates[0] klíče: {list(sample.keys())} | cena: {price_sample}")
     tours = []
     for d in available_dates:
         raw_date = d.get("date", "")[:10]
-        price    = d.get("pricePerPerson") or d.get("price", 0.0)
+        # Zkus více možných klíčů pro cenu — Exim Tours mění strukturu
+        price = (
+            d.get("pricePerPerson") or d.get("totalPricePerPerson") or
+            d.get("totalPrice") or d.get("price") or 0.0
+        )
         if not raw_date or price <= 0:
             continue
         try:

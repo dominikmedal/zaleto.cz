@@ -27,7 +27,7 @@ import CarRentalBanner from '@/components/CarRentalBanner'
 // Leaflet needs browser APIs → dynamic import, no SSR
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false })
 
-export const revalidate = 3600          // ISR — regeneruj stránku na pozadí každou hodinu
+export const revalidate = 60            // ISR — regeneruj stránku na pozadí každou minutu (kratší okno pro stale 404)
 export const dynamicParams = true       // stránky mimo generateStaticParams fungují jako ISR on-demand
 
 export async function generateStaticParams() {
