@@ -4,8 +4,9 @@ const db = require('../db')
 const { hotelsCache, hotelDetailCache } = require('../cache')
 const { MEAL_SQL } = require('../mealPlanUtils')
 
-// Lazy-initialised — set after first DB check or cache invalidation
+// Re-checked on every cache miss — never gets permanently stuck at false
 let statsPopulated = null
+let statsCheckedAt = 0
 
 // GET /api/hotels
 router.get('/', async (req, res) => {
@@ -70,9 +71,10 @@ router.get('/', async (req, res) => {
 
     if (!hasTourFilters) {
       // ── FAST PATH: pouze hotel_stats (13K řádků) bez JOIN na miliony tours ──
-      if (statsPopulated === null) {
+      if (statsPopulated === null || Date.now() - statsCheckedAt > 5 * 60 * 1000) {
         const r = await db.query('SELECT COUNT(*) AS n FROM hotel_stats')
         statsPopulated = parseInt(r.rows[0].n) > 0
+        statsCheckedAt = Date.now()
       }
 
       const whereConds = ['s.min_price IS NOT NULL', "s.next_departure >= CURRENT_DATE::text", '(h.canonical_slug IS NULL OR h.canonical_slug = h.slug)']
@@ -274,63 +276,57 @@ router.get('/', async (req, res) => {
       const having = havingConds.length ? `HAVING ${havingConds.join(' AND ')}` : ''
 
       // Parametry: CTE WHERE → CTE HAVING → outer WHERE → LIMIT/OFFSET
-      const cteParams    = [...tourParams, ...havingParams]
-      const countParams  = [...cteParams, ...mainParams]
-      const dataParams   = [...cteParams, ...mainParams, limitNum, offset]
+      const cteParams  = [...tourParams, ...havingParams]
+      const dataParams = [...cteParams, ...mainParams, limitNum, offset]
 
-      // CTE agreguje tours přímo přes canonical_slug — eliminuje dvojitý JOIN hotels×hotels.
-      // Původní přístup: hotels h → JOIN hotels dup (OR podmínka, nelze indexovat) → JOIN tours
-      // Nový přístup: tours → JOIN hotels h2 (jednoduchý equi-join) → GROUP BY canonical_slug
-      //              → JOIN na kanonický hotel (equi-join na slug)
-      const cteSql = `
+      // Shared CTE core — MIN(return_date) místo ARRAY_AGG (řazení uvnitř skupiny je drahé)
+      const cteCore = `
         WITH agg AS MATERIALIZED (
           SELECT
             COALESCE(h2.canonical_slug, h2.slug) AS cslug,
-            MIN(t.price)                                                                         AS min_price,
-            COUNT(t.id)::integer                                                                 AS available_dates,
-            MIN(t.departure_date)                                                                AS next_departure,
-            (ARRAY_AGG(t.return_date ORDER BY t.departure_date ASC, t.price ASC))[1]            AS next_return_date,
-            MAX(t.is_last_minute)                                                                AS has_last_minute,
-            MAX(t.is_first_minute)                                                               AS has_first_minute
+            MIN(t.price)            AS min_price,
+            COUNT(*)::integer       AS available_dates,
+            MIN(t.departure_date)   AS next_departure,
+            MIN(t.return_date)      AS next_return_date,
+            MAX(t.is_last_minute)   AS has_last_minute,
+            MAX(t.is_first_minute)  AS has_first_minute
           FROM tours t
           INNER JOIN hotels h2 ON h2.id = t.hotel_id
           ${tourWhereClause}
           GROUP BY COALESCE(h2.canonical_slug, h2.slug)
           ${having}
         )
-        SELECT h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
-               h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
-               ${extraFields},
-               agg.min_price, agg.available_dates, agg.next_departure, agg.next_return_date,
-               agg.has_last_minute, agg.has_first_minute
-        FROM hotels h
-        INNER JOIN agg ON agg.cslug = h.slug
-        WHERE 1=1 ${hotelWhereClause}
-        ORDER BY ${slowOrderBy} LIMIT ? OFFSET ?
       `
-      const countCteSql = `
-        WITH agg AS MATERIALIZED (
-          SELECT COALESCE(h2.canonical_slug, h2.slug) AS cslug, MIN(t.price) AS min_price
-          FROM tours t
-          INNER JOIN hotels h2 ON h2.id = t.hotel_id
-          ${tourWhereClause}
-          GROUP BY COALESCE(h2.canonical_slug, h2.slug)
-          ${having}
-        )
-        SELECT COUNT(*) AS total
+      const hotelCols = `
+        h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
+        h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
+        ${extraFields},
+        agg.min_price, agg.available_dates, agg.next_departure, agg.next_return_date,
+        agg.has_last_minute, agg.has_first_minute
+      `
+      const fromJoin = `
         FROM hotels h
         INNER JOIN agg ON agg.cslug = h.slug
         WHERE 1=1 ${hotelWhereClause}
       `
 
       if (knownTotal !== null && pageNum > 1) {
+        // Strana 2+: total known — stačí jediný dotaz bez počítání
         total = knownTotal
+        const hr = await db.query(
+          `${cteCore} SELECT ${hotelCols} ${fromJoin} ORDER BY ${slowOrderBy} LIMIT ? OFFSET ?`,
+          dataParams
+        )
+        hotels = hr.rows
       } else {
-        const cr = await db.query(countCteSql, countParams)
-        total = parseInt(cr.rows[0].total)
+        // Strana 1: total neznámý — COUNT(*) OVER() ve stejném dotazu jako data (CTE se vypočítá jen jednou)
+        const hr = await db.query(
+          `${cteCore} SELECT ${hotelCols}, COUNT(*) OVER() AS _total ${fromJoin} ORDER BY ${slowOrderBy} LIMIT ? OFFSET ?`,
+          dataParams
+        )
+        total = parseInt(hr.rows[0]?._total ?? 0)
+        hotels = hr.rows.map(({ _total, ...h }) => h)
       }
-      const hr = await db.query(cteSql, dataParams)
-      hotels = hr.rows
     }
 
     const hasMore = offset + hotels.length < total
@@ -346,7 +342,7 @@ router.get('/', async (req, res) => {
     }
 
     res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
-    hotelsCache.set(cacheKey, result)
+    if (hotels.length > 0) hotelsCache.set(cacheKey, result)
     res.set('X-Cache', 'MISS').json(result)
   } catch (err) {
     console.error('GET /hotels error:', err)

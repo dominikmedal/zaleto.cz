@@ -118,18 +118,22 @@ export default function HotelGrid({ adults = 2, forcedDestination }: { adults?: 
     if (view === 'list') params.set('view', 'list')
 
     fetch(`${API}/api/hotels?${params.toString()}`, { signal: controller.signal })
-      .then(r => r.ok ? r.json() : { hotels: [], pagination: EMPTY_PAG })
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then(({ hotels: h, pagination: p }: PageResult) => {
-        setHotels(h)
-        setPagination(p)
+        setHotels(h ?? [])
+        setPagination(p ?? EMPTY_PAG)
         setInitialDone(true)
-        if (p.hasMore) {
+        if (p?.hasMore) {
           prefetchRef.current = fetchPage(sp, 2, p.limit, view, p.total)
             .catch(() => null) as Promise<PageResult>
         }
       })
       .catch(err => {
-        if (err.name !== 'AbortError') { setHotels([]); setPagination(EMPTY_PAG) }
+        if (err.name !== 'AbortError') {
+          setHotels([])
+          setPagination(EMPTY_PAG)
+          setInitialDone(true)
+        }
       })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
 

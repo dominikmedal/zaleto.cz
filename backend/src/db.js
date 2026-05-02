@@ -148,8 +148,9 @@ async function initSchema() {
       'CREATE INDEX IF NOT EXISTS idx_reviews_hotel          ON reviews(hotel_id)',
       // Slow-path composite: GROUP BY hotel_id při filtrování dle data + stravování/dopravy
       'CREATE INDEX IF NOT EXISTS idx_tours_slow_path ON tours(departure_date, meal_plan, hotel_id, price) WHERE price > 0',
-      // Slow-path + return_date filter: pokrývá filtrování kdy je zadáno i date_to
+      // Slow-path + return_date filter: covering index (vč. is_last/first_minute aby se předešlo heap fetchům)
       'CREATE INDEX IF NOT EXISTS idx_tours_dep_ret_hotel ON tours(departure_date, return_date, hotel_id, price) WHERE price > 0',
+      'CREATE INDEX IF NOT EXISTS idx_tours_dep_ret_cov ON tours(departure_date, return_date, hotel_id, price, is_last_minute, is_first_minute) WHERE price > 0',
       // Dedup self-join: urychluje dedup_tours v run_all.py
       'CREATE INDEX IF NOT EXISTS idx_tours_dedup ON tours(hotel_id, agency, departure_date, duration, meal_plan, room_code, departure_city)',
     ]
