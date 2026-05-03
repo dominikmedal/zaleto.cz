@@ -17,6 +17,7 @@ app.use(express.json())
 const ALLOWED_ORIGINS = new Set([
   'https://zaleto.cz', 'https://www.zaleto.cz',
   'https://mallorca-pujcovna.cz', 'https://www.mallorca-pujcovna.cz',
+    'https://tenerife-pujcovna.cz', 'https://www.tenerife-pujcovna.cz',
 ])
 
 function isAllowedOrigin(origin) {
