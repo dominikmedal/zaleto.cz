@@ -121,15 +121,13 @@ function PillToggle({ active, onClick, children }: { active: boolean; onClick: (
       onClick={onClick}
       className="px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap"
       style={active ? {
-        background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+        background: '#0093FF',
         color: '#fff',
         border: '1px solid #0093FF',
-        boxShadow: '0 2px 8px rgba(0,147,255,0.28)',
       } : {
-        background: 'rgba(237,246,255,0.70)',
+        background: '#f0f7ff',
         color: '#4b5563',
-        border: '1px solid rgba(200,227,255,0.65)',
-        backdropFilter: 'blur(8px)',
+        border: '1px solid #deeeff',
       }}
     >
       {children}
@@ -393,17 +391,15 @@ export default function HeaderFilterBar() {
 
       {/* ── Compact pill bar ── */}
       <div
-        className="flex-1 flex items-stretch min-w-0 h-11 overflow-hidden transition-all duration-300 rounded-full"
+        className="flex-1 flex items-stretch min-w-0 h-12 overflow-hidden transition-all duration-300 rounded-full"
         style={{
-          background: 'rgba(245,248,255,0.92)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          background: '#ffffff',
           border: activePanel
-            ? '1px solid rgba(0,147,255,0.40)'
-            : '1px solid rgba(200,227,255,0.70)',
+            ? '1.5px solid rgba(0,147,255,0.5)'
+            : '1.5px solid rgba(0,147,255,0.25)',
           boxShadow: activePanel
-            ? '0 2px 16px rgba(0,147,255,0.18)'
-            : '0 2px 12px rgba(0,147,255,0.10)',
+            ? '0 4px 20px rgba(0,147,255,0.18)'
+            : '0 2px 12px rgba(0,147,255,0.10), 0 1px 3px rgba(0,0,0,0.05)',
         }}
       >
 
@@ -472,7 +468,7 @@ export default function HeaderFilterBar() {
         <div
           onClick={() => openPanel('date')}
           className={`hidden sm:flex items-center gap-1 px-5 w-44 flex-shrink-0 cursor-pointer transition-colors border-r border-[rgba(0,147,255,0.08)] ${
-            activePanel === 'date' ? 'bg-[rgba(0,147,255,0.06)]' : 'hover:bg-[rgba(237,246,255,0.50)]'
+            activePanel === 'date' ? 'bg-[rgba(0,147,255,0.06)]' : 'hover:bg-[#f0f7ff]'
           }`}
         >
           <div className="flex flex-col justify-center flex-1 min-w-0">
@@ -531,7 +527,7 @@ export default function HeaderFilterBar() {
           onClick={e => { e.stopPropagation(); openPanel('adv') }}
           className="hidden sm:flex items-center gap-1.5 px-4 flex-shrink-0 transition-all rounded-r-full"
           style={activePanel === 'adv' || advancedCount > 0 ? {
-            background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+            background: '#0093FF',
             color: '#fff',
           } : {
             color: '#6b7280',
@@ -555,7 +551,7 @@ export default function HeaderFilterBar() {
           onClick={e => { e.stopPropagation(); openMobileSheet() }}
           className="sm:hidden flex items-center gap-1.5 px-4 flex-shrink-0 transition-all rounded-r-full"
           style={mobileFilterCount > 0 ? {
-            background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+            background: '#0093FF',
             color: '#fff',
           } : { color: '#9ca3af' }}
         >
@@ -576,11 +572,9 @@ export default function HeaderFilterBar() {
       {activePanel === 'dest' && (
         <div className="absolute top-full left-0 right-0 mt-2.5 rounded-2xl z-50 p-3"
           style={{
-            background: 'rgba(248,251,255,0.97)',
-            backdropFilter: 'blur(28px)',
-            WebkitBackdropFilter: 'blur(28px)',
-            border: '1px solid rgba(200,227,255,0.70)',
-            boxShadow: '0 20px 60px rgba(0,80,200,0.16), 0 4px 20px rgba(0,0,0,0.06)',
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
           }}>
           <DestinationAutocomplete
             destinations={destRows}
@@ -598,11 +592,9 @@ export default function HeaderFilterBar() {
         <div className="absolute top-full sm:left-[calc(37%-0.5rem)] mt-2.5 rounded-2xl z-50 p-5"
           style={{
             width: 'min(690px, calc(100vw - 3rem))',
-            background: 'rgba(248,251,255,0.97)',
-            backdropFilter: 'blur(28px)',
-            WebkitBackdropFilter: 'blur(28px)',
-            border: '1px solid rgba(200,227,255,0.70)',
-            boxShadow: '0 20px 60px rgba(0,80,200,0.16), 0 4px 20px rgba(0,0,0,0.06)',
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
           }}>
           <DateRangePicker
             dateFrom={dateFrom}
@@ -622,11 +614,9 @@ export default function HeaderFilterBar() {
       {activePanel === 'adv' && (
         <div className="absolute top-full left-0 right-0 mt-2.5 rounded-2xl z-50 p-5"
           style={{
-            background: 'rgba(248,251,255,0.97)',
-            backdropFilter: 'blur(28px)',
-            WebkitBackdropFilter: 'blur(28px)',
-            border: '1px solid rgba(200,227,255,0.70)',
-            boxShadow: '0 20px 60px rgba(0,80,200,0.16), 0 4px 20px rgba(0,0,0,0.06)',
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
           }}>
           {metaError ? (
             <div className="flex flex-col items-center py-6 gap-3">
@@ -655,8 +645,8 @@ export default function HeaderFilterBar() {
                       color: '#fff', border: '1px solid #ef4444',
                       boxShadow: '0 2px 8px rgba(239,68,68,0.28)',
                     } : {
-                      background: 'rgba(237,246,255,0.70)', color: '#4b5563',
-                      border: '1px solid rgba(200,227,255,0.65)',
+                      background: '#f0f7ff', color: '#4b5563',
+                      border: '1px solid #deeeff',
                     }}>
                     <PiTimer className="w-3.5 h-3.5" /> Last minute
                   </button>
@@ -668,8 +658,8 @@ export default function HeaderFilterBar() {
                       color: '#fff', border: '1px solid #10b981',
                       boxShadow: '0 2px 8px rgba(16,185,129,0.28)',
                     } : {
-                      background: 'rgba(237,246,255,0.70)', color: '#4b5563',
-                      border: '1px solid rgba(200,227,255,0.65)',
+                      background: '#f0f7ff', color: '#4b5563',
+                      border: '1px solid #deeeff',
                     }}>
                     <PiCalendarStar className="w-3.5 h-3.5" /> First minute
                   </button>
@@ -712,8 +702,8 @@ export default function HeaderFilterBar() {
                     <select value={duration} onChange={e => setDuration(e.target.value)}
                       className="w-full text-sm rounded-xl px-3 py-2 focus:outline-none appearance-none pr-8 cursor-pointer"
                       style={{
-                        background: 'rgba(237,246,255,0.70)',
-                        border: '1px solid rgba(200,227,255,0.65)',
+                        background: '#f0f7ff',
+                        border: '1px solid #deeeff',
                         color: '#374151',
                       }}>
                       <option value="">Libovolná</option>
@@ -782,12 +772,10 @@ export default function HeaderFilterBar() {
         {/* Sheet */}
         <div className="fixed bottom-0 inset-x-0 z-[201] rounded-t-3xl max-h-[92dvh] flex flex-col"
           style={{
-            background: 'rgba(248,251,255,0.97)',
-            backdropFilter: 'blur(28px)',
-            WebkitBackdropFilter: 'blur(28px)',
-            border: '1px solid rgba(200,227,255,0.60)',
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
             borderBottom: 'none',
-            boxShadow: '0 -8px 40px rgba(0,80,200,0.18)',
+            boxShadow: '0 -4px 24px rgba(0,0,0,0.10)',
           }}>
 
           {/* Handle */}
@@ -796,7 +784,7 @@ export default function HeaderFilterBar() {
           </div>
 
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)' }}>
+          <div className="flex items-center justify-between px-5 py-3 flex-shrink-0 border-b border-gray-100">
             <h2 className="text-base font-bold text-gray-900">Hledat zájezd</h2>
             <button
               type="button"
@@ -851,7 +839,7 @@ export default function HeaderFilterBar() {
                     onClick={() => setAdults(a => Math.max(1, a - 1))}
                     disabled={adults <= 1}
                     className="w-10 h-10 flex items-center justify-center rounded-full disabled:opacity-30 transition-colors"
-                    style={{ background: 'rgba(0,147,255,0.08)', color: '#0093FF', border: '1px solid rgba(0,147,255,0.20)' }}>
+                    style={{ background: '#e8f3ff', color: '#0093FF', border: '1px solid #deeeff' }}>
                     <PiUserMinus className="w-5 h-5" />
                   </button>
                   <span className="text-lg font-semibold text-gray-900 tabular-nums min-w-[5rem] text-center">{adults} {adults === 1 ? 'osoba' : adults < 5 ? 'osoby' : 'osob'}</span>
@@ -859,7 +847,7 @@ export default function HeaderFilterBar() {
                     onClick={() => setAdults(a => Math.min(6, a + 1))}
                     disabled={adults >= 6}
                     className="w-10 h-10 flex items-center justify-center rounded-full disabled:opacity-30 transition-colors"
-                    style={{ background: 'rgba(0,147,255,0.08)', color: '#0093FF', border: '1px solid rgba(0,147,255,0.20)' }}>
+                    style={{ background: '#e8f3ff', color: '#0093FF', border: '1px solid #deeeff' }}>
                     <PiUserPlus className="w-5 h-5" />
                   </button>
                 </div>
@@ -874,12 +862,11 @@ export default function HeaderFilterBar() {
                       onClick={() => setSort(o.value)}
                       className="px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left"
                       style={sort === o.value ? {
-                        background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+                        background: '#0093FF',
                         color: '#fff', border: '1px solid #0093FF',
-                        boxShadow: '0 2px 8px rgba(0,147,255,0.25)',
                       } : {
-                        background: 'rgba(237,246,255,0.70)', color: '#4b5563',
-                        border: '1px solid rgba(200,227,255,0.65)',
+                        background: '#f0f7ff', color: '#4b5563',
+                        border: '1px solid #deeeff',
                       }}>
                       {o.label}
                     </button>
@@ -895,12 +882,11 @@ export default function HeaderFilterBar() {
                     onClick={() => setTourType(t => t === 'last_minute' ? '' : 'last_minute')}
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium transition-all"
                     style={tourType === 'last_minute' ? {
-                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      background: '#ef4444',
                       color: '#fff', border: '1px solid #ef4444',
-                      boxShadow: '0 2px 8px rgba(239,68,68,0.28)',
                     } : {
-                      background: 'rgba(237,246,255,0.70)', color: '#4b5563',
-                      border: '1px solid rgba(200,227,255,0.65)',
+                      background: '#f0f7ff', color: '#4b5563',
+                      border: '1px solid #deeeff',
                     }}>
                     <PiTimer className="w-4 h-4" /> Last minute
                   </button>
@@ -908,12 +894,11 @@ export default function HeaderFilterBar() {
                     onClick={() => setTourType(t => t === 'first_minute' ? '' : 'first_minute')}
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium transition-all"
                     style={tourType === 'first_minute' ? {
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      background: '#10b981',
                       color: '#fff', border: '1px solid #10b981',
-                      boxShadow: '0 2px 8px rgba(16,185,129,0.28)',
                     } : {
-                      background: 'rgba(237,246,255,0.70)', color: '#4b5563',
-                      border: '1px solid rgba(200,227,255,0.65)',
+                      background: '#f0f7ff', color: '#4b5563',
+                      border: '1px solid #deeeff',
                     }}>
                     <PiCalendarStar className="w-4 h-4" /> First minute
                   </button>
@@ -975,8 +960,8 @@ export default function HeaderFilterBar() {
                         <select value={duration} onChange={e => setDuration(e.target.value)}
                           className="w-full text-sm rounded-xl px-4 py-3 focus:outline-none appearance-none pr-8 cursor-pointer"
                           style={{
-                            background: 'rgba(237,246,255,0.70)',
-                            border: '1px solid rgba(200,227,255,0.65)',
+                            background: '#f0f7ff',
+                            border: '1px solid #deeeff',
                             color: '#374151',
                           }}>
                           <option value="">Libovolná</option>

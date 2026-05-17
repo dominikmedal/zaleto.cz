@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Header from '@/components/Header'
@@ -149,7 +149,7 @@ export default async function CarRentalSectionPage({ params }: Props) {
 
         <h1
           className="font-bold text-gray-900 leading-tight tracking-tight mb-4"
-          style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(24px, 4vw, 48px)' }}
+          style={{ fontSize: 'clamp(24px, 4vw, 48px)' }}
         >
           {SECTION_META[section].heading(dest.name, dest.country, year)}
         </h1>
@@ -189,7 +189,7 @@ export default async function CarRentalSectionPage({ params }: Props) {
             <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Rezervace</p>
           </div>
           <h2 className="font-bold text-gray-900 tracking-tight mb-6"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
+            style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
             Půjčit auto v {dest.name}
           </h2>
           <CarRentalSearchForm destination={dest} />
@@ -238,7 +238,7 @@ function TripTipsFullPage({ tips, destName }: { tips: CarRentalTripTip[]; destNa
         {tips.map((tip, i) => (
           <article key={i} className="glass-card rounded-2xl p-5 relative overflow-hidden flex flex-col gap-3">
             <div className="absolute top-3 right-3 font-black text-5xl leading-none select-none"
-              style={{ color: 'rgba(0,147,255,0.05)', fontFamily: "'Playfair Display', Georgia, serif" }}>
+              style={{ color: 'rgba(0,147,255,0.05)',  }}>
               {i + 1}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -272,7 +272,7 @@ function DrivingRulesFullPage({ aiData, country }: { aiData: CarRentalAIData; co
             <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Pohonné hmoty</p>
           </div>
           <h2 className="font-bold text-gray-900 tracking-tight mb-5"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.5vw, 30px)' }}>
+            style={{ fontSize: 'clamp(20px, 2.5vw, 30px)' }}>
             Pohonné hmoty v {country}
           </h2>
           <div className="glass-card rounded-2xl p-6 sm:p-8">
@@ -297,7 +297,7 @@ function DrivingRulesFullPage({ aiData, country }: { aiData: CarRentalAIData; co
             <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Dopravní předpisy</p>
           </div>
           <h2 className="font-bold text-gray-900 tracking-tight mb-5"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.5vw, 30px)' }}>
+            style={{ fontSize: 'clamp(20px, 2.5vw, 30px)' }}>
             Silniční pravidla v {country}
           </h2>
           <div className="glass-card rounded-2xl p-6 sm:p-8">
@@ -322,7 +322,7 @@ function DrivingRulesFullPage({ aiData, country }: { aiData: CarRentalAIData; co
             <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Tipy</p>
           </div>
           <h2 className="font-bold text-gray-900 tracking-tight mb-5"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.5vw, 30px)' }}>
+            style={{ fontSize: 'clamp(20px, 2.5vw, 30px)' }}>
             Praktické rady před cestou
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -78,7 +78,7 @@ export default function OZaletoPage() {
             </p>
             <h1
               className="font-bold text-gray-900 leading-tight tracking-tight mb-4"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(32px, 4.5vw, 52px)' }}
+              style={{ fontSize: 'clamp(32px, 4.5vw, 52px)' }}
             >
               Co je <em className="not-italic" style={{ color: '#0093FF' }}>Zaleto</em>?
             </h1>

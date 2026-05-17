@@ -1,4 +1,4 @@
-import Image from 'next/image'
+﻿import Image from 'next/image'
 import Link from 'next/link'
 import { CAR_DESTINATIONS } from '@/lib/carRental'
 import { slugify } from '@/lib/slugify'
@@ -67,7 +67,7 @@ export default function CarRentalBanner({ place, country }: Props) {
               </div>
               <h3
                 className="font-bold text-gray-900 leading-tight"
-                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(16px, 2.5vw, 20px)' }}
+                style={{ fontSize: 'clamp(16px, 2.5vw, 20px)' }}
               >
                 Prozkoumejte destinaci na vlastní pěst
               </h3>

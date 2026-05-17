@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import Header from '@/components/Header'
@@ -108,10 +108,10 @@ export default async function PujcovnaAutPage() {
             priority
           />
           <div className="absolute inset-0" style={{
-            background: 'linear-gradient(to right, rgba(245,250,255,1) 0%, rgba(245,250,255,0.92) 38%, rgba(245,250,255,0.65) 65%, rgba(245,250,255,0.0) 100%)'
+            background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.90) 38%, rgba(255,255,255,0.55) 65%, rgba(255,255,255,0.0) 100%)'
           }} />
           <div className="absolute inset-x-0 bottom-0 h-40" style={{
-            background: 'linear-gradient(to top, rgba(245,250,255,1) 0%, rgba(245,250,255,0.6) 55%, transparent 100%)'
+            background: 'linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.6) 55%, transparent 100%)'
           }} />
 
           <div className="relative max-w-[1680px] mx-auto px-4 sm:px-10 pt-8 pb-12">
@@ -126,7 +126,7 @@ export default async function PujcovnaAutPage() {
             </p>
             <h1
               className="font-bold text-gray-900 leading-tight tracking-tight mb-3"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(26px, 4.5vw, 52px)' }}
+              style={{ fontSize: 'clamp(26px, 4.5vw, 52px)' }}
             >
               Půjčovna aut v zahraničí
             </h1>
@@ -153,7 +153,7 @@ export default async function PujcovnaAutPage() {
             </div>
             <h2
               className="font-bold text-gray-900 tracking-tight mb-6"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 3vw, 36px)' }}
+              style={{ fontSize: 'clamp(22px, 3vw, 36px)' }}
             >
               Kde si půjčit auto?
             </h2>
@@ -187,7 +187,7 @@ export default async function PujcovnaAutPage() {
                       <div className="flex items-center gap-2 mb-3">
                         <h3
                           className="font-bold text-gray-900 leading-tight"
-                          style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.05rem' }}
+                          style={{ fontSize: '1.05rem' }}
                         >
                           {country}
                         </h3>
@@ -226,7 +226,7 @@ export default async function PujcovnaAutPage() {
               </p>
               <h2
                 className="font-bold text-gray-900 tracking-tight"
-                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 3vw, 36px)' }}
+                style={{ fontSize: 'clamp(22px, 3vw, 36px)' }}
               >
                 Rezervace ve 3 krocích
               </h2>
@@ -236,13 +236,13 @@ export default async function PujcovnaAutPage() {
                 <div key={s.n} className="glass-card rounded-2xl p-7 relative overflow-hidden">
                   <div
                     className="absolute top-4 right-4 font-black text-5xl leading-none select-none"
-                    style={{ color: 'rgba(0,147,255,0.07)', fontFamily: "'Playfair Display', Georgia, serif" }}
+                    style={{ color: 'rgba(0,147,255,0.07)',  }}
                   >
                     {s.n}
                   </div>
                   <div
                     className="w-9 h-9 rounded-xl flex items-center justify-center mb-4 font-bold text-white text-sm"
-                    style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)' }}
+                    style={{ background: '#0093FF' }}
                   >
                     {s.n.replace('0', '')}
                   </div>
@@ -261,7 +261,7 @@ export default async function PujcovnaAutPage() {
               </p>
               <h2
                 className="font-bold text-gray-900 tracking-tight"
-                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.5vw, 32px)' }}
+                style={{ fontSize: 'clamp(20px, 2.5vw, 32px)' }}
               >
                 Garance nejlepší ceny a kvality
               </h2>
@@ -271,7 +271,7 @@ export default async function PujcovnaAutPage() {
                 <div key={item.title} className="flex gap-4">
                   <div
                     className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white"
-                    style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)' }}
+                    style={{ background: '#0093FF' }}
                   >
                     {item.icon}
                   </div>

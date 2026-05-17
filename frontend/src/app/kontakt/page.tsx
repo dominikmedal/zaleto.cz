@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import JsonLd from '@/components/JsonLd'
@@ -48,7 +48,7 @@ export default function KontaktPage() {
           </p>
           <h1
             className="font-bold text-gray-900 leading-tight tracking-tight mb-3"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(32px, 4.5vw, 52px)' }}
+            style={{ fontSize: 'clamp(32px, 4.5vw, 52px)' }}
           >
             Kontakt
           </h1>

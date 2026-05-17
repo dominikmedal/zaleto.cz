@@ -48,17 +48,13 @@ export default function WeatherPageNav({ items }: { items: WeatherNavItem[] }) {
               onClick={() => scrollTo(id)}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
               style={isActive ? {
-                background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+                background: '#0093FF',
                 color: '#fff',
                 border: '1px solid #0093FF',
-                boxShadow: '0 4px 14px rgba(0,147,255,0.30)',
               } : {
-                background: 'rgba(237,246,255,0.72)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
+                background: '#f0f7ff',
                 color: '#374151',
-                border: '1px solid rgba(200,227,255,0.70)',
-                boxShadow: '0 1px 4px rgba(0,147,255,0.06)',
+                border: '1px solid #deeeff',
               }}
             >
               <Icon className="w-4 h-4 flex-shrink-0" style={{ color: isActive ? '#fff' : '#0093FF' }} />

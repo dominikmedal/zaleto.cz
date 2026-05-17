@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense } from 'react'
@@ -159,10 +159,10 @@ export default async function CountryWeatherPage({ params }: Props) {
           <Image src={heroPhoto} alt={info.name} fill className="object-cover" priority
             style={{ filter: 'brightness(1.05) saturate(1.05)' }} />
           <div className="absolute inset-0" style={{
-            background: 'linear-gradient(to right, rgba(245,250,255,1) 0%, rgba(245,250,255,0.88) 30%, rgba(245,250,255,0.55) 58%, rgba(245,250,255,0.0) 100%)'
+            background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.88) 30%, rgba(255,255,255,0.55) 58%, rgba(255,255,255,0.0) 100%)'
           }} />
           <div className="absolute inset-x-0 bottom-0 h-32" style={{
-            background: 'linear-gradient(to top, rgba(245,250,255,1) 0%, rgba(245,250,255,0.6) 50%, transparent 100%)'
+            background: 'linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.6) 50%, transparent 100%)'
           }} />
           <div className="relative flex items-center py-8 sm:py-10">
             <div className="max-w-[1680px] mx-auto px-4 sm:px-10 w-full pb-6">
@@ -175,28 +175,26 @@ export default async function CountryWeatherPage({ params }: Props) {
               </nav>
               <h1
                 className="font-bold text-gray-900 leading-tight tracking-tight mb-2 drop-shadow-sm flex items-center gap-3 flex-wrap"
-                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(28px, 5vw, 60px)' }}
+                style={{ fontSize: 'clamp(28px, 5vw, 60px)' }}
               >
                 {flag && <span className="flex-shrink-0">{flag}</span>}
                 Počasí — {info.name}
               </h1>
               {weather.description && (
-                <p className="text-gray-700 text-sm sm:text-base max-w-2xl leading-relaxed">
+                <p className="text-gray-700 text-base sm:text-lg max-w-2xl leading-relaxed">
                   {weather.description.split(/\n\n+/)[0]}
                 </p>
               )}
               {(peakSea || bestMonthNames.length > 0) && (
-                <div className="flex flex-wrap gap-2 mt-3">
+                <div className="flex flex-wrap gap-2 mt-4">
                   {peakSea && (
-                    <span className="inline-flex items-center gap-1.5 text-sky-700 text-xs font-medium px-3 py-1.5 rounded-full"
-                      style={{ background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(12px)', border: '1px solid rgba(125,211,252,0.50)', boxShadow: '0 2px 8px rgba(14,165,233,0.12)' }}>
-                      🏊 Moře až {peakSea}°C
+                    <span className="inline-flex items-center gap-2 text-sky-700 text-sm font-semibold px-4 py-2 rounded-xl bg-sky-50 border border-sky-100">
+                      Moře až {peakSea}°C
                     </span>
                   )}
                   {bestMonthNames.length > 0 && (
-                    <span className="inline-flex items-center gap-1.5 text-amber-700 text-xs font-medium px-3 py-1.5 rounded-full"
-                      style={{ background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(12px)', border: '1px solid rgba(251,191,36,0.40)', boxShadow: '0 2px 8px rgba(245,158,11,0.12)' }}>
-                      ☀️ Nejlepší: {bestMonthNames.slice(0, 4).join(', ')}
+                    <span className="inline-flex items-center gap-2 text-amber-700 text-sm font-semibold px-4 py-2 rounded-xl bg-amber-50 border border-amber-100">
+                      Nejlepší: {bestMonthNames.slice(0, 4).join(', ')}
                     </span>
                   )}
                 </div>
@@ -216,13 +214,13 @@ export default async function CountryWeatherPage({ params }: Props) {
             </nav>
             <h1
               className="font-bold text-gray-900 leading-tight tracking-tight flex items-center gap-3 flex-wrap"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(26px, 4vw, 48px)' }}
+              style={{ fontSize: 'clamp(26px, 4vw, 48px)' }}
             >
               {flag && <span className="flex-shrink-0">{flag}</span>}
               Počasí — {info.name}
             </h1>
             {weather.description && (
-              <p className="text-gray-500 text-sm mt-2 max-w-2xl leading-relaxed">
+              <p className="text-gray-500 text-base mt-3 max-w-2xl leading-relaxed">
                 {weather.description.split(/\n\n+/)[0]}
               </p>
             )}
@@ -233,11 +231,11 @@ export default async function CountryWeatherPage({ params }: Props) {
       {/* ── Section nav (not sticky) ── */}
       <WeatherPageNav items={navItems} />
 
-      <div className="max-w-[1680px] mx-auto px-4 sm:px-10 py-6 sm:py-8">
+      <div className="max-w-[1680px] mx-auto px-4 sm:px-10 py-8 sm:py-10">
         <div className="flex gap-8 items-start">
 
           {/* ── Main content ── */}
-          <main className="flex-1 min-w-0 space-y-10">
+          <main className="flex-1 min-w-0 space-y-12">
 
         {/* ── Počasí + Nejlepší měsíce (merged wide block) ── */}
         {(hasWeather || weather.best_months.length > 0) && (
@@ -250,34 +248,25 @@ export default async function CountryWeatherPage({ params }: Props) {
                 </div>
               )}
               {weather.best_months.length > 0 && (
-                <div className="flex-1 glass-card rounded-2xl p-5 flex flex-col gap-4">
-                    <p className="flex items-center gap-2 font-semibold text-sm text-gray-800 mb-2">
-                        <PiWind className="w-4 h-4 text-[#008afe]" /> Nejlepší měsíce pro dovolenou
-                    </p>
-                  <div className="flex flex-wrap gap-1.5">
+                <div className="flex-1 glass-card rounded-2xl p-6 flex flex-col gap-5">
+                  <p className="flex items-center gap-2 font-bold text-base text-gray-900">
+                    <PiCalendarBlank className="w-5 h-5 text-[#0093FF]" /> Nejlepší měsíce pro dovolenou
+                  </p>
+                  <div className="flex flex-wrap gap-2">
                     {MONTH_SHORT.map((m, i) => {
                       const isBest = weather.best_months.includes(i + 1)
                       return (
                         <span key={m}
-                          className="px-3 py-1.5 rounded-xl text-xs font-bold"
-                          style={isBest ? {
-                            background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
-                            color: '#fff',
-                            boxShadow: '0 2px 8px rgba(0,147,255,0.28)',
-                          } : {
-                            background: 'rgba(237,246,255,0.70)',
-                            color: '#9ca3af',
-                            border: '1px solid rgba(200,227,255,0.65)',
-                          }}
+                          className={`px-3.5 py-2 rounded-xl text-sm font-bold ${isBest ? 'bg-[#0093FF] text-white' : 'bg-[#f0f7ff] text-gray-400 border border-[#deeeff]'}`}
                         >{m}</span>
                       )
                     })}
                   </div>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-sm text-gray-500">
                     Ideální termíny: {weather.best_months.map(m => MONTH_NAMES[m - 1]).join(', ')}
                   </p>
                   {weather.description?.split(/\n\n+/)[1] && (
-                    <p className="text-sm text-gray-500 leading-relaxed border-t border-gray-50 pt-4">
+                    <p className="text-base text-gray-500 leading-relaxed border-t border-gray-100 pt-5">
                       {weather.description.split(/\n\n+/)[1]}
                     </p>
                   )}
@@ -329,23 +318,23 @@ export default async function CountryWeatherPage({ params }: Props) {
         {hasOdobi && (
           <section id="obdobi" style={SCROLL_MARGIN}>
             <SectionHeader Icon={PiLeaf} title="Počasí podle ročního období" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {SEASONS.map(s => {
                 const text = weather[s.key as keyof typeof weather] as string | null
                 if (!text) return null
                 return (
-                  <div key={s.key} className="glass-card rounded-2xl p-4" style={{ borderLeft: `3px solid ${s.accent}` }}>
-                    <div className="flex items-center gap-2 mb-2.5">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  <div key={s.key} className="glass-card rounded-2xl p-5" style={{ borderLeft: `3px solid ${s.accent}` }}>
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ background: `${s.accent}18` }}>
-                        <s.Icon className="w-4 h-4" style={{ color: s.accent }} />
+                        <s.Icon className="w-5 h-5" style={{ color: s.accent }} />
                       </div>
                       <div>
-                        <p className="font-bold text-sm text-gray-900 leading-none">{s.label}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{s.months}</p>
+                        <p className="font-bold text-base text-gray-900 leading-none">{s.label}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{s.months}</p>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-600 leading-relaxed">{text}</p>
+                    <p className="text-sm text-gray-600 leading-relaxed">{text}</p>
                   </div>
                 )
               })}
@@ -359,19 +348,19 @@ export default async function CountryWeatherPage({ params }: Props) {
             <SectionHeader Icon={PiWind} title="Vítr a moře" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {weather.wind_info && (
-                <div className="glass-card rounded-2xl p-5">
-                  <p className="flex items-center gap-2 font-semibold text-sm text-gray-800 mb-2">
-                    <PiWind className="w-4 h-4 text-[#008afe]" /> Vítr
+                <div className="glass-card rounded-2xl p-6">
+                  <p className="flex items-center gap-2 font-bold text-base text-gray-900 mb-3">
+                    <PiWind className="w-5 h-5 text-[#0093FF]" /> Vítr
                   </p>
-                  <p className="text-sm text-gray-500 leading-relaxed">{weather.wind_info}</p>
+                  <p className="text-base text-gray-500 leading-relaxed">{weather.wind_info}</p>
                 </div>
               )}
               {weather.sea_info && (
-                <div className="glass-card rounded-2xl p-5">
-                  <p className="flex items-center gap-2 font-semibold text-sm text-gray-800 mb-2">
-                    <PiMapPin className="w-4 h-4 text-[#008afe]" /> Koupání a teplota moře
+                <div className="glass-card rounded-2xl p-6">
+                  <p className="flex items-center gap-2 font-bold text-base text-gray-900 mb-3">
+                    <PiMapPin className="w-5 h-5 text-[#0093FF]" /> Koupání a teplota moře
                   </p>
-                  <p className="text-sm text-gray-500 leading-relaxed">{weather.sea_info}</p>
+                  <p className="text-base text-gray-500 leading-relaxed">{weather.sea_info}</p>
                 </div>
               )}
             </div>
@@ -382,20 +371,20 @@ export default async function CountryWeatherPage({ params }: Props) {
         {info.subDestinations.length > 0 && (
           <section id="oblasti" style={SCROLL_MARGIN}>
             <SectionHeader Icon={PiMapPin} title="Oblasti a letoviště" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {info.subDestinations.map((dest) => (
                 <Link
                   key={dest.slug}
                   href={`/pocasi/${params.country}/${dest.slug}`}
-                  className="group glass-card rounded-2xl hover:shadow-[0_8px_32px_rgba(0,147,255,0.16)] transition-all duration-300 p-4 flex flex-col gap-1"
+                  className="group glass-card rounded-2xl hover:border-[#0093FF]/30 transition-all duration-200 p-4 flex flex-col gap-1.5"
                 >
-                  <span className="font-semibold text-sm text-gray-800 group-hover:text-[#008afe] transition-colors leading-snug">
+                  <span className="font-semibold text-base text-gray-800 group-hover:text-[#0093FF] transition-colors leading-snug">
                     {dest.name}
                   </span>
-                  <span className="text-[11px] text-gray-400">
+                  <span className="text-sm text-gray-400">
                     {dest.hotelCount} {dest.hotelCount === 1 ? 'hotel' : dest.hotelCount < 5 ? 'hotely' : 'hotelů'}
                   </span>
-                  <span className="text-[#008afe] text-xs mt-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-[#0093FF] text-sm mt-auto opacity-0 group-hover:opacity-100 transition-opacity">
                     Počasí →
                   </span>
                 </Link>
@@ -435,12 +424,12 @@ export default async function CountryWeatherPage({ params }: Props) {
 
 function SectionHeader({ Icon, title }: { Icon: React.ElementType; title: string }) {
   return (
-    <div className="flex items-center gap-2.5 mb-5">
-      <div className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0"
-        style={{ background: 'rgba(0,147,255,0.08)' }}>
-        <Icon className="w-3.5 h-3.5 text-[#0093FF]" />
+    <div className="flex items-center gap-3 mb-6">
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ background: 'rgba(0,147,255,0.1)' }}>
+        <Icon className="w-5 h-5 text-[#0093FF]" />
       </div>
-      <h2 className="text-base font-bold text-gray-900 tracking-tight">{title}</h2>
+      <h2 className="text-xl font-bold text-gray-900 tracking-tight">{title}</h2>
     </div>
   )
 }

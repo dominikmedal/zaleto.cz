@@ -1,4 +1,4 @@
-import Image from 'next/image'
+﻿import Image from 'next/image'
 import Link from 'next/link'
 import { PiStarFill, PiMapPin, PiForkKnife, PiCalendarBlank, PiArrowRight, PiSparkle } from 'react-icons/pi'
 import type { Hotel } from '@/lib/types'
@@ -275,22 +275,11 @@ export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
   const shown = hotels.slice(0, 2)
   return (
     <div
-      className="rounded-2xl overflow-hidden"
-      style={{
-        background: 'rgba(245,252,249,0.95)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(4,150,105,0.18)',
-        boxShadow: '0 8px 32px rgba(4,150,105,0.10), 0 2px 8px rgba(0,0,0,0.04)',
-      }}
+      className="rounded-2xl overflow-hidden bg-white border border-gray-100"
     >
       {/* Header */}
       <div
-        className="px-4 py-3 flex items-center gap-2"
-        style={{
-          background: 'linear-gradient(135deg, #049669 0%, #047857 100%)',
-          boxShadow: '0 1px 0 rgba(255,255,255,0.12)',
-        }}
+        className="px-4 py-3 flex items-center gap-2 bg-emerald-600"
       >
         <PiSparkle className="w-3.5 h-3.5 text-white/70 flex-shrink-0" />
         <span className="text-[10px] font-bold text-white/90 uppercase tracking-widest">Doporučujeme</span>
@@ -350,7 +339,7 @@ export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
             <p className="text-[9px] font-bold text-white/50 uppercase tracking-[0.16em] mb-1.5">Půjčovna aut v zahraničí</p>
             <p
               className="font-bold text-white leading-snug mb-1.5"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '15px' }}
+              style={{ fontSize: '15px' }}
             >
               Dovolená na vlastní pěst — bez autobusů, bez čekání
             </p>

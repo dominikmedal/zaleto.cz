@@ -1,8 +1,8 @@
-'use client'
+﻿'use client'
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { PiCaretLeft, PiCaretRight, PiArrowRight, PiMapPin } from 'react-icons/pi'
+import { PiCaretLeft, PiCaretRight, PiArrowRight } from 'react-icons/pi'
 import { slugify } from '@/lib/slugify'
 
 const AUTOPLAY_MS = 7000
@@ -78,54 +78,42 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
         {featured ? (
           <Link
             href={`/destinace/${slugify(featured.region)}`}
-            className="group relative overflow-hidden bg-gray-200 block rounded-2xl _mosaic _m1"
+            className="group relative overflow-hidden bg-gray-100 block rounded-2xl _mosaic _m1"
             style={{ gridRow: 'span 2' }}
           >
             {featured.thumb ? (
               <Image src={featured.thumb} alt={featured.region} fill
-                className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" />
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]" />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-[#0093FF] to-blue-700" />
+              <div className="absolute inset-0 bg-[#0093FF]" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-br from-black/5 to-black/25" />
-
-            {/* Hotel count pill — top left */}
-            <div className="absolute top-3.5 left-3.5">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white/90 backdrop-blur-md border border-white/20 px-2 py-1 rounded-full"
-                style={{ background: 'rgba(0,0,0,0.22)' }}>
-                <PiMapPin className="w-2.5 h-2.5" />
-                {featured.count} hotelů
-              </span>
-            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
             {/* Content — bottom */}
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              <p className="text-white font-bold leading-tight mb-2.5 drop-shadow-md"
-                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 2.3vw, 34px)' }}>
+            <div className="absolute bottom-0 left-0 right-0 p-5">
+              <p className="text-white/55 text-[10px] font-semibold uppercase tracking-[0.18em] leading-none mb-3">
                 {featured.region}
               </p>
               {featured.minPrice != null ? (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                  style={{ background: 'linear-gradient(135deg, #0093FF, #0070E0)', boxShadow: '0 2px 12px rgba(0,147,255,0.45)' }}>
-                  <span className="text-[13px] font-bold text-white tracking-wide">od {fmtKc(featured.minPrice)}</span>
-                </div>
+                <>
+                  <p className="text-white/40 text-[10px] uppercase tracking-widest leading-none mb-1">od</p>
+                  <p className="text-white font-black leading-none"
+                    style={{ fontSize: 'clamp(26px, 2.8vw, 42px)' }}>
+                    {fmtKc(featured.minPrice)}
+                  </p>
+                </>
               ) : (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                  style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                  <span className="text-[11px] font-medium text-white/70">Zobrazit nabídky</span>
-                </div>
+                <p className="text-white font-bold text-[17px]">Zobrazit →</p>
               )}
             </div>
 
             {/* Hover arrow */}
-            <div className="absolute top-3.5 right-3.5 w-8 h-8 rounded-full flex items-center justify-center border border-white/25 bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:bg-white"
-              style={{ backdropFilter: 'blur(8px)' }}>
-              <PiArrowRight className="w-3.5 h-3.5 text-white group-hover:text-[#0093FF]" />
+            <div className="absolute top-4 right-4 w-7 h-7 rounded-full border border-white/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <PiArrowRight className="w-3.5 h-3.5 text-white" />
             </div>
           </Link>
         ) : (
-          <div className="rounded-2xl bg-gray-50/50" style={{ gridRow: 'span 2' }} />
+          <div className="rounded-2xl bg-gray-100" style={{ gridRow: 'span 2' }} />
         )}
 
         {/* Compact cards */}
@@ -133,23 +121,22 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
           <Link
             key={item.region}
             href={`/destinace/${slugify(item.region)}`}
-            className={`group relative rounded-xl overflow-hidden bg-gray-200 block h-full _mosaic _m${i + 2}`}
+            className={`group relative rounded-xl overflow-hidden bg-gray-100 block h-full _mosaic _m${i + 2}`}
           >
             {item.thumb ? (
               <Image src={item.thumb} alt={item.region} fill
-                className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.07]" />
+                className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]" />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-[#0093FF] to-blue-700" />
+              <div className="absolute inset-0 bg-[#0093FF]" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/8 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
 
-            <div className="absolute bottom-0 left-0 right-0 p-2.5">
-              <p className="text-white font-bold text-[16px] leading-tight truncate drop-shadow-sm"
-                style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{item.region}</p>
+            <div className="absolute bottom-0 left-0 right-0 p-3">
+              <p className="text-white/50 text-[10px] font-semibold uppercase tracking-[0.14em] leading-none truncate mb-1.5">{item.region}</p>
               {item.minPrice != null ? (
-                <p className="text-white/80 text-[14px] font-semibold mt-0.5">od {fmtKc(item.minPrice)}</p>
+                <p className="text-white font-black text-[18px] leading-none">{fmtKc(item.minPrice)}</p>
               ) : (
-                <p className="text-white/45 text-[14px] mt-0.5">{item.count} hotelů</p>
+                <p className="text-white/40 text-[12px]">{item.count} hotelů</p>
               )}
             </div>
           </Link>
@@ -167,25 +154,22 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
           <Link
             key={item.region}
             href={`/destinace/${slugify(item.region)}`}
-            className="group relative flex-shrink-0 h-full rounded-2xl overflow-hidden bg-gray-200 block"
+            className="group relative flex-shrink-0 h-full rounded-2xl overflow-hidden bg-gray-100 block"
             style={{ width: 'clamp(155px, 50vw, 210px)', scrollSnapAlign: 'start' }}
           >
             {item.thumb ? (
               <Image src={item.thumb} alt={item.region} fill
-                className="object-cover transition-transform duration-500 group-hover:scale-[1.05]" />
+                className="object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-[#0093FF] to-blue-700" />
+              <div className="absolute inset-0 bg-[#0093FF]" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/10 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-3">
-              <p className="text-white font-bold text-[16px] leading-tight drop-shadow-sm"
-                style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{item.region}</p>
+              <p className="text-white/50 text-[10px] font-semibold uppercase tracking-[0.14em] leading-none mb-1.5">{item.region}</p>
               {item.minPrice != null ? (
-                <div className="inline-flex items-center mt-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,147,255,0.85)' }}>
-                  <span className="text-[11px] font-bold text-white">od {fmtKc(item.minPrice)}</span>
-                </div>
+                <p className="text-white font-black text-[18px] leading-none">{fmtKc(item.minPrice)}</p>
               ) : (
-                <p className="text-white/55 text-[12px] mt-0.5">{item.count} hotelů</p>
+                <p className="text-white/50 text-[12px]">{item.count} hotelů</p>
               )}
             </div>
           </Link>

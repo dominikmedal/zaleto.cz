@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import FaqAccordion from '@/components/FaqAccordion'
@@ -42,7 +42,7 @@ export default function FaqPage() {
           </p>
           <h1
             className="font-bold text-gray-900 leading-tight tracking-tight mb-3"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(32px, 4.5vw, 52px)' }}
+            style={{ fontSize: 'clamp(32px, 4.5vw, 52px)' }}
           >
             Časté <em className="not-italic" style={{ color: '#0093FF' }}>otázky</em>
           </h1>

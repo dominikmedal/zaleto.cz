@@ -60,19 +60,16 @@ export default function ChatWidget() {
         }`}
         style={{
           maxHeight: state !== 'closed' ? '520px' : '0',
-          background: 'rgba(245,248,255,0.97)',
-          backdropFilter: 'blur(28px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(160%)',
-          border: '1px solid rgba(200,227,255,0.70)',
-          boxShadow: '0 20px 60px rgba(0,80,200,0.18), 0 4px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+          background: '#ffffff',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 20px 50px rgba(0,0,0,0.12)',
         }}
       >
         {/* Header */}
         <div
           className="flex items-center justify-between px-4 py-3.5"
           style={{
-            background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
-            boxShadow: '0 1px 0 rgba(255,255,255,0.15)',
+            background: '#0093FF',
           }}
         >
           <div className="flex items-center gap-2.5">
@@ -152,10 +149,8 @@ export default function ChatWidget() {
         aria-label="Kontaktujte nás"
         className="flex items-center gap-2.5 rounded-full transition-all duration-200"
         style={{
-          background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
-          boxShadow: state !== 'closed'
-            ? '0 4px 16px rgba(0,147,255,0.40)'
-            : '0 6px 24px rgba(0,147,255,0.36), 0 2px 8px rgba(0,0,0,0.10)',
+          background: '#0093FF',
+          boxShadow: '0 4px 16px rgba(0,147,255,0.28)',
           padding: '12px 20px 12px 16px',
           color: '#fff',
         }}

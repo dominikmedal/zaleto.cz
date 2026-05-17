@@ -1,9 +1,9 @@
-import { Suspense } from 'react'
+﻿import { Suspense } from 'react'
 import { permanentRedirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { PiCalendarStar, PiAirplane, PiTimer, PiSun, PiArrowRight } from 'react-icons/pi'
+import { PiCalendarStar, PiAirplane, PiTimer, PiSun, PiArrowRight, PiCar } from 'react-icons/pi'
 import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import DestinationCarousel from '@/components/DestinationCarousel'
@@ -285,13 +285,13 @@ export default async function HomePage({ searchParams }: PageProps) {
            
             priority
           />
-          {/* Left gradient — content readable */}
+          {/* Left gradient */}
           <div className="absolute inset-0" style={{
-            background: 'linear-gradient(to right, rgba(245,250,255,1) 0%, rgba(245,250,255,0.88) 30%, rgba(245,250,255,0.55) 58%, rgba(245,250,255,0.0) 100%)'
+            background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.88) 30%, rgba(255,255,255,0.5) 58%, rgba(255,255,255,0.0) 100%)'
           }} />
-          {/* Bottom fade into site bg */}
+          {/* Bottom fade */}
           <div className="absolute inset-x-0 bottom-0 h-32" style={{
-            background: 'linear-gradient(to top, rgba(245,250,255,1) 0%, rgba(245,250,255,0.6) 50%, transparent 100%)'
+            background: 'linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.5) 60%, transparent 100%)'
           }} />
           {/* Content — anchored bottom-left inside max-w container */}
           <div className="absolute inset-0 flex items-center">
@@ -333,93 +333,66 @@ export default async function HomePage({ searchParams }: PageProps) {
           <>
             {noFilters && !singleDest && !tourType ? (
 
-              /* ═══ DEFAULT HOMEPAGE — editorial split hero ═══ */
-              <div className="py-4 lg:py-8">
+              /* ═══ DEFAULT HOMEPAGE — marketing hero ═══ */
+              <div className="pt-1 pb-6 lg:pt-3 lg:pb-14">
                 <style>{`
                   @keyframes _hero_up {
-                    from { opacity: 0; transform: translateY(16px); }
+                    from { opacity: 0; transform: translateY(20px); }
                     to   { opacity: 1; transform: translateY(0); }
                   }
-                  ._hu { animation: _hero_up 0.55s cubic-bezier(.22,.68,0,1.15) both; }
+                  ._hu { animation: _hero_up 0.5s cubic-bezier(.22,.68,0,1.1) both; }
                   ._hu1 { animation-delay: 0ms; }
-                  ._hu2 { animation-delay: 80ms; }
-                  ._hu3 { animation-delay: 160ms; }
-                  ._hu4 { animation-delay: 220ms; }
-                  @keyframes _stat_in {
-                    from { opacity: 0; transform: translateY(8px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                  }
-                  ._si { animation: _stat_in 0.4s ease-out both; }
-                  ._si1 { animation-delay: 320ms; }
-                  ._si2 { animation-delay: 380ms; }
-                  ._si3 { animation-delay: 440ms; }
-                  ._si4 { animation-delay: 500ms; }
+                  ._hu2 { animation-delay: 60ms; }
+                  ._hu3 { animation-delay: 130ms; }
+                  ._hu4 { animation-delay: 200ms; }
                 `}</style>
 
-                <div className="flex flex-col lg:flex-row items-stretch justify-between gap-8 lg:gap-12">
+                <div className="flex flex-col lg:flex-row items-start justify-between gap-10 lg:gap-16">
 
-                  {/* ── Left: heading + stats ── */}
-                  <div className="flex-shrink-0 lg:max-w-[400px] flex flex-col relative">
+                  {/* ── Left: headline + CTA + stats ── */}
+                  <div className="flex-shrink-0 lg:max-w-[520px] flex flex-col">
 
-                    {/* Ambient glow behind heading */}
-                    <div className="absolute -top-8 -left-8 w-72 h-72 rounded-full pointer-events-none"
-                      style={{ background: 'radial-gradient(circle, rgba(0,147,255,0.07) 0%, transparent 70%)', zIndex: 0 }} />
+                    {/* Headline */}
+                    <h1 className="_hu _hu1 font-extrabold text-gray-900 leading-[1.0] tracking-tight mb-6"
+                      style={{ fontSize: 'clamp(46px, 6vw, 86px)' }}>
+                      Nejlevnější<br />
+                      dovolená<br />
+                      <span className="text-[#0093FF]">na jednom místě.</span>
+                    </h1>
 
-                    {/* Eyebrow */}
-                    <div className="_hu _hu1 glass-pill inline-flex items-center gap-2 self-start mb-6 px-3.5 py-1.5 rounded-full relative z-10">
-                      <PiAirplane className="w-3.5 h-3.5 text-[#0093FF]" />
-                      <span className="text-[11px] font-bold text-[#0093FF] tracking-[0.06em] uppercase">Nejlepší vyhledávač a srovnávač zájezdů</span>
+                    {/* Subtitle */}
+                    <p className="_hu _hu2 text-gray-500 text-lg leading-relaxed mb-8 max-w-[420px]">
+                      Srovnáváme tisíce termínů od předních českých CK — Egypt, Řecko, Turecko a desítky dalších destinací.
+                    </p>
+
+                    {/* CTA buttons */}
+                    <div className="_hu _hu3 flex flex-wrap gap-3 mb-4">
+                      <a href="#zajezdy" className="btn-cta text-sm px-6 py-3 rounded-xl">
+                        Prohlédnout zájezdy
+                        <PiArrowRight className="w-4 h-4" />
+                      </a>
+                      <Link href="/pujcovna-aut" className="btn-secondary text-sm px-5 py-3 rounded-xl">
+                        <PiCar className="w-4 h-4" /> Půjčit auto v zahraničí
+                      </Link>
                     </div>
 
-                    {/* Heading */}
-                    <div className="_hu _hu2 relative z-10 mb-5">
-                      <h1 className="font-bold text-gray-900 leading-[0.95] tracking-tight"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(50px, 5.6vw, 80px)' }}>
-                        Najdi svůj<br />
-                        {/* "zájezd" with blue highlight slab behind it */}
-                        <span className="relative inline-block">
-                          <span className="absolute inset-x-0 bottom-[6%] h-[38%] rounded-md pointer-events-none"
-                            style={{ background: 'rgba(0,147,255,0.11)', zIndex: 0 }} />
-                          <em className="not-italic text-[#0093FF] relative" style={{ zIndex: 1 }}>zájezd</em>
-                        </span><br />
-                        snadno.
-                      </h1>
-                    </div>
-
-                    {/* Subtitle with decorative left bar */}
-                    <div className="_hu _hu3 flex gap-3 mb-7 relative z-10">
-                      <span className="flex-shrink-0 w-[3px] rounded-full self-stretch"
-                        style={{ background: 'linear-gradient(to bottom, #0093FF, rgba(0,147,255,0.0))' }} />
-                      <p className="text-gray-500 text-[15px] leading-relaxed">
-                        Porovnejte termíny a ceny od předních cestovních kanceláří na jednom místě.
-                      </p>
-                    </div>
-
-                    {/* ── Stats grid — liquid glass pills ── */}
-                    <div className="_hu _hu4 grid grid-cols-2 gap-2.5 relative z-10">
-                      {[
-                        { value: fmtShort(meta.totalHotels ?? 0),                          label: 'hotelů',    accent: false },
-                        { value: fmtShort(meta.totalTours ?? 0),                           label: 'termínů',   accent: false },
-                        { value: String(countryCount),                                      label: 'zemí',      accent: false },
-                        { value: `od\u00a0${fmtShort(meta.priceRange?.min ?? null)}\u00a0Kč`, label: 'cena / os.', accent: true  },
-                      ].map((s, i) => (
-                        <div
-                          key={s.label}
-                          className={`_si _si${i + 1} glass-pill rounded-2xl px-4 py-3.5 flex flex-col gap-1.5`}
-                          style={s.accent ? {
-                            background: 'rgba(0,147,255,0.09)',
-                            border: '1px solid rgba(0,147,255,0.22)',
-                            boxShadow: '0 2px 12px rgba(0,147,255,0.12), inset 0 1px 0 rgba(255,255,255,0.85)',
-                          } : undefined}
-                        >
-                          <p className={`text-[22px] font-bold tabular-nums leading-none tracking-tight ${s.accent ? 'text-[#0075d4]' : 'text-gray-900'}`}>
-                            {s.value}
-                          </p>
-                          <p className={`text-[10px] font-bold uppercase tracking-[0.12em] ${s.accent ? 'text-[#0093FF]/60' : 'text-gray-400'}`}>
-                            {s.label}
-                          </p>
-                        </div>
-                      ))}
+                    {/* Quick filter links */}
+                    <div className="_hu _hu3 flex items-center gap-4">
+                      <Link
+                        href="/?tour_type=last_minute"
+                        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                        Last minute
+                      </Link>
+                      <span className="text-gray-300">·</span>
+                      <Link
+                        href="/?tour_type=first_minute"
+                        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                        First minute
+                      </Link>
                     </div>
 
                   </div>
@@ -427,7 +400,6 @@ export default async function HomePage({ searchParams }: PageProps) {
                   {/* ── Right: destination mosaic carousel ── */}
                   {topRegionsWithPhotos.length >= 1 && (
                     <>
-                      {/* Mobile */}
                       <div className="block lg:hidden w-full">
                         <DestinationCarousel
                           items={topRegionsWithPhotos.map(({ region, count, thumb }) => ({
@@ -438,8 +410,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                           }))}
                         />
                       </div>
-                      {/* Desktop */}
-                      <div className="hidden lg:flex flex-1 min-w-0 flex-col" style={{ minHeight: 380 }}>
+                      <div className="hidden lg:flex flex-1 min-w-0 flex-col" style={{ minHeight: 420 }}>
                         <DestinationCarousel
                           items={topRegionsWithPhotos.map(({ region, count, thumb }) => ({
                             region, count, thumb,
@@ -575,7 +546,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                       </p>
                       <p
                         className="text-white font-bold leading-tight line-clamp-2 mb-2"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(15px, 2vw, 19px)' }}
+                        style={{ fontSize: 'clamp(15px, 2vw, 19px)' }}
                       >
                         {dailyTip.name}
                       </p>
@@ -619,7 +590,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                       </p>
                       <p
                         className="text-white font-bold leading-tight line-clamp-2 mb-2"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(15px, 2vw, 19px)' }}
+                        style={{ fontSize: 'clamp(15px, 2vw, 19px)' }}
                       >
                         {weeklyTip.name}
                       </p>
@@ -685,7 +656,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   </div>
                   <p
                     className="font-bold text-white leading-tight mb-1.5"
-                    style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(17px, 2.2vw, 24px)' }}
+                    style={{ fontSize: 'clamp(17px, 2.2vw, 24px)' }}
                   >
                     Dovolená jinak — prozkoumejte destinaci za volantem
                   </p>
@@ -722,9 +693,11 @@ export default async function HomePage({ searchParams }: PageProps) {
         </Suspense>
 
         {/* ── Hotel grid ── */}
-        <Suspense>
-          <HotelGrid adults={parseInt(getParam(searchParams.adults) || '2')} />
-        </Suspense>
+        <div id="zajezdy" className="scroll-mt-20">
+          <Suspense>
+            <HotelGrid adults={parseInt(getParam(searchParams.adults) || '2')} />
+          </Suspense>
+        </div>
 
       </main>
     </div>

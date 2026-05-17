@@ -32,15 +32,7 @@ export default async function Footer() {
   const recentArticles = await fetchArticles(5).catch(() => [])
 
   return (
-    <footer
-      className="mt-16"
-      style={{
-        background: 'rgba(245,248,255,0.97)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(0,147,255,0.10)',
-      }}
-    >
+    <footer className="mt-16 bg-[#f9fafb] border-t border-gray-100">
       <div className="max-w-[1680px] mx-auto px-6 sm:px-8 py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
 
@@ -110,10 +102,7 @@ export default async function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div
-          className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3"
-          style={{ borderTop: '1px solid rgba(0,147,255,0.08)' }}
-        >
+        <div className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-100">
           <div className="flex items-center gap-2">
             <PiAirplane className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#0093FF', opacity: 0.5 }} />
             <span className="text-xs text-gray-400">© {year} zaleto.cz — Vyhledávač zájezdů</span>

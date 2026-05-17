@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Plane, Bus, Car, Moon, Utensils, ExternalLink, X, Loader2 } from 'lucide-react'
 import { PiCalendarBlank, PiUserMinus, PiUserPlus, PiArrowsDownUp, PiTag, PiX, PiCalendarStar } from 'react-icons/pi'
@@ -95,14 +95,7 @@ function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: 
       className="block group"
     >
       <div
-        className="rounded-2xl overflow-hidden transition-all duration-200 group-hover:shadow-[0_6px_24px_rgba(0,147,255,0.14)] group-hover:-translate-y-px"
-        style={{
-          background: 'rgba(255,255,255,0.70)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(200,227,255,0.60)',
-          boxShadow: '0 1px 6px rgba(0,147,255,0.06), inset 0 1px 0 rgba(255,255,255,0.90)',
-        }}
+        className="rounded-2xl overflow-hidden transition-all duration-200 group-hover:shadow-[0_4px_16px_rgba(0,0,0,0.10)] group-hover:-translate-y-px bg-white border border-gray-100"
       >
         {/* Route */}
         <div className="px-4 pt-4 pb-3">
@@ -119,11 +112,11 @@ function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: 
                 )}
               </div>
               <div className="flex-1 flex items-center gap-2 min-w-0">
-                <div className="flex-1 border-t border-dashed" style={{ borderColor: 'rgba(0,147,255,0.20)' }} />
-                <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(0,147,255,0.08)' }}>
+                <div className="flex-1 border-t border-dashed border-gray-200" />
+                <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-[#0093FF]/10">
                   <Plane className="w-3 h-3 text-[#0093FF]" />
                 </div>
-                <div className="flex-1 border-t border-dashed" style={{ borderColor: 'rgba(0,147,255,0.20)' }} />
+                <div className="flex-1 border-t border-dashed border-gray-200" />
               </div>
               <div className="flex-shrink-0 min-w-[52px] text-right">
                 {arrIata ? (
@@ -136,7 +129,7 @@ function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: 
             </div>
           ) : (
             <div className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(0,147,255,0.08)' }}>
+              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-[#0093FF]/10">
                 <TransportIcon transport={tour.transport} className="w-3 h-3 text-[#0093FF]" />
               </div>
               <span className="text-sm font-semibold text-gray-800">{transportLabel(tour.transport)}</span>
@@ -152,9 +145,9 @@ function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: 
 
         {/* Tear line */}
         <div className="relative flex items-center mx-1">
-          <div className="absolute -left-3 w-4 h-4 rounded-full z-10" style={{ background: 'rgba(236,238,242,0.95)' }} />
-          <div className="flex-1 border-t border-dashed mx-2" style={{ borderColor: 'rgba(0,147,255,0.15)' }} />
-          <div className="absolute -right-3 w-4 h-4 rounded-full z-10" style={{ background: 'rgba(236,238,242,0.95)' }} />
+          <div className="absolute -left-3 w-4 h-4 rounded-full z-10 bg-gray-100" />
+          <div className="flex-1 border-t border-dashed mx-2 border-gray-200" />
+          <div className="absolute -right-3 w-4 h-4 rounded-full z-10 bg-gray-100" />
         </div>
 
         {/* Date + price */}
@@ -181,7 +174,7 @@ function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: 
               </span>
             )}
             {tour.agency && (
-              <span className="text-[10px] font-medium text-[#0093FF] px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(0,147,255,0.07)' }}>
+              <span className="text-[10px] font-medium text-[#0093FF] px-1.5 py-0.5 rounded-md bg-[#0093FF]/10">
                 {tour.agency}
               </span>
             )}
@@ -303,29 +296,22 @@ export default function ToursModal({ slug, name, onClose }: Props) {
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0"
-        style={{ background: 'rgba(10,20,40,0.55)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+        className="absolute inset-0 bg-gray-900/50"
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
-        className="relative w-full sm:max-w-2xl sm:rounded-2xl rounded-t-2xl flex flex-col max-h-[90dvh] sm:max-h-[85dvh] overflow-hidden"
-        style={{
-          background: 'rgba(245,248,255,0.96)',
-          backdropFilter: 'blur(32px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(32px) saturate(160%)',
-          border: '1px solid rgba(200,227,255,0.70)',
-          boxShadow: '0 32px 80px rgba(0,80,200,0.18), 0 2px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-        }}
+        className="relative w-full sm:max-w-2xl sm:rounded-2xl rounded-t-2xl flex flex-col max-h-[90dvh] sm:max-h-[85dvh] overflow-hidden bg-white border border-gray-100"
+        style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)' }}>
+        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 flex-shrink-0 border-b border-gray-100">
           <div className="min-w-0">
             <p className="text-[10px] font-bold text-[#0093FF] uppercase tracking-[0.14em] mb-1">Termíny zájezdů</p>
             <h2
               className="font-bold text-gray-900 leading-snug truncate"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(16px, 2vw, 20px)' }}
+              style={{ fontSize: 'clamp(16px, 2vw, 20px)' }}
             >
               {name}
             </h2>
@@ -341,8 +327,7 @@ export default function ToursModal({ slug, name, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl transition-colors"
-            style={{ background: 'rgba(0,147,255,0.06)', color: '#0093FF' }}
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl transition-colors bg-gray-100 hover:bg-gray-200 text-gray-500"
           >
             <PiX className="w-4 h-4" />
           </button>
@@ -350,8 +335,7 @@ export default function ToursModal({ slug, name, onClose }: Props) {
 
         {/* Controls */}
         <div
-          className="flex items-center gap-3 px-5 py-3 flex-shrink-0 flex-wrap"
-          style={{ borderBottom: '1px solid rgba(0,147,255,0.08)', background: 'rgba(237,246,255,0.40)' }}
+          className="flex items-center gap-3 px-5 py-3 flex-shrink-0 flex-wrap border-b border-gray-100 bg-[#f9fafb]"
         >
           {/* Sort toggle */}
           <div className="inline-flex items-center glass-pill rounded-xl p-0.5 gap-0.5">
@@ -377,8 +361,7 @@ export default function ToursModal({ slug, name, onClose }: Props) {
               type="button"
               onClick={() => setAdults(a => Math.max(1, a - 1))}
               disabled={adults <= 1}
-              className="w-6 h-6 flex items-center justify-center rounded-full transition-colors disabled:opacity-30"
-              style={{ background: 'rgba(0,147,255,0.08)', color: '#0093FF' }}
+              className="w-6 h-6 flex items-center justify-center rounded-full transition-colors disabled:opacity-30 bg-[#0093FF]/10 text-[#0093FF] hover:bg-[#0093FF]/15"
             >
               <PiUserMinus className="w-3.5 h-3.5" />
             </button>
@@ -387,8 +370,7 @@ export default function ToursModal({ slug, name, onClose }: Props) {
               type="button"
               onClick={() => setAdults(a => Math.min(6, a + 1))}
               disabled={adults >= 6}
-              className="w-6 h-6 flex items-center justify-center rounded-full transition-colors disabled:opacity-30"
-              style={{ background: 'rgba(0,147,255,0.08)', color: '#0093FF' }}
+              className="w-6 h-6 flex items-center justify-center rounded-full transition-colors disabled:opacity-30 bg-[#0093FF]/10 text-[#0093FF] hover:bg-[#0093FF]/15"
             >
               <PiUserPlus className="w-3.5 h-3.5" />
             </button>
@@ -397,13 +379,7 @@ export default function ToursModal({ slug, name, onClose }: Props) {
           {/* Active date filter badge */}
           {dateActive && !loading && (
             <span
-              className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full text-[11px] font-semibold"
-              style={{
-                background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
-                color: '#fff',
-                border: '1px solid rgba(0,147,255,0.50)',
-                boxShadow: '0 2px 6px rgba(0,147,255,0.22)',
-              }}
+              className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full text-[11px] font-semibold bg-[#0093FF] text-white"
             >
               <PiCalendarBlank className="w-3 h-3 flex-shrink-0" />
               <span>
@@ -433,13 +409,9 @@ export default function ToursModal({ slug, name, onClose }: Props) {
                   onClick={() => setCityFilter(p => p.includes(city) ? p.filter(x => x !== city) : [...p, city])}
                   className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all ${
                     cityFilter.includes(city)
-                      ? 'text-white border-[#0093FF]'
-                      : 'text-gray-600 hover:text-[#0093FF]'
+                      ? 'text-white bg-[#0093FF] border-[#0093FF]'
+                      : 'text-gray-600 hover:text-[#0093FF] bg-[#f0f7ff] border-[#deeeff]'
                   }`}
-                  style={cityFilter.includes(city)
-                    ? { background: 'linear-gradient(135deg, #0093FF, #0070E0)', boxShadow: '0 2px 8px rgba(0,147,255,0.28)' }
-                    : { background: 'rgba(237,246,255,0.72)', borderColor: 'rgba(200,227,255,0.65)' }
-                  }
                 >
                   <Plane className="w-3 h-3" />
                   {city}
@@ -454,12 +426,12 @@ export default function ToursModal({ slug, name, onClose }: Props) {
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-[110px] rounded-2xl animate-pulse" style={{ background: 'rgba(0,147,255,0.05)' }} />
+                <div key={i} className="h-[110px] rounded-2xl animate-pulse bg-gray-50" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-12">
-              <PiCalendarBlank className="w-10 h-10 mx-auto mb-3" style={{ color: 'rgba(0,147,255,0.25)' }} />
+              <PiCalendarBlank className="w-10 h-10 mx-auto mb-3 text-gray-300" />
               <p className="text-gray-500 font-medium">
                 {dateActive && allTours.length > 0 ? 'Žádné termíny ve zvoleném období' : 'Žádné dostupné termíny'}
               </p>

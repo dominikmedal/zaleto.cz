@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
@@ -122,10 +122,10 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
           <Image src={heroPhoto} alt={`Půjčovna aut ${dest.name} ${year}`} fill className="object-cover"
             style={{ filter: 'brightness(1.05) saturate(1.1)' }} priority />
           <div className="absolute inset-0" style={{
-            background: 'linear-gradient(to right, rgba(245,250,255,1) 0%, rgba(245,250,255,0.92) 36%, rgba(245,250,255,0.6) 65%, rgba(245,250,255,0.0) 100%)'
+            background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.90) 36%, rgba(255,255,255,0.55) 65%, rgba(255,255,255,0.0) 100%)'
           }} />
           <div className="absolute inset-x-0 bottom-0 h-28" style={{
-            background: 'linear-gradient(to top, rgba(245,250,255,1) 0%, rgba(245,250,255,0.5) 60%, transparent 100%)'
+            background: 'linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.5) 60%, transparent 100%)'
           }} />
           <div className="relative h-full flex items-center">
             <div className="max-w-[1680px] mx-auto px-4 sm:px-10 w-full">
@@ -230,7 +230,7 @@ function HeroTitle({ dest, year, aiData }: {
       </p>
       <h1
         className="font-bold text-gray-900 leading-tight tracking-tight mb-4"
-        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(26px, 4.5vw, 52px)' }}
+        style={{ fontSize: 'clamp(26px, 4.5vw, 52px)' }}
       >
         Půjčovna aut {dest.name} {year}
       </h1>
@@ -303,7 +303,7 @@ function IntroSection({ aiData, destName, year }: { aiData: CarRentalAIData; des
         <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Průvodce</p>
       </div>
       <h2 className="font-bold text-gray-900 tracking-tight mb-6"
-        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
+        style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
         Půjčovna aut {destName} {year} – kompletní průvodce
       </h2>
       <div className="max-w-3xl">
@@ -323,12 +323,11 @@ function AirportSection({ airport, destName }: { airport: AirportInfo; destName:
         <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Letiště</p>
       </div>
       <h2 className="font-bold text-gray-900 tracking-tight mb-5"
-        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
+        style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
         Půjčovna aut {destName} letiště
       </h2>
       <div className="glass-card rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row gap-6 sm:items-start">
-        <div className="flex-shrink-0 flex flex-col items-center justify-center w-20 h-20 rounded-2xl text-white font-black text-xl"
-          style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)' }}>
+        <div className="flex-shrink-0 flex flex-col items-center justify-center w-20 h-20 rounded-2xl text-white font-black text-xl bg-[#0093FF]">
           {airport.iata}
         </div>
         <div className="flex-1">
@@ -358,7 +357,7 @@ function CarExamplesSection({ examples, destName, year }: { examples: CarExample
         <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Dostupná auta</p>
       </div>
       <h2 className="font-bold text-gray-900 tracking-tight mb-2"
-        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
+        style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
         Která auta si půjčit v {destName}
       </h2>
       <p className="text-gray-500 text-sm mb-6 max-w-2xl">
@@ -416,7 +415,7 @@ function MonthlyPricesSection({ prices, destName }: { prices: number[]; destName
         <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Kdy jet</p>
       </div>
       <h2 className="font-bold text-gray-900 tracking-tight mb-2"
-        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
+        style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
         Ceny půjčovny aut {destName} podle měsíce
       </h2>
       <p className="text-gray-500 text-sm mb-6 max-w-2xl">
@@ -482,15 +481,14 @@ function PracticalInfoSection({ aiData, country, destSlug }: { aiData: CarRental
         </Link>
       </div>
       <h2 className="font-bold text-gray-900 tracking-tight mb-6"
-        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
+        style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
         Pohonné hmoty a pravidla silničního provozu v {country}
       </h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {aiData.fuel_info && (
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)' }}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white flex-shrink-0 bg-[#0093FF]">
                 <Fuel className="w-4 h-4" />
               </div>
               <h3 className="font-bold text-gray-900">Pohonné hmoty v {country}</h3>
@@ -503,8 +501,7 @@ function PracticalInfoSection({ aiData, country, destSlug }: { aiData: CarRental
         {aiData.driving_rules && (
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' }}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white flex-shrink-0 bg-violet-600">
                 <BookOpen className="w-4 h-4" />
               </div>
               <h3 className="font-bold text-gray-900">Pravidla silničního provozu v {country}</h3>
@@ -531,7 +528,7 @@ function PriceSection({ aiData, destName }: { aiData: CarRentalAIData; destName:
               <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Ceny</p>
             </div>
             <h2 className="font-bold text-gray-900 tracking-tight mb-4"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(18px, 2.2vw, 28px)' }}>
+              style={{ fontSize: 'clamp(18px, 2.2vw, 28px)' }}>
               Kolik stojí půjčení auta v {destName}?
             </h2>
             {aiData.price_overview.split('\n\n').filter(Boolean).map((p, i) => (
@@ -546,7 +543,7 @@ function PriceSection({ aiData, destName }: { aiData: CarRentalAIData; destName:
               <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Doporučení</p>
             </div>
             <h2 className="font-bold text-gray-900 tracking-tight mb-4"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(18px, 2.2vw, 28px)' }}>
+              style={{ fontSize: 'clamp(18px, 2.2vw, 28px)' }}>
               Jaké auto si vybrat pro {destName}?
             </h2>
             {aiData.best_car_types.split('\n\n').filter(Boolean).map((p, i) => (
@@ -576,14 +573,14 @@ function TripTipsSection({ tips, destName, destSlug }: { tips: CarRentalTripTip[
         </Link>
       </div>
       <h2 className="font-bold text-gray-900 tracking-tight mb-6"
-        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
+        style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
         Tipy na výlety autem z {destName}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {preview.map((tip, i) => (
           <article key={i} className="glass-card rounded-2xl p-5 relative overflow-hidden">
             <div className="absolute top-3 right-3 font-black text-4xl leading-none select-none"
-              style={{ color: 'rgba(0,147,255,0.06)', fontFamily: "'Playfair Display', Georgia, serif" }}>
+              style={{ color: 'rgba(0,147,255,0.06)',  }}>
               {i + 1}
             </div>
             <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -615,7 +612,7 @@ function PracticalTipsSection({ tips, destName }: { tips: string[]; destName: st
         <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Tipy a rady</p>
       </div>
       <h2 className="font-bold text-gray-900 tracking-tight mb-6"
-        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
+        style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
         Praktické tipy pro půjčení auta v {destName}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -646,7 +643,7 @@ function FAQSection({ faq, destName, year, destSlug }: { faq: CarRentalFAQ[]; de
         </Link>
       </div>
       <h2 className="font-bold text-gray-900 tracking-tight mb-6"
-        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
+        style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
         Nejčastější dotazy – půjčovna aut {destName} {year}
       </h2>
       <div className="space-y-3 max-w-3xl">
@@ -689,7 +686,7 @@ function RelatedSection({ dest, relatedDests }: {
             <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Další destinace</p>
           </div>
           <h2 className="font-bold text-gray-900 tracking-tight mb-5"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(18px, 2.2vw, 28px)' }}>
+            style={{ fontSize: 'clamp(18px, 2.2vw, 28px)' }}>
             Půjčovny aut v {dest.country}
           </h2>
           {sameCountry.length > 0 && (
@@ -729,8 +726,7 @@ function RelatedSection({ dest, relatedDests }: {
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-400 mb-3">Více o destinaci</p>
           <Link href={`/pocasi/${dest.countrySlug}`}
             className="glass-card rounded-xl p-4 flex items-center gap-3 hover:shadow-md transition-shadow group">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0 bg-[#0093FF]">
               <Thermometer className="w-4 h-4" />
             </div>
             <div>
@@ -741,8 +737,7 @@ function RelatedSection({ dest, relatedDests }: {
           </Link>
           <Link href={`/destinace/${dest.countrySlug}`}
             className="glass-card rounded-xl p-4 flex items-center gap-3 hover:shadow-md transition-shadow group">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0 bg-violet-600">
               <Star className="w-4 h-4" />
             </div>
             <div>

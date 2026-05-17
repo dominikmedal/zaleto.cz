@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { PiMapPin, PiClock, PiArrowRight } from 'react-icons/pi'
@@ -30,7 +30,7 @@ export default async function ClankyPage() {
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Blog</p>
           <h1
             className="font-bold text-gray-900 leading-[1.05] tracking-tight mb-3"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(36px, 5vw, 60px)' }}
+            style={{ fontSize: 'clamp(36px, 5vw, 60px)' }}
           >
             Cestovní{' '}
             <em className="not-italic text-[#0093FF]">inspirace</em>

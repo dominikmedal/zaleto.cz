@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import type { Metadata } from 'next'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
@@ -23,6 +23,7 @@ import WeatherWidget from '@/components/WeatherWidget'
 import CollapsibleSection from '@/components/CollapsibleSection'
 import ShareButton from '@/components/ShareButton'
 import CarRentalBanner from '@/components/CarRentalBanner'
+import TourModalTrigger from '@/components/TourModalTrigger'
 
 // Leaflet needs browser APIs → dynamic import, no SSR
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false })
@@ -263,7 +264,7 @@ export default async function HotelDetailPage({ params }: Props) {
           {/* Title */}
           <h1
             className="font-bold text-gray-900 leading-[1.08] tracking-tight mb-4"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(26px, 3.5vw, 44px)' }}
+            style={{ fontSize: 'clamp(26px, 3.5vw, 44px)' }}
           >
             {hotel.name}
           </h1>
@@ -289,36 +290,32 @@ export default async function HotelDetailPage({ params }: Props) {
           </div>
         </div>
         {/* thin separator */}
-        <div className="mb-5 h-px" style={{ background: 'linear-gradient(90deg, rgba(0,147,255,0.18) 0%, transparent 60%)' }} />
+        <div className="mb-5 h-px bg-gray-100" />
 
         {/* Gallery */}
         <HotelGallery photos={photos} name={hotel.name} />
 
         {/* ── Cena zájezdu — mobile only, right after gallery ── */}
-        <div className="lg:hidden mt-4 rounded-2xl overflow-hidden" style={{
-          background: 'rgba(245,248,255,0.95)',
-          border: '1px solid rgba(200,227,255,0.65)',
-          boxShadow: '0 4px 24px -4px rgba(0,138,254,0.13)',
-        }}>
+        <div className="lg:hidden mt-4 rounded-2xl overflow-hidden bg-white border border-gray-100">
           {/* Header: eyebrow + heading + count */}
-          <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)' }}>
+          <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 border-b border-gray-100">
             <div>
-              <p className="text-[10px] font-bold text-[#0093FF]/60 uppercase tracking-widest mb-0.5">Rezervace</p>
-              <h3 className="font-bold text-gray-900 leading-tight tracking-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '15px' }}>
+              <p className="text-[10px] font-bold text-[#0093FF] uppercase tracking-widest mb-0.5">Rezervace</p>
+              <h3 className="font-bold text-gray-900 leading-tight tracking-tight" style={{ fontSize: '15px' }}>
                 Nejbližší termíny
               </h3>
             </div>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-white px-2.5 py-1 rounded-full flex-shrink-0" style={{ background: 'linear-gradient(135deg, #0093FF, #0070E0)', boxShadow: '0 2px 8px rgba(0,147,255,0.28)' }}>
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-white px-2.5 py-1 rounded-full flex-shrink-0 bg-[#0093FF]">
               <PiCalendarBlank className="w-3 h-3" />
               {tourCount}
             </span>
           </div>
           {/* Next departure + price */}
-          <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)' }}>
+          <div className="px-4 py-3 border-b border-gray-100">
             {hotel.next_departure ? (
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#10b981', boxShadow: '0 0 0 3px rgba(16,185,129,0.18)' }} />
+                  <span className="w-2 h-2 rounded-full flex-shrink-0 bg-emerald-500" />
                   <div className="min-w-0">
                     <p className="text-[13px] font-bold text-gray-900 leading-tight">
                       {formatDep(hotel.next_departure)}
@@ -342,8 +339,7 @@ export default async function HotelDetailPage({ params }: Props) {
           <div className="px-4 py-3 space-y-2">
             <ScrollToButton
               targetId="terminy"
-              className="w-full flex items-center justify-center gap-2 text-sm font-bold text-white py-3 px-4 rounded-xl transition-all active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)', boxShadow: '0 4px 14px rgba(0,147,255,0.32)' }}
+              className="btn-cta w-full flex items-center justify-center gap-2 text-sm font-bold py-3 px-4 rounded-xl transition-all active:scale-[0.98]"
             >
               <PiCalendarBlank className="w-4 h-4" />
               Zobrazit všechny termíny
@@ -354,14 +350,14 @@ export default async function HotelDetailPage({ params }: Props) {
             </div>
           </div>
           {/* Trust badges */}
-          <div className="px-4 pb-3 pt-1 flex flex-wrap gap-1.5" style={{ borderTop: '1px solid rgba(0,147,255,0.06)' }}>
+          <div className="px-4 pb-3 pt-1 flex flex-wrap gap-1.5 border-t border-gray-100">
             {[
               { icon: <PiShieldCheck className="w-3 h-3" />, label: 'Přímé rezervace' },
               { icon: <PiCheck className="w-3 h-3" />, label: 'Bez poplatků' },
               { icon: <PiCheckCircle className="w-3 h-3" />, label: 'Ověřené CK' },
             ].map(({ icon, label }) => (
-              <span key={label} className="inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full text-[10px] font-semibold text-gray-600" style={{ background: 'rgba(245,248,255,0.90)', border: '1px solid rgba(200,227,255,0.70)' }}>
-                <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.09)' }}>{icon}</span>
+              <span key={label} className="inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full text-[10px] font-semibold text-gray-600 bg-[#f0f7ff] border border-[#deeeff]">
+                <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF] bg-[#0093FF]/10">{icon}</span>
                 {label}
               </span>
             ))}
@@ -384,70 +380,7 @@ export default async function HotelDetailPage({ params }: Props) {
           <div className="lg:col-span-2">
             <div className="glass-card rounded-2xl px-5 sm:px-6">
 
-              {/* ── Marketing highlights ── */}
-              {highlights.length > 0 && (
-                <section className="py-6 border-b" style={{ borderColor: 'rgba(0,147,255,0.08)' }}>
-                  <p className="text-[10px] font-bold text-[#0093FF]/60 uppercase tracking-widest mb-1">Výhody</p>
-                  <h2 className="flex items-center gap-2 mb-4" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(15px, 2vw, 18px)', fontWeight: 700, color: '#111827', letterSpacing: '-0.02em' }}>
-                    <span className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,147,255,0.10)' }}>
-                      <PiSparkle className="w-3.5 h-3.5 text-[#0093FF]" />
-                    </span>
-                    Proč tento zájezd?
-                  </h2>
-
-                  {/* Core benefits — always first 2 */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-                    {highlights.slice(0, 2).map((item, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-3 rounded-2xl px-4 py-3.5"
-                        style={{
-                          background: 'linear-gradient(135deg, rgba(0,147,255,0.09) 0%, rgba(0,112,224,0.05) 100%)',
-                          border: '1px solid rgba(0,147,255,0.18)',
-                          boxShadow: '0 1px 6px rgba(0,147,255,0.07), inset 0 1px 0 rgba(255,255,255,0.90)',
-                        }}
-                      >
-                        <div
-                          className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-                          style={{ background: 'rgba(0,147,255,0.13)', border: '1px solid rgba(0,147,255,0.15)' }}
-                        >
-                          <span className="text-[#0093FF]">{item.icon}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[12px] font-bold text-gray-900 leading-tight tracking-tight">{item.title}</p>
-                          <p className="text-[11px] text-gray-500 leading-snug mt-0.5">{item.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Dynamic highlights — pills */}
-                  {highlights.length > 2 && (
-                    <div className="flex flex-wrap gap-2">
-                      {highlights.slice(2, 6).map((item, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center gap-2 pl-2 pr-3.5 py-1.5 rounded-full text-[11px] font-semibold text-gray-700"
-                          style={{
-                            background: 'rgba(245,248,255,0.90)',
-                            border: '1px solid rgba(200,227,255,0.70)',
-                            boxShadow: '0 1px 4px rgba(0,147,255,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
-                          }}
-                        >
-                          <span
-                            className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ background: 'rgba(0,147,255,0.09)' }}
-                          >
-                            <span className="text-[#0093FF] [&>svg]:w-3.5 [&>svg]:h-3.5">{item.icon}</span>
-                          </span>
-                          {item.title}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </section>
-              )}
-
+              {/* ── O hotelu — first, most important ── */}
               {((hotel.agencyDescriptions?.length ?? 0) > 0 || hotel.description) && (
                 <CollapsibleSection title="O hotelu" icon={<PiHouseSimple className="w-5 h-5" />}>
                   <AgencyDescriptionSwitcher
@@ -459,16 +392,35 @@ export default async function HotelDetailPage({ params }: Props) {
                 </CollapsibleSection>
               )}
 
+              {/* ── Proč tento zájezd? — flat icon+text list ── */}
+              {highlights.length > 0 && (
+                <CollapsibleSection title="Proč tento zájezd?" icon={<PiSparkle className="w-5 h-5" />}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                    {highlights.slice(0, 6).map((item, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#0093FF] bg-[#0093FF]/10 [&>svg]:w-[14px] [&>svg]:h-[14px] mt-0.5">
+                          {item.icon}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 leading-tight">{item.title}</p>
+                          {item.desc && <p className="text-xs text-gray-400 leading-snug mt-0.5">{item.desc}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleSection>
+              )}
+
+              {/* ── Vybavení ── */}
               {amenitiesList.length > 0 && (
                 <CollapsibleSection title="Vybavení a výhody" icon={<PiSparkle className="w-5 h-5" />}>
                   <div className="flex flex-wrap gap-1.5">
                     {amenitiesList.map((item, i) => (
                       <span
                         key={i}
-                        className="inline-flex items-center gap-1.5 pl-1.5 pr-3 py-1 rounded-full text-[11px] font-medium text-gray-700"
-                        style={{ background: 'rgba(245,248,255,0.90)', border: '1px solid rgba(200,227,255,0.65)', boxShadow: '0 1px 3px rgba(0,147,255,0.05)' }}
+                        className="inline-flex items-center gap-1.5 pl-1.5 pr-3 py-1 rounded-full text-[11px] font-medium text-gray-700 bg-[#f0f7ff] border border-[#deeeff]"
                       >
-                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.09)' }}>
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF] bg-[#0093FF]/10">
                           <PiCheckCircle className="w-3 h-3" />
                         </span>
                         {item}
@@ -478,36 +430,15 @@ export default async function HotelDetailPage({ params }: Props) {
                 </CollapsibleSection>
               )}
 
-              {distancesList.length > 0 && (
-                <CollapsibleSection title="Vzdálenosti" icon={<PiRuler className="w-5 h-5" />}>
-                  <div className="space-y-1.5">
-                    {distancesList.map((d, i) => {
-                      const [label, ...rest] = d.split(':')
-                      const val = rest.join(':').trim() || d
-                      return (
-                        <div key={i} className="flex items-center justify-between gap-4 px-3 py-2 rounded-xl" style={{ background: i % 2 === 0 ? 'rgba(245,248,255,0.80)' : 'transparent', border: i % 2 === 0 ? '1px solid rgba(200,227,255,0.50)' : '1px solid transparent' }}>
-                          <span className="flex items-center gap-2 text-[12px] text-gray-500 min-w-0">
-                            <span className="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.08)' }}>
-                              <PiMapPin className="w-3 h-3" />
-                            </span>
-                            <span className="truncate">{label.trim()}</span>
-                          </span>
-                          <span className="text-[12px] font-bold text-gray-800 tabular-nums flex-shrink-0">{val}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </CollapsibleSection>
-              )}
-
+              {/* ── Stravování ── */}
               {hotel.food_options && (
                 <CollapsibleSection title="Stravování" icon={<PiForkKnife className="w-5 h-5" />}>
                   <div className="space-y-1.5">
                     {parseFoodOptions(hotel.food_options).map((row, i) => (
-                      <div key={i} className="flex items-center justify-between gap-4 px-3 py-2 rounded-xl" style={{ background: i % 2 === 0 ? 'rgba(245,248,255,0.80)' : 'transparent', border: i % 2 === 0 ? '1px solid rgba(200,227,255,0.50)' : '1px solid transparent' }}>
+                      <div key={i} className={`flex items-center justify-between gap-4 px-3 py-2 rounded-xl ${i % 2 === 0 ? 'bg-[#f9fafb] border border-gray-100' : ''}`}>
                         <span className="flex items-center gap-2 text-[12px] text-gray-600 min-w-0">
-                          <span className="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.08)' }}>
-                            <PiForkKnife className="w-3 h-3" />
+                          <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[#0093FF] bg-[#0093FF]/10">
+                            <PiForkKnife className="w-3.5 h-3.5" />
                           </span>
                           <span className="truncate">{row.label}</span>
                         </span>
@@ -520,16 +451,16 @@ export default async function HotelDetailPage({ params }: Props) {
                 </CollapsibleSection>
               )}
 
+              {/* ── Co je v ceně ── */}
               {priceIncludesList.length > 0 && (
                 <CollapsibleSection title="Co je v ceně" icon={<PiWallet className="w-5 h-5" />}>
                   <div className="flex flex-wrap gap-1.5">
                     {priceIncludesList.map((item, i) => (
                       <span
                         key={i}
-                        className="inline-flex items-center gap-1.5 pl-1.5 pr-3 py-1 rounded-full text-[11px] font-medium text-gray-700"
-                        style={{ background: 'rgba(240,253,244,0.90)', border: '1px solid rgba(52,211,153,0.22)', boxShadow: '0 1px 3px rgba(16,185,129,0.06)' }}
+                        className="inline-flex items-center gap-1.5 pl-1.5 pr-3 py-1 rounded-full text-[11px] font-medium text-gray-700 bg-emerald-50 border border-emerald-100"
                       >
-                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-emerald-500" style={{ background: 'rgba(52,211,153,0.12)' }}>
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-emerald-500 bg-emerald-100">
                           <PiCheck className="w-3 h-3" />
                         </span>
                         {item}
@@ -539,18 +470,35 @@ export default async function HotelDetailPage({ params }: Props) {
                 </CollapsibleSection>
               )}
 
-              {hotel.latitude && hotel.longitude && (
-                <CollapsibleSection title="Poloha na mapě" icon={<PiMapTrifold className="w-5 h-5" />}>
-                  <Suspense fallback={<div className="h-[440px] bg-gray-50 rounded-2xl animate-pulse" />}>
-                    <HotelMapWithNearby hotel={hotel} slug={params.slug} />
-                  </Suspense>
+              {/* ── Vzdálenosti ── */}
+              {distancesList.length > 0 && (
+                <CollapsibleSection title="Vzdálenosti" icon={<PiRuler className="w-5 h-5" />}>
+                  <div className="space-y-1.5">
+                    {distancesList.map((d, i) => {
+                      const [label, ...rest] = d.split(':')
+                      const val = rest.join(':').trim() || d
+                      return (
+                        <div key={i} className={`flex items-center justify-between gap-4 px-3 py-2 rounded-xl ${i % 2 === 0 ? 'bg-[#f9fafb] border border-gray-100' : ''}`}>
+                          <span className="flex items-center gap-2 text-[12px] text-gray-500 min-w-0">
+                            <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[#0093FF] bg-[#0093FF]/10">
+                              <PiMapPin className="w-3.5 h-3.5" />
+                            </span>
+                            <span className="truncate">{label.trim()}</span>
+                          </span>
+                          <span className="text-[12px] font-bold text-gray-800 tabular-nums flex-shrink-0">{val}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </CollapsibleSection>
               )}
 
+              {/* ── Recenze ── */}
               <CollapsibleSection title="Recenze hostů" icon={<PiChatCircleDots className="w-5 h-5" />} defaultOpen={false} lazy>
                 <ReviewsSection slug={params.slug} />
               </CollapsibleSection>
 
+              {/* ── Počasí ── */}
               {hotel.latitude && hotel.longitude && (() => {
                 const _country = hotel.country
                 const _region = hotel.destination?.split('/')[1]?.trim()
@@ -560,7 +508,7 @@ export default async function HotelDetailPage({ params }: Props) {
                     : `/pocasi/${slugify(_country)}`
                   : null
                 return (
-                  <CollapsibleSection title="Počasí v destinaci" icon={<PiSun className="w-5 h-5" />}>
+                  <CollapsibleSection title="Počasí v destinaci" icon={<PiSun className="w-5 h-5" />} defaultOpen={false} lazy>
                     <WeatherWidget
                       lat={hotel.latitude!}
                       lon={hotel.longitude!}
@@ -582,6 +530,42 @@ export default async function HotelDetailPage({ params }: Props) {
                 )
               })()}
 
+              {/* ── Mapa — lowest priority, collapsed ── */}
+              {hotel.latitude && hotel.longitude && (
+                <CollapsibleSection title="Poloha na mapě" icon={<PiMapTrifold className="w-5 h-5" />} defaultOpen={false} lazy>
+                  <Suspense fallback={<div className="h-[440px] bg-gray-50 rounded-2xl animate-pulse" />}>
+                    <HotelMapWithNearby hotel={hotel} slug={params.slug} />
+                  </Suspense>
+                </CollapsibleSection>
+              )}
+
+            </div>
+
+            {/* ── Dostupné termíny — part of left column ── */}
+            <div id="terminy" className="mt-6 scroll-mt-[140px] rounded-2xl overflow-hidden border border-[#f0f0f0]" style={{ background: '#f9fafb' }}>
+              <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-4 border-b border-gray-100">
+                <div>
+                  <p className="text-[10px] font-bold text-[#0093FF] uppercase tracking-[0.16em] mb-1">Rezervace</p>
+                  <h2 className="font-bold text-gray-900 leading-tight" style={{ fontSize: '20px', letterSpacing: '-0.02em' }}>
+                    Dostupné termíny
+                  </h2>
+                </div>
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white px-3 py-1.5 rounded-full flex-shrink-0 bg-[#0093FF]">
+                  <PiCalendarBlank className="w-3.5 h-3.5" />
+                  {tourCount} {tourCount === 1 ? 'termín' : tourCount < 5 ? 'termíny' : 'termínů'}
+                </span>
+              </div>
+              <div className="p-5 sm:p-6">
+                <TourDatesList slug={params.slug} />
+              </div>
+            </div>
+
+            {/* ── Car rental inline banner ── */}
+            <div className="mt-4">
+              <CarRentalBanner
+                place={hotel.resort_town ?? hotel.destination ?? hotel.country ?? ''}
+                country={hotel.country ?? ''}
+              />
             </div>
           </div>
 
@@ -589,65 +573,51 @@ export default async function HotelDetailPage({ params }: Props) {
           <div className="lg:col-span-1">
             <div className="lg:sticky lg:top-[116px] space-y-3">
 
-              {/* Booking widget — hidden on mobile (shown above gallery instead) */}
-              <div className="hidden lg:block rounded-2xl overflow-hidden" style={{
-                background: 'rgba(245,248,255,0.95)',
-                border: '1px solid rgba(200,227,255,0.65)',
-                boxShadow: '0 4px 32px -4px rgba(0,138,254,0.13)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-              }}>
+              {/* Booking widget — desktop sticky panel */}
+              <div className="hidden lg:block rounded-2xl overflow-hidden bg-white border border-gray-100">
 
-                {/* Header: eyebrow + heading + tour count */}
-                <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-4" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)' }}>
-                  <div>
-                    <p className="text-[10px] font-bold text-[#0093FF]/60 uppercase tracking-widest mb-0.5">Rezervace</p>
-                    <h3 className="font-bold text-gray-900 leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '18px', letterSpacing: '-0.02em' }}>
-                      Nejbližší termíny
-                    </h3>
+                {/* Price — hook, shown first */}
+                <div className="px-5 pt-5 pb-4 border-b border-gray-100 bg-[#f9fafb]">
+                  <p className="text-[10px] font-bold text-[#0093FF] uppercase tracking-widest mb-3">Rezervace</p>
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] text-gray-400 mb-1">Nejnižší cena od osoby</p>
+                      {minTourPrice ? (
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-[32px] font-black tabular-nums leading-none" style={{ color: '#049669' }}>{formatPriceShort(minTourPrice)}</span>
+                          <span className="text-sm font-semibold text-gray-400 ml-0.5">Kč</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">Aktualizuje se…</span>
+                      )}
+                    </div>
+                    {[hotel.resort_town, hotel.country].filter(Boolean)[0] && (
+                      <Link
+                        href={`/destinace/${slugify([hotel.resort_town, hotel.destination, hotel.country].filter(Boolean)[0]!)}`}
+                        className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-[#0093FF] transition-colors flex-shrink-0"
+                      >
+                        <PiMapPin className="w-3 h-3 mr-0.5" />
+                        {[hotel.resort_town, hotel.country].filter(Boolean).join(', ')}
+                      </Link>
+                    )}
                   </div>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white px-3 py-1.5 rounded-full flex-shrink-0" style={{ background: 'linear-gradient(135deg, #0093FF, #0070E0)', boxShadow: '0 3px 12px rgba(0,147,255,0.28)' }}>
-                    <PiCalendarBlank className="w-3.5 h-3.5" />
-                    {tourCount} {tourCount === 1 ? 'termín' : tourCount < 5 ? 'termíny' : 'termínů'}
-                  </span>
                 </div>
 
-                {/* Upcoming departures — main selling section */}
-                <div className="px-3 py-2" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)' }}>
+                {/* Section label + tour count */}
+                <div className="flex items-center justify-between gap-3 px-5 pt-3.5 pb-2">
+                  <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">Nejbližší termíny</h3>
+                  <TourModalTrigger slug={params.slug} name={hotel.name} tourCount={tourCount} />
+                </div>
+
+                {/* Upcoming departures */}
+                <div className="px-3 pb-2 border-b border-gray-100">
                   <Suspense fallback={
                     <div className="space-y-1 py-2">
-                      {[1,2,3].map(i => <div key={i} className="h-12 rounded-xl animate-pulse" style={{ background: 'rgba(0,147,255,0.05)' }} />)}
+                      {[1,2,3].map(i => <div key={i} className="h-12 rounded-xl animate-pulse bg-gray-50" />)}
                     </div>
                   }>
                     <UpcomingDepartures slug={params.slug} />
                   </Suspense>
-                </div>
-
-                {/* Price strip */}
-                <div className="px-5 py-4 flex items-center justify-between gap-3" style={{ borderBottom: '1px solid rgba(0,147,255,0.08)', background: 'rgba(237,246,255,0.40)' }}>
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Nejnižší cena od osoby</p>
-                    {minTourPrice ? (
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-[30px] font-black tabular-nums leading-none" style={{ color: '#049669' }}>{formatPriceShort(minTourPrice)}</span>
-                        <span className="text-sm font-semibold text-gray-400 ml-0.5">Kč</span>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-400">Aktualizuje se…</span>
-                    )}
-                  </div>
-                  {[hotel.resort_town, hotel.country].filter(Boolean)[0] && (
-                    <Link
-                      href={`/destinace/${slugify([hotel.resort_town, hotel.destination, hotel.country].filter(Boolean)[0]!)}`}
-                      className="inline-flex items-center gap-1.5 pl-2 pr-3 py-1.5 rounded-full text-[11px] font-semibold text-gray-600 hover:text-[#0093FF] transition-colors flex-shrink-0"
-                      style={{ background: 'rgba(245,248,255,0.90)', border: '1px solid rgba(200,227,255,0.70)' }}
-                    >
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.09)' }}>
-                        <PiMapPin className="w-3 h-3" />
-                      </span>
-                      {[hotel.resort_town, hotel.country].filter(Boolean).join(', ')}
-                    </Link>
-                  )}
                 </div>
 
                 {/* Actions */}
@@ -655,8 +625,7 @@ export default async function HotelDetailPage({ params }: Props) {
                   <ViewersBadge />
                   <ScrollToButton
                     targetId="terminy"
-                    className="w-full flex items-center justify-center gap-2 text-sm font-bold text-white py-3.5 px-4 rounded-xl transition-all active:scale-[0.98]"
-                    style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)', boxShadow: '0 4px 16px rgba(0,147,255,0.30)' }}
+                    className="btn-cta w-full flex items-center justify-center gap-2 text-sm font-bold py-3.5 px-4 rounded-xl transition-all active:scale-[0.98]"
                   >
                     <PiCalendarBlank className="w-4 h-4" />
                     Zobrazit všechny termíny
@@ -665,15 +634,14 @@ export default async function HotelDetailPage({ params }: Props) {
                     <FavoriteButton slug={params.slug} name={hotel.name} variant="detail" className="flex-1 justify-center" />
                     <ShareButton slug={params.slug} name={hotel.name} />
                   </div>
-                  {/* Trust badges */}
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {[
                       { icon: <PiShieldCheck className="w-3 h-3" />, label: 'Přímé rezervace' },
                       { icon: <PiCheck className="w-3 h-3" />, label: 'Bez poplatků' },
                       { icon: <PiCheckCircle className="w-3 h-3" />, label: 'Ověřené CK' },
                     ].map(({ icon, label }) => (
-                      <span key={label} className="inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full text-[10px] font-semibold text-gray-600" style={{ background: 'rgba(245,248,255,0.90)', border: '1px solid rgba(200,227,255,0.70)' }}>
-                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.09)' }}>{icon}</span>
+                      <span key={label} className="inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full text-[10px] font-semibold text-gray-600 bg-[#f0f7ff] border border-[#deeeff]">
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF] bg-[#0093FF]/10">{icon}</span>
                         {label}
                       </span>
                     ))}
@@ -694,41 +662,7 @@ export default async function HotelDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* ── Available dates — full width ── */}
-        <div id="terminy" className="mt-10 scroll-mt-[140px]">
-          <div className="section-island">
-            {/* Section heading */}
-            <div className="flex items-end justify-between gap-4 mb-6">
-              <div>
-                <p className="text-[10px] font-bold text-[#0093FF] uppercase tracking-[0.16em] mb-1.5">Rezervace</p>
-                <h2
-                  className="font-bold text-gray-900 leading-tight"
-                  style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 2.5vw, 30px)' }}
-                >
-                  Dostupné termíny
-                </h2>
-              </div>
-              <span
-                className="inline-flex items-center gap-1.5 text-sm font-bold text-white px-3.5 py-1.5 rounded-full flex-shrink-0 mb-0.5"
-                style={{ background: 'linear-gradient(135deg, #0093FF, #0070E0)', boxShadow: '0 3px 12px rgba(0,147,255,0.28)' }}
-              >
-                <PiCalendarBlank className="w-3.5 h-3.5" />
-                {tourCount}
-              </span>
-            </div>
-            <TourDatesList slug={params.slug} />
-          </div>
-        </div>
-
-        {/* ── Car rental banner ── */}
-        <div className="mt-8">
-          <CarRentalBanner
-            place={hotel.resort_town ?? hotel.destination ?? hotel.country ?? ''}
-            country={hotel.country ?? ''}
-          />
-        </div>
-
-        {/* ── Nearby hotels — full width, below dates ── */}
+        {/* ── Nearby hotels — full width, below main grid ── */}
         {(hotel.latitude && hotel.longitude) && (
           <div className="mt-8 section-island">
             <Suspense fallback={null}>
@@ -787,12 +721,11 @@ async function UpcomingDepartures({ slug }: { slug: string }) {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-between gap-2 px-2 py-2.5 rounded-xl group transition-colors hover:bg-[rgba(0,147,255,0.06)]"
-            style={{ background: i % 2 !== 0 ? 'rgba(237,246,255,0.40)' : undefined }}
+            className={`flex items-center justify-between gap-2 px-2 py-2.5 rounded-xl group transition-colors hover:bg-[#f0f7ff] ${i % 2 !== 0 ? 'bg-[#f9fafb]' : ''}`}
           >
             {/* Left: transport icon + dates */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 text-[#0093FF]" style={{ background: 'rgba(0,147,255,0.09)', border: '1px solid rgba(0,147,255,0.12)' }}>
+              <span className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 text-white" style={{ background: '#0093FF' }}>
                 {transportIcon(tour.transport)}
               </span>
               <div className="min-w-0">
@@ -813,7 +746,7 @@ async function UpcomingDepartures({ slug }: { slug: string }) {
                   {fmtPrice(tour.price)} <span className="text-[10px] font-semibold text-gray-400">Kč</span>
                 </span>
               )}
-              <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[#0093FF] opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'rgba(0,147,255,0.09)' }}>
+              <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[#0093FF] bg-[#0093FF]/10 opacity-0 group-hover:opacity-100 transition-opacity">
                 <PiArrowRight className="w-3 h-3" />
               </span>
             </div>
@@ -844,7 +777,7 @@ async function NearbyHotelsGrid({ lat, lon, exclude }: { lat: number; lon: numbe
         <p className="text-[10px] font-bold text-[#0093FF] uppercase tracking-[0.16em] mb-1.5">Podobné hotely</p>
         <h2
           className="font-bold text-gray-900 leading-tight"
-          style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2vw, 26px)' }}
+          style={{ fontSize: 'clamp(20px, 2vw, 26px)' }}
         >
           Hotely <em className="not-italic text-[#0093FF]">v okolí</em>
         </h2>
@@ -867,7 +800,7 @@ async function NearbyHotelsGrid({ lat, lon, exclude }: { lat: number; lon: numbe
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
               {n.distance_km != null && (
                 <div className="absolute bottom-3 left-3 z-10">
-                  <span className="text-[11px] font-semibold text-white px-2.5 py-1 rounded-full" style={{ background: 'rgba(0,0,0,0.40)', backdropFilter: 'blur(6px)' }}>
+                  <span className="text-[11px] font-semibold text-white px-2.5 py-1 rounded-full" style={{ background: 'rgba(0,0,0,0.38)' }}>
                     {Number(n.distance_km).toFixed(1)} km
                   </span>
                 </div>
@@ -887,7 +820,7 @@ async function NearbyHotelsGrid({ lat, lon, exclude }: { lat: number; lon: numbe
               </div>
               <h3
                 className="font-bold text-gray-900 leading-snug line-clamp-1 mb-2.5 group-hover:text-[#0093FF] transition-colors duration-200"
-                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1rem' }}
+                style={{ fontSize: '1rem' }}
               >
                 {n.name}
               </h3>
@@ -896,11 +829,8 @@ async function NearbyHotelsGrid({ lat, lon, exclude }: { lat: number; lon: numbe
                   <span className="text-[16px] font-bold text-[#039669] tabular-nums">{formatPriceShort(n.min_price)}</span>
                   <span className="text-[12px] text-gray-400 ml-1">Kč / os.</span>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-full border border-[#C8E3FF] bg-[#EDF6FF] group-hover:bg-[#0093FF] group-hover:border-[#0093FF] transition-all duration-200 overflow-hidden flex-shrink-0 px-2.5 py-[7px] group-hover:px-3.5">
-                  <span className="text-[11px] font-semibold text-[#0093FF] group-hover:text-white transition-colors duration-200 max-w-0 group-hover:max-w-[56px] overflow-hidden whitespace-nowrap">
-                    Zobrazit
-                  </span>
-                  <PiArrowRight className="w-3.5 h-3.5 text-[#0093FF] group-hover:text-white transition-all duration-200 group-hover:translate-x-0.5 flex-shrink-0" />
+                <div className="w-8 h-8 rounded-full border border-[#deeeff] bg-[#f0f7ff] group-hover:bg-[#0093FF] group-hover:border-[#0093FF] transition-all duration-200 flex items-center justify-center flex-shrink-0">
+                  <PiArrowRight className="w-3.5 h-3.5 text-[#0093FF] group-hover:text-white transition-colors duration-200" />
                 </div>
               </div>
             </div>

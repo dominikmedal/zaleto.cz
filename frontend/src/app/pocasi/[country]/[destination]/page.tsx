@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense } from 'react'
@@ -148,10 +148,10 @@ export default async function DestinationWeatherPage({ params }: Props) {
           <Image src={heroPhoto} alt={info.name} fill className="object-cover" priority
             style={{ filter: 'brightness(1.05) saturate(1.05)' }} />
           <div className="absolute inset-0" style={{
-            background: 'linear-gradient(to right, rgba(245,250,255,1) 0%, rgba(245,250,255,0.88) 30%, rgba(245,250,255,0.55) 58%, rgba(245,250,255,0.0) 100%)'
+            background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.88) 30%, rgba(255,255,255,0.55) 58%, rgba(255,255,255,0.0) 100%)'
           }} />
           <div className="absolute inset-x-0 bottom-0 h-32" style={{
-            background: 'linear-gradient(to top, rgba(245,250,255,1) 0%, rgba(245,250,255,0.6) 50%, transparent 100%)'
+            background: 'linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.6) 50%, transparent 100%)'
           }} />
           <div className="relative flex items-center py-8 sm:py-10">
             <div className="max-w-[1680px] mx-auto px-4 sm:px-10 w-full pb-6">
@@ -166,7 +166,7 @@ export default async function DestinationWeatherPage({ params }: Props) {
               </nav>
               <h1
                 className="font-bold text-gray-900 leading-tight tracking-tight mb-2 drop-shadow-sm"
-                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(28px, 5vw, 60px)' }}
+                style={{ fontSize: 'clamp(28px, 5vw, 60px)' }}
               >
                 Počasí — {info.name}
               </h1>
@@ -206,7 +206,7 @@ export default async function DestinationWeatherPage({ params }: Props) {
             </nav>
             <h1
               className="font-bold text-gray-900 leading-tight tracking-tight"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(26px, 4vw, 48px)' }}
+              style={{ fontSize: 'clamp(26px, 4vw, 48px)' }}
             >
               Počasí — {info.name}
             </h1>

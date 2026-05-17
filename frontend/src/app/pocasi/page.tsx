@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import Header from '@/components/Header'
@@ -80,7 +80,7 @@ export default async function PocasiPage() {
           </nav>
           <h1
             className="font-bold text-gray-900 mb-3 leading-tight tracking-tight"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(28px, 4vw, 50px)' }}
+            style={{ fontSize: 'clamp(28px, 4vw, 50px)' }}
           >
             Počasí v <em className="not-italic text-[#0093FF]">dovolenkových</em> destinacích
           </h1>

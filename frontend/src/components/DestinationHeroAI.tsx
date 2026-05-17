@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -164,7 +164,7 @@ export default function DestinationHeroAI({
                   <div className="flex-1 min-w-0">
                     <p
                       className="font-bold text-gray-900 leading-snug mb-2"
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '18px' }}
+                      style={{ fontSize: '18px' }}
                     >
                       Auto z dovolené udělá úplně jiný zážitek
                     </p>
@@ -246,7 +246,7 @@ export default function DestinationHeroAI({
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <p
                             className="font-bold text-gray-900 leading-snug group-hover:text-[#0093FF] transition-colors duration-200"
-                            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '16px' }}
+                            style={{ fontSize: '16px' }}
                           >
                             {item.name}
                           </p>

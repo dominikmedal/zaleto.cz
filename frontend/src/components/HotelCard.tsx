@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
@@ -197,7 +197,7 @@ export default function HotelCard({
             {/* Row 2: Hotel name — the single marketing anchor */}
             <h3
               className="font-bold text-gray-900 leading-snug line-clamp-1 mb-2.5 group-hover:text-[#0093FF] transition-colors duration-200"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1rem' }}
+              style={{ fontSize: '1rem' }}
             >
               {hotel.name}
             </h3>

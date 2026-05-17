@@ -43,7 +43,18 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Poppins', 'system-ui', 'sans-serif'],
+        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+      },
+      fontSize: {
+        xs:   ['13px', { lineHeight: '1.5' }],
+        sm:   ['16px', { lineHeight: '1.6' }],
+        base: ['18px', { lineHeight: '1.65' }],
+        lg:   ['20px', { lineHeight: '1.6' }],
+        xl:   ['23px', { lineHeight: '1.5' }],
+        '2xl': ['27px', { lineHeight: '1.4' }],
+        '3xl': ['34px', { lineHeight: '1.3' }],
+        '4xl': ['42px', { lineHeight: '1.2' }],
+        '5xl': ['54px', { lineHeight: '1.1' }],
       },
       borderRadius: {
         '2xl': '1rem',

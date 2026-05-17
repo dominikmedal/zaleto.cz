@@ -62,7 +62,7 @@ function CarCard({ offer, fallbackUrl }: { offer: CarOffer; fallbackUrl: string 
       <div className="p-4 flex flex-col flex-1 gap-3">
         <div>
           <p className="font-bold text-gray-900 text-sm leading-tight">{offer.carName}</p>
-          <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1.5">
+          <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5">
             {offer.supplier.name}
             {offer.supplier.rating != null && (
               <span className="inline-flex items-center gap-0.5 text-amber-600">
@@ -73,7 +73,7 @@ function CarCard({ offer, fallbackUrl }: { offer: CarOffer; fallbackUrl: string 
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
           {offer.seats != null && <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{offer.seats} místa</span>}
           {offer.bags  != null && <span className="flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />{offer.bags} kufr{offer.bags > 1 ? 'y' : ''}</span>}
           {offer.transmission && <span className="capitalize">{offer.transmission}</span>}
@@ -81,16 +81,23 @@ function CarCard({ offer, fallbackUrl }: { offer: CarOffer; fallbackUrl: string 
           {offer.fuelPolicy && <span className="flex items-center gap-1"><Fuel className="w-3 h-3" />{offer.fuelPolicy}</span>}
         </div>
 
-        <div className="mt-auto pt-3 border-t border-[#0093FF]/08 flex items-end justify-between gap-2">
-          <div>
-            {perDay && <p className="text-[11px] text-gray-400">{perDay}</p>}
-            <p className="text-base font-bold text-[#049669] leading-tight">{total}</p>
-            <p className="text-[10px] text-gray-400">celkem za pronájem</p>
+        <div className="mt-auto pt-3 border-t border-gray-100">
+          <div className="flex items-end justify-between gap-2 mb-2">
+            <div>
+              {perDay && <p className="text-xs text-gray-400">{perDay}</p>}
+              <p className="text-base font-bold text-[#049669] leading-tight">{total}</p>
+              <p className="text-xs text-gray-400">celkem za pronájem</p>
+            </div>
           </div>
-          <a href={href} target="_blank" rel="noopener noreferrer sponsored" className="btn-cta text-xs px-4 py-2 flex-shrink-0">
-            Rezervovat
-            <ExternalLink className="w-3 h-3" />
-          </a>
+          <div className="flex gap-2">
+            <a href={href} target="_blank" rel="noopener noreferrer sponsored" className="btn-secondary text-xs px-3 py-2 flex-1 justify-center">
+              Více informací
+            </a>
+            <a href={href} target="_blank" rel="noopener noreferrer sponsored" className="btn-cta text-xs px-3 py-2 flex-1 justify-center">
+              Rezervovat
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -323,7 +330,7 @@ export function CarRentalProvider({ destination, children }: { destination?: Car
   const fallbackUrl = placeID ? buildDCUrlById({ placeID, pickupDate, dropoffDate, pickupTime, dropoffTime, driverAge }) : buildDCHubUrl()
   const allUrl      = fallbackUrl
   const canSearch   = !!(destination || locSel)
-  const inputBase   = 'w-full bg-white/70 border border-white/80 rounded-xl px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#0093FF]/50 focus:ring-2 focus:ring-[#0093FF]/10 transition-all'
+  const inputBase   = 'w-full bg-[#f0f7ff] border border-[#deeeff] rounded-xl px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#0093FF]/50 focus:ring-2 focus:ring-[#0093FF]/10 transition-all'
 
   return (
     <CarRentalCtx.Provider value={{
@@ -353,16 +360,13 @@ export function CarRentalForm({ className = '' }: { className?: string }) {
   return (
     <div
       className={`section-island ${className}`}
-      style={{
-        borderTop: '3px solid rgba(0,147,255,0.35)',
-        boxShadow: '0 8px 48px rgba(0,147,255,0.13), 0 2px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.95)',
-      }}
+      style={{ borderTop: '3px solid #0093FF' }}
     >
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)', boxShadow: '0 4px 14px rgba(0,147,255,0.30)' }}
+          style={{ background: '#0093FF' }}
         >
           <Car className="w-5 h-5 text-white" />
         </div>
@@ -411,12 +415,12 @@ export function CarRentalForm({ className = '' }: { className?: string }) {
           </label>
           <div className="flex items-center gap-1.5">
             <select value={pickupTime} onChange={e => setPickupTime(e.target.value)} title="Čas vyzvednutí"
-              className="flex-1 bg-white/70 border border-white/80 rounded-xl px-2 py-2.5 text-sm text-gray-700 outline-none focus:border-[#0093FF]/50 focus:ring-2 focus:ring-[#0093FF]/10 transition-all cursor-pointer">
+              className="flex-1 bg-[#f0f7ff] border border-[#deeeff] rounded-xl px-2 py-2.5 text-sm text-gray-700 outline-none focus:border-[#0093FF]/50 focus:ring-2 focus:ring-[#0093FF]/10 transition-all cursor-pointer">
               {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <span className="text-gray-300 text-xs font-medium flex-shrink-0">→</span>
             <select value={dropoffTime} onChange={e => setDropoffTime(e.target.value)} title="Čas vrácení"
-              className="flex-1 bg-white/70 border border-white/80 rounded-xl px-2 py-2.5 text-sm text-gray-700 outline-none focus:border-[#0093FF]/50 focus:ring-2 focus:ring-[#0093FF]/10 transition-all cursor-pointer">
+              className="flex-1 bg-[#f0f7ff] border border-[#deeeff] rounded-xl px-2 py-2.5 text-sm text-gray-700 outline-none focus:border-[#0093FF]/50 focus:ring-2 focus:ring-[#0093FF]/10 transition-all cursor-pointer">
               {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
@@ -580,14 +584,14 @@ export function CarRentalResults({ className = '' }: { className?: string }) {
             <div className="flex flex-wrap gap-2 mb-5">
               <button onClick={() => setActivecat(null)}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                  activecat === null ? 'bg-[#0093FF] text-white border-[#0093FF]' : 'bg-white/70 text-gray-600 border-white/80 hover:border-[#0093FF]/40 hover:text-[#0093FF]'
+                  activecat === null ? 'bg-[#0093FF] text-white border-[#0093FF]' : 'bg-[#f0f7ff] text-gray-600 border-[#deeeff] hover:border-[#0093FF]/40 hover:text-[#0093FF]'
                 }`}>
                 Vše ({cars.length})
               </button>
               {categories.map(cat => (
                 <button key={cat} onClick={() => setActivecat(activecat === cat ? null : cat)}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                    activecat === cat ? 'bg-[#0093FF] text-white border-[#0093FF]' : 'bg-white/70 text-gray-600 border-white/80 hover:border-[#0093FF]/40 hover:text-[#0093FF]'
+                    activecat === cat ? 'bg-[#0093FF] text-white border-[#0093FF]' : 'bg-[#f0f7ff] text-gray-600 border-[#deeeff] hover:border-[#0093FF]/40 hover:text-[#0093FF]'
                   }`}>
                   {cat} ({cars.filter(c => c.category === cat).length})
                 </button>

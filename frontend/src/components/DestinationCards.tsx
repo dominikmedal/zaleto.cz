@@ -1,4 +1,4 @@
-import Image from 'next/image'
+﻿import Image from 'next/image'
 import Link from 'next/link'
 import { PiMapPin } from 'react-icons/pi'
 import { slugify } from '@/lib/slugify'
@@ -52,7 +52,7 @@ export default function DestinationCards({ items }: { items: Item[] }) {
           <div className="absolute bottom-0 left-0 right-0 p-5">
             <p
               className="text-white font-bold leading-tight tracking-tight mb-1"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 2.5vw, 26px)' }}
+              style={{ fontSize: 'clamp(20px, 2.5vw, 26px)' }}
             >
               {region}
             </p>

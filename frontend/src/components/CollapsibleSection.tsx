@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState } from 'react'
 import { PiCaretDown } from 'react-icons/pi'
 
@@ -22,7 +22,7 @@ export default function CollapsibleSection({ title, icon, defaultOpen = true, la
   }
 
   return (
-    <section className="py-5 last:border-0" style={{ borderBottom: '1px solid rgba(0,147,255,0.07)' }}>
+    <section className="py-5 border-b border-gray-100 last:border-0">
       <button
         type="button"
         onClick={toggle}
@@ -30,16 +30,10 @@ export default function CollapsibleSection({ title, icon, defaultOpen = true, la
         aria-expanded={open}
       >
         <h2 className="flex items-center gap-2.5">
-          <span
-            className="flex-shrink-0 w-7 h-7 rounded-xl flex items-center justify-center [&>svg]:w-3.5 [&>svg]:h-3.5 text-[#0093FF] transition-colors group-hover/toggle:bg-[rgba(0,147,255,0.14)]"
-            style={{ background: 'rgba(0,147,255,0.09)', border: '1px solid rgba(0,147,255,0.13)' }}
-          >
+          <span className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center [&>svg]:w-[15px] [&>svg]:h-[15px] text-[#0093FF] bg-[#0093FF]/10">
             {icon}
           </span>
-          <span
-            className="text-[15px] font-bold text-gray-900 group-hover/toggle:text-[#0093FF] transition-colors tracking-tight leading-tight"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-          >
+          <span className="text-base font-bold text-gray-900 group-hover/toggle:text-[#0093FF] transition-colors tracking-tight leading-tight">
             {title}
           </span>
         </h2>

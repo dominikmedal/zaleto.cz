@@ -54,15 +54,13 @@ function PillToggle({ active, onClick, children }: { active: boolean; onClick: (
       onClick={onClick}
       className="px-3.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap"
       style={active ? {
-        background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+        background: '#0093FF',
         color: '#fff',
         border: '1px solid #0093FF',
-        boxShadow: '0 2px 8px rgba(0,147,255,0.28)',
       } : {
-        background: 'rgba(237,246,255,0.70)',
+        background: '#f0f7ff',
         color: '#4b5563',
-        border: '1px solid rgba(200,227,255,0.65)',
-        backdropFilter: 'blur(8px)',
+        border: '1px solid #deeeff',
       }}
     >
       {children}
@@ -206,15 +204,13 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
           onClick={() => setTourType(t => t === 'last_minute' ? '' : 'last_minute')}
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all whitespace-nowrap"
           style={tourType === 'last_minute' ? {
-            background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+            background: '#ef4444',
             color: '#fff',
             border: '1px solid #ef4444',
-            boxShadow: '0 2px 8px rgba(239,68,68,0.28)',
           } : {
-            background: 'rgba(237,246,255,0.70)',
+            background: '#f0f7ff',
             color: '#4b5563',
-            border: '1px solid rgba(200,227,255,0.65)',
-            backdropFilter: 'blur(8px)',
+            border: '1px solid #deeeff',
           }}
         >
           <PiTimer className="w-3.5 h-3.5 flex-shrink-0" />
@@ -225,15 +221,13 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
           onClick={() => setTourType(t => t === 'first_minute' ? '' : 'first_minute')}
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all whitespace-nowrap"
           style={tourType === 'first_minute' ? {
-            background: 'linear-gradient(135deg, #10b981, #059669)',
+            background: '#10b981',
             color: '#fff',
             border: '1px solid #10b981',
-            boxShadow: '0 2px 8px rgba(16,185,129,0.28)',
           } : {
-            background: 'rgba(237,246,255,0.70)',
+            background: '#f0f7ff',
             color: '#4b5563',
-            border: '1px solid rgba(200,227,255,0.65)',
-            backdropFilter: 'blur(8px)',
+            border: '1px solid #deeeff',
           }}
         >
           <PiCalendarStar className="w-3.5 h-3.5 flex-shrink-0" />
@@ -261,15 +255,13 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all whitespace-nowrap"
               style={isActive ? {
-                background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+                background: '#0093FF',
                 color: '#fff',
                 border: '1px solid #0093FF',
-                boxShadow: '0 2px 8px rgba(0,147,255,0.28)',
               } : {
-                background: 'rgba(237,246,255,0.70)',
+                background: '#f0f7ff',
                 color: '#4b5563',
-                border: '1px solid rgba(200,227,255,0.65)',
-                backdropFilter: 'blur(8px)',
+                border: '1px solid #deeeff',
               }}
             >
               <PiSun className="w-3.5 h-3.5 flex-shrink-0" />
@@ -367,15 +359,13 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
             onClick={() => setShowAdvanced(v => !v)}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap"
             style={showAdvanced || advancedCount > 0 ? {
-              background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
+              background: '#0093FF',
               color: '#fff',
               border: '1px solid #0093FF',
-              boxShadow: '0 4px 14px rgba(0,147,255,0.30)',
             } : {
-              background: 'rgba(237,246,255,0.70)',
+              background: '#f0f7ff',
               color: '#374151',
-              border: '1px solid rgba(200,227,255,0.65)',
-              backdropFilter: 'blur(8px)',
+              border: '1px solid #deeeff',
             }}
           >
             <PiSliders className="w-4 h-4" />
@@ -404,8 +394,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
         <div
           className="px-5 py-5 space-y-5"
           style={{
-            background: 'rgba(237,246,255,0.40)',
-            backdropFilter: 'blur(12px)',
+            background: '#f9fafb',
             borderBottom: chips.length > 0 ? divider : undefined,
           }}
         >

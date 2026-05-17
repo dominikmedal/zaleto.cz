@@ -1,4 +1,4 @@
-import Image from 'next/image'
+﻿import Image from 'next/image'
 import Link from 'next/link'
 import { PiMapPin, PiClock, PiArrowRight } from 'react-icons/pi'
 import type { Article } from '@/lib/api'
@@ -78,10 +78,9 @@ export default function ArticlesSection({ articles, imageMap, label = 'Cestovní
                     </div>
                   )}
 
-                  {/* Title — Playfair Display, same treatment as hotel name */}
                   <h3
                     className="font-bold text-gray-900 leading-snug line-clamp-2 mb-2 group-hover:text-[#0093FF] transition-colors duration-200"
-                    style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.1rem' }}
+                    style={{ fontSize: '1.1rem' }}
                   >
                     {article.title}
                   </h3>
