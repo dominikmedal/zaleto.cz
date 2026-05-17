@@ -1023,10 +1023,11 @@ def run_cycle(cycle: int, skip_email: bool = False):
     clear_checkpoints(conn)
     purge_nevdama_data(conn)
 
-    # Spusť AI generování: nejprve počasí, pak popisky destinací — obojí na pozadí,
+    # Spusť AI generování: nejprve půjčovny aut, pak počasí, pak popisky destinací — vše na pozadí,
     # scraping startuje okamžitě souběžně (není třeba čekat).
     hotel_count = conn.execute("SELECT COUNT(*) AS n FROM hotels").fetchone()["n"]
     if hotel_count > 0:
+        _trigger_ai("/api/car-rental-ai/generate",  "Půjčovna aut AI")
         _trigger_ai("/api/weather-ai/generate",     "Počasí AI")
         _trigger_ai("/api/destination-ai/generate", "Destinace AI")
         _trigger_ai("/api/articles/generate",        "Články AI")

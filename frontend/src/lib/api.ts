@@ -391,6 +391,62 @@ export async function fetchCarAutocomplete(q: string): Promise<{
   }
 }
 
+// ─── Car rental AI content ───────────────────────────────────────────────────
+
+export interface CarRentalTripTip {
+  title: string
+  description: string
+  distance_km: number
+  duration_h: number
+}
+
+export interface CarRentalFAQ {
+  question: string
+  answer: string
+}
+
+export interface CarExample {
+  name: string
+  category: string
+  price_from_eur: number
+  seats: number
+  bags: number
+  transmission: string
+  description: string
+}
+
+export interface CarRentalAIData {
+  name: string | null
+  country: string | null
+  intro: string | null
+  fuel_info: string | null
+  driving_rules: string | null
+  price_overview: string | null
+  best_car_types: string | null
+  trip_tips: CarRentalTripTip[]
+  faq: CarRentalFAQ[]
+  practical_tips: string[]
+  car_examples: CarExample[]
+}
+
+const EMPTY_CAR_RENTAL_AI: CarRentalAIData = {
+  name: null, country: null, intro: null, fuel_info: null,
+  driving_rules: null, price_overview: null, best_car_types: null,
+  trip_tips: [], faq: [], practical_tips: [], car_examples: [],
+}
+
+export async function fetchCarRentalAI(slug: string): Promise<CarRentalAIData> {
+  try {
+    const res = await fetch(
+      `${API}/api/car-rental-ai/${encodeURIComponent(slug)}`,
+      { next: { revalidate: 86400 }, signal: timeout() }
+    )
+    if (!res.ok) return EMPTY_CAR_RENTAL_AI
+    const d = await res.json()
+    return { ...EMPTY_CAR_RENTAL_AI, ...d }
+  } catch { return EMPTY_CAR_RENTAL_AI }
+}
+
 // ─── Filters ──────────────────────────────────────────────────────────────────
 
 export async function fetchFilters(): Promise<{

@@ -200,6 +200,24 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published_at DESC)
     `)
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS car_rental_ai (
+        slug           TEXT PRIMARY KEY,
+        name           TEXT,
+        country        TEXT,
+        intro          TEXT,
+        fuel_info      TEXT,
+        driving_rules  TEXT,
+        price_overview TEXT,
+        best_car_types TEXT,
+        trip_tips      TEXT,
+        faq            TEXT,
+        practical_tips TEXT,
+        car_examples   TEXT,
+        generated_at   TIMESTAMPTZ DEFAULT NOW()
+      )
+    `)
+
     console.log('[db] running migrations...')
     const migrations = [
       `ALTER TABLE tours ADD COLUMN IF NOT EXISTS price_single REAL`,
