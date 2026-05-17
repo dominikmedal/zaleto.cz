@@ -110,12 +110,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // ── Půjčovny aut ─────────────────────────────────────────────────────────
   const dynamicCarDests = await fetchDynamicCarDestinations().catch(() => [])
   const allCarDests = mergeDestinations(dynamicCarDests)
-  const carRentalUrls: MetadataRoute.Sitemap = allCarDests.map(d => ({
-    url: `${base}/pujcovna-aut/${d.slug}`,
-    lastModified: now,
-    changeFrequency: 'weekly' as const,
-    priority: d.popular ? 0.80 : 0.70,
-  }))
+  const carRentalUrls: MetadataRoute.Sitemap = allCarDests.flatMap(d => [
+    {
+      url: `${base}/pujcovna-aut/${d.slug}`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: d.popular ? 0.80 : 0.70,
+    },
+    {
+      url: `${base}/pujcovna-aut/${d.slug}/tipy-na-vylety-autem`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: d.popular ? 0.65 : 0.55,
+    },
+    {
+      url: `${base}/pujcovna-aut/${d.slug}/pravidla-provozu`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: d.popular ? 0.65 : 0.55,
+    },
+    {
+      url: `${base}/pujcovna-aut/${d.slug}/nejcastejsi-dotazy`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: d.popular ? 0.65 : 0.55,
+    },
+  ])
 
   return [...staticPages, ...destUrls, ...weatherUrls, ...hotelUrls, ...articleUrls, ...carRentalUrls]
 }
