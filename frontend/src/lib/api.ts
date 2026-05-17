@@ -415,6 +415,13 @@ export interface CarExample {
   description: string
 }
 
+export interface AirportInfo {
+  name: string
+  iata: string
+  distance_km: number
+  description: string
+}
+
 export interface CarRentalAIData {
   name: string | null
   country: string | null
@@ -427,12 +434,15 @@ export interface CarRentalAIData {
   faq: CarRentalFAQ[]
   practical_tips: string[]
   car_examples: CarExample[]
+  airport_info: AirportInfo | null
+  monthly_prices: number[] | null
 }
 
 const EMPTY_CAR_RENTAL_AI: CarRentalAIData = {
   name: null, country: null, intro: null, fuel_info: null,
   driving_rules: null, price_overview: null, best_car_types: null,
   trip_tips: [], faq: [], practical_tips: [], car_examples: [],
+  airport_info: null, monthly_prices: null,
 }
 
 export async function fetchCarRentalAI(slug: string): Promise<CarRentalAIData> {

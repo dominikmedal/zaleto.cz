@@ -34,16 +34,18 @@ async function generateCarRentalAI(name, country) {
     `Vytvoř komplexní průvodce půjčováním auta v destinaci "${name}" (${country}).\n` +
     `Odpověz POUZE validním JSON objektem, bez markdown bloků, bez dalšího textu.\n` +
     `JSON musí obsahovat přesně tato pole:\n` +
-    `1. "intro": string — 3 odstavce oddělené \\n\\n (celkem 400–600 slov) o tom, proč si půjčit auto v ${name}, jaké jsou možnosti dopravy, co auto umožní zažít, co je specifické pro tuto destinaci.\n` +
-    `2. "fuel_info": string — 2–3 odstavce o pohonných hmotách: ceny benzínu/nafty/LPG (přibližné €/litr pro ${country}), typy paliv dostupných na čerpacích stanicích, jak fungují tankování, tipy pro úsporu paliva.\n` +
-    `3. "driving_rules": string — 2–3 odstavce o pravidlech silničního provozu v ${country}: rychlostní limity (obce, mimo obce, dálnice), alkohol za volantem, povinné vybavení vozidla, parkování v ${name}, mýtné/dálniční nálepky, specifika pro turisty.\n` +
-    `4. "price_overview": string — 2 odstavce o cenách půjčení auta v ${name}: průměrné ceny podle kategorie (economy, compact, SUV, minivan) v €/den, sezónní rozdíly, co ovlivňuje cenu (věk řidiče, pojištění, kilometrový limit).\n` +
-    `5. "best_car_types": string — 1–2 odstavce o doporučených typech aut pro ${name}: proč konkrétní typy aut jsou vhodné pro místní terén a aktivity.\n` +
-    `6. "trip_tips": pole 4–5 objektů s tipy na výlety autem z ${name}. Každý objekt má: "title" (název výletu), "description" (2–3 věty popis), "distance_km" (číslo — vzdálenost v km), "duration_h" (číslo — délka výletu v hodinách).\n` +
-    `7. "faq": pole 6–8 objektů s frequently asked questions. Každý objekt má: "question" (otázka), "answer" (2–4 věty odpověď). Typická témata: věk řidiče, řidičský průkaz, platba za auto, palivová politika, vrácení auta, pojištění, mezinárodní pojezd, navigace.\n` +
-    `8. "practical_tips": pole 5–7 krátkých praktických tipů (string, každý 1 věta) pro půjčení auta v ${name}.\n` +
-    `9. "car_examples": pole 5–6 objektů s příklady typických aut dostupných k půjčení. Každý objekt má: "name" (konkrétní model auta, např. "Škoda Fabia"), "category" (Economy/Compact/SUV/Minivan/Premium), "price_from_eur" (číslo — orientační cena €/den v hlavní sezóně), "seats" (číslo), "bags" (číslo — počet zavazadel), "transmission" (Manuál/Automat), "description" (1 věta proč se hodí pro ${name}). Uveď realistické modely dostupné v ${country}.\n` +
-    `Příklad struktury (zkráceno): {"intro":"Para první...\\n\\nPara druhý...\\n\\nPara třetí...","fuel_info":"Palivo v ${country}...","driving_rules":"Rychlostní limity...","price_overview":"Průměrné ceny...","best_car_types":"Pro ${name}...","trip_tips":[{"title":"Výlet na hrad","description":"Krásná trasa...","distance_km":45,"duration_h":3}],"faq":[{"question":"Jaký věk řidiče?","answer":"Minimální věk..."}],"practical_tips":["Rezervujte auto předem..."],"car_examples":[{"name":"Škoda Fabia","category":"Economy","price_from_eur":18,"seats":5,"bags":2,"transmission":"Manuál","description":"Ideální pro..."}]}`
+    `1. "intro": string — 3 odstavce oddělené \\n\\n (celkem 400–600 slov). Proč si půjčit auto v ${name}, jaké možnosti dopravy existují, co auto umožní zažít, co je specifické pro tuto destinaci.\n` +
+    `2. "fuel_info": string — 2–3 odstavce o pohonných hmotách: ceny benzínu/nafty/LPG (přibližné €/litr pro ${country}), dostupné typy paliv, jak fungují čerpací stanice, tipy pro úsporu.\n` +
+    `3. "driving_rules": string — 2–3 odstavce o pravidlech provozu v ${country}: rychlostní limity (obec/mimo/dálnice), alkohol, povinné vybavení, parkování v ${name}, mýtné, specifika pro turisty.\n` +
+    `4. "price_overview": string — 2 odstavce o cenách v ${name}: průměrné ceny (Economy/Compact/SUV/Minivan) v €/den, sezónní rozdíly, co ovlivňuje cenu.\n` +
+    `5. "best_car_types": string — 1–2 odstavce o doporučených typech aut pro terén a aktivity v ${name}.\n` +
+    `6. "trip_tips": pole 4–5 objektů s tipy na výlety. Každý: "title", "description" (2–3 věty), "distance_km" (číslo), "duration_h" (číslo).\n` +
+    `7. "faq": pole 6–8 Q&A objektů. Každý: "question", "answer" (2–4 věty). Témata: věk řidiče, průkaz, platba, palivo, pojištění, navigace, mezinárodní pojezd.\n` +
+    `8. "practical_tips": pole 5–7 krátkých tipů (string, 1 věta každý) pro půjčení auta v ${name}.\n` +
+    `9. "car_examples": pole 5–6 objektů. Každý: "name" (konkrétní model, např. "Škoda Fabia"), "category" (Economy/Compact/SUV/Minivan/Premium), "price_from_eur" (číslo €/den hlavní sezóna), "seats" (číslo), "bags" (číslo), "transmission" (Manuál/Automat), "description" (1 věta). Realistické modely pro ${country}.\n` +
+    `10. "airport_info": objekt s informacemi o nejbližším letišti pro ${name}. Pole: "name" (string, celý název letiště), "iata" (string, IATA kód, např. "KLX"), "distance_km" (číslo — přibližná vzdálenost od centra ${name} v km), "description" (string — 2–3 věty: jak vyzvednou auto na letišti, kde jsou půjčovny, tipy pro příjezd).\n` +
+    `11. "monthly_prices": pole 12 čísel (Jan–Pro) — relativní cenový index (100 = průměr roku). Čísla 50–200. Vycházej z turistické sezóny ${country} — hlavní sezóna bude 130–180, mimo sezónu 50–80.\n` +
+    `Příklad (zkráceno): {"intro":"...\\n\\n...\\n\\n...","fuel_info":"...","driving_rules":"...","price_overview":"...","best_car_types":"...","trip_tips":[{"title":"Výlet","description":"...","distance_km":45,"duration_h":3}],"faq":[{"question":"Věk řidiče?","answer":"..."}],"practical_tips":["Rezervujte předem..."],"car_examples":[{"name":"Škoda Fabia","category":"Economy","price_from_eur":18,"seats":5,"bags":2,"transmission":"Manuál","description":"..."}],"airport_info":{"name":"Mezinárodní letiště Kalamata","iata":"KLX","distance_km":10,"description":"Půjčovny se nacházejí přímo v terminálu..."},"monthly_prices":[65,65,70,80,100,140,175,175,130,95,75,65]}`
 
   const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash']
   let lastErr = null
@@ -96,10 +98,14 @@ async function generateCarRentalAI(name, country) {
       driving_rules:  parsed.driving_rules  || null,
       price_overview: parsed.price_overview || null,
       best_car_types: parsed.best_car_types || null,
-      trip_tips:      Array.isArray(parsed.trip_tips)    ? parsed.trip_tips    : [],
-      faq:            Array.isArray(parsed.faq)           ? parsed.faq          : [],
+      trip_tips:      Array.isArray(parsed.trip_tips)      ? parsed.trip_tips      : [],
+      faq:            Array.isArray(parsed.faq)             ? parsed.faq            : [],
       practical_tips: Array.isArray(parsed.practical_tips) ? parsed.practical_tips : [],
-      car_examples:   Array.isArray(parsed.car_examples) ? parsed.car_examples : [],
+      car_examples:   Array.isArray(parsed.car_examples)   ? parsed.car_examples   : [],
+      airport_info:   parsed.airport_info && typeof parsed.airport_info === 'object' ? parsed.airport_info : null,
+      monthly_prices: Array.isArray(parsed.monthly_prices) && parsed.monthly_prices.length === 12
+        ? parsed.monthly_prices.map(Number)
+        : null,
     }
   }
 
@@ -143,8 +149,9 @@ async function generateAndStore(slug, name, country) {
     await db.query(
       `INSERT INTO car_rental_ai
          (slug, name, country, intro, fuel_info, driving_rules, price_overview,
-          best_car_types, trip_tips, faq, practical_tips, car_examples, generated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+          best_car_types, trip_tips, faq, practical_tips, car_examples,
+          airport_info, monthly_prices, generated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
        ON CONFLICT (slug) DO UPDATE SET
          name           = EXCLUDED.name,
          country        = EXCLUDED.country,
@@ -157,20 +164,19 @@ async function generateAndStore(slug, name, country) {
          faq            = EXCLUDED.faq,
          practical_tips = EXCLUDED.practical_tips,
          car_examples   = EXCLUDED.car_examples,
+         airport_info   = EXCLUDED.airport_info,
+         monthly_prices = EXCLUDED.monthly_prices,
          generated_at   = NOW()`,
       [
-        slug,
-        name,
-        country,
-        result.intro,
-        result.fuel_info,
-        result.driving_rules,
-        result.price_overview,
-        result.best_car_types,
+        slug, name, country,
+        result.intro, result.fuel_info, result.driving_rules,
+        result.price_overview, result.best_car_types,
         JSON.stringify(result.trip_tips),
         JSON.stringify(result.faq),
         JSON.stringify(result.practical_tips),
         JSON.stringify(result.car_examples),
+        result.airport_info ? JSON.stringify(result.airport_info) : null,
+        result.monthly_prices ? JSON.stringify(result.monthly_prices) : null,
       ]
     )
 
@@ -210,17 +216,14 @@ async function generateMissingCarRentalAI() {
           AND h.country IS NOT NULL
         ORDER BY h.country, resort_town
       `)
-
       for (const row of r.rows) {
         const name = row.resort_town?.trim()
         if (!name || /safari|bike|trek|plus|sport|aktivní/i.test(name)) continue
-        // Simple slug: lowercase, remove diacritics, spaces→dashes
         const slug = name
           .normalize('NFD').replace(/[̀-ͯ]/g, '')
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, '')
-
         if (!seen.has(slug)) {
           seen.add(slug)
           destinations.push({ slug, name, country: row.country })
@@ -254,12 +257,10 @@ async function generateMissingCarRentalAI() {
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
-// GET /api/car-rental-ai/status
 router.get('/status', (req, res) => {
   res.json({ pending: queuePending, queued_slugs: queuedSlugs.size })
 })
 
-// POST /api/car-rental-ai/generate
 router.post('/generate', async (req, res) => {
   try {
     const count = await generateMissingCarRentalAI()
@@ -269,7 +270,6 @@ router.post('/generate', async (req, res) => {
   }
 })
 
-// GET /api/car-rental-ai/:slug
 router.get('/:slug', async (req, res) => {
   const { slug } = req.params
   try {
@@ -279,35 +279,38 @@ router.get('/:slug', async (req, res) => {
 
     const dbR = await db.query(
       `SELECT name, country, intro, fuel_info, driving_rules, price_overview,
-              best_car_types, trip_tips, faq, practical_tips, car_examples
+              best_car_types, trip_tips, faq, practical_tips, car_examples,
+              airport_info, monthly_prices
        FROM car_rental_ai WHERE slug = ?`,
       [slug]
     )
     const row = dbR.rows[0]
     if (row) {
       const result = {
-        name:          row.name,
-        country:       row.country,
-        intro:         row.intro,
-        fuel_info:     row.fuel_info,
-        driving_rules: row.driving_rules,
+        name:           row.name,
+        country:        row.country,
+        intro:          row.intro,
+        fuel_info:      row.fuel_info,
+        driving_rules:  row.driving_rules,
         price_overview: row.price_overview,
         best_car_types: row.best_car_types,
-        trip_tips:     row.trip_tips     ? JSON.parse(row.trip_tips)     : [],
-        faq:           row.faq           ? JSON.parse(row.faq)           : [],
+        trip_tips:      row.trip_tips      ? JSON.parse(row.trip_tips)      : [],
+        faq:            row.faq            ? JSON.parse(row.faq)            : [],
         practical_tips: row.practical_tips ? JSON.parse(row.practical_tips) : [],
-        car_examples:  row.car_examples  ? JSON.parse(row.car_examples)  : [],
+        car_examples:   row.car_examples   ? JSON.parse(row.car_examples)   : [],
+        airport_info:   row.airport_info   ? JSON.parse(row.airport_info)   : null,
+        monthly_prices: row.monthly_prices ? JSON.parse(row.monthly_prices) : null,
       }
       metaCache.set(cacheKey, result)
       return res.set('X-Cache', 'HIT').json(result)
     }
 
-    // Trigger background generation if missing
     generateAndStore(slug, slug.replace(/-/g, ' '), '').catch(() => {})
     res.json({
       name: null, country: null, intro: null, fuel_info: null,
       driving_rules: null, price_overview: null, best_car_types: null,
       trip_tips: [], faq: [], practical_tips: [], car_examples: [],
+      airport_info: null, monthly_prices: null,
     })
   } catch (err) {
     console.error('[car-rental-ai] GET error:', err.message)
@@ -315,6 +318,7 @@ router.get('/:slug', async (req, res) => {
       name: null, country: null, intro: null, fuel_info: null,
       driving_rules: null, price_overview: null, best_car_types: null,
       trip_tips: [], faq: [], practical_tips: [], car_examples: [],
+      airport_info: null, monthly_prices: null,
     })
   }
 })

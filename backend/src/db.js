@@ -230,6 +230,8 @@ async function initSchema() {
       `ALTER TABLE destination_ai ADD COLUMN IF NOT EXISTS trips TEXT`,
       `ALTER TABLE hotels ADD COLUMN IF NOT EXISTS static_fetched_at TIMESTAMPTZ`,
       `ALTER TABLE articles ADD COLUMN IF NOT EXISTS custom_image_url TEXT`,
+      `ALTER TABLE car_rental_ai ADD COLUMN IF NOT EXISTS airport_info TEXT`,
+      `ALTER TABLE car_rental_ai ADD COLUMN IF NOT EXISTS monthly_prices TEXT`,
       // Agresivnější autovacuum pro tours (vysoký churn: ~4M řádků, desítky tisíc update/delete za den)
       `ALTER TABLE tours SET (autovacuum_vacuum_scale_factor = 0.01, autovacuum_analyze_scale_factor = 0.005)`,
     ]
