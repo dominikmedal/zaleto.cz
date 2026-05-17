@@ -120,10 +120,10 @@ export default async function PujcovnaAutPage() {
               <ChevronRight className="w-3.5 h-3.5" />
               <span className="text-gray-700 font-medium">Půjčovna aut</span>
             </nav>
-            <div className="inline-flex items-center gap-2 glass-pill rounded-full px-3 py-1.5 text-xs font-semibold text-[#0068CC] mb-3">
-              <Car className="w-3.5 h-3.5" />
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#0093FF] uppercase tracking-[0.12em] mb-3">
+              <Car className="w-3.5 h-3.5 flex-shrink-0" />
               Nejlepší český srovnávač půjčoven aut
-            </div>
+            </p>
             <h1
               className="font-bold text-gray-900 leading-tight tracking-tight mb-3"
               style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(26px, 4.5vw, 52px)' }}
