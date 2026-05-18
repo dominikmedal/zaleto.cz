@@ -303,7 +303,7 @@ function DrivingRulesFullPage({ aiData, country }: { aiData: CarRentalAIData; co
           <div className="glass-card rounded-2xl p-6 sm:p-8">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' }}>
+                style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)' }}>
                 <BookOpen className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-gray-900 text-lg">Dopravní předpisy a omezení</h3>
