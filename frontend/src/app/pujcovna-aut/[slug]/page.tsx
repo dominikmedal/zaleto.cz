@@ -142,14 +142,17 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
         </div>
       )}
 
+      {/* ── Intro text (always below hero, before search form) ── */}
+      {aiData?.intro && <IntroBlock intro={aiData.intro} />}
+
       {/* ── Search form ──────────────────────────────────────────────────── */}
-      <section className="max-w-[1680px] mx-auto px-4 sm:px-8 py-8 pb-10">
+      <section className="max-w-[1680px] mx-auto px-4 sm:px-8 py-6 pb-10">
         <CarRentalSearchForm destination={dest} />
       </section>
 
       {/* ── AI rich content ──────────────────────────────────────────────── */}
       {hasContent && (
-        <main className="max-w-[1680px] mx-auto px-4 sm:px-8 pb-16 space-y-14">
+        <main className="max-w-[1680px] mx-auto px-4 sm:px-8 pb-16 space-y-5">
 
           {aiData!.airport_info && (
             <AirportSection airport={aiData!.airport_info} destName={dest.name} />
@@ -187,6 +190,39 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
+
+function IntroBlock({ intro }: { intro: string }) {
+  const paragraphs = intro.split('\n\n').filter(Boolean)
+  if (!paragraphs.length) return null
+  return (
+    <div className="max-w-[1680px] mx-auto px-4 sm:px-10 pt-5 pb-1">
+      <div className="max-w-[680px]">
+        <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-2">
+          {paragraphs[0]}
+        </p>
+        {paragraphs.length > 1 && (
+          <details className="group">
+            <summary className="list-none cursor-pointer select-none">
+              <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#0093FF] group-open:hidden">
+                Číst dále
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </span>
+              <span className="hidden group-open:inline-flex items-center gap-1 text-[13px] font-semibold text-gray-400">
+                Skrýt
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </span>
+            </summary>
+            <div className="mt-3 space-y-3">
+              {paragraphs.slice(1).map((p, i) => (
+                <p key={i} className="text-sm text-gray-600 leading-relaxed">{p}</p>
+              ))}
+            </div>
+          </details>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function BreadcrumbNav({ dest }: { dest: ReturnType<typeof getCarDestination> & {} }) {
   return (
@@ -230,47 +266,17 @@ function HeroTitle({ dest, year, aiData }: {
   year: number
   aiData: CarRentalAIData | null
 }) {
-  const introParagraphs = aiData?.intro?.split('\n\n').filter(Boolean) ?? []
-
   return (
     <>
       <p className="text-[11px] font-semibold text-[#0093FF] uppercase tracking-[0.12em] mb-3">
         Půjčovna aut · {dest.country}
       </p>
       <h1
-        className="font-bold text-gray-900 leading-tight tracking-tight mb-3"
+        className="font-bold text-gray-900 leading-tight tracking-tight mb-4"
         style={{ fontSize: 'clamp(26px, 4.5vw, 52px)' }}
       >
         Půjčovna aut {dest.name} {year}
       </h1>
-
-      {/* Intro text — first paragraph always shown, rest collapsible */}
-      {introParagraphs.length > 0 && (
-        <div className="mb-4 max-w-[600px]">
-          <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-2">
-            {introParagraphs[0]}
-          </p>
-          {introParagraphs.length > 1 && (
-            <details className="group">
-              <summary className="list-none cursor-pointer select-none">
-                <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#0093FF] group-open:hidden">
-                  Číst dále
-                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </span>
-                <span className="hidden group-open:inline-flex items-center gap-1 text-[13px] font-semibold text-gray-400">
-                  Skrýt
-                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </span>
-              </summary>
-              <div className="mt-3 space-y-3">
-                {introParagraphs.slice(1).map((p, i) => (
-                  <p key={i} className="text-sm text-gray-600 leading-relaxed">{p}</p>
-                ))}
-              </div>
-            </details>
-          )}
-        </div>
-      )}
 
       {/* Section navigation */}
       {aiData?.intro && (
@@ -298,7 +304,7 @@ function HeroTitle({ dest, year, aiData }: {
 
 function AirportSection({ airport, destName }: { airport: AirportInfo; destName: string }) {
   return (
-    <section id="letiste" className="scroll-mt-20">
+    <section id="letiste" className="section-island scroll-mt-20">
       <div className="flex items-center gap-2 mb-2">
         <Plane className="w-4 h-4 text-[#0093FF]" />
         <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Letiště</p>
@@ -332,7 +338,7 @@ const CATEGORY_COLOR: Record<string, string> = {
 
 function CarExamplesSection({ examples, destName, year }: { examples: CarExample[]; destName: string; year: number }) {
   return (
-    <section id="auta" className="scroll-mt-20">
+    <section id="auta" className="section-island scroll-mt-20">
       <div className="flex items-center gap-2 mb-2">
         <Car className="w-4 h-4 text-[#0093FF]" />
         <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Dostupná auta</p>
@@ -390,7 +396,7 @@ function priceColor(idx: number) {
 function MonthlyPricesSection({ prices, destName }: { prices: number[]; destName: string }) {
   const max = Math.max(...prices)
   return (
-    <section id="ceny-mesice" className="scroll-mt-20">
+    <section id="ceny-mesice" className="section-island scroll-mt-20">
       <div className="flex items-center gap-2 mb-2">
         <TrendingUp className="w-4 h-4 text-[#0093FF]" />
         <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Kdy jet</p>
@@ -450,7 +456,7 @@ function MonthlyPricesSection({ prices, destName }: { prices: number[]; destName
 function PracticalInfoSection({ aiData, country, destSlug }: { aiData: CarRentalAIData; country: string; destSlug: string }) {
   if (!aiData.fuel_info && !aiData.driving_rules) return null
   return (
-    <section id="pravidla" className="scroll-mt-20">
+    <section id="pravidla" className="section-island scroll-mt-20">
       <div className="flex items-center justify-between gap-4 mb-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Fuel className="w-4 h-4 text-[#0093FF]" />
@@ -510,7 +516,7 @@ function PriceSection({ aiData, destName }: { aiData: CarRentalAIData; destName:
             </div>
             <h2 className="font-bold text-gray-900 tracking-tight mb-4"
               style={{ fontSize: 'clamp(18px, 2.2vw, 28px)' }}>
-              Kolik stojí půjčení auta v {destName}?
+              Kolik stojí půjčení auta – {destName}?
             </h2>
             {aiData.price_overview.split('\n\n').filter(Boolean).map((p, i) => (
               <p key={i} className="text-sm text-gray-600 leading-relaxed mb-3 last:mb-0">{p}</p>
@@ -525,7 +531,7 @@ function PriceSection({ aiData, destName }: { aiData: CarRentalAIData; destName:
             </div>
             <h2 className="font-bold text-gray-900 tracking-tight mb-4"
               style={{ fontSize: 'clamp(18px, 2.2vw, 28px)' }}>
-              Jaké auto si vybrat pro {destName}?
+              Jaké auto si vybrat – {destName}?
             </h2>
             {aiData.best_car_types.split('\n\n').filter(Boolean).map((p, i) => (
               <p key={i} className="text-sm text-gray-600 leading-relaxed mb-3 last:mb-0">{p}</p>
@@ -542,7 +548,7 @@ function TripTipsSection({ tips, destName, destSlug }: { tips: CarRentalTripTip[
   const preview = tips.slice(0, 2)
   const hasMore = tips.length > 2
   return (
-    <section id="vylety" className="scroll-mt-20">
+    <section id="vylety" className="section-island scroll-mt-20">
       <div className="flex items-center justify-between gap-4 mb-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Route className="w-4 h-4 text-[#0093FF]" />
@@ -612,7 +618,7 @@ function FAQSection({ faq, destName, year, destSlug }: { faq: CarRentalFAQ[]; de
   const preview = faq.slice(0, 4)
   const hasMore = faq.length > 4
   return (
-    <section id="faq" className="scroll-mt-20">
+    <section id="faq" className="section-island scroll-mt-20">
       <div className="flex items-center justify-between gap-4 mb-2 flex-wrap">
         <div className="flex items-center gap-2">
           <MessageCircleQuestion className="w-4 h-4 text-[#0093FF]" />
