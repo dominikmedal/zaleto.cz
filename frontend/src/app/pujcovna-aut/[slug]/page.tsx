@@ -105,88 +105,93 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
       {faqSchema && <JsonLd data={faqSchema} />}
       <Header />
 
-      {/* ── Hero — always full-width dark cinematic ── */}
-      <div className="relative h-[420px] sm:h-[560px] overflow-hidden">
+      {/* ── Hero ── */}
+      <div className="relative min-h-[420px] sm:min-h-[520px] overflow-hidden">
         <Image
           src={displayPhoto}
           alt={`Půjčovna aut ${dest.name} ${year}`}
           fill
-          className="object-cover"
-          style={{ filter: 'brightness(0.82) saturate(1.15)' }}
+          className="object-cover object-center"
+          style={{ filter: 'brightness(1.05) saturate(1.05)' }}
           priority
         />
-        {/* Dark cinematic gradient */}
+        {/* White fade — left */}
         <div className="absolute inset-0" style={{
-          background: 'linear-gradient(to top, rgba(8,12,28,0.90) 0%, rgba(8,12,28,0.50) 45%, rgba(8,12,28,0.15) 100%)'
+          background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.92) 35%, rgba(255,255,255,0.6) 60%, rgba(255,255,255,0.0) 100%)'
+        }} />
+        {/* White fade — bottom */}
+        <div className="absolute inset-0" style={{
+          background: 'linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.5) 35%, transparent 100%)'
         }} />
 
-        {/* Breadcrumb — top */}
-        <div className="absolute inset-x-0 top-0 pt-5 max-w-[1680px] mx-auto px-4 sm:px-10 w-full">
-          <nav className="flex items-center gap-1.5 text-xs text-white/55">
-            <Link href="/" className="hover:text-white transition-colors">Zaleto</Link>
+        {/* Content — flows top-down on left half */}
+        <div className="relative max-w-[1680px] mx-auto px-4 sm:px-10 py-6 pb-10 w-full">
+        <div className="flex flex-col gap-5 w-full max-w-[600px] lg:max-w-[52%]">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-xs text-gray-500">
+            <Link href="/" className="hover:text-gray-800 transition-colors">Zaleto</Link>
             <ChevronRight className="w-3 h-3 opacity-40" />
-            <Link href="/pujcovna-aut" className="hover:text-white transition-colors">Půjčovna aut</Link>
+            <Link href="/pujcovna-aut" className="hover:text-gray-800 transition-colors">Půjčovna aut</Link>
             <ChevronRight className="w-3 h-3 opacity-40" />
-            <span className="text-white/80 font-medium">{dest.name}</span>
+            <span className="text-gray-700 font-medium">{dest.name}</span>
           </nav>
-        </div>
 
-        {/* Title + nav — bottom */}
-        <div className="absolute inset-x-0 bottom-0 pb-8 sm:pb-10 max-w-[1680px] mx-auto px-4 sm:px-10 w-full">
-          <p className="text-white/55 text-[11px] font-semibold uppercase tracking-[0.22em] mb-3">
-            Půjčovna aut · {dest.country}
-          </p>
-          <h1 className="font-black leading-none tracking-tight mb-5">
-            <span className="text-white block" style={{ fontSize: 'clamp(38px, 6vw, 78px)', textShadow: '0 2px 30px rgba(0,0,0,0.6)' }}>
-              {dest.name}
-            </span>
-            <span className="text-white/45 font-bold block mt-1.5" style={{ fontSize: 'clamp(14px, 1.6vw, 20px)', letterSpacing: '0.01em' }}>
-              Půjčovna aut {year}
-            </span>
-          </h1>
+          {/* Title */}
+          <div>
+            <p className="text-gray-400 text-[11px] font-semibold uppercase tracking-[0.22em] mb-2">
+              Půjčovna aut · {dest.country}
+            </p>
+            <h1 className="font-black leading-none tracking-tight">
+              <span className="text-gray-900 block" style={{ fontSize: 'clamp(36px, 5.5vw, 72px)' }}>
+                {dest.name}
+              </span>
+              <span className="text-gray-400 font-bold block mt-1.5" style={{ fontSize: 'clamp(13px, 1.5vw, 19px)', letterSpacing: '0.01em' }}>
+                Půjčovna aut {year}
+              </span>
+            </h1>
+          </div>
 
-          {/* Glass nav tabs */}
+          {/* Intro text */}
+          {introParagraphs.length > 0 && (
+            <div>
+              <p className="text-gray-700 text-[15px] sm:text-base leading-relaxed">
+                {introParagraphs[0]}
+              </p>
+              {introParagraphs.length > 1 && (
+                <details className="group mt-1.5">
+                  <summary className="list-none cursor-pointer select-none">
+                    <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#0093FF] group-open:hidden">
+                      Číst dále
+                      <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </span>
+                    <span className="hidden group-open:inline-flex items-center gap-1 text-[13px] font-semibold text-gray-400">
+                      Skrýt
+                      <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </span>
+                  </summary>
+                  <div className="mt-3 space-y-2.5">
+                    {introParagraphs.slice(1).map((p, i) => (
+                      <p key={i} className="text-gray-600 text-sm sm:text-[15px] leading-relaxed">{p}</p>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </div>
+          )}
+
+          {/* Nav tabs */}
           {aiData?.intro && (
             <nav className="flex flex-wrap gap-2">
-              {aiData.airport_info && <GlassTab href="#letiste" label="Letiště" />}
-              {aiData.monthly_prices?.length === 12 && <GlassTab href="#ceny-mesice" label="Ceny dle měsíce" />}
-              {aiData.trip_tips?.length > 0 && <GlassTab href={`/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`} label="Výlety autem" isLink />}
-              {aiData.driving_rules && <GlassTab href={`/pujcovna-aut/${dest.slug}/pravidla-provozu`} label="Pravidla provozu" isLink />}
-              {aiData.faq?.length > 0 && <GlassTab href={`/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`} label="FAQ" isLink />}
+              {aiData.airport_info && <HeroTab href="#letiste" label="Letiště" />}
+              {aiData.monthly_prices?.length === 12 && <HeroTab href="#ceny-mesice" label="Ceny dle měsíce" />}
+              {aiData.trip_tips?.length > 0 && <HeroTab href={`/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`} label="Výlety autem" isLink />}
+              {aiData.driving_rules && <HeroTab href={`/pujcovna-aut/${dest.slug}/pravidla-provozu`} label="Pravidla provozu" isLink />}
+              {aiData.faq?.length > 0 && <HeroTab href={`/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`} label="FAQ" isLink />}
             </nav>
           )}
         </div>
-      </div>
-
-      {/* ── Lead paragraph ── */}
-      {introParagraphs.length > 0 && (
-        <div className="border-b border-gray-100">
-          <div className="max-w-[1680px] mx-auto px-4 sm:px-10 py-7">
-            <p className="text-gray-700 text-base sm:text-lg leading-relaxed max-w-[800px]">
-              {introParagraphs[0]}
-            </p>
-            {introParagraphs.length > 1 && (
-              <details className="group mt-2">
-                <summary className="list-none cursor-pointer select-none">
-                  <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#0093FF] group-open:hidden">
-                    Číst dále
-                    <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </span>
-                  <span className="hidden group-open:inline-flex items-center gap-1 text-[13px] font-semibold text-gray-400">
-                    Skrýt
-                    <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </span>
-                </summary>
-                <div className="mt-4 space-y-3 max-w-[800px]">
-                  {introParagraphs.slice(1).map((p, i) => (
-                    <p key={i} className="text-gray-600 text-sm sm:text-base leading-relaxed">{p}</p>
-                  ))}
-                </div>
-              </details>
-            )}
-          </div>
         </div>
-      )}
+      </div>
 
       {/* ── Search form band ── */}
       <div style={{ background: 'linear-gradient(135deg, #f0f7ff 0%, #f8faff 100%)' }} className="border-b border-blue-100/70">
@@ -249,9 +254,9 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
 
 // ─── Utility components ────────────────────────────────────────────────────────
 
-function GlassTab({ href, label, isLink }: { href: string; label: string; isLink?: boolean }) {
-  const cls = "inline-flex items-center px-4 py-2 rounded-full text-white text-[13px] font-semibold transition-all hover:bg-white/25"
-  const style = { background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)', backdropFilter: 'blur(8px)' }
+function HeroTab({ href, label, isLink }: { href: string; label: string; isLink?: boolean }) {
+  const cls = "inline-flex items-center px-3.5 py-1.5 rounded-full text-gray-700 text-[13px] font-semibold transition-all hover:bg-[#0093FF] hover:text-white hover:border-transparent"
+  const style = { background: 'rgba(255,255,255,0.82)', border: '1px solid rgba(0,0,0,0.08)', backdropFilter: 'blur(6px)' }
   return isLink
     ? <Link href={href} className={cls} style={style}>{label}</Link>
     : <a href={href} className={cls} style={style}>{label}</a>
