@@ -14,7 +14,7 @@ import {
 import {
   Car, ChevronRight, Fuel, BookOpen, CircleDollarSign, MapPin,
   MessageCircleQuestion, Star, Users, Briefcase, Zap, Route, Clock,
-  CheckCircle2, Plane, TrendingUp, ArrowRight, Thermometer, ExternalLink, Sun,
+  CheckCircle2, Plane, TrendingUp, ArrowRight, ExternalLink,
 } from 'lucide-react'
 
 export const revalidate = 86400
@@ -224,33 +224,35 @@ function HeroTitle({ dest, year, aiData }: {
 
   return (
     <>
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#0093FF] uppercase tracking-[0.12em] mb-3">
-        <Car className="w-3.5 h-3.5 flex-shrink-0" />
+      <p className="text-[11px] font-semibold text-[#0093FF] uppercase tracking-[0.12em] mb-3">
         Půjčovna aut · {dest.country}
       </p>
       <h1
-        className="font-bold text-gray-900 leading-tight tracking-tight mb-4"
+        className="font-bold text-gray-900 leading-tight tracking-tight mb-2"
         style={{ fontSize: 'clamp(26px, 4.5vw, 52px)' }}
       >
         Půjčovna aut {dest.name} {year}
       </h1>
+      <p className="text-gray-500 text-sm sm:text-base mb-4 max-w-[520px]">
+        Kompletní průvodce pronájmem auta — srovnání 500+ půjčoven, pravidla provozu, tipy na výlety.
+      </p>
 
       {/* AI highlight chips */}
       {hasHighlights && (
         <div className="flex flex-wrap gap-2 mb-4">
           {cheapest && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full">
-              <CircleDollarSign className="w-3.5 h-3.5" /> od {cheapest} €/den
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full">
+              od {cheapest} €/den
             </span>
           )}
           {aiData?.airport_info && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0068CC] glass-pill px-3 py-1.5 rounded-full">
-              <Plane className="w-3.5 h-3.5" /> Letiště {aiData.airport_info.iata} · {aiData.airport_info.distance_km} km
+            <span className="text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full">
+              Letiště {aiData.airport_info.iata} · {aiData.airport_info.distance_km} km
             </span>
           )}
           {peakMonths && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-full">
-              <Sun className="w-3.5 h-3.5" /> Hlavní sezóna: {peakMonths}
+            <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-full">
+              Hlavní sezóna: {peakMonths}
             </span>
           )}
         </div>
@@ -260,32 +262,32 @@ function HeroTitle({ dest, year, aiData }: {
       {aiData?.intro && (
         <nav aria-label="Obsah stránky" className="flex flex-wrap gap-2">
           {aiData.airport_info && (
-            <a href="#letiste" className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-[#0093FF] glass-pill px-3 py-1.5 rounded-full transition-colors">
-              <Plane className="w-3 h-3" /> Letiště
+            <a href="#letiste" className="text-xs font-semibold text-gray-600 hover:text-[#0093FF] glass-pill px-3 py-1.5 rounded-full transition-colors">
+              Letiště
             </a>
           )}
-          <a href="#auta" className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-[#0093FF] glass-pill px-3 py-1.5 rounded-full transition-colors">
-            <Car className="w-3 h-3" /> Dostupná auta
+          <a href="#auta" className="text-xs font-semibold text-gray-600 hover:text-[#0093FF] glass-pill px-3 py-1.5 rounded-full transition-colors">
+            Dostupná auta
           </a>
-          <a href="#ceny-mesice" className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-[#0093FF] glass-pill px-3 py-1.5 rounded-full transition-colors">
-            <TrendingUp className="w-3 h-3" /> Ceny dle měsíce
+          <a href="#ceny-mesice" className="text-xs font-semibold text-gray-600 hover:text-[#0093FF] glass-pill px-3 py-1.5 rounded-full transition-colors">
+            Ceny dle měsíce
           </a>
           {aiData.trip_tips?.length > 0 && (
             <Link href={`/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0068CC] glass-pill px-3 py-1.5 rounded-full hover:bg-[#0093FF]/10 transition-colors">
-              <Route className="w-3 h-3" /> Výlety autem <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+              className="text-xs font-semibold text-[#0068CC] glass-pill px-3 py-1.5 rounded-full hover:bg-[#0093FF]/10 transition-colors">
+              Výlety autem
             </Link>
           )}
           {aiData.driving_rules && (
             <Link href={`/pujcovna-aut/${dest.slug}/pravidla-provozu`}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0068CC] glass-pill px-3 py-1.5 rounded-full hover:bg-[#0093FF]/10 transition-colors">
-              <BookOpen className="w-3 h-3" /> Pravidla provozu <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+              className="text-xs font-semibold text-[#0068CC] glass-pill px-3 py-1.5 rounded-full hover:bg-[#0093FF]/10 transition-colors">
+              Pravidla provozu
             </Link>
           )}
           {aiData.faq?.length > 0 && (
             <Link href={`/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0068CC] glass-pill px-3 py-1.5 rounded-full hover:bg-[#0093FF]/10 transition-colors">
-              <MessageCircleQuestion className="w-3 h-3" /> FAQ <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+              className="text-xs font-semibold text-[#0068CC] glass-pill px-3 py-1.5 rounded-full hover:bg-[#0093FF]/10 transition-colors">
+              FAQ
             </Link>
           )}
         </nav>
@@ -677,14 +679,19 @@ function RelatedSection({ dest, relatedDests }: {
 }) {
   const sameCountry = relatedDests.filter(d => d.country === dest.country)
   const otherCountry = relatedDests.filter(d => d.country !== dest.country)
+
+  const subpageLinks = [
+    { href: `/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`, label: `Výlety autem z ${dest.name}`, sub: 'Trasy, tipy a zajímavá místa' },
+    { href: `/pujcovna-aut/${dest.slug}/pravidla-provozu`,     label: `Pravidla provozu v ${dest.country}`, sub: 'Limity, předpisy, pokuty' },
+    { href: `/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`,   label: 'Nejčastější dotazy', sub: 'Odpovědi na vaše otázky' },
+    { href: `/pocasi/${dest.countrySlug}`,                     label: `Počasí v ${dest.country}`, sub: 'Teploty a srážky podle měsíce' },
+    { href: `/destinace/${dest.countrySlug}`,                  label: `Hotely v ${dest.country}`, sub: 'Zájezdy a ubytování' },
+  ]
+
   return (
     <section>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <div className="flex items-center gap-2 mb-2">
-            <MapPin className="w-4 h-4 text-[#0093FF]" />
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Další destinace</p>
-          </div>
           <h2 className="font-bold text-gray-900 tracking-tight mb-5"
             style={{ fontSize: 'clamp(18px, 2.2vw, 28px)' }}>
             Půjčovny aut v {dest.country}
@@ -722,30 +729,21 @@ function RelatedSection({ dest, relatedDests }: {
             </Link>
           </div>
         </div>
-        <div className="space-y-3">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-400 mb-3">Více o destinaci</p>
-          <Link href={`/pocasi/${dest.countrySlug}`}
-            className="glass-card rounded-xl p-4 flex items-center gap-3 hover:shadow-md transition-shadow group">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0 bg-[#0093FF]">
-              <Thermometer className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="font-semibold text-gray-900 text-sm group-hover:text-[#0093FF] transition-colors">Počasí v {dest.country}</div>
-              <div className="text-xs text-gray-400">Průměrné teploty, srážky</div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#0093FF] transition-colors ml-auto" />
-          </Link>
-          <Link href={`/destinace/${dest.countrySlug}`}
-            className="glass-card rounded-xl p-4 flex items-center gap-3 hover:shadow-md transition-shadow group">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0 bg-violet-600">
-              <Star className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="font-semibold text-gray-900 text-sm group-hover:text-[#0093FF] transition-colors">Hotely v {dest.country}</div>
-              <div className="text-xs text-gray-400">Zájezdy a ubytování</div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#0093FF] transition-colors ml-auto" />
-          </Link>
+
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-400 mb-3">Stránky půjčovny</p>
+          <div className="space-y-2">
+            {subpageLinks.map(({ href, label, sub }) => (
+              <Link key={href} href={href}
+                className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-[#f9fafb] border border-gray-100 hover:border-[#0093FF]/20 hover:bg-[#f0f7ff] transition-all group">
+                <div className="min-w-0">
+                  <div className="font-semibold text-gray-800 text-sm group-hover:text-[#0093FF] transition-colors leading-tight">{label}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{sub}</div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#0093FF] transition-colors flex-shrink-0" />
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </section>

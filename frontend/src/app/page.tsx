@@ -347,7 +347,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   ._hu4 { animation-delay: 200ms; }
                 `}</style>
 
-                <div className="flex flex-col lg:flex-row items-start justify-between gap-10 lg:gap-16">
+                <div className="flex flex-col lg:flex-row items-stretch justify-between gap-10 lg:gap-16">
 
                   {/* ── Left: headline + CTA + stats ── */}
                   <div className="flex-shrink-0 lg:max-w-[520px] flex flex-col">
@@ -410,7 +410,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                           }))}
                         />
                       </div>
-                      <div className="hidden lg:flex flex-1 min-w-0 flex-col" style={{ minHeight: 420 }}>
+                      <div className="hidden lg:flex flex-1 min-w-0 flex-col">
                         <DestinationCarousel
                           items={topRegionsWithPhotos.map(({ region, count, thumb }) => ({
                             region, count, thumb,

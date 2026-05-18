@@ -20,7 +20,7 @@ function fmtKc(n: number): string {
 }
 
 // Magazine mosaic: 1 featured (2 rows) + 4 compact
-const PAGE_SIZE = 5
+const PAGE_SIZE = 7
 
 export default function DestinationCarousel({ items }: { items: Item[] }) {
   const [page, setPage] = useState(0)
@@ -43,7 +43,7 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
 
   const featured = pageItems[0] ?? null
   const compacts = pageItems.slice(1)
-  const empties  = Math.max(0, 4 - compacts.length)
+  const empties  = Math.max(0, 6 - compacts.length)
 
   return (
     <div className="relative h-full flex flex-col gap-3">
@@ -58,6 +58,8 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
         ._m3 { animation-delay: 80ms; }
         ._m4 { animation-delay: 110ms; }
         ._m5 { animation-delay: 140ms; }
+        ._m6 { animation-delay: 165ms; }
+        ._m7 { animation-delay: 190ms; }
         @keyframes _dp_fill {
           from { width: 0%; }
           to   { width: 100%; }
@@ -70,7 +72,7 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
         className="hidden lg:grid flex-1 min-h-0"
         style={{
           gridTemplateColumns: '2.1fr 1fr 1fr',
-          gridTemplateRows: '1fr 1fr',
+          gridTemplateRows: '1fr 1fr 1fr',
           gap: '10px',
         }}
       >
@@ -79,7 +81,7 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
           <Link
             href={`/destinace/${slugify(featured.region)}`}
             className="group relative overflow-hidden bg-gray-100 block rounded-2xl _mosaic _m1"
-            style={{ gridRow: 'span 2' }}
+            style={{ gridRow: 'span 3' }}
           >
             {featured.thumb ? (
               <Image src={featured.thumb} alt={featured.region} fill
