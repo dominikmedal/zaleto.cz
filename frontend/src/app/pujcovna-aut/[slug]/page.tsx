@@ -1,4 +1,5 @@
 ﻿import type { Metadata } from 'next'
+import type { ElementType, CSSProperties } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
@@ -203,25 +204,34 @@ function BreadcrumbNav({ dest }: { dest: ReturnType<typeof getCarDestination> & 
 
 const MONTHS_SHORT = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čer', 'Čec', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro']
 
+const NAV_TAB_STYLE: CSSProperties = {
+  border: '1.5px solid rgba(0,147,255,0.14)',
+  boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+  background: '#fff',
+}
+
+function NavTab({ href, icon: Icon, label, isLink }: { href: string; icon: ElementType; label: string; isLink?: boolean }) {
+  const inner = (
+    <>
+      <span className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0" style={{ background: '#EDF6FF' }}>
+        <Icon style={{ width: 15, height: 15, color: '#0093FF' }} />
+      </span>
+      <span className="font-semibold text-gray-700 group-hover:text-[#0093FF] transition-colors" style={{ fontSize: 13, letterSpacing: '-0.01em' }}>
+        {label}
+      </span>
+    </>
+  )
+  const cls = "group inline-flex items-center gap-2.5 px-4 py-2.5 rounded-2xl whitespace-nowrap transition-colors duration-150 hover:border-[#0093FF]/30"
+  return isLink
+    ? <Link href={href} className={cls} style={NAV_TAB_STYLE}>{inner}</Link>
+    : <a href={href} className={cls} style={NAV_TAB_STYLE}>{inner}</a>
+}
+
 function HeroTitle({ dest, year, aiData }: {
   dest: ReturnType<typeof getCarDestination> & {}
   year: number
   aiData: CarRentalAIData | null
 }) {
-  const cheapest = aiData?.car_examples?.length
-    ? Math.min(...aiData.car_examples.map(c => c.price_from_eur).filter(Boolean))
-    : null
-
-  const peakMonths = aiData?.monthly_prices
-    ? aiData.monthly_prices
-        .map((v, i) => ({ v, i }))
-        .filter(m => m.v > 130)
-        .map(m => MONTHS_SHORT[m.i])
-        .join(', ')
-    : null
-
-  const hasHighlights = cheapest || aiData?.airport_info || peakMonths
-
   return (
     <>
       <p className="text-[11px] font-semibold text-[#0093FF] uppercase tracking-[0.12em] mb-3">
@@ -233,62 +243,26 @@ function HeroTitle({ dest, year, aiData }: {
       >
         Půjčovna aut {dest.name} {year}
       </h1>
-      <p className="text-gray-500 text-sm sm:text-base mb-4 max-w-[520px]">
-        Kompletní průvodce pronájmem auta — srovnání 500+ půjčoven, pravidla provozu, tipy na výlety.
+      <p className="text-gray-500 text-sm sm:text-base mb-5 max-w-[560px] leading-relaxed">
+        Půjčovna aut {dest.name} {year} – kompletní průvodce k pronájmu auta, srovnání 500+ půjčoven a tipy na výlety.
       </p>
-
-      {/* AI highlight chips */}
-      {hasHighlights && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {cheapest && (
-            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full">
-              od {cheapest} €/den
-            </span>
-          )}
-          {aiData?.airport_info && (
-            <span className="text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full">
-              Letiště {aiData.airport_info.iata} · {aiData.airport_info.distance_km} km
-            </span>
-          )}
-          {peakMonths && (
-            <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-full">
-              Hlavní sezóna: {peakMonths}
-            </span>
-          )}
-        </div>
-      )}
 
       {/* Section navigation */}
       {aiData?.intro && (
         <nav aria-label="Obsah stránky" className="flex flex-wrap gap-2">
           {aiData.airport_info && (
-            <a href="#letiste" className="text-xs font-semibold text-gray-600 hover:text-[#0093FF] glass-pill px-3 py-1.5 rounded-full transition-colors">
-              Letiště
-            </a>
+            <NavTab href="#letiste" icon={Plane} label="Letiště" />
           )}
-          <a href="#auta" className="text-xs font-semibold text-gray-600 hover:text-[#0093FF] glass-pill px-3 py-1.5 rounded-full transition-colors">
-            Dostupná auta
-          </a>
-          <a href="#ceny-mesice" className="text-xs font-semibold text-gray-600 hover:text-[#0093FF] glass-pill px-3 py-1.5 rounded-full transition-colors">
-            Ceny dle měsíce
-          </a>
+          <NavTab href="#auta" icon={Car} label="Dostupná auta" />
+          <NavTab href="#ceny-mesice" icon={TrendingUp} label="Ceny dle měsíce" />
           {aiData.trip_tips?.length > 0 && (
-            <Link href={`/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`}
-              className="text-xs font-semibold text-[#0068CC] glass-pill px-3 py-1.5 rounded-full hover:bg-[#0093FF]/10 transition-colors">
-              Výlety autem
-            </Link>
+            <NavTab href={`/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`} icon={Route} label="Výlety autem" isLink />
           )}
           {aiData.driving_rules && (
-            <Link href={`/pujcovna-aut/${dest.slug}/pravidla-provozu`}
-              className="text-xs font-semibold text-[#0068CC] glass-pill px-3 py-1.5 rounded-full hover:bg-[#0093FF]/10 transition-colors">
-              Pravidla provozu
-            </Link>
+            <NavTab href={`/pujcovna-aut/${dest.slug}/pravidla-provozu`} icon={BookOpen} label="Pravidla provozu" isLink />
           )}
           {aiData.faq?.length > 0 && (
-            <Link href={`/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`}
-              className="text-xs font-semibold text-[#0068CC] glass-pill px-3 py-1.5 rounded-full hover:bg-[#0093FF]/10 transition-colors">
-              FAQ
-            </Link>
+            <NavTab href={`/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`} icon={MessageCircleQuestion} label="FAQ" isLink />
           )}
         </nav>
       )}
@@ -701,7 +675,6 @@ function RelatedSection({ dest, relatedDests }: {
               {sameCountry.map(d => (
                 <Link key={d.slug} href={`/pujcovna-aut/${d.slug}`}
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-[#0093FF] transition-all px-3.5 py-2 rounded-xl glass-card hover:shadow-md border border-transparent hover:border-[#0093FF]/15">
-                  {d.emoji && <span>{d.emoji}</span>}
                   {d.name}
                   <ArrowRight className="w-3.5 h-3.5 opacity-40" />
                 </Link>
@@ -715,7 +688,6 @@ function RelatedSection({ dest, relatedDests }: {
                 {otherCountry.map(d => (
                   <Link key={d.slug} href={`/pujcovna-aut/${d.slug}`}
                     className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-[#0093FF] transition-all px-3.5 py-2 rounded-xl glass-card hover:shadow-md border border-transparent hover:border-[#0093FF]/15">
-                    {d.emoji && <span>{d.emoji}</span>}
                     {d.name}
                     <ArrowRight className="w-3.5 h-3.5 opacity-40" />
                   </Link>
