@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import type { ReactNode } from 'react'
+import type { ReactNode, ElementType } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
@@ -182,11 +182,11 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
           {/* Nav tabs */}
           {aiData?.intro && (
             <nav className="flex flex-wrap gap-2">
-              {aiData.airport_info && <HeroTab href="#letiste" label="Letiště" />}
-              {aiData.monthly_prices?.length === 12 && <HeroTab href="#ceny-mesice" label="Ceny dle měsíce" />}
-              {aiData.trip_tips?.length > 0 && <HeroTab href={`/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`} label="Výlety autem" isLink />}
-              {aiData.driving_rules && <HeroTab href={`/pujcovna-aut/${dest.slug}/pravidla-provozu`} label="Pravidla provozu" isLink />}
-              {aiData.faq?.length > 0 && <HeroTab href={`/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`} label="FAQ" isLink />}
+              {aiData.airport_info && <HeroTab href="#letiste" label="Letiště" icon={Plane} />}
+              {aiData.monthly_prices?.length === 12 && <HeroTab href="#ceny-mesice" label="Ceny dle měsíce" icon={TrendingUp} />}
+              {aiData.trip_tips?.length > 0 && <HeroTab href={`/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`} label="Výlety autem" isLink icon={Route} />}
+              {aiData.driving_rules && <HeroTab href={`/pujcovna-aut/${dest.slug}/pravidla-provozu`} label="Pravidla provozu" isLink icon={BookOpen} />}
+              {aiData.faq?.length > 0 && <HeroTab href={`/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`} label="FAQ" isLink icon={MessageCircleQuestion} />}
             </nav>
           )}
         </div>
@@ -254,12 +254,21 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
 
 // ─── Utility components ────────────────────────────────────────────────────────
 
-function HeroTab({ href, label, isLink }: { href: string; label: string; isLink?: boolean }) {
-  const cls = "inline-flex items-center px-3.5 py-1.5 rounded-full text-gray-700 text-[13px] font-semibold transition-all hover:bg-[#0093FF] hover:text-white hover:border-transparent"
-  const style = { background: 'rgba(255,255,255,0.82)', border: '1px solid rgba(0,0,0,0.08)', backdropFilter: 'blur(6px)' }
+function HeroTab({ href, label, isLink, icon: Icon }: { href: string; label: string; isLink?: boolean; icon: ElementType }) {
+  const inner = (
+    <>
+      <span className="flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0"
+        style={{ background: '#EDF6FF', boxShadow: '0 0 0 1px rgba(0,147,255,0.12)' }}>
+        <Icon style={{ color: '#0093FF', width: 18, height: 18 }} />
+      </span>
+      <span className="font-semibold" style={{ fontSize: '14px', letterSpacing: '-0.01em' }}>{label}</span>
+    </>
+  )
+  const cls = "group inline-flex items-center gap-3 px-5 py-3 rounded-2xl whitespace-nowrap transition-all duration-200 hover:-translate-y-px"
+  const style = { background: '#fff', border: '1.5px solid rgba(0,147,255,0.14)', color: '#374151', boxShadow: '0 2px 6px rgba(0,0,0,0.06)' }
   return isLink
-    ? <Link href={href} className={cls} style={style}>{label}</Link>
-    : <a href={href} className={cls} style={style}>{label}</a>
+    ? <Link href={href} className={cls} style={style}>{inner}</Link>
+    : <a href={href} className={cls} style={style}>{inner}</a>
 }
 
 function SectionLabel({ children }: { children: ReactNode }) {
