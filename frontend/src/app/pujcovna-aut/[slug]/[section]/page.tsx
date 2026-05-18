@@ -190,7 +190,7 @@ export default async function CarRentalSectionPage({ params }: Props) {
           </div>
           <h2 className="font-bold text-gray-900 tracking-tight mb-6"
             style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
-            Půjčit auto v {dest.name}
+            Půjčit auto – {dest.name}
           </h2>
           <CarRentalSearchForm destination={dest} />
         </div>

@@ -119,7 +119,7 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       {heroPhoto ? (
-        <div className="relative h-[300px] sm:h-[380px]">
+        <div className="relative h-[400px] sm:h-[520px]">
           <Image src={heroPhoto} alt={`Půjčovna aut ${dest.name} ${year}`} fill className="object-cover"
             style={{ filter: 'brightness(1.05) saturate(1.1)' }} priority />
           <div className="absolute inset-0" style={{
@@ -156,10 +156,6 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
 
           {aiData!.airport_info && (
             <AirportSection airport={aiData!.airport_info} destName={dest.name} />
-          )}
-
-          {aiData!.car_examples.length > 0 && (
-            <CarExamplesSection examples={aiData!.car_examples} destName={dest.name} year={year} />
           )}
 
           {aiData!.monthly_prices?.length === 12 && (
@@ -488,7 +484,7 @@ function PracticalInfoSection({ aiData, country, destSlug }: { aiData: CarRental
         {aiData.driving_rules && (
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white flex-shrink-0 bg-violet-600">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white flex-shrink-0 bg-[#0093FF]">
                 <BookOpen className="w-4 h-4" />
               </div>
               <h3 className="font-bold text-gray-900">Pravidla silničního provozu – {country}</h3>
