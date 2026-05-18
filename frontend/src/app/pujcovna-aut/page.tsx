@@ -5,7 +5,7 @@ import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
 import { CarRentalProvider, CarRentalForm, CarRentalResults } from '@/components/CarRentalSearchForm'
 import { CAR_DESTINATIONS, buildDCHubUrl, mergeDestinations } from '@/lib/carRental'
-import { fetchDestinationPhoto, fetchDynamicCarDestinations } from '@/lib/api'
+import { fetchDestinationPhoto, fetchDynamicCarDestinations, fetchCarRentalAI } from '@/lib/api'
 import { Car, Shield, BadgeCheck, Clock, ChevronRight, MapPin } from 'lucide-react'
 
 export const revalidate = 86400
@@ -77,18 +77,18 @@ export default async function PujcovnaAutPage() {
   const dynamicDests = await fetchDynamicCarDestinations().catch(() => [])
   const allDests = mergeDestinations(dynamicDests)
 
-  // Stable insertion-order list of countries from merged list
-  const COUNTRIES = Array.from(new Map(allDests.map(d => [d.country, d])).keys())
-  const destsByCountry = allDests.reduce<Record<string, typeof allDests>>((acc, d) => {
-    if (!acc[d.country]) acc[d.country] = []
-    acc[d.country].push(d)
-    return acc
-  }, {})
+  // Fetch AI data for all destinations in parallel, filter to those with full content
+  const aiResults = await Promise.all(allDests.map(d => fetchCarRentalAI(d.slug).catch(() => null)))
+  const aiCompleteDests = allDests.filter((_, i) => {
+    const ai = aiResults[i]
+    return ai?.airport_info && ai?.monthly_prices?.length === 12 &&
+      ai?.trip_tips?.length > 0 && ai?.driving_rules && ai?.faq?.length > 0
+  })
 
-  const photos = await Promise.all(
-    COUNTRIES.map(country => fetchDestinationPhoto(country).catch(() => null))
+  const destPhotos = await Promise.all(
+    aiCompleteDests.map(d => fetchDestinationPhoto(d.slug).catch(() => null))
   )
-  const countryPhoto = Object.fromEntries(COUNTRIES.map((c, i) => [c, photos[i]]))
+  const destPhotoMap = Object.fromEntries(aiCompleteDests.map((d, i) => [d.slug, destPhotos[i]]))
 
   return (
     <div className="min-h-screen">
@@ -143,7 +143,7 @@ export default async function PujcovnaAutPage() {
           {/* ── Search results ────────────────────────────────────────────── */}
           <CarRentalResults />
 
-          {/* ── Countries ───────────────────────────────────────────────── */}
+          {/* ── Destinations ────────────────────────────────────────────── */}
           <section>
             <div className="flex items-center gap-2 mb-2">
               <MapPin className="w-4 h-4 text-[#0093FF]" />
@@ -158,61 +158,33 @@ export default async function PujcovnaAutPage() {
               Kde si půjčit auto?
             </h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {COUNTRIES.map(country => {
-                const dests = destsByCountry[country] ?? []
-                const photo = countryPhoto[country]
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+              {aiCompleteDests.map(dest => {
+                const photo = destPhotoMap[dest.slug]
                 return (
-                  <div key={country} className="glass-card rounded-2xl overflow-hidden flex min-h-[120px]">
-
-                    {/* Photo strip */}
-                    <div className="relative w-32 sm:w-40 flex-shrink-0 overflow-hidden bg-gradient-to-br from-sky-100 to-blue-50">
-                      {photo && (
-                        <Image
-                          src={photo}
-                          alt={country}
-                          fill
-                          className="object-cover"
-                          sizes="160px"
-                        />
-                      )}
-                      {/* Right-side fade into card body */}
-                      <div className="absolute inset-0" style={{
-                        background: 'linear-gradient(to right, transparent 40%, rgba(255,255,255,0.72) 100%)'
-                      }} />
+                  <Link
+                    key={dest.slug}
+                    href={`/pujcovna-aut/${dest.slug}`}
+                    className="group relative block rounded-2xl overflow-hidden bg-gray-100"
+                    style={{ aspectRatio: '4/3' }}
+                  >
+                    {photo ? (
+                      <Image
+                        src={photo}
+                        alt={dest.name}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-sky-300 to-blue-500" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
+                      <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wider mb-0.5 leading-none">{dest.country}</p>
+                      <p className="text-white font-bold text-[15px] sm:text-base leading-tight tracking-tight">{dest.name}</p>
                     </div>
-
-                    {/* Content */}
-                    <div className="flex-1 px-5 py-4 min-w-0">
-                      <div className="flex items-center gap-2 mb-3">
-                        <h3
-                          className="font-bold text-gray-900 leading-tight"
-                          style={{ fontSize: '1.05rem' }}
-                        >
-                          {country}
-                        </h3>
-                        <span
-                          className="glass-pill text-[10px] font-bold text-[#0068CC] px-2 py-0.5 rounded-full flex-shrink-0"
-                        >
-                          {dests.length} dest.
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1.5">
-                        {dests.map(d => (
-                          <Link
-                            key={d.slug}
-                            href={`/pujcovna-aut/${d.slug}`}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-[#0093FF] transition-all px-2.5 py-1.5 rounded-xl hover:bg-[#0093FF]/06 border border-transparent hover:border-[#0093FF]/15"
-                          >
-                            {d.name}
-                            <ChevronRight className="w-3 h-3 opacity-40 group-hover:opacity-100" />
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-
-                  </div>
+                  </Link>
                 )
               })}
             </div>
