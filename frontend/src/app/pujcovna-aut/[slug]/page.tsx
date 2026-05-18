@@ -151,8 +151,6 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
       {hasContent && (
         <main className="max-w-[1680px] mx-auto px-4 sm:px-8 pb-16 space-y-14">
 
-          <IntroSection aiData={aiData!} destName={dest.name} year={year} />
-
           {aiData!.airport_info && (
             <AirportSection airport={aiData!.airport_info} destName={dest.name} />
           )}
@@ -232,20 +230,47 @@ function HeroTitle({ dest, year, aiData }: {
   year: number
   aiData: CarRentalAIData | null
 }) {
+  const introParagraphs = aiData?.intro?.split('\n\n').filter(Boolean) ?? []
+
   return (
     <>
       <p className="text-[11px] font-semibold text-[#0093FF] uppercase tracking-[0.12em] mb-3">
         Půjčovna aut · {dest.country}
       </p>
       <h1
-        className="font-bold text-gray-900 leading-tight tracking-tight mb-2"
+        className="font-bold text-gray-900 leading-tight tracking-tight mb-3"
         style={{ fontSize: 'clamp(26px, 4.5vw, 52px)' }}
       >
         Půjčovna aut {dest.name} {year}
       </h1>
-      <p className="text-gray-500 text-sm sm:text-base mb-5 max-w-[560px] leading-relaxed">
-        Půjčovna aut {dest.name} {year} – kompletní průvodce k pronájmu auta, srovnání 500+ půjčoven a tipy na výlety.
-      </p>
+
+      {/* Intro text — first paragraph always shown, rest collapsible */}
+      {introParagraphs.length > 0 && (
+        <div className="mb-4 max-w-[600px]">
+          <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-2">
+            {introParagraphs[0]}
+          </p>
+          {introParagraphs.length > 1 && (
+            <details className="group">
+              <summary className="list-none cursor-pointer select-none">
+                <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#0093FF] group-open:hidden">
+                  Číst dále
+                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+                <span className="hidden group-open:inline-flex items-center gap-1 text-[13px] font-semibold text-gray-400">
+                  Skrýt
+                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+              </summary>
+              <div className="mt-3 space-y-3">
+                {introParagraphs.slice(1).map((p, i) => (
+                  <p key={i} className="text-sm text-gray-600 leading-relaxed">{p}</p>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+      )}
 
       {/* Section navigation */}
       {aiData?.intro && (
@@ -270,26 +295,6 @@ function HeroTitle({ dest, year, aiData }: {
   )
 }
 
-function IntroSection({ aiData, destName, year }: { aiData: CarRentalAIData; destName: string; year: number }) {
-  const paragraphs = aiData.intro?.split('\n\n').filter(Boolean) ?? []
-  return (
-    <section>
-      <div className="flex items-center gap-2 mb-2">
-        <BookOpen className="w-4 h-4 text-[#0093FF]" />
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Průvodce</p>
-      </div>
-      <h2 className="font-bold text-gray-900 tracking-tight mb-6"
-        style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
-        Půjčovna aut {destName} {year} – kompletní průvodce
-      </h2>
-      <div className="max-w-3xl">
-        {paragraphs.map((p, i) => (
-          <p key={i} className="text-gray-600 leading-relaxed mb-4 text-sm sm:text-base">{p}</p>
-        ))}
-      </div>
-    </section>
-  )
-}
 
 function AirportSection({ airport, destName }: { airport: AirportInfo; destName: string }) {
   return (
@@ -334,7 +339,7 @@ function CarExamplesSection({ examples, destName, year }: { examples: CarExample
       </div>
       <h2 className="font-bold text-gray-900 tracking-tight mb-2"
         style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
-        Která auta si půjčit v {destName}
+        Která auta si půjčit – {destName}
       </h2>
       <p className="text-gray-500 text-sm mb-6 max-w-2xl">
         Přehled kategorií a modelů nejčastěji dostupných v destinaci. Konkrétní nabídky a aktuální ceny {year} zobrazíte zadáním termínu výše.
@@ -458,7 +463,7 @@ function PracticalInfoSection({ aiData, country, destSlug }: { aiData: CarRental
       </div>
       <h2 className="font-bold text-gray-900 tracking-tight mb-6"
         style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
-        Pohonné hmoty a pravidla silničního provozu v {country}
+        Pohonné hmoty a pravidla provozu – {country}
       </h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {aiData.fuel_info && (
@@ -467,7 +472,7 @@ function PracticalInfoSection({ aiData, country, destSlug }: { aiData: CarRental
               <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white flex-shrink-0 bg-[#0093FF]">
                 <Fuel className="w-4 h-4" />
               </div>
-              <h3 className="font-bold text-gray-900">Pohonné hmoty v {country}</h3>
+              <h3 className="font-bold text-gray-900">Pohonné hmoty – {country}</h3>
             </div>
             {aiData.fuel_info.split('\n\n').filter(Boolean).map((p, i) => (
               <p key={i} className="text-sm text-gray-600 leading-relaxed mb-3 last:mb-0">{p}</p>
@@ -480,7 +485,7 @@ function PracticalInfoSection({ aiData, country, destSlug }: { aiData: CarRental
               <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white flex-shrink-0 bg-violet-600">
                 <BookOpen className="w-4 h-4" />
               </div>
-              <h3 className="font-bold text-gray-900">Pravidla silničního provozu v {country}</h3>
+              <h3 className="font-bold text-gray-900">Pravidla silničního provozu – {country}</h3>
             </div>
             {aiData.driving_rules.split('\n\n').filter(Boolean).map((p, i) => (
               <p key={i} className="text-sm text-gray-600 leading-relaxed mb-3 last:mb-0">{p}</p>
@@ -550,7 +555,7 @@ function TripTipsSection({ tips, destName, destSlug }: { tips: CarRentalTripTip[
       </div>
       <h2 className="font-bold text-gray-900 tracking-tight mb-6"
         style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
-        Tipy na výlety autem z {destName}
+        Tipy na výlety autem – {destName}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {preview.map((tip, i) => (
@@ -589,7 +594,7 @@ function PracticalTipsSection({ tips, destName }: { tips: string[]; destName: st
       </div>
       <h2 className="font-bold text-gray-900 tracking-tight mb-6"
         style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
-        Praktické tipy pro půjčení auta v {destName}
+        Praktické tipy – půjčovna aut {destName}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {tips.map((tip, i) => (
@@ -656,10 +661,10 @@ function RelatedSection({ dest, relatedDests }: {
 
   const subpageLinks = [
     { href: `/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`, label: `Výlety autem z ${dest.name}`, sub: 'Trasy, tipy a zajímavá místa' },
-    { href: `/pujcovna-aut/${dest.slug}/pravidla-provozu`,     label: `Pravidla provozu v ${dest.country}`, sub: 'Limity, předpisy, pokuty' },
+    { href: `/pujcovna-aut/${dest.slug}/pravidla-provozu`,     label: `Pravidla provozu – ${dest.country}`, sub: 'Limity, předpisy, pokuty' },
     { href: `/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`,   label: 'Nejčastější dotazy', sub: 'Odpovědi na vaše otázky' },
-    { href: `/pocasi/${dest.countrySlug}`,                     label: `Počasí v ${dest.country}`, sub: 'Teploty a srážky podle měsíce' },
-    { href: `/destinace/${dest.countrySlug}`,                  label: `Hotely v ${dest.country}`, sub: 'Zájezdy a ubytování' },
+    { href: `/pocasi/${dest.countrySlug}`,                     label: `Počasí – ${dest.country}`, sub: 'Teploty a srážky podle měsíce' },
+    { href: `/destinace/${dest.countrySlug}`,                  label: `Hotely – ${dest.country}`, sub: 'Zájezdy a ubytování' },
   ]
 
   return (
@@ -668,7 +673,7 @@ function RelatedSection({ dest, relatedDests }: {
         <div className="lg:col-span-2">
           <h2 className="font-bold text-gray-900 tracking-tight mb-5"
             style={{ fontSize: 'clamp(18px, 2.2vw, 28px)' }}>
-            Půjčovny aut v {dest.country}
+            Půjčovny aut – {dest.country}
           </h2>
           {sameCountry.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
