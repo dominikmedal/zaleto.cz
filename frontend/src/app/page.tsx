@@ -169,7 +169,7 @@ export default async function HomePage({ searchParams }: PageProps) {
     fetchDestinations().catch(() => []),
     fetchFilters().catch(() => ({ mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], totalTours: 0, totalHotels: 0, departureCities: [] })),
     singleDest ? fetchWikiSummary(singleDest).catch(() => null) : Promise.resolve(null),
-    noFilters ? fetchHotels({ sort: 'price_asc', limit: 60 }).then(r => r.hotels.filter(h => h.thumbnail_url)).catch(() => []) : Promise.resolve([]),
+    noFilters ? fetchHotels({ sort: 'price_asc', limit: 200 }).then(r => r.hotels.filter(h => h.thumbnail_url)).catch(() => []) : Promise.resolve([]),
     singleDest ? fetchDestinationPhoto(singleDest).catch(() => null) : Promise.resolve(null),
     singleDest ? fetchDestinationAI(singleDest).catch(() => null) : Promise.resolve(null),
     articlesNeeded > 0 ? (singleDest ? fetchArticles(articlesNeeded, singleDest) : fetchArticles(articlesNeeded)).catch(() => []) : Promise.resolve([]),
@@ -186,18 +186,19 @@ export default async function HomePage({ searchParams }: PageProps) {
   const dailyTip  = tipHotels[dailyIdx]  ?? null
   const weeklyTip = tipHotels[weeklyIdx] ?? null
 
-  // Top unique regions with hotel counts + country mapping (závisí na destinations)
-  const regionMap = new Map<string, number>()
+  // Static popular destinations for carousel (curated list, 3 full pages of 7)
+  const CAROUSEL_DESTINATIONS = [
+    'Řecko', 'Lefkáda', 'Turecko', 'Egypt', 'Chorvatsko', 'Rhodos', 'Kréta',
+    'Španělsko', 'Mallorka', 'Itálie', 'Bulharsko', 'Kypr', 'Tunisko', 'Tenerife',
+    'Thajsko', 'Dubaj', 'Maledivy', 'Bali', 'Zanzibar', 'Fuerteventura', 'Kanárské ostrovy',
+  ]
+
+  // Region→country mapping for price fallback lookup
   const regionCountryMap = new Map<string, string>()
   for (const d of destinations) {
     const region = d.destination.split('/').map(s => s.trim())[1] ?? d.destination.split('/')[0].trim()
-    regionMap.set(region, (regionMap.get(region) ?? 0) + d.hotel_count)
     if (d.country && !regionCountryMap.has(region)) regionCountryMap.set(region, d.country)
   }
-  const topRegions = [...regionMap.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 25)
-    .map(([region, count]) => ({ region, count }))
 
   // Min price per region (from tipHotels — sorted price_asc)
   const regionMinPrice = new Map<string, number>()
@@ -212,17 +213,18 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   // Wave 2: fotky závisí na výsledcích vlny 1 — spustíme oboje paralelně
   const articleLocations = [...new Set((articlesRaw as typeof articlesRaw).map(a => a.location).filter(Boolean) as string[])]
-  const [regionPhotos, articlePhotoResults] = await Promise.all([
+  const [carouselPhotos, articlePhotoResults] = await Promise.all([
     noFilters
-      ? Promise.all(topRegions.map(({ region }) => fetchDestinationPhoto(region).catch(() => null)))
+      ? Promise.all(CAROUSEL_DESTINATIONS.map(name => fetchDestinationPhoto(name).catch(() => null)))
       : Promise.resolve([] as (string | null)[]),
     Promise.all(articleLocations.map(loc => fetchDestinationPhoto(loc).catch(() => null))),
   ])
 
-  // Filter out regions without photos
-  const topRegionsWithPhotos = topRegions
-    .map((r, i) => ({ ...r, thumb: regionPhotos[i] }))
+  // Build carousel items — static list with photos, trimmed to full pages of 7
+  const _carouselRaw = CAROUSEL_DESTINATIONS
+    .map((name, i) => ({ region: name, count: 0, thumb: carouselPhotos[i] }))
     .filter((r): r is typeof r & { thumb: string } => r.thumb != null)
+  const topRegionsWithPhotos = _carouselRaw.slice(0, Math.floor(_carouselRaw.length / 7) * 7)
 
   const articles = articlesRaw
   const articleImageMap: Record<string, string | null> = {}
