@@ -5,7 +5,7 @@ import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
 import { CarRentalProvider, CarRentalForm, CarRentalResults } from '@/components/CarRentalSearchForm'
 import { CAR_DESTINATIONS, buildDCHubUrl, mergeDestinations } from '@/lib/carRental'
-import { fetchDestinationPhoto, fetchDynamicCarDestinations, fetchCarRentalAI } from '@/lib/api'
+import { fetchDynamicCarDestinations, fetchCarRentalAI } from '@/lib/api'
 import { Car, Shield, BadgeCheck, Clock, ChevronRight, MapPin } from 'lucide-react'
 
 export const revalidate = 86400
@@ -77,18 +77,27 @@ export default async function PujcovnaAutPage() {
   const dynamicDests = await fetchDynamicCarDestinations().catch(() => [])
   const allDests = mergeDestinations(dynamicDests)
 
-  // Fetch AI data for all destinations in parallel, filter to those with full content
+  // Fetch AI data for all destinations in parallel, keep only fully-populated ones
   const aiResults = await Promise.all(allDests.map(d => fetchCarRentalAI(d.slug).catch(() => null)))
-  const aiCompleteDests = allDests.filter((_, i) => {
-    const ai = aiResults[i]
-    return ai?.airport_info && ai?.monthly_prices?.length === 12 &&
-      ai?.trip_tips?.length > 0 && ai?.driving_rules && ai?.faq?.length > 0
-  })
-
-  const destPhotos = await Promise.all(
-    aiCompleteDests.map(d => fetchDestinationPhoto(d.slug).catch(() => null))
+  const aiCompleteSlugs = new Set(
+    allDests
+      .filter((_, i) => {
+        const ai = aiResults[i]
+        return ai?.airport_info && ai?.monthly_prices?.length === 12 &&
+          ai?.trip_tips?.length > 0 && ai?.driving_rules && ai?.faq?.length > 0
+      })
+      .map(d => d.slug)
   )
-  const destPhotoMap = Object.fromEntries(aiCompleteDests.map((d, i) => [d.slug, destPhotos[i]]))
+
+  // Group AI-complete destinations by country, preserve original country order
+  const COUNTRIES = Array.from(new Map(allDests.map(d => [d.country, true])).keys())
+  const destsByCountry = allDests.reduce<Record<string, typeof allDests>>((acc, d) => {
+    if (!aiCompleteSlugs.has(d.slug)) return acc
+    if (!acc[d.country]) acc[d.country] = []
+    acc[d.country].push(d)
+    return acc
+  }, {})
+  const activeCountries = COUNTRIES.filter(c => destsByCountry[c]?.length > 0)
 
   return (
     <div className="min-h-screen">
@@ -143,7 +152,7 @@ export default async function PujcovnaAutPage() {
           {/* ── Search results ────────────────────────────────────────────── */}
           <CarRentalResults />
 
-          {/* ── Destinations ────────────────────────────────────────────── */}
+          {/* ── Destinations by country ──────────────────────────────────── */}
           <section>
             <div className="flex items-center gap-2 mb-2">
               <MapPin className="w-4 h-4 text-[#0093FF]" />
@@ -158,33 +167,29 @@ export default async function PujcovnaAutPage() {
               Kde si půjčit auto?
             </h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-              {aiCompleteDests.map(dest => {
-                const photo = destPhotoMap[dest.slug]
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {activeCountries.map(country => {
+                const dests = destsByCountry[country] ?? []
                 return (
-                  <Link
-                    key={dest.slug}
-                    href={`/pujcovna-aut/${dest.slug}`}
-                    className="group relative block rounded-2xl overflow-hidden bg-gray-100"
-                    style={{ aspectRatio: '4/3' }}
-                  >
-                    {photo ? (
-                      <Image
-                        src={photo}
-                        alt={dest.name}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-sky-300 to-blue-500" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
-                      <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wider mb-0.5 leading-none">{dest.country}</p>
-                      <p className="text-white font-bold text-[15px] sm:text-base leading-tight tracking-tight">{dest.name}</p>
+                  <div key={country} className="bg-white rounded-2xl p-5"
+                    style={{ border: '1px solid #f0f0f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                    <div className="flex items-center gap-2.5 mb-4">
+                      <div className="w-[3px] h-5 rounded-full bg-[#0093FF] flex-shrink-0" />
+                      <h3 className="font-bold text-gray-900 text-[15px]">{country}</h3>
                     </div>
-                  </Link>
+                    <div className="flex flex-wrap gap-2">
+                      {dests.map(d => (
+                        <Link
+                          key={d.slug}
+                          href={`/pujcovna-aut/${d.slug}`}
+                          className="inline-flex items-center gap-1 text-[13px] font-semibold text-gray-600 hover:text-[#0093FF] bg-[#f8f9fa] hover:bg-[#EDF6FF] border border-[#f0f0f0] hover:border-[#0093FF]/20 transition-all duration-150 px-3 py-1.5 rounded-xl"
+                        >
+                          {d.name}
+                          <ChevronRight className="w-3 h-3 opacity-35 flex-shrink-0" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
                 )
               })}
             </div>
