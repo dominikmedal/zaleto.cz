@@ -89,23 +89,23 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
             ) : (
               <div className="absolute inset-0 bg-[#0093FF]" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
             {/* Content — bottom */}
             <div className="absolute bottom-0 left-0 right-0 p-5">
-              <p className="text-white/55 text-[10px] font-semibold uppercase tracking-[0.18em] leading-none mb-3">
+              <p className="text-white/90 text-sm font-bold uppercase tracking-[0.14em] leading-none mb-3">
                 {featured.region}
               </p>
               {featured.minPrice != null ? (
                 <>
-                  <p className="text-white/40 text-[10px] uppercase tracking-widest leading-none mb-1">od</p>
+                  <p className="text-white/50 text-[10px] uppercase tracking-widest leading-none mb-1">od</p>
                   <p className="text-white font-black leading-none"
                     style={{ fontSize: 'clamp(26px, 2.8vw, 42px)' }}>
                     {fmtKc(featured.minPrice)}
                   </p>
                 </>
               ) : (
-                <p className="text-white font-bold text-[17px]">Zobrazit →</p>
+                <p className="text-white font-bold text-base">Zobrazit →</p>
               )}
             </div>
 
@@ -131,14 +131,14 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
             ) : (
               <div className="absolute inset-0 bg-[#0093FF]" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/20 to-transparent" />
 
             <div className="absolute bottom-0 left-0 right-0 p-3">
-              <p className="text-white/50 text-[10px] font-semibold uppercase tracking-[0.14em] leading-none truncate mb-1.5">{item.region}</p>
+              <p className="text-white/90 text-xs font-bold uppercase tracking-[0.1em] leading-none truncate mb-1.5">{item.region}</p>
               {item.minPrice != null ? (
                 <p className="text-white font-black text-[18px] leading-none">{fmtKc(item.minPrice)}</p>
               ) : (
-                <p className="text-white/40 text-[12px]">{item.count} hotelů</p>
+                <p className="text-white/60 text-xs">{item.count} hotelů</p>
               )}
             </div>
           </Link>
@@ -151,13 +151,13 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
       </div>
 
       {/* ── Mobile: horizontal scroll ── */}
-      <div className="flex lg:hidden gap-3 h-48 overflow-x-auto scrollbar-hide" style={{ scrollSnapType: 'x mandatory' }}>
+      <div className="flex lg:hidden gap-3 h-56 overflow-x-auto scrollbar-hide" style={{ scrollSnapType: 'x mandatory' }}>
         {items.map(item => (
           <Link
             key={item.region}
             href={`/destinace/${slugify(item.region)}`}
             className="group relative flex-shrink-0 h-full rounded-2xl overflow-hidden bg-gray-100 block"
-            style={{ width: 'clamp(155px, 50vw, 210px)', scrollSnapAlign: 'start' }}
+            style={{ width: 'clamp(170px, 55vw, 230px)', scrollSnapAlign: 'start' }}
           >
             {item.thumb ? (
               <Image src={item.thumb} alt={item.region} fill
@@ -165,13 +165,13 @@ export default function DestinationCarousel({ items }: { items: Item[] }) {
             ) : (
               <div className="absolute inset-0 bg-[#0093FF]" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/10 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-3">
-              <p className="text-white/50 text-[10px] font-semibold uppercase tracking-[0.14em] leading-none mb-1.5">{item.region}</p>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              <p className="text-white text-base font-bold uppercase tracking-[0.08em] leading-none mb-2">{item.region}</p>
               {item.minPrice != null ? (
-                <p className="text-white font-black text-[18px] leading-none">{fmtKc(item.minPrice)}</p>
+                <p className="text-white font-black text-[20px] leading-none">{fmtKc(item.minPrice)}</p>
               ) : (
-                <p className="text-white/50 text-[12px]">{item.count} hotelů</p>
+                <p className="text-white/60 text-xs">{item.count} hotelů</p>
               )}
             </div>
           </Link>
