@@ -587,9 +587,12 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
 # Scraping jednoho hotelu
 # ---------------------------------------------------------------------------
 
-def scrape_hotel(session: requests.Session, db: ZaletoDB,
-                 hotel_url: str, slug_counter: dict,
-                 airports: list[int] | None = None) -> int:
+def _fetch_hotel_data(session: requests.Session, hotel_url: str,
+                      airports: list[int] | None = None) -> tuple[dict | None, list]:
+    """
+    Čistě síťová část scrapingu jednoho hotelu — bez DB zápisu a bez slug_counter.
+    Bezpečné volat souběžně z více vláken (žádný sdílený stav).
+    """
     if airports is None:
         airports = [DEFAULT_AIRPORT]
 
@@ -630,16 +633,32 @@ def scrape_hotel(session: requests.Session, db: ZaletoDB,
             all_tours.extend(airport_tours)
             logger.debug(f"  Letiště {airport}: {len(airport_tours)} termínů")
 
+    return hotel_dict, all_tours
+
+
+_slug_lock = threading.Lock()
+
+
+def _next_slug(slug_counter: dict, name: str) -> str:
+    """Thread-safe přidělení slugu — slug_counter je sdílený mezi vlákny."""
+    base_slug = slugify(name)
+    with _slug_lock:
+        n = slug_counter.get(base_slug, 0)
+        slug = base_slug if n == 0 else f"{base_slug}-{n}"
+        slug_counter[base_slug] = n + 1
+    return slug
+
+
+def scrape_hotel(session: requests.Session, db: ZaletoDB,
+                 hotel_url: str, slug_counter: dict,
+                 airports: list[int] | None = None) -> int:
+    hotel_dict, all_tours = _fetch_hotel_data(session, hotel_url, airports)
+
     if hotel_dict is None:
         logger.warning(f"Žádné termíny ani data: {hotel_url}")
         return 0
 
-    base_slug = slugify(hotel_dict["name"])
-    slug = base_slug
-    n = slug_counter.get(base_slug, 0)
-    if n > 0:
-        slug = f"{base_slug}-{n}"
-    slug_counter[base_slug] = n + 1
+    slug = _next_slug(slug_counter, hotel_dict["name"])
 
     hotel_id = db.upsert_hotel(slug, hotel_dict)
     db.conn.execute("DELETE FROM tours WHERE hotel_id = %s AND agency = %s", (hotel_id, AGENCY))
@@ -852,6 +871,73 @@ def delete_all(db: ZaletoDB):
 # Hlavní run
 # ---------------------------------------------------------------------------
 
+def _run_full_scrape(db: ZaletoDB, session: requests.Session, hotel_urls: list[str],
+                     delay: float, airports: list[int], workers: int = 1) -> int:
+    """
+    workers > 1: paralelní zpracování hotelů, každý worker má vlastní session + DB spojení
+    (stejný vzor jako _run_update_only). Síťová část (_fetch_hotel_data) běží bez zámku,
+    slug přidělení a DB zápis (rychlé) jsou uvnitř scrape_hotel serializovány přes _slug_lock.
+    """
+    slug_counter: dict = {}
+    done_urls = db.get_done_keys(AGENCY)
+    if done_urls:
+        logger.info(f"Checkpoint: přeskakuji {len(done_urls)} hotely z dnešního cyklu")
+
+    logger.info(f"Letiště: {airports}")
+
+    SKIP_PATTERNS = ("vikend", "weekend", "letecky-vikend")
+    to_process = [
+        (i, url) for i, url in enumerate(hotel_urls, 1)
+        if url not in done_urls and not any(p in url.lower() for p in SKIP_PATTERNS)
+    ]
+    total = len(hotel_urls)
+
+    if workers <= 1:
+        total_saved = 0
+        for i, url in to_process:
+            logger.info(f"[{i}/{total}] {url.split('?')[0]}")
+            try:
+                saved = scrape_hotel(session, db, url, slug_counter, airports)
+                total_saved += saved
+                db.mark_done(AGENCY, url)
+            except Exception as e:
+                logger.error(f"Chyba u {url}: {e}")
+            if i < total:
+                time.sleep(delay + random.uniform(0, delay * 0.5))
+        return total_saved
+
+    _counter = [0]
+    _saved   = [0]
+    _lock    = threading.Lock()
+
+    def _worker(i: int, url: str):
+        w_session = _make_session()
+        w_db      = ZaletoDB()
+        try:
+            saved = scrape_hotel(w_session, w_db, url, slug_counter, airports)
+            w_db.mark_done(AGENCY, url)
+            with _lock:
+                _saved[0]   += saved
+                _counter[0] += 1
+                logger.info(f"[{_counter[0]}/{len(to_process)}] {url.split('?')[0]} → {saved} termínů")
+        except Exception as e:
+            logger.error(f"Chyba u {url}: {e}")
+        finally:
+            time.sleep(delay + random.uniform(0, delay * 0.4))
+            w_db.close()
+            w_session.close()
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(_worker, i, url) for i, url in to_process]
+        for f in concurrent.futures.as_completed(futures):
+            try:
+                f.result()
+            except Exception as e:
+                logger.error(f"Worker neočekávaná chyba: {e}")
+
+    return _saved[0]
+
+
 def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
         airports: list[int] | None = None, update_only: bool = False,
         workers: int = 1):
@@ -878,34 +964,7 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
         db.close()
         raise SystemExit(1)
 
-    total_saved  = 0
-    slug_counter: dict = {}
-
-    done_urls = db.get_done_keys(AGENCY)
-    if done_urls:
-        logger.info(f"Checkpoint: přeskakuji {len(done_urls)} hotely z dnešního cyklu")
-
-    logger.info(f"Letiště: {airports}")
-
-    SKIP_PATTERNS = ("vikend", "weekend", "letecky-vikend")
-
-    for i, url in enumerate(hotel_urls, 1):
-        if any(p in url.lower() for p in SKIP_PATTERNS):
-            logger.debug(f"[{i}/{len(hotel_urls)}] přeskakuji (víkend): {url.split('?')[0]}")
-            continue
-        if url in done_urls:
-            logger.info(f"[{i}/{len(hotel_urls)}] ✓ checkpoint: {url.split('?')[0]}")
-            continue
-        logger.info(f"[{i}/{len(hotel_urls)}] {url.split('?')[0]}")
-        try:
-            saved = scrape_hotel(session, db, url, slug_counter, airports)
-            total_saved += saved
-            db.mark_done(AGENCY, url)
-        except Exception as e:
-            logger.error(f"Chyba u {url}: {e}")
-
-        if i < len(hotel_urls):
-            time.sleep(delay + random.uniform(0, delay * 0.5))
+    total_saved = _run_full_scrape(db, session, hotel_urls, delay, airports, workers=workers)
 
     db.close()
     logger.info(f"Hotovo. Celkem: {total_saved} termínů z {len(hotel_urls)} hotelů.")

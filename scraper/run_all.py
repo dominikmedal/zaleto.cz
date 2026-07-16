@@ -21,7 +21,9 @@ Povinné env vars pro Railway:
 Volitelné env vars:
     SMTP_PORT          SMTP port (default: 587)
     REPORT_FROM        odesílatel (default = SMTP_USER)
-    SCRAPE_INTERVAL_H  interval mezi cykly v hodinách (default: 12)
+    SCRAPE_INTERVAL_H  interval mezi plnými scrape cykly v hodinách (default: 720 = 30 dní)
+    PURGE_INTERVAL_H   interval mezi lehkými úklidy expirovaných termínů (default: 168 = 7 dní).
+                       Úklid běží nezávisle na scrape cyklu, bez spouštění scraperů.
     SCRAPER_DELAY      pauza mezi HTTP požadavky ve scraperech (default: 1.5)
 """
 
@@ -70,7 +72,8 @@ SMTP_USER    = os.environ.get("SMTP_USER", "")
 SMTP_PASS    = os.environ.get("SMTP_PASS", "")
 REPORT_TO    = [e.strip() for e in os.environ.get("REPORT_TO", "").split(",") if e.strip()]
 REPORT_FROM  = os.environ.get("REPORT_FROM", SMTP_USER)
-INTERVAL_H        = float(os.environ.get("SCRAPE_INTERVAL_H", "12"))
+INTERVAL_H        = float(os.environ.get("SCRAPE_INTERVAL_H", "720"))   # default: měsíčně
+PURGE_INTERVAL_H  = float(os.environ.get("PURGE_INTERVAL_H", "168"))    # default: týdně
 SCRAPER_DELAY     = float(os.environ.get("SCRAPER_DELAY", "1.5"))
 # Kolik hodin zpět se bere checkpoint za platný (default 14h).
 # CK se přeskočí, pokud od posledního úspěšného doběhnutí neuplynulo víc než
@@ -1124,6 +1127,43 @@ def run_cycle(cycle: int, skip_email: bool = False):
         logger.info("Email: přeskočen (--skip-email)")
 
 
+def run_purge_cycle():
+    """
+    Lehký úklid mezi plnými scrape cykly — jen smazání expirovaných termínů
+    a obnova hotel_stats/cache. Nespouští žádné scrapery, netriggeruje AI generování.
+    """
+    started = datetime.now()
+    logger.info(f"\n{'─'*60}")
+    logger.info(f"TÝDENNÍ ÚKLID — {started.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"{'─'*60}")
+
+    conn = open_db()
+    try:
+        expired = purge_expired_tours(conn)
+        logger.info(f"  Smazáno {expired} prošlých termínů")
+        refresh_hotel_stats(conn)
+        logger.info("  hotel_stats aktualizováno")
+    except Exception:
+        logger.exception("Chyba při týdenním úklidu")
+    finally:
+        conn.close()
+
+    try:
+        import psycopg2
+        ssl = {"sslmode": "require"} if "localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL else {}
+        pg_conn = psycopg2.connect(DATABASE_URL, **ssl)
+        pg_conn.autocommit = True
+        with pg_conn.cursor() as cur:
+            cur.execute("VACUUM ANALYZE tours")
+        pg_conn.close()
+        logger.info("  VACUUM ANALYZE tours OK")
+    except Exception:
+        logger.exception("Chyba při VACUUM tours")
+
+    _invalidate_api_cache(final=True)
+    logger.info(f"Týdenní úklid hotov ({(datetime.now() - started).total_seconds():.0f}s)")
+
+
 def delete_all_data():
     """Smaže všechny záznamy v DB (hotels, tours, checkpointy). Zachová schéma."""
     conn = open_db()
@@ -1151,15 +1191,18 @@ def main():
         delete_all_data()
 
     logger.info("Zaleto scraper orchestrátor spuštěn")
-    logger.info(f"  DB:       PostgreSQL")
-    logger.info(f"  Interval: {INTERVAL_H} h")
-    logger.info(f"  Email:    {REPORT_TO if REPORT_TO else 'není nastaven'}")
-    logger.info(f"  Scrapery: {[s['agency'] for s in SCRAPERS]}")
+    logger.info(f"  DB:              PostgreSQL")
+    logger.info(f"  Scrape interval: {INTERVAL_H:.0f} h (~{INTERVAL_H/24:.1f} dní)")
+    logger.info(f"  Purge interval:  {PURGE_INTERVAL_H:.0f} h (~{PURGE_INTERVAL_H/24:.1f} dní)")
+    logger.info(f"  Email:           {REPORT_TO if REPORT_TO else 'není nastaven'}")
+    logger.info(f"  Scrapery:        {[s['agency'] for s in SCRAPERS]}")
 
     cycle = 0
+    last_purge = datetime.now()
     while not _shutdown:
         cycle += 1
         run_cycle(cycle, skip_email=args.skip_email)
+        last_purge = datetime.now()  # run_cycle už zahrnuje purge_expired_tours v post-processingu
 
         if args.once or _shutdown:
             break
@@ -1174,14 +1217,17 @@ def main():
 
         wait_sec = INTERVAL_H * 3600
         next_run = datetime.fromtimestamp(time.time() + wait_sec)
-        logger.info(f"Příští cyklus: {next_run.strftime('%Y-%m-%d %H:%M')} (za {INTERVAL_H:.0f} h)")
-        logger.info(f"Čekám {INTERVAL_H:.0f} hodin...")
+        logger.info(f"Příští plný scrape: {next_run.strftime('%Y-%m-%d %H:%M')} (za {INTERVAL_H/24:.0f} dní)")
 
-        # Čekej v blocích 60 s, aby šel přijmout SIGTERM
+        # Čekej v blocích 60 s, aby šel přijmout SIGTERM. Mezitím, na vlastním
+        # (kratším) cyklu, spouští lehký úklid expirovaných termínů.
         slept = 0
         while slept < wait_sec and not _shutdown:
             time.sleep(min(60, wait_sec - slept))
             slept += 60
+            if (datetime.now() - last_purge).total_seconds() >= PURGE_INTERVAL_H * 3600:
+                run_purge_cycle()
+                last_purge = datetime.now()
 
     logger.info("Orchestrátor ukončen.")
 
