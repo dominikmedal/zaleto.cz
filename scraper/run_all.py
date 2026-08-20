@@ -21,7 +21,8 @@ Povinné env vars pro Railway:
 Volitelné env vars:
     SMTP_PORT          SMTP port (default: 587)
     REPORT_FROM        odesílatel (default = SMTP_USER)
-    SCRAPE_INTERVAL_H  interval mezi plnými scrape cykly v hodinách (default: 720 = 30 dní)
+    SCRAPE_INTERVAL_H  interval mezi plnými scrape cykly v hodinách (default a minimum: 720 = 30 dní;
+                       nižší hodnota se ignoruje, aby scraper neběžel častěji než jednou měsíčně)
     PURGE_INTERVAL_H   interval mezi lehkými úklidy expirovaných termínů (default: 168 = 7 dní).
                        Úklid běží nezávisle na scrape cyklu, bez spouštění scraperů.
     SCRAPER_DELAY      pauza mezi HTTP požadavky ve scraperech (default: 1.5)
@@ -72,7 +73,8 @@ SMTP_USER    = os.environ.get("SMTP_USER", "")
 SMTP_PASS    = os.environ.get("SMTP_PASS", "")
 REPORT_TO    = [e.strip() for e in os.environ.get("REPORT_TO", "").split(",") if e.strip()]
 REPORT_FROM  = os.environ.get("REPORT_FROM", SMTP_USER)
-INTERVAL_H        = float(os.environ.get("SCRAPE_INTERVAL_H", "720"))   # default: měsíčně
+MIN_INTERVAL_H    = 720   # pojistka: scraper nesmí běžet častěji než jednou za měsíc (Railway náklady)
+INTERVAL_H        = max(float(os.environ.get("SCRAPE_INTERVAL_H", "720")), MIN_INTERVAL_H)
 PURGE_INTERVAL_H  = float(os.environ.get("PURGE_INTERVAL_H", "168"))    # default: týdně
 SCRAPER_DELAY     = float(os.environ.get("SCRAPER_DELAY", "1.5"))
 # Kolik hodin zpět se bere checkpoint za platný (default 14h).
