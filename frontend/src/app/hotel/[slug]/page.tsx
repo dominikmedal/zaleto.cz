@@ -1,44 +1,40 @@
-﻿import React from 'react'
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
-import { Plane, Bus, Car } from 'lucide-react'
-import { PiMapPin, PiStarFill, PiArrowLeft, PiForkKnife, PiCalendarBlank, PiCoins, PiCheckCircle, PiCheck, PiHouseSimple, PiSparkle, PiRuler, PiWallet, PiMapTrifold, PiChatCircleDots, PiTimer, PiCalendarStar, PiBuildings, PiSun, PiShieldCheck, PiArrowsDownUp, PiArrowRight } from 'react-icons/pi'
-import ScrollToButton from '@/components/ScrollToButton'
-import ViewersBadge from '@/components/ViewersBadge'
 import Header from '@/components/Header'
-import HotelStickyBar from '@/components/HotelStickyBar'
-import FavoriteButton from '@/components/FavoriteButton'
-import TourDatesList from '@/components/TourDatesList'
-import HotelGallery from '@/components/HotelGallery'
-import ReviewsSection from '@/components/ReviewsSection'
-import NearbyHotels from '@/components/NearbyHotels'
-import { fetchHotel } from '@/lib/api'
-import { slugify } from '@/lib/slugify'
 import JsonLd from '@/components/JsonLd'
-import AgencyDescriptionSwitcher from '@/components/AgencyDescriptionSwitcher'
+import HotelGallery from '@/components/HotelGallery'
+import FavoriteButton from '@/components/FavoriteButton'
+import ShareButton from '@/components/ShareButton'
+import ScrollToButton from '@/components/ScrollToButton'
+import TourDatesList from '@/components/TourDatesList'
+import TourModalTrigger from '@/components/TourModalTrigger'
+import ReviewsSection from '@/components/ReviewsSection'
 import WeatherWidget from '@/components/WeatherWidget'
 import CollapsibleSection from '@/components/CollapsibleSection'
-import ShareButton from '@/components/ShareButton'
+import AgencyDescriptionSwitcher from '@/components/AgencyDescriptionSwitcher'
 import CarRentalBanner from '@/components/CarRentalBanner'
-import TourModalTrigger from '@/components/TourModalTrigger'
+import Crumbs from '@/components/ui/Crumbs'
+import Icon from '@/components/ui/Icon'
+import TourCard from '@/components/ui/TourCard'
+import { formatDateRange, formatPrice } from '@/components/ui/format'
+import { fetchHotel, fetchHotelTours, fetchNearbyHotels, API } from '@/lib/api'
+import { slugify } from '@/lib/slugify'
+import type { Hotel, NearbyHotel, Tour } from '@/lib/types'
 
-// Leaflet needs browser APIs → dynamic import, no SSR
+// Leaflet potřebuje prohlížeč → dynamický import bez SSR
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false })
 
-export const revalidate = 60            // ISR — regeneruj stránku na pozadí každou minutu (kratší okno pro stale 404)
-export const dynamicParams = true       // stránky mimo generateStaticParams fungují jako ISR on-demand
+export const revalidate = 60
+export const dynamicParams = true
 
 export async function generateStaticParams() {
-  // Pre-generujeme top 100 hotelů při buildu — zrychlí první načtení pro Googlebot.
-  // Limit 100 zabraňuje zahlcení Railway backendu souběžnými požadavky.
-  // Ostatní stránky fungují jako ISR on-demand (dynamicParams = true).
+  // Předgenerujeme jen pár nejlevnějších hotelů; zbytek vzniká on-demand (ISR).
   try {
     const { fetchAllHotelSlugs } = await import('@/lib/api')
-    const slugs = await fetchAllHotelSlugs(100)
-    return slugs.map(s => ({ slug: s.slug }))
+    return (await fetchAllHotelSlugs(40)).map(s => ({ slug: s.slug }))
   } catch {
     return []
   }
@@ -46,136 +42,73 @@ export async function generateStaticParams() {
 
 interface Props { params: { slug: string } }
 
+function parseList(raw: string | null | undefined): string[] {
+  if (!raw) return []
+  try {
+    const arr = JSON.parse(raw)
+    if (Array.isArray(arr)) return arr.map((s: string) => String(s).trim()).filter(Boolean)
+  } catch { /* není JSON */ }
+  return raw.split(/[,\n]/).map(s => s.trim()).filter(Boolean)
+}
+
 function parseFoodOptions(raw: string): { label: string; price: string | null }[] {
   return raw.split('|').map(s => {
     const trimmed = s.trim().replace(/(\d+)\.0\b/g, (_, n) => Number(n).toLocaleString('cs-CZ'))
-    const match = trimmed.match(/^(.+?)\s+([\d\s]+\s*Kč.*)$/)
-    if (match) return { label: match[1].trim(), price: match[2].trim() }
-    return { label: trimmed, price: null }
+    const m = trimmed.match(/^(.+?)\s+([\d\s]+\s*Kč.*)$/)
+    return m ? { label: m[1].trim(), price: m[2].trim() } : { label: trimmed, price: null }
   }).filter(r => r.label)
 }
 
-function stripHtml(html: string) {
-  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim()
-}
-
-function formatPrice(p: number) {
-  return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(p)
-}
-
-function formatPriceShort(p: number) {
-  return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(p)
-}
+const stripHtml = (html: string) =>
+  html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim()
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  try {
-    const hotel = await fetchHotel(params.slug)
-    const location = [hotel.resort_town, hotel.destination, hotel.country].filter(Boolean).join(', ')
-    const starsStr = hotel.stars ? `${'★'.repeat(hotel.stars)} ` : ''
-    const title = `${hotel.name} ${starsStr}— ${location} | Zaleto`
-    const priceStr = hotel.min_price ? ` od ${formatPrice(hotel.min_price)} / os.` : ''
-    const stars = hotel.stars ? `${hotel.stars}hvězdičkový hotel. ` : ''
-    const description = hotel.description
-      ? `${stars}${stripHtml(hotel.description).slice(0, 130)}… Zájezdy${priceStr}. Porovnejte termíny a rezervujte přímo u CK.`
-      : `${stars}${hotel.name} v destinaci ${location}. Zájezdy${priceStr}. Porovnejte termíny od předních českých CK a rezervujte online.`
-    const canonical = `https://zaleto.cz/hotel/${params.slug}`
-    return {
-      title,
-      description,
-      alternates: { canonical },
-      openGraph: {
-        title,
-        description,
-        url: canonical,
-        images: hotel.thumbnail_url ? [{ url: hotel.thumbnail_url, width: 1200, height: 800, alt: `${hotel.name} — ${location}` }] : [],
-        type: 'website',
-        siteName: 'Zaleto',
-        locale: 'cs_CZ',
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title,
-        description,
-        images: hotel.thumbnail_url ? [hotel.thumbnail_url] : [],
-      },
-    }
-  } catch {
-    return { title: 'Hotel nenalezen | Zaleto' }
+  let hotel: Hotel
+  try { hotel = await fetchHotel(params.slug) } catch { return { title: 'Hotel nenalezen | Zaleto' } }
+  const place = [hotel.resort_town, hotel.country].filter(Boolean).join(', ')
+  const price = hotel.min_price ? ` od ${formatPrice(hotel.min_price)}` : ''
+  const title = `${hotel.name}${place ? ` — ${place}` : ''}${price} | Zaleto`
+  const description = hotel.description
+    ? stripHtml(hotel.description).slice(0, 160)
+    : `Zájezdy do hotelu ${hotel.name}${place ? ` (${place})` : ''}. Porovnej termíny a ceny od českých cestovních kanceláří.`
+  const canonical = `https://zaleto.cz/hotel/${hotel.canonical_slug ?? params.slug}`
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, type: 'website', images: hotel.thumbnail_url ? [{ url: hotel.thumbnail_url }] : undefined },
   }
-}
-
-function StarsRow({ count }: { count: number }) {
-  return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: count }).map((_, i) => (
-        <PiStarFill key={i} className="w-4 h-4 text-amber-400" />
-      ))}
-    </div>
-  )
-}
-
-
-function formatDep(s: string): string {
-  const [y, m, d] = s.split('T')[0].split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })
 }
 
 export default async function HotelDetailPage({ params }: Props) {
-  let hotel: Awaited<ReturnType<typeof fetchHotel>>
+  let hotel: Hotel
+  try { hotel = await fetchHotel(params.slug) } catch { notFound() }
 
-  try {
-    hotel = await fetchHotel(params.slug)
-  } catch {
-    notFound()
-  }
-
-  // Parse photos
   const photos: string[] = (() => {
-    try {
-      const arr = hotel.photos ? JSON.parse(hotel.photos) : []
-      return arr.length ? arr : hotel.thumbnail_url ? [hotel.thumbnail_url] : []
-    } catch {
-      return hotel.thumbnail_url ? [hotel.thumbnail_url] : []
-    }
+    const arr = parseList(hotel.photos)
+    return arr.length ? arr : hotel.thumbnail_url ? [hotel.thumbnail_url] : []
   })()
+  const amenities = parseList(hotel.amenities)
+  const distances = hotel.distances ? hotel.distances.split('|').map(s => s.trim()).filter(Boolean) : []
+  const priceIncludes = hotel.price_includes ? hotel.price_includes.split('|').map(s => s.trim()).filter(Boolean) : []
+  const descriptions = (hotel.agencyDescriptions?.length ?? 0) > 0
+    ? hotel.agencyDescriptions!
+    : hotel.description ? [{ agency: hotel.agency, description: hotel.description }] : []
 
-  const amenitiesList: string[] = (() => {
-    if (!hotel.amenities) return []
-    try {
-      const arr = JSON.parse(hotel.amenities)
-      if (Array.isArray(arr)) return arr.map((s: string) => s.trim()).filter(Boolean)
-    } catch {}
-    return hotel.amenities.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)
-  })()
-
-  const tagsList: string[] = (() => {
-    if (!hotel.tags) return []
-    try {
-      const arr = JSON.parse(hotel.tags)
-      if (Array.isArray(arr)) return arr.map((s: string) => s.trim()).filter(Boolean)
-    } catch {}
-    return hotel.tags.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)
-  })()
-
-  const distancesList = hotel.distances
-    ? hotel.distances.split('|').map((s: string) => s.trim()).filter(Boolean)
-    : []
-
-  const priceIncludesList = hotel.price_includes
-    ? hotel.price_includes.split('|').map((s: string) => s.trim()).filter(Boolean)
-    : []
-
-  const minTourPrice = hotel.min_price
-  const tourCount    = hotel.available_dates ?? 0
-
-  const highlights: { icon: React.ReactNode; title: string; desc: string }[] = [
-    { icon: <PiShieldCheck className="w-5 h-5" />, title: 'Přímé rezervace u CK', desc: 'Bez prostředníka — objednáte přímo u cestovní kanceláře' },
-    { icon: <PiArrowsDownUp className="w-5 h-5" />, title: 'Srovnání z více CK', desc: 'Jeden hotel, více nabídek — vyberete nejlepší cenu a termín' },
-    ...(hotel.stars && hotel.stars >= 4 ? [{ icon: <PiStarFill className="w-5 h-5 text-amber-400" />, title: `${hotel.stars}hvězdičkový hotel`, desc: hotel.stars === 5 ? 'Luxusní ubytování s nejvyšším standardem' : 'Nadstandardní komfort a kvalita služeb' }] : []),
-    ...(hotel.review_score && hotel.review_score >= 7 ? [{ icon: <PiChatCircleDots className="w-5 h-5" />, title: `Hodnocení ${hotel.review_score.toFixed(1)}/10`, desc: 'Kladné recenze od hostů, kteří hotel skutečně navštívili' }] : []),
-    ...(hotel.has_last_minute === 1 ? [{ icon: <PiTimer className="w-5 h-5" />, title: 'Last minute sleva', desc: 'Výrazně snížená cena pro flexibilní cestovatele' }] : hotel.has_first_minute === 1 ? [{ icon: <PiCalendarStar className="w-5 h-5" />, title: 'First minute výhoda', desc: 'Nejlepší cena za včasnou rezervaci — rezervujte předem a ušetřete' }] : []),
-    ...(tourCount >= 8 ? [{ icon: <PiCalendarBlank className="w-5 h-5" />, title: `${tourCount} dostupných termínů`, desc: 'Velká flexibilita při výběru data odjezdu i délky pobytu' }] : []),
+  const tourCount = hotel.available_dates ?? 0
+  const dates = formatDateRange(hotel.next_departure, hotel.next_return_date)
+  const place = [hotel.resort_town, hotel.country].filter(Boolean).join(' · ')
+  const crumbs = [
+    { label: 'Zaleto', href: '/' },
+    ...(hotel.country ? [{ label: hotel.country, href: `/destinace/${slugify(hotel.country)}` }] : []),
+    ...(hotel.resort_town && hotel.resort_town !== hotel.country ? [{ label: hotel.resort_town, href: `/destinace/${slugify(hotel.resort_town)}` }] : []),
+    { label: hotel.name },
   ]
+
+  const weatherRegion = hotel.destination?.split('/')[1]?.trim()
+  const weatherUrl = hotel.country
+    ? weatherRegion ? `/pocasi/${slugify(hotel.country)}/${slugify(weatherRegion)}` : `/pocasi/${slugify(hotel.country)}`
+    : null
 
   const hotelSchema = {
     '@context': 'https://schema.org',
@@ -183,688 +116,234 @@ export default async function HotelDetailPage({ params }: Props) {
     name: hotel.name,
     description: hotel.description ? stripHtml(hotel.description).slice(0, 500) : undefined,
     url: `https://zaleto.cz/hotel/${params.slug}`,
-    image: photos.slice(0, 3).length ? photos.slice(0, 3) : (hotel.thumbnail_url ? [hotel.thumbnail_url] : undefined),
+    image: photos.slice(0, 3).length ? photos.slice(0, 3) : undefined,
     ...(hotel.stars ? { starRating: { '@type': 'Rating', ratingValue: hotel.stars, bestRating: 5 } } : {}),
-    ...(hotel.review_score ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: hotel.review_score.toFixed(1), bestRating: '10', worstRating: '0', reviewCount: 5 } } : {}),
-    address: {
-      '@type': 'PostalAddress',
-      addressLocality: hotel.resort_town ?? hotel.destination ?? undefined,
-      addressCountry: hotel.country ?? undefined,
-    },
+    address: { '@type': 'PostalAddress', addressLocality: hotel.resort_town ?? hotel.destination ?? undefined, addressCountry: hotel.country ?? undefined },
     ...(hotel.latitude && hotel.longitude ? { geo: { '@type': 'GeoCoordinates', latitude: hotel.latitude, longitude: hotel.longitude } } : {}),
-    priceRange: minTourPrice ? `od ${formatPriceShort(minTourPrice)} Kč` : undefined,
-    ...(minTourPrice ? {
+    ...(hotel.min_price ? {
       makesOffer: {
-        '@type': 'Offer',
-        name: `Zájezd ${hotel.name}`,
-        price: minTourPrice,
-        priceCurrency: 'CZK',
-        availability: 'https://schema.org/InStock',
-        seller: { '@type': 'Organization', name: 'Zaleto', url: 'https://zaleto.cz' },
+        '@type': 'Offer', name: `Zájezd ${hotel.name}`, price: hotel.min_price, priceCurrency: 'CZK',
+        availability: 'https://schema.org/InStock', seller: { '@type': 'Organization', name: 'Zaleto', url: 'https://zaleto.cz' },
       },
     } : {}),
   }
-
   const breadcrumbSchema = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Zaleto', item: 'https://zaleto.cz' },
-      ...(hotel.country ? [{ '@type': 'ListItem', position: 2, name: hotel.country, item: `https://zaleto.cz/destinace/${slugify(hotel.country)}` }] : []),
-      ...(hotel.resort_town && hotel.resort_town !== hotel.country ? [{ '@type': 'ListItem', position: 3, name: hotel.resort_town, item: `https://zaleto.cz/destinace/${slugify(hotel.resort_town)}` }] : []),
-      { '@type': 'ListItem', position: hotel.resort_town && hotel.resort_town !== hotel.country ? 4 : 3, name: hotel.name, item: `https://zaleto.cz/hotel/${params.slug}` },
-    ],
+    itemListElement: crumbs.map((c, i) => ({
+      '@type': 'ListItem', position: i + 1, name: c.label,
+      item: c.href ? `https://zaleto.cz${c.href}` : `https://zaleto.cz/hotel/${params.slug}`,
+    })),
   }
 
   return (
-    <div className="min-h-screen">
+    <>
       <JsonLd data={hotelSchema} />
       <JsonLd data={breadcrumbSchema} />
       <Header />
 
-      <div className="max-w-[1680px] mx-auto px-6 sm:px-8 pt-5 pb-6">
-
-        {/* ── Editorial page header — no glass, clean type ── */}
-        <div className="mb-5">
-
-          {/* Breadcrumb + badges row */}
-          <div className="flex items-center flex-wrap gap-2 mb-3">
-            <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400">
-              <Link href="/" className="inline-flex items-center gap-1 hover:text-[#0093FF] transition-colors font-medium">
-                <PiArrowLeft className="w-3 h-3" /> Zaleto
-              </Link>
-              {hotel.country && (<>
-                <span className="text-gray-300 select-none mx-0.5">/</span>
-                <Link href={`/destinace/${slugify(hotel.country)}`} className="hover:text-[#0093FF] transition-colors">{hotel.country}</Link>
-              </>)}
-              {hotel.resort_town && hotel.resort_town !== hotel.country && (<>
-                <span className="text-gray-300 select-none mx-0.5">/</span>
-                <Link href={`/destinace/${slugify(hotel.resort_town)}`} className="hover:text-[#0093FF] transition-colors">{hotel.resort_town}</Link>
-              </>)}
-            </nav>
-
-            {hotel.has_last_minute === 1 && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">
-                <PiTimer className="w-3 h-3" /> Last minute
-              </span>
-            )}
-            {hotel.has_first_minute === 1 && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
-                <PiCalendarStar className="w-3 h-3" /> First minute
-              </span>
-            )}
-          </div>
-
-          {/* Location eyebrow */}
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#0093FF] uppercase tracking-[0.12em] mb-2">
-            <PiMapPin className="w-3.5 h-3.5 flex-shrink-0" />
-            {[hotel.resort_town, hotel.destination, hotel.country].filter(Boolean).join(' · ')}
-          </p>
-
-          {/* Title */}
-          <h1
-            className="font-bold text-gray-900 leading-[1.08] tracking-tight mb-4"
-            style={{ fontSize: 'clamp(26px, 3.5vw, 44px)' }}
-          >
-            {hotel.name}
-          </h1>
-
-          {/* Meta strip */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            {hotel.stars && hotel.stars > 0 && (
-              <div className="flex items-center gap-1.5">
-                <StarsRow count={hotel.stars} />
-                <span className="text-[11px] text-gray-400">{hotel.stars}-hvězdičkový</span>
-              </div>
-            )}
-
-            {hotel.review_score && hotel.review_score > 0 && (<>
-              <span className="w-px h-4 bg-gray-200 flex-shrink-0" />
-              <div className="flex items-center gap-1.5">
-                <span className="text-[15px] font-bold text-gray-900 tabular-nums leading-none">{hotel.review_score.toFixed(1)}</span>
-              </div>
-            </>)}
-
-            <span className="w-px h-4 bg-gray-200 flex-shrink-0" />
-            <span className="text-[12px] font-medium text-gray-500">{hotel.agency}</span>
-          </div>
+      <div className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
+        <Crumbs items={crumbs} />
+        <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center', margin: 'var(--space-4) 0 var(--space-2)' }}>
+          {hotel.has_last_minute === 1 && <span className="z-stamp z-stamp--fill">Last minute</span>}
+          {hotel.has_first_minute === 1 && <span className="z-stamp z-stamp--brand">First minute</span>}
         </div>
-        {/* thin separator */}
-        <div className="mb-5 h-px bg-gray-100" />
+        <h1 className="h1" style={{ marginBottom: 'var(--space-3)' }}>
+          {hotel.name}<span className="z-dot">.</span>
+        </h1>
+        <div className="z-byline">
+          {place && <span><Icon name="poloha" />{place}</span>}
+          {hotel.stars ? <span><Icon name="hvezda" />{hotel.stars} hvězdy</span> : null}
+          {hotel.review_score ? <span><Icon name="info" />Hodnocení {hotel.review_score.toFixed(1)} / 10</span> : null}
+          <span><Icon name="hotel" />{hotel.agency}</span>
+        </div>
 
-        {/* Gallery */}
         <HotelGallery photos={photos} name={hotel.name} />
 
-        {/* ── Cena zájezdu — mobile only, right after gallery ── */}
-        <div className="lg:hidden mt-4 rounded-2xl overflow-hidden bg-white border border-gray-100">
-          {/* Header: eyebrow + heading + count */}
-          <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 border-b border-gray-100">
-            <div>
-              <p className="text-[10px] font-bold text-[#0093FF] uppercase tracking-widest mb-0.5">Rezervace</p>
-              <h3 className="font-bold text-gray-900 leading-tight tracking-tight" style={{ fontSize: '15px' }}>
-                Nejbližší termíny
-              </h3>
-            </div>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-white px-2.5 py-1 rounded-full flex-shrink-0 bg-[#0093FF]">
-              <PiCalendarBlank className="w-3 h-3" />
-              {tourCount}
-            </span>
-          </div>
-          {/* Next departure + price */}
-          <div className="px-4 py-3 border-b border-gray-100">
-            {hotel.next_departure ? (
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-2 h-2 rounded-full flex-shrink-0 bg-emerald-500" />
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-bold text-gray-900 leading-tight">
-                      {formatDep(hotel.next_departure)}
-                      {hotel.next_return_date && <span className="font-normal text-gray-400"> → {formatDep(hotel.next_return_date)}</span>}
-                    </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Nejbližší dostupný termín</p>
-                  </div>
-                </div>
-                {minTourPrice && (
-                  <div className="flex items-baseline gap-0.5 flex-shrink-0">
-                    <span className="text-[22px] font-black tabular-nums leading-none" style={{ color: '#049669' }}>{formatPriceShort(minTourPrice)}</span>
-                    <span className="text-xs font-semibold text-gray-400 ml-0.5">Kč</span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-400">Aktualizuje se…</p>
-            )}
-          </div>
-          {/* CTA */}
-          <div className="px-4 py-3 space-y-2">
-            <ScrollToButton
-              targetId="terminy"
-              className="btn-cta w-full flex items-center justify-center gap-2 text-sm font-bold py-3 px-4 rounded-xl transition-all active:scale-[0.98]"
-            >
-              <PiCalendarBlank className="w-4 h-4" />
-              Zobrazit všechny termíny
-            </ScrollToButton>
-            <div className="flex gap-2">
-              <FavoriteButton slug={params.slug} name={hotel.name} variant="detail" className="flex-1 justify-center" />
-              <ShareButton slug={params.slug} name={hotel.name} />
-            </div>
-          </div>
-          {/* Trust badges */}
-          <div className="px-4 pb-3 pt-1 flex flex-wrap gap-1.5 border-t border-gray-100">
-            {[
-              { icon: <PiShieldCheck className="w-3 h-3" />, label: 'Přímé rezervace' },
-              { icon: <PiCheck className="w-3 h-3" />, label: 'Bez poplatků' },
-              { icon: <PiCheckCircle className="w-3 h-3" />, label: 'Ověřené CK' },
-            ].map(({ icon, label }) => (
-              <span key={label} className="inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full text-[10px] font-semibold text-gray-600 bg-[#f0f7ff] border border-[#deeeff]">
-                <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF] bg-[#0093FF]/10">{icon}</span>
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Sticky bar — sentinel right after gallery so it's visible on page load */}
-        <HotelStickyBar
-          name={hotel.name}
-          slug={params.slug}
-          stars={hotel.stars}
-          location={[hotel.resort_town, hotel.destination, hotel.country].filter(Boolean).join(' · ')}
-          minPrice={minTourPrice}
-        />
-
-        {/* Main grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start mt-6">
-
-          {/* ── Left column ── */}
-          <div className="lg:col-span-2">
-            <div className="glass-card rounded-2xl px-5 sm:px-6">
-
-              {/* ── O hotelu — first, most important ── */}
-              {((hotel.agencyDescriptions?.length ?? 0) > 0 || hotel.description) && (
-                <CollapsibleSection title="O hotelu" icon={<PiHouseSimple className="w-5 h-5" />}>
-                  <AgencyDescriptionSwitcher
-                    descriptions={(hotel.agencyDescriptions?.length ?? 0) > 0
-                      ? hotel.agencyDescriptions!
-                      : hotel.description ? [{ agency: hotel.agency, description: hotel.description }] : []
-                    }
-                  />
-                </CollapsibleSection>
-              )}
-
-              {/* ── Proč tento zájezd? — flat icon+text list ── */}
-              {highlights.length > 0 && (
-                <CollapsibleSection title="Proč tento zájezd?" icon={<PiSparkle className="w-5 h-5" />}>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-                    {highlights.slice(0, 6).map((item, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#0093FF] bg-[#0093FF]/10 [&>svg]:w-[14px] [&>svg]:h-[14px] mt-0.5">
-                          {item.icon}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-800 leading-tight">{item.title}</p>
-                          {item.desc && <p className="text-xs text-gray-400 leading-snug mt-0.5">{item.desc}</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CollapsibleSection>
-              )}
-
-              {/* ── Vybavení ── */}
-              {amenitiesList.length > 0 && (
-                <CollapsibleSection title="Vybavení a výhody" icon={<PiSparkle className="w-5 h-5" />}>
-                  <div className="flex flex-wrap gap-1.5">
-                    {amenitiesList.map((item, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1.5 pl-1.5 pr-3 py-1 rounded-full text-[11px] font-medium text-gray-700 bg-[#f0f7ff] border border-[#deeeff]"
-                      >
-                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF] bg-[#0093FF]/10">
-                          <PiCheckCircle className="w-3 h-3" />
-                        </span>
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </CollapsibleSection>
-              )}
-
-              {/* ── Stravování ── */}
-              {hotel.food_options && (
-                <CollapsibleSection title="Stravování" icon={<PiForkKnife className="w-5 h-5" />}>
-                  <div className="space-y-1.5">
-                    {parseFoodOptions(hotel.food_options).map((row, i) => (
-                      <div key={i} className={`flex items-center justify-between gap-4 px-3 py-2 rounded-xl ${i % 2 === 0 ? 'bg-[#f9fafb] border border-gray-100' : ''}`}>
-                        <span className="flex items-center gap-2 text-[12px] text-gray-600 min-w-0">
-                          <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[#0093FF] bg-[#0093FF]/10">
-                            <PiForkKnife className="w-3.5 h-3.5" />
-                          </span>
-                          <span className="truncate">{row.label}</span>
-                        </span>
-                        {row.price && (
-                          <span className="text-[12px] font-bold tabular-nums flex-shrink-0" style={{ color: '#049669' }}>{row.price}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CollapsibleSection>
-              )}
-
-              {/* ── Co je v ceně ── */}
-              {priceIncludesList.length > 0 && (
-                <CollapsibleSection title="Co je v ceně" icon={<PiWallet className="w-5 h-5" />}>
-                  <div className="flex flex-wrap gap-1.5">
-                    {priceIncludesList.map((item, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1.5 pl-1.5 pr-3 py-1 rounded-full text-[11px] font-medium text-gray-700 bg-emerald-50 border border-emerald-100"
-                      >
-                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-emerald-500 bg-emerald-100">
-                          <PiCheck className="w-3 h-3" />
-                        </span>
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </CollapsibleSection>
-              )}
-
-              {/* ── Vzdálenosti ── */}
-              {distancesList.length > 0 && (
-                <CollapsibleSection title="Vzdálenosti" icon={<PiRuler className="w-5 h-5" />}>
-                  <div className="space-y-1.5">
-                    {distancesList.map((d, i) => {
-                      const [label, ...rest] = d.split(':')
-                      const val = rest.join(':').trim() || d
-                      return (
-                        <div key={i} className={`flex items-center justify-between gap-4 px-3 py-2 rounded-xl ${i % 2 === 0 ? 'bg-[#f9fafb] border border-gray-100' : ''}`}>
-                          <span className="flex items-center gap-2 text-[12px] text-gray-500 min-w-0">
-                            <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[#0093FF] bg-[#0093FF]/10">
-                              <PiMapPin className="w-3.5 h-3.5" />
-                            </span>
-                            <span className="truncate">{label.trim()}</span>
-                          </span>
-                          <span className="text-[12px] font-bold text-gray-800 tabular-nums flex-shrink-0">{val}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </CollapsibleSection>
-              )}
-
-              {/* ── Recenze ── */}
-              <CollapsibleSection title="Recenze hostů" icon={<PiChatCircleDots className="w-5 h-5" />} defaultOpen={false} lazy>
-                <ReviewsSection slug={params.slug} />
+        <div className="z-hotel">
+          <div>
+            {descriptions.length > 0 && (
+              <CollapsibleSection title="o hotelu">
+                <div className="z-prose"><AgencyDescriptionSwitcher descriptions={descriptions} /></div>
               </CollapsibleSection>
+            )}
 
-              {/* ── Počasí ── */}
-              {hotel.latitude && hotel.longitude && (() => {
-                const _country = hotel.country
-                const _region = hotel.destination?.split('/')[1]?.trim()
-                const _weatherUrl = _country
-                  ? _region
-                    ? `/pocasi/${slugify(_country)}/${slugify(_region)}`
-                    : `/pocasi/${slugify(_country)}`
-                  : null
-                return (
-                  <CollapsibleSection title="Počasí v destinaci" icon={<PiSun className="w-5 h-5" />} defaultOpen={false} lazy>
-                    <WeatherWidget
-                      lat={hotel.latitude!}
-                      lon={hotel.longitude!}
-                      location={hotel.resort_town ?? hotel.country ?? ''}
-                      noCard
-                    />
-                    {_weatherUrl && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <Link
-                          href={_weatherUrl}
-                          className="inline-flex items-center gap-1.5 text-xs text-[#008afe] hover:underline font-medium"
-                        >
-                          <PiSun className="w-3.5 h-3.5" />
-                          Podrobné klima a předpověď — {_region ?? _country}
-                        </Link>
-                      </div>
-                    )}
-                  </CollapsibleSection>
-                )
-              })()}
+            {amenities.length > 0 && (
+              <CollapsibleSection title="vybavení">
+                <div className="z-chips">{amenities.map(a => <span key={a} className="z-chip"><Icon name="ok" />{a}</span>)}</div>
+              </CollapsibleSection>
+            )}
 
-              {/* ── Mapa — lowest priority, collapsed ── */}
-              {hotel.latitude && hotel.longitude && (
-                <CollapsibleSection title="Poloha na mapě" icon={<PiMapTrifold className="w-5 h-5" />} defaultOpen={false} lazy>
-                  <Suspense fallback={<div className="h-[440px] bg-gray-50 rounded-2xl animate-pulse" />}>
-                    <HotelMapWithNearby hotel={hotel} slug={params.slug} />
-                  </Suspense>
-                </CollapsibleSection>
-              )}
+            {hotel.food_options && (
+              <CollapsibleSection title="stravování">
+                <dl className="z-rows">
+                  {parseFoodOptions(hotel.food_options).map((r, i) => (
+                    <div key={i} className="z-rows__row"><dt>{r.label}</dt>{r.price && <dd>{r.price}</dd>}</div>
+                  ))}
+                </dl>
+              </CollapsibleSection>
+            )}
 
-            </div>
+            {priceIncludes.length > 0 && (
+              <CollapsibleSection title="co je v ceně">
+                <div className="z-chips">{priceIncludes.map(a => <span key={a} className="z-chip z-chip--ok"><Icon name="ok" />{a}</span>)}</div>
+              </CollapsibleSection>
+            )}
 
-            {/* ── Dostupné termíny — part of left column ── */}
-            <div id="terminy" className="mt-6 scroll-mt-[140px] rounded-2xl overflow-hidden border border-[#f0f0f0]" style={{ background: '#f9fafb' }}>
-              <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-4 border-b border-gray-100">
-                <div>
-                  <p className="text-[10px] font-bold text-[#0093FF] uppercase tracking-[0.16em] mb-1">Rezervace</p>
-                  <h2 className="font-bold text-gray-900 leading-tight" style={{ fontSize: '20px', letterSpacing: '-0.02em' }}>
-                    Dostupné termíny
-                  </h2>
-                </div>
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white px-3 py-1.5 rounded-full flex-shrink-0 bg-[#0093FF]">
-                  <PiCalendarBlank className="w-3.5 h-3.5" />
-                  {tourCount} {tourCount === 1 ? 'termín' : tourCount < 5 ? 'termíny' : 'termínů'}
-                </span>
+            {distances.length > 0 && (
+              <CollapsibleSection title="vzdálenosti">
+                <dl className="z-rows">
+                  {distances.map((d, i) => {
+                    const [label, ...rest] = d.split(':')
+                    return <div key={i} className="z-rows__row"><dt>{label.trim()}</dt><dd>{rest.join(':').trim() || d}</dd></div>
+                  })}
+                </dl>
+              </CollapsibleSection>
+            )}
+
+            <CollapsibleSection title="recenze hostů" defaultOpen={false} lazy>
+              <ReviewsSection slug={params.slug} />
+            </CollapsibleSection>
+
+            {hotel.latitude && hotel.longitude && (
+              <CollapsibleSection title="počasí v destinaci" defaultOpen={false} lazy>
+                <WeatherWidget lat={hotel.latitude} lon={hotel.longitude} location={hotel.resort_town ?? hotel.country ?? ''} noCard />
+                {weatherUrl && (
+                  <p style={{ marginTop: 'var(--space-3)' }}>
+                    <Link className="z-more" href={weatherUrl}>Podrobné klima</Link>
+                  </p>
+                )}
+              </CollapsibleSection>
+            )}
+
+            {hotel.latitude && hotel.longitude && (
+              <CollapsibleSection title="poloha na mapě" defaultOpen={false} lazy>
+                <Suspense fallback={<div style={{ height: 440 }} />}>
+                  <HotelMapWithNearby hotel={hotel} slug={params.slug} />
+                </Suspense>
+              </CollapsibleSection>
+            )}
+
+            <section id="terminy" className="z-coll" style={{ scrollMarginTop: 'calc(var(--header-height) + 16px)' }}>
+              <div className="z-coll__head" style={{ cursor: 'default' }}>
+                <h2 className="h3">dostupné termíny<span className="z-dot">.</span></h2>
+                <span className="z-chip z-chip--sky">{tourCount} {tourCount === 1 ? 'termín' : tourCount < 5 ? 'termíny' : 'termínů'}</span>
               </div>
-              <div className="p-5 sm:p-6">
-                <TourDatesList slug={params.slug} />
-              </div>
-            </div>
+              <div className="z-coll__body"><TourDatesList slug={params.slug} /></div>
+            </section>
 
-            {/* ── Car rental inline banner ── */}
-            <div className="mt-4">
-              <CarRentalBanner
-                place={hotel.resort_town ?? hotel.destination ?? hotel.country ?? ''}
-                country={hotel.country ?? ''}
-              />
+            <div style={{ marginTop: 'var(--space-5)' }}>
+              <CarRentalBanner place={hotel.resort_town ?? hotel.destination ?? hotel.country ?? ''} country={hotel.country ?? ''} />
             </div>
           </div>
 
-          {/* ── Right column ── */}
-          <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-[116px] space-y-3">
-
-              {/* Booking widget — desktop sticky panel */}
-              <div className="hidden lg:block rounded-2xl overflow-hidden bg-white border border-gray-100">
-
-                {/* Price — hook, shown first */}
-                <div className="px-5 pt-5 pb-4 border-b border-gray-100 bg-[#f9fafb]">
-                  <p className="text-[10px] font-bold text-[#0093FF] uppercase tracking-widest mb-3">Rezervace</p>
-                  <div className="flex items-end justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] text-gray-400 mb-1">Nejnižší cena od osoby</p>
-                      {minTourPrice ? (
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-[32px] font-black tabular-nums leading-none" style={{ color: '#049669' }}>{formatPriceShort(minTourPrice)}</span>
-                          <span className="text-sm font-semibold text-gray-400 ml-0.5">Kč</span>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-400">Aktualizuje se…</span>
-                      )}
-                    </div>
-                    {[hotel.resort_town, hotel.country].filter(Boolean)[0] && (
-                      <Link
-                        href={`/destinace/${slugify([hotel.resort_town, hotel.destination, hotel.country].filter(Boolean)[0]!)}`}
-                        className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-[#0093FF] transition-colors flex-shrink-0"
-                      >
-                        <PiMapPin className="w-3 h-3 mr-0.5" />
-                        {[hotel.resort_town, hotel.country].filter(Boolean).join(', ')}
-                      </Link>
-                    )}
-                  </div>
+          <aside>
+            <div className="z-tk z-tk--h z-booking">
+              <div className="z-tk__in">
+                <div className="z-booking__top">
+                  <div className="z-kicker">Rezervace</div>
+                  <div className="z-price__note" style={{ marginTop: 'var(--space-3)' }}>od · za osobu</div>
+                  <div className="z-price">{hotel.min_price ? formatPrice(hotel.min_price) : 'Aktualizuje se'}</div>
+                  {dates && <div className="z-data" style={{ marginTop: 'var(--space-2)' }}>NEJBLIŽŠÍ ODLET {dates}</div>}
                 </div>
 
-                {/* Section label + tour count */}
-                <div className="flex items-center justify-between gap-3 px-5 pt-3.5 pb-2">
-                  <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">Nejbližší termíny</h3>
-                  <TourModalTrigger slug={params.slug} name={hotel.name} tourCount={tourCount} />
-                </div>
-
-                {/* Upcoming departures */}
-                <div className="px-3 pb-2 border-b border-gray-100">
-                  <Suspense fallback={
-                    <div className="space-y-1 py-2">
-                      {[1,2,3].map(i => <div key={i} className="h-12 rounded-xl animate-pulse bg-gray-50" />)}
-                    </div>
-                  }>
+                <div className="z-booking__list">
+                  <div className="z-kicker" style={{ marginBottom: 'var(--space-2)' }}>Nejbližší termíny</div>
+                  <Suspense fallback={<div style={{ height: 120 }} />}>
                     <UpcomingDepartures slug={params.slug} />
                   </Suspense>
+                  <div style={{ marginTop: 'var(--space-2)' }}>
+                    <TourModalTrigger slug={params.slug} name={hotel.name} tourCount={tourCount} />
+                  </div>
                 </div>
 
-                {/* Actions */}
-                <div className="px-5 pb-5 pt-4 space-y-2.5">
-                  <ViewersBadge />
-                  <ScrollToButton
-                    targetId="terminy"
-                    className="btn-cta w-full flex items-center justify-center gap-2 text-sm font-bold py-3.5 px-4 rounded-xl transition-all active:scale-[0.98]"
-                  >
-                    <PiCalendarBlank className="w-4 h-4" />
-                    Zobrazit všechny termíny
+                <div className="z-booking__stub">
+                  <ScrollToButton targetId="terminy" className="z-btn z-btn--primary z-btn--block">
+                    Zobrazit termíny<span className="z-btn__go"><Icon name="sipka" /></span>
                   </ScrollToButton>
-                  <div className="flex gap-2">
+                  <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                     <FavoriteButton slug={params.slug} name={hotel.name} variant="detail" className="flex-1 justify-center" />
                     <ShareButton slug={params.slug} name={hotel.name} />
                   </div>
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {[
-                      { icon: <PiShieldCheck className="w-3 h-3" />, label: 'Přímé rezervace' },
-                      { icon: <PiCheck className="w-3 h-3" />, label: 'Bez poplatků' },
-                      { icon: <PiCheckCircle className="w-3 h-3" />, label: 'Ověřené CK' },
-                    ].map(({ icon, label }) => (
-                      <span key={label} className="inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full text-[10px] font-semibold text-gray-600 bg-[#f0f7ff] border border-[#deeeff]">
-                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[#0093FF] bg-[#0093FF]/10">{icon}</span>
-                        {label}
-                      </span>
-                    ))}
-                  </div>
                 </div>
               </div>
-
-              {/* Nearby hotels — vlastní scroll, neposouvá price widget */}
-              {hotel.latitude && hotel.longitude && (
-                <div className="lg:max-h-[400px] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  <Suspense fallback={null}>
-                    <NearbyHotels lat={hotel.latitude} lon={hotel.longitude} exclude={params.slug} />
-                  </Suspense>
-                </div>
-              )}
-
             </div>
-          </div>
+          </aside>
         </div>
-
-        {/* ── Nearby hotels — full width, below main grid ── */}
-        {(hotel.latitude && hotel.longitude) && (
-          <div className="mt-8 section-island">
-            <Suspense fallback={null}>
-              <NearbyHotelsGrid lat={hotel.latitude} lon={hotel.longitude} exclude={params.slug} />
-            </Suspense>
-          </div>
-        )}
       </div>
-    </div>
+
+      {hotel.latitude && hotel.longitude && (
+        <Suspense fallback={null}>
+          <NearbyHotelsGrid lat={hotel.latitude} lon={hotel.longitude} exclude={params.slug} />
+        </Suspense>
+      )}
+    </>
   )
 }
 
 async function UpcomingDepartures({ slug }: { slug: string }) {
-  const { fetchHotelTours, API } = await import('@/lib/api')
-  let tours: import('@/lib/types').Tour[] = []
+  let tours: Tour[] = []
   try {
     const data = await fetchHotelTours(slug)
-    tours = (data.tours ?? [])
-      .sort((a, b) => (a.departure_date || '').localeCompare(b.departure_date || ''))
-      .slice(0, 4)
+    tours = (data.tours ?? []).sort((a, b) => (a.departure_date || '').localeCompare(b.departure_date || '')).slice(0, 4)
   } catch { return null }
-  if (tours.length === 0) return null
-
-  function fmtShort(s: string | null) {
-    if (!s) return null
-    const [y, m, d] = s.split('T')[0].split('-').map(Number)
-    return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })
-  }
-
-  function fmtPrice(p: number) {
-    return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(p)
-  }
-
-  function transportIcon(transport: string | null) {
-    const t = (transport ?? '').toLowerCase()
-    if (t.includes('autobus') || t.includes('vlak')) return <Bus className="w-3.5 h-3.5" />
-    if (t.includes('vlastní') || t.includes('vlastni')) return <Car className="w-3.5 h-3.5" />
-    return <Plane className="w-3.5 h-3.5" />
-  }
+  if (tours.length === 0) return <p className="z-data">TERMÍNY SE AKTUALIZUJÍ</p>
 
   return (
-    <div>
-      {tours.map((tour, i) => {
-        const dep = fmtShort(tour.departure_date)
-        const ret = fmtShort(tour.return_date ?? null)
-        const params = new URLSearchParams({
-          date:   tour.departure_date || '',
-          nights: String(tour.duration || 7),
-          adults: '2',
-        })
-        if (tour.url) params.set('tour_url', tour.url)
-        const href = `${API}/api/redirect/${slug}?${params}`
+    <ul className="z-deps">
+      {tours.map(t => {
+        const q = new URLSearchParams({ date: t.departure_date || '', nights: String(t.duration || 7), adults: '2' })
+        if (t.url) q.set('tour_url', t.url)
         return (
-          <a
-            key={tour.id}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`flex items-center justify-between gap-2 px-2 py-2.5 rounded-xl group transition-colors hover:bg-[#f0f7ff] ${i % 2 !== 0 ? 'bg-[#f9fafb]' : ''}`}
-          >
-            {/* Left: transport icon + dates */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 text-white" style={{ background: '#0093FF' }}>
-                {transportIcon(tour.transport)}
+          <li key={t.id}>
+            <a href={`${API}/api/redirect/${slug}?${q}`} target="_blank" rel="noopener noreferrer sponsored">
+              <span>
+                <b>{formatDateRange(t.departure_date, t.return_date)}</b>
+                <small>{[t.duration ? `${t.duration} nocí` : null, t.departure_city].filter(Boolean).join(' · ')}</small>
               </span>
-              <div className="min-w-0">
-                <p className="text-[12px] font-bold text-gray-900 leading-tight">
-                  {dep ?? '—'}
-                  {ret && <span className="font-normal text-gray-400"> → {ret}</span>}
-                </p>
-                <p className="text-[10px] text-gray-400 mt-0.5">
-                  {tour.duration ? `${tour.duration} nocí` : ''}
-                  {tour.departure_city ? `${tour.duration ? ' · ' : ''}${tour.departure_city}` : ''}
-                </p>
-              </div>
-            </div>
-            {/* Right: price + arrow */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {tour.price > 0 && (
-                <span className="text-[13px] font-black tabular-nums" style={{ color: '#049669' }}>
-                  {fmtPrice(tour.price)} <span className="text-[10px] font-semibold text-gray-400">Kč</span>
-                </span>
-              )}
-              <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[#0093FF] bg-[#0093FF]/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                <PiArrowRight className="w-3 h-3" />
-              </span>
-            </div>
-          </a>
+              {t.price > 0 && <span className="z-deps__price">{formatPrice(t.price)}</span>}
+            </a>
+          </li>
         )
       })}
-    </div>
+    </ul>
   )
 }
 
 async function NearbyHotelsGrid({ lat, lon, exclude }: { lat: number; lon: number; exclude: string }) {
-  const { fetchNearbyHotels } = await import('@/lib/api')
-  let nearby: import('@/lib/types').NearbyHotel[] = []
-  try {
-    nearby = await fetchNearbyHotels(lat, lon, exclude, 8)
-  } catch {
-    return null
-  }
+  let nearby: NearbyHotel[] = []
+  try { nearby = await fetchNearbyHotels(lat, lon, exclude, 6) } catch { return null }
+  nearby = nearby.filter(n => n.thumbnail_url).slice(0, 3)
   if (nearby.length === 0) return null
-
-  function formatPriceShort(p: number) {
-    return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(p)
-  }
-
   return (
-    <div>
-      <div className="mb-6">
-        <p className="text-[10px] font-bold text-[#0093FF] uppercase tracking-[0.16em] mb-1.5">Podobné hotely</p>
-        <h2
-          className="font-bold text-gray-900 leading-tight"
-          style={{ fontSize: 'clamp(20px, 2vw, 26px)' }}
-        >
-          Hotely <em className="not-italic text-[#0093FF]">v okolí</em>
-        </h2>
+    <section className="z-container z-section">
+      <div className="z-shead">
+        <div>
+          <div className="z-kicker">V okolí</div>
+          <h2>hotely poblíž<span className="z-dot">.</span></h2>
+        </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 lg:gap-6">
-        {nearby.map((n) => (
-          <Link key={n.slug} href={`/hotel/${n.slug}`} className="block group">
-            {/* Image — matches HotelCard */}
-            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-gray-200 mb-3 shadow-[0_2px_8px_rgba(0,0,0,0.10)] group-hover:shadow-[0_8px_28px_rgba(0,0,0,0.16)] transition-shadow duration-300">
-              {n.thumbnail_url ? (
-                <div className="absolute inset-0 transition-transform duration-700 ease-out group-hover:scale-[1.05]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={n.thumbnail_url} alt={n.name} className="w-full h-full object-cover" />
-                </div>
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
-                  <PiBuildings className="w-8 h-8 text-blue-300" />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
-              {n.distance_km != null && (
-                <div className="absolute bottom-3 left-3 z-10">
-                  <span className="text-[11px] font-semibold text-white px-2.5 py-1 rounded-full" style={{ background: 'rgba(0,0,0,0.38)' }}>
-                    {Number(n.distance_km).toFixed(1)} km
-                  </span>
-                </div>
-              )}
-            </div>
-            {/* Info strip — same as HotelCard */}
-            <div className="px-0.5">
-              <div className="flex items-center gap-1.5 mb-1.5 min-w-0">
-                {n.stars ? (
-                  <span className="text-amber-400 text-[11px] leading-none tracking-tighter flex-shrink-0">
-                    {'★'.repeat(Math.min(n.stars, 5))}
-                  </span>
-                ) : null}
-                <span className="text-[11px] text-gray-500 truncate">
-                  {[n.resort_town, n.country].filter(Boolean).join(', ')}
-                </span>
-              </div>
-              <h3
-                className="font-bold text-gray-900 leading-snug line-clamp-1 mb-2.5 group-hover:text-[#0093FF] transition-colors duration-200"
-                style={{ fontSize: '1rem' }}
-              >
-                {n.name}
-              </h3>
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <span className="text-[16px] font-bold text-[#039669] tabular-nums">{formatPriceShort(n.min_price)}</span>
-                  <span className="text-[12px] text-gray-400 ml-1">Kč / os.</span>
-                </div>
-                <div className="w-8 h-8 rounded-full border border-[#deeeff] bg-[#f0f7ff] group-hover:bg-[#0093FF] group-hover:border-[#0093FF] transition-all duration-200 flex items-center justify-center flex-shrink-0">
-                  <PiArrowRight className="w-3.5 h-3.5 text-[#0093FF] group-hover:text-white transition-colors duration-200" />
-                </div>
-              </div>
-            </div>
-          </Link>
-        ))}
+      <div className="z-grid-3">
+        {nearby.map(n => <TourCard key={n.slug} hotel={{ ...n, min_price: n.min_price }} />)}
       </div>
-    </div>
+    </section>
   )
 }
 
-async function HotelMapWithNearby({ hotel, slug }: { hotel: import('@/lib/types').Hotel; slug: string }) {
-  const { fetchNearbyHotels } = await import('@/lib/api')
+async function HotelMapWithNearby({ hotel, slug }: { hotel: Hotel; slug: string }) {
   type MapNearby = {
-    id: number; slug: string; name: string; stars: number | null
-    thumbnail_url: string | null; min_price: number; resort_town: string | null
-    latitude: number; longitude: number; distance_km?: number
+    id: number; slug: string; name: string; stars: number | null; thumbnail_url: string | null
+    min_price: number; resort_town: string | null; latitude: number; longitude: number; distance_km?: number
   }
   let nearbyForMap: MapNearby[] = []
   if (hotel.latitude && hotel.longitude) {
     try {
       const raw = await fetchNearbyHotels(hotel.latitude, hotel.longitude, slug, 20)
       nearbyForMap = raw
-        .filter((n) => n.latitude != null && n.longitude != null)
-        .map((n) => ({
-          id: n.id ?? 0,
-          slug: n.slug,
-          name: n.name,
-          stars: n.stars,
-          thumbnail_url: n.thumbnail_url,
-          min_price: n.min_price,
-          resort_town: n.resort_town ?? null,
-          latitude: n.latitude!,
-          longitude: n.longitude!,
-          distance_km: n.distance_km,
+        .filter(n => n.latitude != null && n.longitude != null)
+        .map(n => ({
+          id: n.id ?? 0, slug: n.slug, name: n.name, stars: n.stars, thumbnail_url: n.thumbnail_url,
+          min_price: n.min_price, resort_town: n.resort_town ?? null, latitude: n.latitude!, longitude: n.longitude!, distance_km: n.distance_km,
         }))
     } catch { /* ignore */ }
   }

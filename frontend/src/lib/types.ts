@@ -1,6 +1,7 @@
 export interface Hotel {
   id: number
   slug: string
+  canonical_slug?: string | null
   agency: string
   name: string
   country: string | null

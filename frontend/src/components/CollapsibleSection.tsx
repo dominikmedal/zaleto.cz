@@ -1,17 +1,19 @@
 ﻿'use client'
 import { useState } from 'react'
-import { PiCaretDown } from 'react-icons/pi'
+import Icon from '@/components/ui/Icon'
 
 interface Props {
   title: string
-  icon: React.ReactNode
+  /** Zachováno kvůli zpětné kompatibilitě; v novém designu se ikona v nadpisu nezobrazuje. */
+  icon?: React.ReactNode
   defaultOpen?: boolean
-  /** Only mount children after first open (prevents eager API calls) */
+  /** Potomci se připojí až po prvním otevření (zabraňuje zbytečným voláním API). */
   lazy?: boolean
   children: React.ReactNode
 }
 
-export default function CollapsibleSection({ title, icon, defaultOpen = true, lazy = false, children }: Props) {
+/** Rozbalovací sekce v designu „Palubní deník“: serifový titulek s tečkou, tečkovaná čára. */
+export default function CollapsibleSection({ title, defaultOpen = true, lazy = false, children }: Props) {
   const [open, setOpen] = useState(defaultOpen)
   const [everOpened, setEverOpened] = useState(defaultOpen)
 
@@ -22,39 +24,12 @@ export default function CollapsibleSection({ title, icon, defaultOpen = true, la
   }
 
   return (
-    <section className="py-5 border-b border-gray-100 last:border-0">
-      <button
-        type="button"
-        onClick={toggle}
-        className="w-full flex items-center justify-between gap-3 text-left group/toggle"
-        aria-expanded={open}
-      >
-        <h2 className="flex items-center gap-2.5">
-          <span className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center [&>svg]:w-[15px] [&>svg]:h-[15px] text-[#0093FF] bg-[#0093FF]/10">
-            {icon}
-          </span>
-          <span className="text-base font-bold text-gray-900 group-hover/toggle:text-[#0093FF] transition-colors tracking-tight leading-tight">
-            {title}
-          </span>
-        </h2>
-        <PiCaretDown
-          className={`w-4 h-4 text-[#0093FF]/50 group-hover/toggle:text-[#0093FF] flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        />
+    <section className="z-coll">
+      <button type="button" onClick={toggle} className="z-coll__head" aria-expanded={open}>
+        <h2 className="h3">{title}<span className="z-dot">.</span></h2>
+        <Icon name="chevron" className={open ? 'z-coll__chev z-coll__chev--open' : 'z-coll__chev'} />
       </button>
-
-      {/* Grid-row animation — works for any height without JS measurement */}
-      <div
-        className="grid transition-[grid-template-rows] duration-200 ease-in-out"
-        style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
-      >
-        <div className="overflow-hidden">
-          {(!lazy || everOpened) && (
-            <div className="mt-4">
-              {children}
-            </div>
-          )}
-        </div>
-      </div>
+      {open && (!lazy || everOpened) && <div className="z-coll__body">{children}</div>}
     </section>
   )
 }
