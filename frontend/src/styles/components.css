@@ -478,3 +478,40 @@ a.z-tk:hover { transform: translateY(-4px) rotate(-.4deg); filter: drop-shadow(0
 /* přechod pod průhledným menu – bílý text je čitelný i na světlé fotce */
 .z-masthead--under::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: calc(var(--header-height) + 60px); background: linear-gradient(to bottom, rgba(10, 58, 120, .85), rgba(10, 58, 120, 0)); z-index: 1; pointer-events: none; }
 .z-masthead--under .z-masthead__inner { z-index: 2; }
+
+/* ---------- Seznam termínů na detailu hotelu ---------- */
+.z-datelist { display: flex; flex-direction: column; gap: var(--space-4); }
+.z-dateticket { --stub: 230px; }
+.z-dateticket__in { display: grid; grid-template-columns: minmax(0, 1fr) var(--stub); }
+.z-dateticket__main { padding: var(--space-4) var(--space-5); min-width: 0; }
+.z-dateticket__main .z-route { font-size: 22px; line-height: 28px; }
+.z-dateticket__stub { display: flex; flex-direction: column; justify-content: center; gap: var(--space-3); padding: var(--space-4) var(--space-5) var(--space-4) var(--space-6); }
+.z-dateticket__stub .z-price { font-size: 26px; line-height: 28px; }
+.z-dateticket:hover .z-dateticket__cta { background: var(--brand-deep); }
+.z-datefilters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin-bottom: var(--space-5); }
+.z-seg { display: inline-flex; padding: 3px; border: 1px solid var(--line-strong); border-radius: var(--radius-pill); }
+.z-seg button { height: 34px; padding: 0 var(--space-4); border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--ink); font: 500 14px/20px var(--font-sans); cursor: pointer; }
+.z-seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.z-stepper, .z-datepair { display: inline-flex; align-items: center; gap: var(--space-2); height: 42px; padding: 0 var(--space-3); border: 1px solid var(--line-strong); border-radius: var(--radius-pill); background: var(--raised); }
+.z-stepper button { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; color: var(--ink); cursor: pointer; }
+.z-stepper button:hover:not(:disabled) { background: var(--sky); }
+.z-stepper button:disabled { opacity: .3; cursor: not-allowed; }
+.z-stepper span { display: inline-flex; align-items: center; gap: 6px; font: 700 13px/18px var(--font-mono); letter-spacing: .04em; }
+.z-datepair input { border: 0; background: transparent; outline: none; font: 400 13px/20px var(--font-mono); color: var(--ink); width: 8.4rem; }
+.z-datepair span { color: var(--ink-muted); }
+.z-chip[aria-pressed] { background-color: transparent; }
+@media (max-width: 767px) {
+  .z-dateticket { --stub: 0px; }
+  .z-dateticket__in { grid-template-columns: 1fr; }
+  .z-dateticket.z-tk--v .z-tk__in { -webkit-mask: none; mask: none; }
+  .z-dateticket.z-tk--v .z-tk__in::after { display: none; }
+  .z-dateticket__stub { flex-direction: row; align-items: center; justify-content: space-between; padding: 0 var(--space-5) var(--space-4); border-top: 2px dashed var(--line); padding-top: var(--space-4); }
+}
+
+/* ---------- Modální okno ---------- */
+.z-modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: var(--space-4); }
+.z-modal__scrim { position: absolute; inset: 0; background: var(--scrim); }
+.z-modal__panel { position: relative; width: 100%; max-width: 860px; max-height: 90dvh; display: flex; flex-direction: column; background: var(--paper); border-radius: var(--radius-lg); box-shadow: var(--shadow-lift); overflow: hidden; }
+.z-modal__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); padding: var(--space-5) var(--space-5) var(--space-4); border-bottom: 2px dotted var(--line); }
+.z-modal__body { padding: var(--space-5); overflow-y: auto; }
+@media (max-width: 767px) { .z-modal { align-items: flex-end; padding: 0; } .z-modal__panel { border-radius: var(--radius-lg) var(--radius-lg) 0 0; max-height: 92dvh; } }

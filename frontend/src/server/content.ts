@@ -78,7 +78,7 @@ const DEST_EN: Record<string, string> = {
 const STALE_DAYS = 30
 const UA = { 'User-Agent': 'zaleto.cz/1.0 (info@zaleto.cz)' }
 
-const BAD_FILE = /flag|map|coat[_ ]of|logo|icon|locator|emblem|seal|symbol|diagram|chart|aquarium|portrait|signature|\.svg|\.gif|\.png|poster|stamp|banknote|coin|demonstrat|protest|parade|military|army|war|soldier|award|concert|singer|band|football|match|election|president|minister|meeting|summit|conference|festival|ceremony|party|visit|interview|night|bridge_construction|train|bus|airport|aircraft|ship|truck|painting|WGA|MET_|_DP\d|museum|fire|flame|burn|flood|storm|damage|manuscript|drawing|engraving|lithograph|sketch|sculpture|statue|box|pen_|lorrain|flight|refugee|migrant|accident|crash|ruins_of|cemetery|graffiti|selfie|crowd|people|person/i
+const BAD_FILE = /flag|map|coat[_ ]of|logo|icon|locator|emblem|seal|symbol|diagram|chart|aquarium|portrait|signature|\.svg|\.gif|\.png|poster|stamp|banknote|coin|demonstrat|protest|parade|military|army|war|soldier|award|concert|singer|band|football|match|election|president|minister|meeting|summit|conference|festival|ceremony|party|visit|interview|night|bridge_construction|train|bus|airport|aircraft|ship|truck|volleyball|tournament|championship|olympic|painting|WGA|MET_|_DP\d|museum|fire|flame|burn|flood|storm|damage|manuscript|drawing|engraving|lithograph|sketch|sculpture|statue|box|pen_|lorrain|flight|refugee|migrant|accident|crash|ruins_of|cemetery|graffiti|selfie|crowd|people|person/i
 
 type Cand = { url: string; w: number; h: number }
 
@@ -153,9 +153,19 @@ async function findPhoto(name: string): Promise<string | null> {
   return null
 }
 
+/** Wikimedia omezuje hotlink z prohlížeče (429) – servírujeme přes vlastní cachovaný endpoint. */
+export function proxied(url: string | null): string | null {
+  if (!url) return url
+  try {
+    const h = new URL(url).hostname
+    if (h.endsWith('wikimedia.org')) return `/api/img?u=${encodeURIComponent(url)}`
+  } catch { /* relativní URL */ }
+  return url
+}
+
 const missingUntil = new Map<string, number>()
 
-export async function destinationPhoto(name: string): Promise<{ url: string | null }> {
+async function destinationPhotoRaw(name: string): Promise<{ url: string | null }> {
   const key = `photo_${name}`
   const cached = metaCache.get(key)
   if (cached !== null && cached !== undefined) return { url: cached as string }
@@ -187,6 +197,11 @@ export async function destinationPhoto(name: string): Promise<{ url: string | nu
     console.error('destination-photo error:', (e as Error).message)
     return { url: null }
   }
+}
+
+export async function destinationPhoto(name: string): Promise<{ url: string | null }> {
+  const r = await destinationPhotoRaw(name)
+  return { url: proxied(r.url) }
 }
 
 // ─── AI obsah destinací (čtení) ────────────────────────────────────────────
