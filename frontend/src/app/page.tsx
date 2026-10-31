@@ -10,7 +10,6 @@ import StoryCard from '@/components/ui/StoryCard'
 import WindowCard from '@/components/ui/WindowCard'
 import { formatPrice } from '@/components/ui/format'
 import { fetchArticles, fetchDestinationPhoto, fetchDestinations, fetchHotels } from '@/lib/api'
-import { bestHotelPhotos } from '@/server/content'
 import { slugify } from '@/lib/slugify'
 
 export const revalidate = 3600
@@ -40,7 +39,9 @@ const siteSchema = {
 }
 
 /** Kurátorovaný výběr zemí pro sekci 01 (jen ty, které mají aktuální nabídku, se zobrazí). */
-const POPULAR = ['Řecko', 'Turecko', 'Egypt', 'Španělsko', 'Chorvatsko', 'Kypr', 'Bulharsko', 'Tunisko']
+const POPULAR = ['Řecko', 'Turecko', 'Egypt', 'Španělsko', 'Chorvatsko', 'Kypr', 'Bulharsko', 'Tunisko', 'Itálie', 'Portugalsko', 'Maledivy', 'Thajsko', 'Spojené arabské emiráty', 'Mexiko']
+/** Fotky hotelů od CK jsou jen záloha – v sekci destinací chceme skutečné fotky destinací. */
+const isHotelPhoto = (u: string | null) => !u || /content4travel\.com/.test(u)
 
 export default async function HomePage() {
   const [destinations, articles, lastMinute, cheapest] = await Promise.all([
@@ -53,9 +54,11 @@ export default async function HomePage() {
   // Počet hotelů v zemi
   const byCountry = new Map<string, number>()
   for (const d of destinations) if (d.country) byCountry.set(d.country, (byCountry.get(d.country) ?? 0) + d.hotel_count)
-  const countries = POPULAR.filter(c => byCountry.has(c)).slice(0, 8)
-  const best = await bestHotelPhotos(countries)
-  const photos = await Promise.all(countries.map(c => (best[c] ? Promise.resolve(best[c]) : fetchDestinationPhoto(c))))
+  const candidates = POPULAR.filter(c => byCountry.has(c))
+  const candidatePhotos = await Promise.all(candidates.map(c => fetchDestinationPhoto(c)))
+  const picked = candidates.map((c, i) => ({ c, photo: candidatePhotos[i] })).filter(x => !isHotelPhoto(x.photo)).slice(0, 8)
+  const countries = picked.map(x => x.c)
+  const photos = picked.map(x => x.photo)
 
   // Lístky: nejdřív last minute, doplněné nejlevnějšími; jen s fotkou
   const withPhoto = (hs: typeof cheapest) => hs.filter(h => h.thumbnail_url)
