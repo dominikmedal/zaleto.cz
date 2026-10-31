@@ -1,7 +1,6 @@
 ﻿import type { Metadata } from 'next'
 import { Fragment } from 'react'
 import Link from 'next/link'
-import { permanentRedirect } from 'next/navigation'
 import Header from '@/components/Header'
 import Icon from '@/components/ui/Icon'
 import Crumbs from '@/components/ui/Crumbs'
@@ -9,7 +8,7 @@ import SectionHead from '@/components/ui/SectionHead'
 import InfiniteHotels from '@/components/InfiniteHotels'
 import DestinationSuggest from '@/components/ui/DestinationSuggest'
 import { DateRangeField } from '@/components/DateRangePicker'
-import { fetchFilters, fetchHotels } from '@/lib/api'
+import { fetchFilters, fetchHotels, fetchDestinations, fetchDestinationAI, fetchDestinationPhoto } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 
 type SP = Record<string, string | string[] | undefined>
@@ -47,16 +46,37 @@ function qs(sp: SP, over: Record<string, string | undefined>) {
   return s ? `?${s}` : ''
 }
 
+interface DestInfo { name: string; slug: string; text: string | null; photo: string | null; weatherHref: string | null }
+
+async function loadDestInfo(name: string): Promise<DestInfo | null> {
+  const [rows, ai, photo] = await Promise.all([
+    fetchDestinations().catch(() => []),
+    fetchDestinationAI(name).catch(() => null),
+    fetchDestinationPhoto(name).catch(() => null),
+  ])
+  const n = name.toLowerCase()
+  const regionOf = (d: string | null) => { const p = (d ?? '').split('/').map(x => x.trim()); return p.length >= 2 ? p[1] : p[0] }
+  let weatherHref: string | null = null
+  const asCountry = rows.find(r => r.country?.toLowerCase() === n)
+  if (asCountry?.country) weatherHref = `/pocasi/${slugify(asCountry.country)}`
+  else {
+    const asRegion = rows.find(r => regionOf(r.destination).toLowerCase() === n)
+    if (asRegion?.country) weatherHref = `/pocasi/${slugify(asRegion.country)}/${slugify(regionOf(asRegion.destination))}`
+  }
+  const first = ai?.description?.split(/\n\n+/)[0] ?? null
+  const text = first ? first.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ') : null
+  return { name, slug: slugify(name), text, photo, weatherHref }
+}
+
 export default async function ZajezdyPage({ searchParams }: { searchParams: SP }) {
   const f = Object.fromEntries(KEYS.map(k => [k, one(searchParams[k])])) as Record<(typeof KEYS)[number], string | undefined>
   const page = Math.max(1, parseInt(one(searchParams.page) ?? '1') || 1)
   const sort = f.sort || 'price_asc'
 
-  // /zajezdy?destination=X bez dalších filtrů → kanonická stránka destinace
-  const onlyDest = f.destination && !f.destination.includes(',') && KEYS.every(k => k === 'destination' || k === 'sort' || !f[k])
-  if (onlyDest) permanentRedirect(`/destinace/${slugify(f.destination!)}${sort !== 'price_asc' ? `?sort=${sort}` : ''}`)
+  // Jedna destinace → pod nadpisem ukážeme mini info (průvodce, počasí); výsledky jsou rovnou vyfiltrované.
+  const singleDest = f.destination && !f.destination.includes(',') ? f.destination.trim() : null
 
-  const [meta, result] = await Promise.all([
+  const [meta, result, destInfo] = await Promise.all([
     fetchFilters().catch(() => null),
     fetchHotels({
       destination: f.destination, date_from: f.date_from, date_to: f.date_to, date_flex: one(searchParams.date_flex), duration: f.duration,
@@ -64,6 +84,7 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
       stars: f.stars, meal_plan: f.meal_plan, transport: f.transport, tour_type: f.tour_type,
       departure_city: f.departure_city, sort, page, limit: LIMIT,
     }).catch(() => null),
+    singleDest ? loadDestInfo(singleDest) : Promise.resolve(null),
   ])
 
   const hotels = result?.hotels ?? []
@@ -78,6 +99,30 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
         <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Zájezdy' }]} />
         <div style={{ height: 'var(--space-6)' }} />
         <SectionHead as="h1" keepKicker kicker={pg ? `${pg.total.toLocaleString('cs-CZ')} hotelů s volným termínem` : 'Zájezdy'} title={title} />
+
+        {destInfo && (
+          <aside className="z-destmini" aria-label={`O destinaci ${destInfo.name}`}>
+            {destInfo.photo && (
+              <div className="z-destmini__photo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={destInfo.photo} alt="" />
+              </div>
+            )}
+            <div className="z-destmini__body">
+              <div className="z-kicker">O destinaci</div>
+              <h2 className="h3">{destInfo.name}<span className="z-dot">.</span></h2>
+              {destInfo.text && <p>{destInfo.text}</p>}
+              <div className="z-meta">
+                {pg ? <span><Icon name="hotel" />{pg.total.toLocaleString('cs-CZ')} hotelů s termínem</span> : null}
+                {hotels[0] ? <span><Icon name="mena" />od {Math.round(hotels[0].min_price).toLocaleString('cs-CZ')} Kč</span> : null}
+              </div>
+            </div>
+            <div className="z-destmini__links">
+              <Link className="z-btn z-btn--line z-btn--sm" href={`/destinace/${destInfo.slug}`}>Celý průvodce<span className="z-btn__go"><Icon name="sipka" /></span></Link>
+              {destInfo.weatherHref && <Link className="z-more" href={destInfo.weatherHref}>Počasí a klima</Link>}
+            </div>
+          </aside>
+        )}
 
         <form method="get" action="/zajezdy" className="z-filter" style={{ marginBottom: 'var(--space-7)' }}>
           <div className="z-tk"><div className="z-tk__in z-filter__in">

@@ -792,3 +792,13 @@ button.z-navtab { border: 0; cursor: pointer; }
 .z-offerbar :focus-visible { outline-color: var(--ink); }
 @media (max-width: 1023px) { .z-offerbar__list li:nth-child(n+2) { display: none; } }
 @media (max-width: 767px) { .z-offerbar__in { padding: 0 var(--space-4); gap: var(--space-3); } .z-offerbar__all { display: none; } .z-offerbar__list { white-space: normal; } }
+
+/* ---------- Mini info o destinaci nad výsledky ---------- */
+.z-destmini { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-5); align-items: center; margin-bottom: var(--space-6); padding: var(--space-4) var(--space-5) var(--space-4) var(--space-4); border-radius: var(--radius-lg); background-color: var(--sky); background-image: radial-gradient(rgba(0, 140, 255, .24) 1.5px, transparent 1.6px); background-size: 18px 18px; background-position: right -9px top -9px; }
+.z-destmini__photo { width: 120px; aspect-ratio: 4 / 5; border-radius: var(--radius-window); border: 6px solid var(--raised); overflow: hidden; background: var(--paper-deep); box-shadow: var(--shadow-ticket); }
+.z-destmini__photo img { width: 100%; height: 100%; object-fit: cover; }
+.z-destmini__body h2 { margin: 2px 0 var(--space-2); }
+.z-destmini__body p { margin: 0 0 var(--space-3); font: 400 17px/27px var(--font-serif); color: var(--ink); max-width: 720px; }
+.z-destmini__links { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+@media (max-width: 1023px) { .z-destmini { grid-template-columns: auto minmax(0, 1fr); } .z-destmini__links { grid-column: 1 / -1; flex-direction: row; align-items: center; } }
+@media (max-width: 767px) { .z-destmini { grid-template-columns: 1fr; } .z-destmini__photo { width: 96px; } }
