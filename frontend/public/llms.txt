@@ -38,6 +38,14 @@ Každá stránka webu vrací při hlavičce `Accept: text/markdown` Markdown ver
 
 Odpovědi jsou veřejné a bez přihlášení. Prosíme o rozumnou frekvenci dotazů (řádově jednotky za sekundu).
 
+## API (strojové rozhraní)
+
+Zaleto má veřejné API jen pro čtení, bez klíčů a s jednotnými JSON chybami (`code`, `message`, `hint`):
+
+- [OpenAPI 3.1 specifikace](https://zaleto.cz/openapi.json): všechny endpointy s `operationId`, parametry a schématy odpovědí
+- [Zaleto API – dokumentace pro vývojáře](https://zaleto.cz/developers): rychlý start, chyby, limity
+- Příklady: `GET https://zaleto.cz/api/hotels?destination=Turecko&sort=price_asc&limit=5`, `GET https://zaleto.cz/api/search?q=kreta`, `GET https://zaleto.cz/api/hotels/{slug}/tours`
+
 ## Hlavní stránky
 
 - [Zájezdy](https://zaleto.cz/zajezdy): vyhledávání a filtrování všech zájezdů
@@ -54,6 +62,7 @@ Odpovědi jsou veřejné a bez přihlášení. Prosíme o rozumnou frekvenci dot
 - [Kontakt](https://zaleto.cz/kontakt): e-mail info@zaleto.cz, odpověď do 24 hodin
 - [Ochrana osobních údajů](https://zaleto.cz/ochrana-osobnich-udaju)
 - [Časté otázky](https://zaleto.cz/faq)
+- [Zaleto API (pro vývojáře)](https://zaleto.cz/developers)
 
 ## Optional
 

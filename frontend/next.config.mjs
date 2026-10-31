@@ -33,6 +33,18 @@ const nextConfig = {
     ]
   },
   // Anglické adresy pro AI agenty a vyhledávače (obsah se servíruje přímo, bez přesměrování)
+  // Veřejné API: JSON se nemá indexovat jako stránky, ale musí být čitelné odkudkoli (CORS jen pro čtení)
+  async headers() {
+    const publicApi = ['search', 'hotels', 'hotels/:path*', 'destinations', 'filters', 'calendar-prices', 'articles', 'articles/:path*', 'destination-ai/:path*', 'weather-ai/:path*', 'car-rental-ai/:path*', 'destination-photo/:path*', 'health']
+    return publicApi.map(p => ({
+      source: `/api/${p}`,
+      headers: [
+        { key: 'X-Robots-Tag', value: 'noindex' },
+        { key: 'Access-Control-Allow-Origin', value: '*' },
+        { key: 'Access-Control-Allow-Methods', value: 'GET, HEAD, OPTIONS' },
+      ],
+    }))
+  },
   async rewrites() {
     return [
       { source: '/about', destination: '/o-zaleto' },

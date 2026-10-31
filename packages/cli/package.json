@@ -1,0 +1,14 @@
+{
+  "name": "zaleto-cli",
+  "version": "0.1.0",
+  "description": "Příkazový řádek pro veřejné API Zaleto (zaleto.cz): zájezdy, destinace, články a vyhledávání.",
+  "type": "module",
+  "bin": { "zaleto": "bin/zaleto.mjs" },
+  "files": ["bin", "src", "README.md"],
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "node --test \"test/**/*.test.mjs\"" },
+  "keywords": ["zaleto", "zajezdy", "dovolena", "cli", "travel", "czech"],
+  "license": "MIT",
+  "homepage": "https://zaleto.cz/developers",
+  "repository": { "type": "git", "url": "git+https://github.com/dominikmedal/zaleto.cz.git", "directory": "packages/cli" }
+}

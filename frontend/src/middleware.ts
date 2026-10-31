@@ -1,5 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { prefersMarkdown } from '@/lib/agent'
+import { apiError } from '@/lib/apiError'
+
+/** Veřejné endpointy jen pro čtení: jiná metoda než GET/HEAD/OPTIONS = JSON chyba 405 (jinak by Next vrátil prázdné 405). */
+const READ_ONLY_API = /^\/api\/(search|hotels|destinations|filters|calendar-prices|articles|destination-ai|weather-ai|car-rental-ai|destination-photo|health)(\/|$)/
 
 /**
  * Vyjednávání obsahu pro AI agenty: požadavek s `Accept: text/markdown` se přepíše na /api/markdown,
@@ -7,6 +11,13 @@ import { prefersMarkdown } from '@/lib/agent'
  * aby CDN a cache nepodstrčily Markdown někomu, kdo chce HTML.
  */
 export function middleware(req: NextRequest) {
+  const { pathname: apiPath } = req.nextUrl
+  if (apiPath.startsWith('/api/')) {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && READ_ONLY_API.test(apiPath)) {
+      return apiError(405, 'Tato metoda není u tohoto endpointu podporovaná.', undefined, { Allow: 'GET, HEAD, OPTIONS' })
+    }
+    return NextResponse.next()
+  }
   if (req.method !== 'GET' && req.method !== 'HEAD') return NextResponse.next()
   // interní stažení HTML z route /api/markdown
   if (req.headers.get('x-zaleto-markdown') === '1') return NextResponse.next()
@@ -29,7 +40,7 @@ export function middleware(req: NextRequest) {
   return res
 }
 
-// Bez statických souborů (cokoli s příponou: sitemap.xml, robots.txt, llms.txt, obrázky), /_next a /api.
+// Bez statických souborů (cokoli s příponou: sitemap.xml, robots.txt, llms.txt, obrázky) a /_next.
 export const config = {
-  matcher: ['/((?!_next/|api/|.*\\..*).*)'],
+  matcher: ['/((?!_next/|.*\\..*).*)'],
 }

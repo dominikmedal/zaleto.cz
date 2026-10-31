@@ -88,6 +88,54 @@ for (const path of ['/about', '/contact', '/privacy']) {
   }
 }
 
+
+// 9) OpenAPI a veřejné API
+{
+  const r = await get('/openapi.json')
+  let spec = null
+  try { spec = await r.json() } catch { /* neplatný JSON */ }
+  check('openapi.json: HTTP 200, JSON, OpenAPI 3.x', r.status === 200 && (r.headers.get('content-type') || '').includes('json') && /^3\./.test(spec?.openapi || ''), spec?.openapi || '')
+  const ops = Object.entries(spec?.paths || {}).flatMap(([p, item]) => Object.entries(item).map(([m, op]) => ({ p, m, op })))
+  const ids = ops.map(o => o.op.operationId)
+  check('openapi: unikátní operationId a description u každé operace', ops.length >= 10 && ids.every(Boolean) && new Set(ids).size === ids.length && ops.every(o => (o.op.description || '').length > 20), `${ops.length} operací`)
+  check('openapi: odpovědi mají schémata', ops.every(o => o.op.responses?.['200']?.content?.['application/json']?.schema))
+  // každý dokumentovaný GET endpoint bez povinných path parametrů opravdu odpovídá JSON
+  const probes = ops.filter(o => !o.p.includes('{') && !(o.op.parameters || []).some(p => p.required))
+  for (const { p } of probes) {
+    const pr = await get(p)
+    const ct = pr.headers.get('content-type') || ''
+    check(`API ${p}: HTTP 200 a JSON`, pr.status === 200 && ct.includes('json'), `HTTP ${pr.status}`)
+  }
+  const sr = await get('/api/search?q=kreta')
+  check('API /api/search?q=kreta: výsledky', sr.status === 200 && (await sr.json()).destinations.length > 0)
+  check('API: CORS pro čtení', (await get('/api/destinations')).headers.get('access-control-allow-origin') === '*')
+}
+
+// 10) JSON chyby API
+{
+  for (const [path, status] of [['/api/__verify-probe', 404], ['/api/hotels/__neexistuje', 404], ['/api/calendar-prices', 400]]) {
+    const r = await get(path, { accept: 'text/html' })
+    let b = null
+    try { b = await r.json() } catch { /* HTML */ }
+    check(`JSON chyba ${path}: ${status}`, r.status === status && (r.headers.get('content-type') || '').includes('json') && !!b?.code && !!b?.message && !!b?.hint, `HTTP ${r.status} ${b?.code || 'bez JSON'}`)
+  }
+  const m = await fetch(BASE + '/api/hotels', { method: 'POST' })
+  check('JSON chyba: špatná metoda → 405 JSON', m.status === 405 && (m.headers.get('content-type') || '').includes('json'), `HTTP ${m.status}`)
+}
+
+// 11) stránka pro vývojáře, robots a sitemap
+{
+  const r = await get('/developers')
+  const t = textOf(await r.text())
+  check('/developers: HTTP 200, ≥ 500 znaků, odkaz na openapi.json', r.status === 200 && t.length >= 500 && t.includes('openapi.json'), `${t.length} znaků`)
+  const robots = await (await get('/robots.txt')).text()
+  check('robots.txt: /api/ není zakázané', /Allow:\s*\/api\//.test(robots) && !/Disallow:\s*\/api\/\s*$/m.test(robots))
+  const llms = await (await get('/llms.txt')).text()
+  check('llms.txt: odkaz na openapi.json a /developers', /openapi\.json/.test(llms) && /\/developers/.test(llms))
+  const sm = await (await get('/sitemap.xml')).text()
+  check('sitemap.xml: obsahuje /developers', /\/developers<\/loc>/.test(sm))
+}
+
 const failed = results.filter(r => !r.ok).length
 console.log(`\n${results.length - failed}/${results.length} kontrol v pořádku (${BASE})`)
 process.exit(failed ? 1 : 0)

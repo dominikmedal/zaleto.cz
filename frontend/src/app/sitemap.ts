@@ -26,6 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/kontakt`,                       lastModified: staticDate, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${base}/o-zaleto`,                      lastModified: staticDate, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${base}/ochrana-osobnich-udaju`,        lastModified: staticDate, changeFrequency: 'yearly',  priority: 0.3 },
+    { url: `${base}/developers`,                    lastModified: staticDate, changeFrequency: 'monthly', priority: 0.4 },
   ]
 
   // ── Stránky destinací ─────────────────────────────────────────────────────
