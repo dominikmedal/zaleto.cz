@@ -840,3 +840,10 @@ nav[aria-label="Mobilní navigace"] { border-radius: 0 0 var(--radius-sheet) var
 
 .z-header__nav { gap: var(--space-5); }
 @media (max-width: 1279px) { .z-header__nav { gap: var(--space-4); } .z-header__nav a { font-size: 14px; } }
+
+/* ---------- Větší nadpisy sekcí (čerstvě z cest, zájezdy, destinace…) ---------- */
+.z-shead h1, .z-shead h2 { font-family: var(--font-serif); font-weight: 600; font-size: 60px !important; line-height: 64px !important; letter-spacing: -0.03em; margin-top: 0; }
+.z-shead { padding-bottom: var(--space-6); margin-bottom: var(--space-7); align-items: flex-end; }
+.z-shead .z-more { margin-bottom: var(--space-3); }
+@media (max-width: 1023px) { .z-shead h1, .z-shead h2 { font-size: 46px !important; line-height: 50px !important; } }
+@media (max-width: 767px) { .z-shead h1, .z-shead h2 { font-size: 36px !important; line-height: 40px !important; } .z-shead { margin-bottom: var(--space-6); } }
