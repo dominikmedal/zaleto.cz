@@ -588,7 +588,6 @@ button.z-navtab { border: 0; cursor: pointer; }
 
 /* ---------- Zápatí na nočním nebi: slunce, trasa, velký titulek ---------- */
 .z-footer { position: relative; overflow: hidden; }
-.z-footer__sun { position: absolute; right: -90px; top: -130px; width: 360px; height: 360px; border-radius: 50%; background: var(--brand); opacity: .95; }
 .z-footer__top { position: relative; grid-template-columns: 1.7fr repeat(4, 1fr); }
 .z-footer__big { font-size: 88px; line-height: 84px; letter-spacing: -0.035em; margin-bottom: var(--space-4); }
 .z-footer__top h4 { font: 700 11px/16px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--on-night-muted); }
@@ -598,7 +597,7 @@ button.z-navtab { border: 0; cursor: pointer; }
 .z-footer__routedot { width: 12px; height: 12px; border-radius: 50%; background: var(--brand); }
 .z-footer__bottom { margin-top: var(--space-5); border-top: 0; padding-top: 0; gap: var(--space-4); flex-wrap: wrap; }
 @media (max-width: 1023px) { .z-footer__top { grid-template-columns: 1fr 1fr; } .z-footer__big { font-size: 64px; line-height: 64px; } }
-@media (max-width: 767px) { .z-footer__top { grid-template-columns: 1fr; } .z-footer__big { font-size: 48px; line-height: 48px; } .z-footer__sun { width: 220px; height: 220px; top: -110px; } }
+@media (max-width: 767px) { .z-footer__top { grid-template-columns: 1fr; } .z-footer__big { font-size: 48px; line-height: 48px; } }
 
 /* ---------- Plovoucí „Poradíme s výběrem“ ---------- */
 .z-chat { position: fixed; right: var(--space-5); bottom: var(--space-5); z-index: 60; display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-3); }

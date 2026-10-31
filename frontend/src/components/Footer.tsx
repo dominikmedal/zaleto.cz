@@ -38,8 +38,6 @@ export default async function Footer() {
 
   return (
     <footer className="z-footer">
-      <span className="z-footer__sun" aria-hidden="true" />
-
       <div className="z-footer__top">
         <div>
           <h2 className="z-footer__big">kam dál<span className="z-dot">.</span></h2>
