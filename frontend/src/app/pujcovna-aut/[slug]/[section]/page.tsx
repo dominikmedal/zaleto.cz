@@ -9,7 +9,8 @@ import {
   fetchDynamicCarDestinations, fetchCarRentalAI,
   type CarRentalAIData, type CarRentalTripTip, type CarRentalFAQ,
 } from '@/lib/api'
-import { LuCar as Car, LuChevronRight as ChevronRight, LuFuel as Fuel, LuBookOpen as BookOpen, LuCircleDollarSign as CircleDollarSign, LuMapPin as MapPin, LuMessageCircleQuestion as MessageCircleQuestion, LuRoute as Route, LuClock as Clock, LuCheckCircle2 as CheckCircle2, LuArrowLeft as ArrowLeft, LuArrowRight as ArrowRight } from '@/components/ui/icons'
+import Icon, { type IconName } from '@/components/ui/Icon'
+import Crumbs from '@/components/ui/Crumbs'
 export const revalidate = 86400
 export const dynamicParams = true
 
@@ -118,140 +119,98 @@ export default async function CarRentalSectionPage({ params }: Props) {
   const otherSections = SECTIONS.filter(s => s !== section)
 
   return (
-    <div className="min-h-screen">
+    <>
       <JsonLd data={breadcrumbSchema} />
       {faqSchema && <JsonLd data={faqSchema} />}
       {tripItemListSchema && <JsonLd data={tripItemListSchema} />}
       <Header />
 
-      {/* ── Hero ──────────────────────────────────────────────────────────────── */}
-      <div className="max-w-[1680px] mx-auto px-4 sm:px-10 pt-8 pb-4">
-        <nav aria-label="Breadcrumb" className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-4">
-          <Link href="/" className="hover:text-[#0093FF] transition-colors">Zaleto</Link>
-          <ChevronRight className="w-3 h-3" />
-          <Link href="/pujcovna-aut" className="hover:text-[#0093FF] transition-colors">Půjčovna aut</Link>
-          <ChevronRight className="w-3 h-3" />
-          <Link href={`/pujcovna-aut/${dest.slug}`} className="hover:text-[#0093FF] transition-colors">
-            {dest.name}
-          </Link>
-          <ChevronRight className="w-3 h-3" />
-          <span className="text-gray-700 font-medium">{sectionLabel(section)}</span>
-        </nav>
+      <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
+        <Crumbs items={[
+          { label: 'Zaleto', href: '/' },
+          { label: 'Půjčovna aut', href: '/pujcovna-aut' },
+          { label: dest.name, href: `/pujcovna-aut/${dest.slug}` },
+          { label: sectionLabel(section) },
+        ]} />
 
-        <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#0093FF] uppercase tracking-[0.12em] mb-3">
-          <Car className="w-3.5 h-3.5 flex-shrink-0" />
-          Půjčovna aut · {dest.country}
-        </p>
-
-        <h1
-          className="font-bold text-gray-900 leading-tight tracking-tight mb-4"
-          style={{ fontSize: 'clamp(24px, 4vw, 48px)' }}
-        >
-          {SECTION_META[section].heading(dest.name, dest.country, year)}
+        <div className="z-kicker" style={{ marginTop: 'var(--space-5)' }}>Půjčovna aut · {dest.country}</div>
+        <h1 className="h1" style={{ margin: 'var(--space-3) 0 var(--space-5)' }}>
+          {SECTION_META[section].heading(dest.name, dest.country, year)}<span className="z-dot">.</span>
         </h1>
 
-        {/* Cross-links to sibling sub-pages */}
-        <nav aria-label="Další sekce" className="flex flex-wrap gap-2 mb-6">
-          <Link href={`/pujcovna-aut/${dest.slug}`}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-[#0093FF] glass-pill px-3 py-1.5 rounded-full transition-colors">
-            <ArrowLeft className="w-3 h-3" /> Přehled {dest.name}
+        <nav aria-label="Další sekce" className="z-navtabs" style={{ marginTop: 0, marginBottom: 'var(--space-7)' }}>
+          <Link href={`/pujcovna-aut/${dest.slug}`} className="z-navtab">
+            <span className="z-navtab__ic"><Icon name="sipka" style={{ transform: 'rotate(180deg)' }} /></span>
+            <span className="z-navtab__label">Přehled {dest.name}</span>
           </Link>
           {otherSections.map(s => (
-            <Link key={s} href={`/pujcovna-aut/${dest.slug}/${s}`}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-[#0093FF] glass-pill px-3 py-1.5 rounded-full transition-colors">
-              {sectionIcon(s)}
-              {sectionLabel(s)}
+            <Link key={s} href={`/pujcovna-aut/${dest.slug}/${s}`} className="z-navtab">
+              <span className="z-navtab__ic"><Icon name={sectionIcon(s)} /></span>
+              <span className="z-navtab__label">{sectionLabel(s)}</span>
+              <Icon name="sipka" size="sm" className="z-navtab__go" />
             </Link>
           ))}
         </nav>
-      </div>
 
-      {/* ── Main content ──────────────────────────────────────────────────────── */}
-      <main className="max-w-[1680px] mx-auto px-4 sm:px-8 pb-16">
-        {section === 'tipy-na-vylety-autem' && aiData?.trip_tips && (
-          <TripTipsFullPage tips={aiData.trip_tips} destName={dest.name} />
-        )}
-        {section === 'pravidla-provozu' && aiData && (
-          <DrivingRulesFullPage aiData={aiData} country={dest.country} />
-        )}
-        {section === 'nejcastejsi-dotazy' && aiData?.faq && (
-          <FAQFullPage faq={aiData.faq} destName={dest.name} year={year} />
-        )}
+        {section === 'tipy-na-vylety-autem' && aiData?.trip_tips && <TripTipsFullPage tips={aiData.trip_tips} destName={dest.name} />}
+        {section === 'pravidla-provozu' && aiData && <DrivingRulesFullPage aiData={aiData} country={dest.country} />}
+        {section === 'nejcastejsi-dotazy' && aiData?.faq && <FAQFullPage faq={aiData.faq} destName={dest.name} />}
 
-        {/* ── CTA: search form ──────────────────────────────────────────────── */}
-        <div className="mt-14 pt-10 border-t border-gray-100">
-          <div className="flex items-center gap-2 mb-2">
-            <CircleDollarSign className="w-4 h-4 text-[#0093FF]" />
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Rezervace</p>
+        <section className="z-section">
+          <div className="z-shead">
+            <div>
+              <div className="z-kicker">Rezervace</div>
+              <h2>půjčit auto — {dest.name}<span className="z-dot">.</span></h2>
+            </div>
           </div>
-          <h2 className="font-bold text-gray-900 tracking-tight mb-6"
-            style={{ fontSize: 'clamp(20px, 2.8vw, 34px)' }}>
-            Půjčit auto – {dest.name}
-          </h2>
           <CarRentalSearchForm destination={dest} />
-        </div>
+        </section>
 
-        {/* ── Back link ─────────────────────────────────────────────────────── */}
-        <div className="mt-10 flex items-center gap-3">
-          <Link href={`/pujcovna-aut/${dest.slug}`}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#0093FF] glass-pill px-4 py-2 rounded-full hover:bg-[#0093FF]/10 transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Zpět na přehled půjčovny aut {dest.name}
-          </Link>
+        <div style={{ marginTop: 'var(--space-7)' }}>
+          <Link href={`/pujcovna-aut/${dest.slug}`} className="z-more">Zpět na přehled — {dest.name}</Link>
         </div>
       </main>
-    </div>
+    </>
   )
 }
 
-// ─── Helper functions ──────────────────────────────────────────────────────────
+// ─── Pomocné ────────────────────────────────────────────────────────────────
 
 function sectionLabel(s: Section): string {
   switch (s) {
     case 'tipy-na-vylety-autem': return 'Výlety autem'
-    case 'pravidla-provozu':     return 'Pravidla provozu'
-    case 'nejcastejsi-dotazy':   return 'Časté dotazy'
+    case 'pravidla-provozu': return 'Pravidla provozu'
+    case 'nejcastejsi-dotazy': return 'Časté dotazy'
   }
 }
 
-function sectionIcon(s: Section) {
+function sectionIcon(s: Section): IconName {
   switch (s) {
-    case 'tipy-na-vylety-autem': return <Route className="w-3 h-3" />
-    case 'pravidla-provozu':     return <BookOpen className="w-3 h-3" />
-    case 'nejcastejsi-dotazy':   return <MessageCircleQuestion className="w-3 h-3" />
+    case 'tipy-na-vylety-autem': return 'trasa'
+    case 'pravidla-provozu': return 'clanek'
+    case 'nejcastejsi-dotazy': return 'info'
   }
 }
 
-// ─── Section components ────────────────────────────────────────────────────────
+const paras = (s: string | null | undefined) => (s ? s.split('\n\n').filter(Boolean) : [])
 
 function TripTipsFullPage({ tips, destName }: { tips: CarRentalTripTip[]; destName: string }) {
   return (
-    <div className="space-y-10">
-      <p className="text-gray-500 text-sm max-w-2xl">
-        Prozkoumejte {destName} a okolí za volantem. Níže najdete {tips.length} tipů na výlety
-        s orientačními vzdálenostmi a dobami jízdy.
+    <div>
+      <p className="lead" style={{ maxWidth: 'var(--article-max)', margin: '0 0 var(--space-6)' }}>
+        Prozkoumej {destName} a okolí za volantem. Níže je {tips.length} tipů na výlety s orientačními vzdálenostmi a dobami jízdy.
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="z-grid-3">
         {tips.map((tip, i) => (
-          <article key={i} className="glass-card rounded-2xl p-5 relative overflow-hidden flex flex-col gap-3">
-            <div className="absolute top-3 right-3 font-black text-5xl leading-none select-none"
-              style={{ color: 'rgba(0,147,255,0.05)',  }}>
-              {i + 1}
+          <article key={i} className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)', height: '100%' }}>
+            <div className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{String(i + 1).padStart(2, '0')}</div>
+            <h2 className="h4" style={{ margin: 'var(--space-2) 0 var(--space-3)' }}>{tip.title}</h2>
+            <div className="z-meta" style={{ marginBottom: 'var(--space-3)' }}>
+              {tip.distance_km ? <span><Icon name="trasa" />{tip.distance_km} km</span> : null}
+              {tip.duration_h ? <span><Icon name="cas" />{tip.duration_h} h</span> : null}
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {tip.distance_km && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#0068CC] glass-pill px-2 py-0.5 rounded-full">
-                  <MapPin className="w-3 h-3" /> {tip.distance_km} km
-                </span>
-              )}
-              {tip.duration_h && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-500 glass-pill px-2 py-0.5 rounded-full">
-                  <Clock className="w-3 h-3" /> {tip.duration_h} h
-                </span>
-              )}
-            </div>
-            <h2 className="font-bold text-gray-900 leading-tight text-base">{tip.title}</h2>
-            <p className="text-sm text-gray-500 leading-relaxed flex-1">{tip.description}</p>
-          </article>
+            <p style={{ margin: 0, color: 'var(--ink-muted)' }}>{tip.description}</p>
+          </div></article>
         ))}
       </div>
     </div>
@@ -260,96 +219,42 @@ function TripTipsFullPage({ tips, destName }: { tips: CarRentalTripTip[]; destNa
 
 function DrivingRulesFullPage({ aiData, country }: { aiData: CarRentalAIData; country: string }) {
   return (
-    <div className="space-y-10 max-w-3xl">
+    <div className="z-cardest__main" style={{ maxWidth: 'var(--article-max)' }}>
       {aiData.fuel_info && (
         <section>
-          <div className="flex items-center gap-2 mb-2">
-            <Fuel className="w-4 h-4 text-[#0093FF]" />
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Pohonné hmoty</p>
-          </div>
-          <h2 className="font-bold text-gray-900 tracking-tight mb-5"
-            style={{ fontSize: 'clamp(20px, 2.5vw, 30px)' }}>
-            Pohonné hmoty v {country}
-          </h2>
-          <div className="glass-card rounded-2xl p-6 sm:p-8">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)' }}>
-                <Fuel className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-gray-900 text-lg">Ceny paliva a typy pohonných hmot</h3>
-            </div>
-            {aiData.fuel_info.split('\n\n').filter(Boolean).map((p, i) => (
-              <p key={i} className="text-sm text-gray-600 leading-relaxed mb-4 last:mb-0">{p}</p>
-            ))}
-          </div>
+          <div className="z-kicker">Pohonné hmoty</div>
+          <h2 className="h2" style={{ margin: 'var(--space-2) 0 var(--space-4)' }}>pohonné hmoty v {country}<span className="z-dot">.</span></h2>
+          <div className="z-prose">{paras(aiData.fuel_info).map((t, i) => <p key={i}>{t}</p>)}</div>
         </section>
       )}
-
       {aiData.driving_rules && (
         <section>
-          <div className="flex items-center gap-2 mb-2">
-            <BookOpen className="w-4 h-4 text-[#0093FF]" />
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Dopravní předpisy</p>
-          </div>
-          <h2 className="font-bold text-gray-900 tracking-tight mb-5"
-            style={{ fontSize: 'clamp(20px, 2.5vw, 30px)' }}>
-            Silniční pravidla v {country}
-          </h2>
-          <div className="glass-card rounded-2xl p-6 sm:p-8">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)' }}>
-                <BookOpen className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-gray-900 text-lg">Dopravní předpisy a omezení</h3>
-            </div>
-            {aiData.driving_rules.split('\n\n').filter(Boolean).map((p, i) => (
-              <p key={i} className="text-sm text-gray-600 leading-relaxed mb-4 last:mb-0">{p}</p>
-            ))}
-          </div>
+          <div className="z-kicker">Dopravní předpisy</div>
+          <h2 className="h2" style={{ margin: 'var(--space-2) 0 var(--space-4)' }}>silniční pravidla v {country}<span className="z-dot">.</span></h2>
+          <div className="z-prose">{paras(aiData.driving_rules).map((t, i) => <p key={i}>{t}</p>)}</div>
         </section>
       )}
-
       {aiData.practical_tips?.length > 0 && (
         <section>
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 className="w-4 h-4 text-[#0093FF]" />
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>Tipy</p>
-          </div>
-          <h2 className="font-bold text-gray-900 tracking-tight mb-5"
-            style={{ fontSize: 'clamp(20px, 2.5vw, 30px)' }}>
-            Praktické rady před cestou
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {aiData.practical_tips.map((tip, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-[#0093FF] flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-gray-600 leading-relaxed">{tip}</p>
-              </div>
-            ))}
-          </div>
+          <div className="z-kicker">Tipy</div>
+          <h2 className="h2" style={{ margin: 'var(--space-2) 0 var(--space-4)' }}>praktické rady před cestou<span className="z-dot">.</span></h2>
+          <ul className="z-ticks" style={{ gridTemplateColumns: '1fr' }}>
+            {aiData.practical_tips.map((tip, i) => <li key={i}><Icon name="ok" size="sm" />{tip}</li>)}
+          </ul>
         </section>
       )}
     </div>
   )
 }
 
-function FAQFullPage({ faq, destName, year }: { faq: CarRentalFAQ[]; destName: string; year: number }) {
+function FAQFullPage({ faq, destName }: { faq: CarRentalFAQ[]; destName: string }) {
   return (
-    <div className="space-y-4 max-w-3xl">
-      <p className="text-gray-500 text-sm mb-6">
-        Odpovědi na {faq.length} nejčastějších otázek o půjčování aut v {destName}.
-      </p>
+    <div style={{ maxWidth: 'var(--article-max)' }}>
+      <p className="lead" style={{ margin: '0 0 var(--space-5)' }}>Odpovědi na {faq.length} nejčastějších otázek o půjčování aut v {destName}.</p>
       {faq.map((item, i) => (
-        <details key={i} className="glass-card rounded-2xl overflow-hidden group">
-          <summary className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none font-semibold text-gray-900 hover:text-[#0093FF] transition-colors select-none">
-            <span>{item.question}</span>
-            <ChevronRight className="w-4 h-4 flex-shrink-0 transition-transform group-open:rotate-90 text-gray-400" />
-          </summary>
-          <div className="px-5 pb-5">
-            <p className="text-sm text-gray-600 leading-relaxed">{item.answer}</p>
-          </div>
+        <details key={i} className="z-faq">
+          <summary><span className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{String(i + 1).padStart(2, '0')}</span><span className="h4">{item.question}</span></summary>
+          <p>{item.answer}</p>
         </details>
       ))}
     </div>

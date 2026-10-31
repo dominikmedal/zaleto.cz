@@ -2,8 +2,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
-import Icon from '@/components/ui/Icon'
-import Button from '@/components/ui/Button'
 import SectionHead from '@/components/ui/SectionHead'
 import SearchBox from '@/components/ui/SearchBox'
 import TourCard from '@/components/ui/TourCard'
@@ -11,7 +9,7 @@ import TourAd from '@/components/ui/TourAd'
 import StoryCard from '@/components/ui/StoryCard'
 import WindowCard from '@/components/ui/WindowCard'
 import { formatPrice } from '@/components/ui/format'
-import { fetchArticles, fetchDestinationPhoto, fetchDestinations, fetchFilters, fetchHotels } from '@/lib/api'
+import { fetchArticles, fetchDestinationPhoto, fetchDestinations, fetchHotels } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 
 export const revalidate = 3600
@@ -44,9 +42,8 @@ const siteSchema = {
 const POPULAR = ['Řecko', 'Turecko', 'Egypt', 'Španělsko', 'Chorvatsko', 'Kypr', 'Bulharsko', 'Tunisko']
 
 export default async function HomePage() {
-  const [destinations, meta, articles, lastMinute, cheapest] = await Promise.all([
+  const [destinations, articles, lastMinute, cheapest] = await Promise.all([
     fetchDestinations().catch(() => []),
-    fetchFilters().catch(() => null),
     fetchArticles(4).catch(() => []),
     fetchHotels({ tour_type: 'last_minute', sort: 'price_asc', limit: 12 }).then(r => r.hotels).catch(() => []),
     fetchHotels({ sort: 'price_asc', limit: 12 }).then(r => r.hotels).catch(() => []),
@@ -135,31 +132,10 @@ export default async function HomePage() {
         {tickets.length > 0 && (
           <section className="z-section--deep">
             <div className="z-container">
-              <SectionHead num="03" kicker="Zájezdy" title="lístky na tento týden" moreHref="/zajezdy" moreLabel="Zobrazit vše" />
+              <SectionHead num="03" kicker="Zájezdy" title="zájezdy" moreHref="/zajezdy" moreLabel="Zobrazit vše" />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-5)', alignItems: 'stretch' }}>
                 {tickets.map((h, i) => <TourCard key={h.slug} hotel={h} priority={i === 0} />)}
                 {ad && <div style={{ display: 'flex' }}><div style={{ width: '100%' }}><TourAd hotel={ad} /></div></div>}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {meta && (
-          <section className="z-container z-section">
-            <div className="z-info">
-              <div className="z-info__head">
-                <h2 className="z-info__title">palubní deska<span className="z-dot">.</span></h2>
-                <span className="z-kicker">Aktuální nabídka</span>
-              </div>
-              <dl className="z-info__grid">
-                <div className="z-info__item"><Icon name="hotel" /><dt>Hotelů</dt><dd>{meta.totalHotels.toLocaleString('cs-CZ')}</dd></div>
-                <div className="z-info__item"><Icon name="kalendar" /><dt>Termínů</dt><dd>{meta.totalTours.toLocaleString('cs-CZ')}</dd></div>
-                <div className="z-info__item"><Icon name="mena" /><dt>Ceny od</dt><dd>{formatPrice(meta.priceRange.min)}</dd></div>
-                <div className="z-info__item"><Icon name="osoby" /><dt>Cestovních kanceláří</dt><dd>6</dd></div>
-              </dl>
-              <div style={{ marginTop: 'var(--space-6)', display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-                <Button href="/zajezdy">Najít zájezd</Button>
-                <Button href="/pujcovna-aut" variant="line">Půjčit auto</Button>
               </div>
             </div>
           </section>

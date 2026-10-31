@@ -6,27 +6,27 @@ interface WeatherData { current: { temp: number; code: number; humidity: number;
 type WmoEntry = { label: string; Icon: React.ElementType; color: string }
 
 const WMO: Record<number, WmoEntry> = {
-  0:  { label: 'Jasno',            Icon: PiSun,            color: 'text-amber-400'  },
-  1:  { label: 'Převážně jasno',   Icon: PiCloudSun,       color: 'text-amber-400'  },
-  2:  { label: 'Polojasno',        Icon: PiCloudSun,       color: 'text-amber-300'  },
-  3:  { label: 'Zataženo',         Icon: PiCloud,          color: 'text-gray-400'   },
-  45: { label: 'Mlha',             Icon: PiCloud,          color: 'text-gray-300'   },
-  48: { label: 'Mlha',             Icon: PiCloud,          color: 'text-gray-300'   },
-  51: { label: 'Mrholení',         Icon: PiCloudRain,      color: 'text-blue-400'   },
-  53: { label: 'Mrholení',         Icon: PiCloudRain,      color: 'text-blue-400'   },
-  55: { label: 'Silné mrholení',   Icon: PiCloudRain,      color: 'text-blue-500'   },
-  61: { label: 'Déšť',             Icon: PiCloudRain,      color: 'text-blue-500'   },
-  63: { label: 'Silný déšť',       Icon: PiCloudRain,      color: 'text-blue-600'   },
-  65: { label: 'Průtrž mračen',    Icon: PiCloudRain,      color: 'text-blue-700'   },
-  71: { label: 'Sněžení',          Icon: PiCloudSnow,      color: 'text-sky-300'    },
-  73: { label: 'Sněžení',          Icon: PiCloudSnow,      color: 'text-sky-400'    },
-  75: { label: 'Silné sněžení',    Icon: PiCloudSnow,      color: 'text-sky-500'    },
-  80: { label: 'Přeháňky',         Icon: PiCloudRain,      color: 'text-blue-400'   },
-  81: { label: 'Přeháňky',         Icon: PiCloudRain,      color: 'text-blue-500'   },
-  82: { label: 'Přívalové srážky', Icon: PiCloudRain,      color: 'text-blue-600'   },
-  95: { label: 'Bouřka',           Icon: PiCloudLightning, color: 'text-violet-500' },
-  96: { label: 'Kroupy',           Icon: PiCloudLightning, color: 'text-violet-600' },
-  99: { label: 'Kroupy',           Icon: PiCloudLightning, color: 'text-violet-700' },
+  0:  { label: 'Jasno',            Icon: PiSun,            color: 'z-w-sun'  },
+  1:  { label: 'Převážně jasno',   Icon: PiCloudSun,       color: 'z-w-sun'  },
+  2:  { label: 'Polojasno',        Icon: PiCloudSun,       color: 'z-w-sun'  },
+  3:  { label: 'Zataženo',         Icon: PiCloud,          color: 'z-w-cloud'   },
+  45: { label: 'Mlha',             Icon: PiCloud,          color: 'z-w-cloud'   },
+  48: { label: 'Mlha',             Icon: PiCloud,          color: 'z-w-cloud'   },
+  51: { label: 'Mrholení',         Icon: PiCloudRain,      color: 'z-w-rain'   },
+  53: { label: 'Mrholení',         Icon: PiCloudRain,      color: 'z-w-rain'   },
+  55: { label: 'Silné mrholení',   Icon: PiCloudRain,      color: 'z-w-rain'   },
+  61: { label: 'Déšť',             Icon: PiCloudRain,      color: 'z-w-rain'   },
+  63: { label: 'Silný déšť',       Icon: PiCloudRain,      color: 'z-w-rain'   },
+  65: { label: 'Průtrž mračen',    Icon: PiCloudRain,      color: 'z-w-rain'   },
+  71: { label: 'Sněžení',          Icon: PiCloudSnow,      color: 'z-w-snow'    },
+  73: { label: 'Sněžení',          Icon: PiCloudSnow,      color: 'z-w-snow'    },
+  75: { label: 'Silné sněžení',    Icon: PiCloudSnow,      color: 'z-w-snow'    },
+  80: { label: 'Přeháňky',         Icon: PiCloudRain,      color: 'z-w-rain'   },
+  81: { label: 'Přeháňky',         Icon: PiCloudRain,      color: 'z-w-rain'   },
+  82: { label: 'Přívalové srážky', Icon: PiCloudRain,      color: 'z-w-rain'   },
+  95: { label: 'Bouřka',           Icon: PiCloudLightning, color: 'z-w-storm' },
+  96: { label: 'Kroupy',           Icon: PiCloudLightning, color: 'z-w-storm' },
+  99: { label: 'Kroupy',           Icon: PiCloudLightning, color: 'z-w-storm' },
 }
 
 function wmo(code: number): WmoEntry {
@@ -36,11 +36,9 @@ function wmo(code: number): WmoEntry {
 const DAY = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So']
 
 function tempColor(t: number) {
-  if (t >= 30) return 'text-red-500'
-  if (t >= 24) return 'text-orange-400'
-  if (t >= 18) return 'text-amber-500'
-  if (t >= 10) return 'text-emerald-500'
-  return 'text-blue-400'
+  if (t >= 24) return 'z-w-hot'
+  if (t >= 10) return 'z-w-mild'
+  return 'z-w-rain'
 }
 
 export default function WeatherWidget({ lat, lon, location, noCard }: { lat: number; lon: number; location: string; noCard?: boolean }) {
@@ -86,7 +84,7 @@ export default function WeatherWidget({ lat, lon, location, noCard }: { lat: num
         </div>
       </div>
     )
-    return noCard ? skeleton : <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">{skeleton}</div>
+    return noCard ? skeleton : <div className="z-chartcard">{skeleton}</div>
   }
 
   const today = new Date()
@@ -108,10 +106,10 @@ export default function WeatherWidget({ lat, lon, location, noCard }: { lat: num
         <cur.Icon className={'w-9 h-9 flex-shrink-0 ' + cur.color} />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-0.5 leading-none">
-            <span className="text-4xl font-bold leading-none tabular-nums" style={{ color: '#008afe' }}>
+            <span className="z-wtemp">
               {displayTemp}
             </span>
-            <span className="text-xl font-medium text-gray-400">°C</span>
+            <span className="z-data">°C</span>
           </div>
           <p className="text-xs text-gray-400 mt-0.5 truncate">{displayLabel}</p>
         </div>
@@ -151,12 +149,12 @@ export default function WeatherWidget({ lat, lon, location, noCard }: { lat: num
               className={
                 'flex flex-col items-center gap-1.5 py-3 px-1 transition-colors' +
                 (i > 0 ? ' border-l border-gray-100' : '') +
-                (isSelected ? ' bg-[#008afe]/5' : ' hover:bg-gray-50')
+                (isSelected ? ' bg-[var(--sky)]' : ' hover:bg-[var(--paper-deep)]')
               }
             >
               <span className={
                 'text-[11px] font-semibold leading-none transition-colors' +
-                (isSelected ? ' text-[#008afe]' : ' text-gray-400')
+                (isSelected ? ' text-[var(--brand-strong)]' : ' text-[var(--ink-muted)]')
               }>
                 {dayName}
               </span>
@@ -176,5 +174,5 @@ export default function WeatherWidget({ lat, lon, location, noCard }: { lat: num
 
   return noCard
     ? inner
-    : <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">{inner}</div>
+    : <div className="z-chartcard" style={{ padding: 0 }}>{inner}</div>
 }

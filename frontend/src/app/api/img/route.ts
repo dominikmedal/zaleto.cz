@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 20
 
 /** Jen důvěryhodné zdroje fotek destinací (žádný otevřený proxy). */
-const ALLOWED = new Set(['upload.wikimedia.org', 'thumb.wikimedia.org', 'commons.wikimedia.org', 'images.pexels.com'])
+const ALLOWED = new Set(['images.pexels.com'])
 const UA = 'zaleto.cz/1.0 (info@zaleto.cz)'
 
 // malá paměťová cache pro warm instanci (Vercel CDN drží zbytek díky Cache-Control)

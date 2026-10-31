@@ -75,60 +75,7 @@ const DEST_EN: Record<string, string> = {
   'Kapverdské ostrovy': 'Cape Verde beach island', 'Zanzibar': 'Zanzibar Tanzania beach',
   'Mauricius': 'Mauritius beach island', 'Seychely': 'Seychelles beach paradise',
 }
-const STALE_DAYS = 30
-const UA = { 'User-Agent': 'zaleto.cz/1.0 (info@zaleto.cz)' }
-
-const BAD_FILE = /flag|map|coat[_ ]of|logo|icon|locator|emblem|seal|symbol|diagram|chart|aquarium|portrait|signature|\.svg|\.gif|\.png|poster|stamp|banknote|coin|demonstrat|protest|parade|military|army|war|soldier|award|concert|singer|band|football|match|election|president|minister|meeting|summit|conference|festival|ceremony|party|visit|interview|night|bridge_construction|train|bus|airport|aircraft|ship|truck|volleyball|tournament|championship|olympic|painting|WGA|MET_|_DP\d|museum|fire|flame|burn|flood|storm|damage|manuscript|drawing|engraving|lithograph|sketch|sculpture|statue|box|pen_|lorrain|flight|refugee|migrant|accident|crash|ruins_of|cemetery|graffiti|selfie|crowd|people|person/i
-
-type Cand = { url: string; w: number; h: number }
-
-/** Z mediawiki imageinfo vybere první vodorovnou fotku v dostatečném rozlišení. */
-function pickPhoto(pages: Record<string, any> | undefined, order?: string[]): string | null {
-  if (!pages) return null
-  const list: { title: string; c: Cand; idx: number }[] = []
-  for (const p of Object.values(pages)) {
-    const i = p.imageinfo?.[0]
-    if (!i || !/jpe?g|webp/i.test(i.mime ?? '')) continue
-    if (BAD_FILE.test(p.title ?? '')) continue
-    list.push({ title: p.title, c: { url: i.thumburl || i.url, w: i.width, h: i.height }, idx: order ? order.indexOf(p.title) : (p.index ?? 0) })
-  }
-  list.sort((x, y) => x.idx - y.idx)
-  const ok = list.find(x => x.c.w >= 1000 && x.c.w / x.c.h >= 1.25 && x.c.w / x.c.h <= 2.2)
-  return ok?.c.url ?? null
-}
-
-async function mwJson(url: string): Promise<any | null> {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(10000), cache: 'no-store' })
-      if (r.status === 429 || r.status === 503) { await new Promise(res => setTimeout(res, 1500 * (attempt + 1))); continue }
-      return r.ok ? await r.json() : null
-    } catch { return null }
-  }
-  return null
-}
-
-async function imageInfo(host: string, titles: string[]): Promise<Record<string, any> | undefined> {
-  if (!titles.length) return undefined
-  const d = await mwJson(`https://${host}/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url%7Csize%7Cmime&iiurlwidth=1600&titles=${encodeURIComponent(titles.join('|'))}`)
-  return d?.query?.pages
-}
-
-/** Anglický název místa: ruční mapa, jinak interwiki odkaz z cs.wikipedia. */
-async function englishName(name: string): Promise<string | null> {
-  if (DEST_EN[name]) return DEST_EN[name].split(' ').slice(0, 2).join(' ').replace(/\b(beach|travel|island|coast|resort|skyline)\b/gi, '').trim() || DEST_EN[name]
-  const d = await mwJson(`https://cs.wikipedia.org/w/api.php?action=query&format=json&redirects=1&prop=langlinks&lllang=en&titles=${encodeURIComponent(name)}`)
-  const page = d?.query?.pages ? Object.values<any>(d.query.pages)[0] : null
-  return page?.langlinks?.[0]?.['*'] ?? null
-}
-
-/** Wikimedia Commons – fulltext podle názvu s krajinným klíčovým slovem. */
-async function commonsPhoto(term: string): Promise<string | null> {
-  const d = await mwJson(
-    `https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=12&gsrsearch=${encodeURIComponent(term + ' filetype:bitmap')}&prop=imageinfo&iiprop=url%7Csize%7Cmime&iiurlwidth=1600`,
-  )
-  return pickPhoto(d?.query?.pages)
-}
+const STALE_DAYS = 3650 // původní fotky se nepřepisují
 
 async function pexelsPhoto(term: string): Promise<string | null> {
   const key = process.env.PEXELS_API_KEY
@@ -141,67 +88,53 @@ async function pexelsPhoto(term: string): Promise<string | null> {
   } catch { return null }
 }
 
-/** Řetězec zdrojů: Pexels → Wikimedia Commons (anglický název + krajinná klíčová slova). */
-async function findPhoto(name: string): Promise<string | null> {
-  const viaPexels = await pexelsPhoto(DEST_EN[name] ?? `${name} travel beach`)
-  if (viaPexels) return viaPexels
-  const en = (await englishName(name)) ?? name
-  for (const kw of ['beach', 'coast', 'resort', 'panorama']) {
-    const url = await commonsPhoto(`${en} ${kw}`)
-    if (url) return url
-  }
-  return null
-}
-
-/** Wikimedia omezuje hotlink z prohlížeče (429) – servírujeme přes vlastní cachovaný endpoint. */
-export function proxied(url: string | null): string | null {
-  if (!url) return url
+/** Fotka hotelu z dané destinace (data z CK) – záloha pro místa bez původní fotky. */
+async function hotelPhoto(name: string): Promise<string | null> {
   try {
-    const h = new URL(url).hostname
-    if (h.endsWith('wikimedia.org')) return `/api/img?u=${encodeURIComponent(url)}`
-  } catch { /* relativní URL */ }
-  return url
+    const r = await query(
+      `SELECT h.thumbnail_url FROM hotels h JOIN hotel_stats s ON s.hotel_id = h.id
+       WHERE h.thumbnail_url IS NOT NULL AND s.min_price IS NOT NULL
+         AND (h.country = ? OR h.resort_town = ? OR h.destination ILIKE ?)
+       ORDER BY h.review_score DESC NULLS LAST, h.stars DESC NULLS LAST LIMIT 1`,
+      [name, name, `%${name}%`],
+    )
+    return r.rows[0]?.thumbnail_url ?? null
+  } catch { return null }
 }
 
 const missingUntil = new Map<string, number>()
 
-async function destinationPhotoRaw(name: string): Promise<{ url: string | null }> {
+/** Pořadí: uložená původní fotka → Pexels (je-li klíč) → fotka hotelu z destinace. */
+export async function destinationPhoto(name: string): Promise<{ url: string | null }> {
   const key = `photo_${name}`
   const cached = metaCache.get(key)
   if (cached !== null && cached !== undefined) return { url: cached as string }
-  // krátká negativní cache v paměti – nezaplavíme Wikimedii opakovanými dotazy na neexistující fotky
   if ((missingUntil.get(name) ?? 0) > Date.now()) return { url: null }
   try {
-    const row = (await query('SELECT photo_url, updated_at FROM destination_photos WHERE name = ?', [name])).rows[0]
-    const usable = row?.photo_url && !String(row.photo_url).startsWith('/uploads/')
+    const row = (await query('SELECT photo_url FROM destination_photos WHERE name = ?', [name])).rows[0]
+    const usable = row?.photo_url && !String(row.photo_url).startsWith('/uploads/') && !/wikimedia\.org/.test(row.photo_url)
     if (usable) {
-      const ageDays = (Date.now() - new Date(row.updated_at).getTime()) / 86400000
-      if (ageDays < STALE_DAYS) {
-        metaCache.set(key, row.photo_url)
-        return { url: row.photo_url }
-      }
+      metaCache.set(key, row.photo_url)
+      return { url: row.photo_url }
     }
-    const url = await findPhoto(name)
-    if (url) {
+    const fromPexels = await pexelsPhoto(DEST_EN[name] ?? `${name} travel beach`)
+    if (fromPexels) {
       await query(
         `INSERT INTO destination_photos (name, photo_url, updated_at) VALUES (?, ?, NOW())
          ON CONFLICT (name) DO UPDATE SET photo_url = EXCLUDED.photo_url, updated_at = EXCLUDED.updated_at`,
-        [name, url],
+        [name, fromPexels],
       )
-      metaCache.set(key, url)
-      return { url }
+      metaCache.set(key, fromPexels)
+      return { url: fromPexels }
     }
+    const fromHotel = await hotelPhoto(name)
+    if (fromHotel) { metaCache.set(key, fromHotel); return { url: fromHotel } }
     missingUntil.set(name, Date.now() + 10 * 60_000)
-    return { url: usable ? row.photo_url : null }
+    return { url: null }
   } catch (e) {
     console.error('destination-photo error:', (e as Error).message)
     return { url: null }
   }
-}
-
-export async function destinationPhoto(name: string): Promise<{ url: string | null }> {
-  const r = await destinationPhotoRaw(name)
-  return { url: proxied(r.url) }
 }
 
 // ─── AI obsah destinací (čtení) ────────────────────────────────────────────

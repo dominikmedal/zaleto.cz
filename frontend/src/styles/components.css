@@ -563,3 +563,53 @@ a.z-tk:hover { transform: translateY(-4px) rotate(-.4deg); filter: drop-shadow(0
 .z-navtab:hover .zi-dot { fill: currentColor; }
 .z-navtab:hover .z-navtab__go { transform: translateX(3px); }
 @media (max-width: 767px) { .z-navtabs { gap: var(--space-2); } .z-navtab { flex: 1 1 100%; justify-content: space-between; } }
+
+/* ---------- Počasí: karty grafů, widget, aktivní navigace ---------- */
+.z-chartcard { background: var(--raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-ticket); overflow: hidden; padding: var(--space-4) var(--space-3) var(--space-3); }
+.z-chartcard > div:first-child { padding: 0 var(--space-3) var(--space-2); }
+.z-legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }
+.z-wtemp { font: 600 48px/48px var(--font-serif); letter-spacing: -0.03em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.z-w-sun { color: var(--accent); } .z-w-cloud { color: var(--ink-muted); } .z-w-rain { color: var(--brand-strong); }
+.z-w-snow { color: var(--brand); } .z-w-storm { color: var(--ink); } .z-w-hot { color: var(--accent-strong); } .z-w-mild { color: var(--ink); }
+.z-navtab[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.z-navtab[aria-current="true"] .z-navtab__ic { background: var(--brand-strong); color: var(--on-brand); }
+button.z-navtab { border: 0; cursor: pointer; }
+.z-seasons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+.z-season { background: var(--raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-ticket); padding: var(--space-5); }
+.z-season__top { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); }
+.z-season__top .zi { color: var(--brand-strong); width: 28px; height: 28px; }
+.z-monthpills { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.z-monthpill { display: inline-grid; place-items: center; min-width: 52px; height: 40px; padding: 0 var(--space-3); border-radius: var(--radius-pill); border: 1.5px solid var(--line-strong); font: 700 12px/16px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.z-monthpill[data-best="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+@media (max-width: 1023px) { .z-seasons { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 767px) { .z-seasons { grid-template-columns: 1fr; } }
+.z-weathergrid { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: var(--space-5); align-items: stretch; }
+@media (max-width: 1023px) { .z-weathergrid { grid-template-columns: 1fr; } }
+
+/* ---------- Zápatí na nočním nebi: slunce, trasa, velký titulek ---------- */
+.z-footer { position: relative; overflow: hidden; }
+.z-footer__sun { position: absolute; right: -90px; top: -130px; width: 360px; height: 360px; border-radius: 50%; background: var(--brand); opacity: .95; }
+.z-footer__top { position: relative; grid-template-columns: 1.7fr repeat(4, 1fr); }
+.z-footer__big { font-size: 88px; line-height: 84px; letter-spacing: -0.035em; margin-bottom: var(--space-4); }
+.z-footer__top h4 { font: 700 11px/16px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--on-night-muted); }
+.z-footer__top li a { font: 500 15px/22px var(--font-sans); }
+.z-footer__route { position: relative; display: flex; align-items: center; gap: var(--space-3); max-width: var(--container-max); margin: var(--space-8) auto 0; color: var(--on-night); }
+.z-footer__routeline { flex: 1; border-top: 2px dotted rgba(255, 255, 255, .35); }
+.z-footer__routedot { width: 12px; height: 12px; border-radius: 50%; background: var(--brand); }
+.z-footer__bottom { margin-top: var(--space-5); border-top: 0; padding-top: 0; gap: var(--space-4); flex-wrap: wrap; }
+@media (max-width: 1023px) { .z-footer__top { grid-template-columns: 1fr 1fr; } .z-footer__big { font-size: 64px; line-height: 64px; } }
+@media (max-width: 767px) { .z-footer__top { grid-template-columns: 1fr; } .z-footer__big { font-size: 48px; line-height: 48px; } .z-footer__sun { width: 220px; height: 220px; top: -110px; } }
+
+/* ---------- Plovoucí „Poradíme s výběrem“ ---------- */
+.z-chat { position: fixed; right: var(--space-5); bottom: var(--space-5); z-index: 60; display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-3); }
+.z-chat__toggle { box-shadow: var(--shadow-lift); padding-right: var(--space-5); }
+.z-chat__toggle .zi { margin-left: -4px; }
+.z-chat__panel { width: min(360px, calc(100vw - 32px)); max-height: calc(100dvh - 140px); }
+.z-chat__panel .z-tk__in { padding: var(--space-5); overflow-y: auto; max-height: inherit; }
+.z-chat__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-3); }
+.z-chat__form { display: flex; flex-direction: column; gap: var(--space-3); }
+.z-chat__field { display: flex; flex-direction: column; gap: 2px; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--paper); cursor: text; }
+.z-chat__field input, .z-chat__field textarea { border: 0; padding: 0; background: transparent; outline: none; width: 100%; resize: none; font: 500 17px/26px var(--font-serif); color: var(--ink); }
+.z-chat__field input::placeholder, .z-chat__field textarea::placeholder { color: var(--line-strong); }
+.z-chat__sent { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; padding: var(--space-6) 0; }
+@media (max-width: 767px) { .z-chat { right: var(--space-3); bottom: var(--space-3); } }
