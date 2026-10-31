@@ -1,125 +1,83 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Icon, { type IconName } from '@/components/ui/Icon'
 import { fetchAdminStats, AdminStats } from '@/lib/adminApi'
-import { PiBuildings, PiAirplane, PiNewspaper, PiMapPin, PiSpinner, PiArrowRight, PiStar, PiCurrencyCircleDollar } from '@/components/ui/icons'
+
 function fmtKc(n: number | null): string {
   if (n == null) return '—'
-  if (n >= 10_000) return `${Math.round(n / 1000)} tis. Kč`
   return `${n.toLocaleString('cs-CZ')} Kč`
 }
-
-function fmtDate(s: string) {
-  return new Date(s).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' })
-}
+const fmtDate = (s: string) => new Date(s).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' })
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    fetchAdminStats()
-      .then(setStats)
-      .catch(e => setError(e.message))
-  }, [])
+  useEffect(() => { fetchAdminStats().then(setStats).catch(e => setError(e.message)) }, [])
 
-  if (error) return (
-    <div className="bg-red-50 border border-red-100 rounded-2xl p-6 text-red-700 text-sm">{error}</div>
-  )
+  if (error) return <div className="z-info"><h2 className="z-info__title">něco se nepovedlo<span className="z-dot">.</span></h2><p style={{ margin: 'var(--space-3) 0 0' }}>{error}</p></div>
+  if (!stats) return <div className="z-admin__loading" style={{ minHeight: 240 }}><Icon name="spinner" size="lg" className="animate-spin" /></div>
 
-  if (!stats) return (
-    <div className="flex items-center justify-center h-64">
-      <PiSpinner className="w-8 h-8 text-[#0093FF] animate-spin" />
-    </div>
-  )
-
-  const tiles = [
-    { label: 'Hotely',       value: stats.hotels,      sub: `${stats.agencies} CK`,        icon: PiBuildings,            href: '/admin/hotely',    color: '#0093FF' },
-    { label: 'Termíny',      value: stats.tours,       sub: 'nadcházející',                 icon: PiAirplane,             href: '/admin/zajezdy',   color: '#22C55E' },
-    { label: 'Články',       value: stats.articles,    sub: 'celkem',                       icon: PiNewspaper,            href: '/admin/clanky',    color: '#F59E0B' },
-    { label: 'Destinace',    value: stats.destinations,sub: `${stats.customPhotos} fotek`,  icon: PiMapPin,               href: '/admin/destinace', color: '#8B5CF6' },
-    { label: 'Nejnižší cena',value: fmtKc(stats.minPrice), sub: 'aktuálně',                icon: PiCurrencyCircleDollar, href: '/admin/zajezdy',   color: '#EF4444' },
+  const tiles: { label: string; value: string | number; sub: string; icon: IconName; href: string }[] = [
+    { label: 'Hotely', value: stats.hotels.toLocaleString('cs-CZ'), sub: `${stats.agencies} CK`, icon: 'hotel', href: '/admin/hotely' },
+    { label: 'Termíny', value: stats.tours.toLocaleString('cs-CZ'), sub: 'nadcházející', icon: 'letadlo', href: '/admin/zajezdy' },
+    { label: 'Články', value: stats.articles, sub: 'celkem', icon: 'clanek', href: '/admin/clanky' },
+    { label: 'Destinace', value: stats.destinations.toLocaleString('cs-CZ'), sub: `${stats.customPhotos} vlastních fotek`, icon: 'poloha', href: '/admin/destinace' },
+    { label: 'Nejnižší cena', value: fmtKc(stats.minPrice), sub: 'aktuálně', icon: 'mena', href: '/admin/zajezdy' },
   ]
 
   return (
-    <div className="space-y-8">
+    <div className="z-admin__stack">
       <div>
-        <h1 className="text-[24px] font-bold text-gray-800">Přehled</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Stav databáze zaleto.cz</p>
+        <div className="z-kicker">Stav databáze</div>
+        <h1>přehled<span className="z-dot">.</span></h1>
       </div>
 
-      {/* Stats tiles */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="z-admin__tiles">
         {tiles.map(t => (
-          <Link key={t.label} href={t.href}
-            className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md hover:border-gray-200 transition-all group">
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: `${t.color}18` }}>
-                <t.icon className="w-5 h-5" style={{ color: t.color }} />
-              </div>
-              <PiArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 group-hover:translate-x-0.5 transition-all" />
+          <Link key={t.label} href={t.href} className="z-tk z-admintile">
+            <div className="z-tk__in">
+              <span className="z-admintile__ic"><Icon name={t.icon} /></span>
+              <span className="z-admintile__value">{t.value}</span>
+              <span className="z-kicker">{t.label}</span>
+              <span className="z-data" style={{ textTransform: 'none' }}>{t.sub}</span>
             </div>
-            <p className="text-[22px] font-bold text-gray-800 leading-none">{t.value}</p>
-            <p className="text-[11px] text-gray-500 mt-1">{t.label}</p>
-            <p className="text-[10px] text-gray-400">{t.sub}</p>
           </Link>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Recent hotels */}
-        <div className="bg-white rounded-2xl border border-gray-100">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
-            <div className="flex items-center gap-2">
-              <PiBuildings className="w-4 h-4 text-[#0093FF]" />
-              <span className="font-semibold text-gray-700 text-[14px]">Nedávno aktualizované hotely</span>
-            </div>
-            <Link href="/admin/hotely" className="text-[11px] text-[#0093FF] font-semibold hover:underline">Vše →</Link>
+      <div className="z-grid-2">
+        <section className="z-info" style={{ padding: 'var(--space-5)' }}>
+          <div className="z-info__head" style={{ marginBottom: 'var(--space-3)' }}>
+            <h2 className="z-info__title" style={{ fontSize: 24, lineHeight: '28px' }}>nedávno aktualizované hotely<span className="z-dot">.</span></h2>
+            <Link href="/admin/hotely" className="z-more">Vše</Link>
           </div>
-          <div className="divide-y divide-gray-50">
+          <ul className="z-adminlist">
             {stats.recentHotels.map(h => (
-              <div key={h.id} className="flex items-center gap-3 px-5 py-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-gray-800 truncate">{h.name}</p>
-                  <p className="text-[11px] text-gray-400">{h.country} · {h.agency}</p>
-                </div>
-                {h.stars && (
-                  <div className="flex items-center gap-0.5">
-                    {Array.from({ length: h.stars }).map((_, i) => (
-                      <PiStar key={i} className="w-3 h-3 text-amber-400 fill-amber-400" />
-                    ))}
-                  </div>
-                )}
-                <span className="text-[10px] text-gray-400 flex-shrink-0">{fmtDate(h.updated_at)}</span>
-              </div>
+              <li key={h.id}>
+                <div><b>{h.name}</b><small>{[h.country, h.agency].filter(Boolean).join(' · ')}</small></div>
+                {h.stars ? <span className="z-meta"><span><Icon name="hvezda" />{h.stars}</span></span> : null}
+                <span className="z-data">{fmtDate(h.updated_at)}</span>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </section>
 
-        {/* Recent articles */}
-        <div className="bg-white rounded-2xl border border-gray-100">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
-            <div className="flex items-center gap-2">
-              <PiNewspaper className="w-4 h-4 text-[#F59E0B]" />
-              <span className="font-semibold text-gray-700 text-[14px]">Nejnovější články</span>
-            </div>
-            <Link href="/admin/clanky" className="text-[11px] text-[#0093FF] font-semibold hover:underline">Vše →</Link>
+        <section className="z-info" style={{ padding: 'var(--space-5)' }}>
+          <div className="z-info__head" style={{ marginBottom: 'var(--space-3)' }}>
+            <h2 className="z-info__title" style={{ fontSize: 24, lineHeight: '28px' }}>nejnovější články<span className="z-dot">.</span></h2>
+            <Link href="/admin/clanky" className="z-more">Vše</Link>
           </div>
-          <div className="divide-y divide-gray-50">
+          <ul className="z-adminlist">
             {stats.recentArticles.map(a => (
-              <div key={a.id} className="flex items-center gap-3 px-5 py-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-gray-800 truncate">{a.title}</p>
-                  <p className="text-[11px] text-gray-400">
-                    {a.category ? `${a.category} · ` : ''}{a.location ?? ''}
-                  </p>
-                </div>
-                <span className="text-[10px] text-gray-400 flex-shrink-0">{fmtDate(a.published_at)}</span>
-              </div>
+              <li key={a.id}>
+                <div><b>{a.title}</b><small>{[a.category, a.location].filter(Boolean).join(' · ')}</small></div>
+                <span className="z-data">{fmtDate(a.published_at)}</span>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </section>
       </div>
     </div>
   )

@@ -1,15 +1,16 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PiAirplane, PiLockKey, PiSpinner, PiEye, PiEyeSlash } from '@/components/ui/icons'
+import Image from 'next/image'
+import Icon from '@/components/ui/Icon'
 import { adminLogin } from '@/lib/adminApi'
 
 export default function LoginPage() {
   const router = useRouter()
   const [password, setPassword] = useState('')
-  const [show,     setShow]     = useState(false)
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
+  const [show, setShow] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,54 +27,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-200"
-            style={{ background: 'linear-gradient(135deg, #0093FF, #0060CC)' }}>
-            <PiAirplane className="w-6 h-6 text-white" />
-          </div>
-          <h1 className="text-[22px] font-bold text-gray-800">zaleto admin</h1>
-          <p className="text-sm text-gray-500 mt-1">Přihlaste se pro přístup do administrace</p>
-        </div>
+    <div className="z-login">
+      <div className="z-login__box">
+        <Image src="/img/logo/logo.png" alt="zaleto." width={130} height={38} className="z-logo" priority />
+        <div className="z-kicker" style={{ marginTop: 'var(--space-6)' }}>Administrace</div>
+        <h1 className="h2" style={{ margin: 'var(--space-2) 0 var(--space-5)' }}>přihlášení<span className="z-dot">.</span></h1>
 
-        <form onSubmit={submit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
-          <div>
-            <label className="block text-[12px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Heslo
-            </label>
-            <div className="relative">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
-                <PiLockKey className="w-4 h-4 text-gray-400" />
-              </div>
-              <input
-                type={show ? 'text' : 'password'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Zadejte heslo"
-                autoFocus
-                className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl text-[14px] text-gray-800 outline-none focus:border-[#0093FF] focus:ring-4 focus:ring-[#0093FF]/10 transition-all"
-              />
-              <button type="button" onClick={() => setShow(s => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                {show ? <PiEyeSlash className="w-4 h-4" /> : <PiEye className="w-4 h-4" />}
+        <form onSubmit={submit} className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)' }}>
+          <label className="z-sfield" style={{ padding: 'var(--space-3) var(--space-4)', background: 'var(--paper)', borderRadius: 'var(--radius-md)' }}>
+            <span className="z-sfield__label"><Icon name="lock" />Heslo</span>
+            <span className="z-clear">
+              <input type={show ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Zadej heslo" autoFocus />
+              <button type="button" onClick={() => setShow(s => !s)} aria-label={show ? 'Skrýt heslo' : 'Zobrazit heslo'}>
+                <Icon name={show ? 'eyeOff' : 'eye'} size="sm" />
               </button>
-            </div>
-          </div>
+            </span>
+          </label>
 
-          {error && (
-            <p className="text-[12px] font-medium text-red-600 bg-red-50 px-3 py-2 rounded-lg">
-              {error}
-            </p>
-          )}
+          {error && <p role="alert" className="z-data" style={{ margin: 'var(--space-3) 0 0', color: 'var(--danger)' }}>{error}</p>}
 
-          <button type="submit" disabled={loading || !password}
-            className="w-full h-10 rounded-xl font-semibold text-[14px] text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #0093FF, #0060CC)' }}>
-            {loading ? <PiSpinner className="w-4 h-4 animate-spin" /> : 'Přihlásit se'}
+          <button type="submit" disabled={loading || !password} className="z-btn z-btn--primary z-btn--block" style={{ marginTop: 'var(--space-4)' }}>
+            {loading ? 'Přihlašuji…' : 'Přihlásit se'}
+            <span className="z-btn__go"><Icon name={loading ? 'spinner' : 'sipka'} className={loading ? 'animate-spin' : undefined} /></span>
           </button>
-        </form>
+        </div></form>
       </div>
     </div>
   )

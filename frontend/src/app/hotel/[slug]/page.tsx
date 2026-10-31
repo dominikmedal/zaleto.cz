@@ -254,84 +254,54 @@ export default async function HotelDetailPage({ params }: Props) {
   )
 }
 
-/** Rezervační lístek: trasa, velká cena, nejbližší termíny a hlavní tlačítko. */
-async function BookingBox({ hotel, slug, place, tourCount }: { hotel: Hotel; slug: string; place: string; tourCount: number }) {
+/** Rezervace: minimalistická karta – cena, tři nejbližší termíny, jedno hlavní tlačítko. */
+async function BookingBox({ hotel, slug, tourCount }: { hotel: Hotel; slug: string; place: string; tourCount: number }) {
   let tours: Tour[] = []
   try {
     const data = await fetchHotelTours(slug)
-    tours = (data.tours ?? []).sort((a, b) => (a.departure_date || '').localeCompare(b.departure_date || '')).slice(0, 4)
+    tours = (data.tours ?? []).sort((a, b) => (a.departure_date || '').localeCompare(b.departure_date || '')).slice(0, 3)
   } catch { /* bez termínů */ }
 
-  const first = tours[0]
-  const fromCity = first?.departure_city ?? null
-  const fromCode = airportCode(fromCity)
-  const to = hotel.resort_town ?? hotel.country ?? hotel.name
-  const stamp = hotel.has_last_minute === 1 ? 'Last minute' : hotel.has_first_minute === 1 ? 'First minute' : null
-
   return (
-    <div className="z-tk z-tk--h z-bookbox" style={{ ['--cut' as string]: '236px' }}>
-      <div className="z-tk__in">
-        {stamp && <span className="z-stamp z-stamp--fill z-bookbox__stamp">{stamp}</span>}
+    <div className="z-bookbox">
+      <div className="z-kicker">Rezervace</div>
 
-        <div className="z-bookbox__head">
-          <div className="z-kicker">Rezervace</div>
-          {fromCity ? (
-            <div className="z-route" style={{ marginTop: 'var(--space-3)' }}>
-              <span>{fromCode ?? fromCity}<small>{fromCode ? fromCity : 'odlet'}</small></span>
-              <span className="z-route__line"><Icon name="letadlo" /></span>
-              <span style={{ textAlign: 'right' }}>{to}<small>{hotel.country ?? ''}</small></span>
-            </div>
-          ) : null}
-
-          <div className="z-bookbox__price">
-            <span className="z-price__note">od · za osobu</span>
-            <span className="z-bookbox__amount">{hotel.min_price ? formatPrice(hotel.min_price) : 'Aktualizuje se'}</span>
-            {first && <span className="z-data">NEJBLIŽŠÍ ODLET {formatDateRange(first.departure_date, first.return_date)}</span>}
-          </div>
-        </div>
-
-        <div className="z-bookbox__list">
-          <div className="z-bookbox__listhead">
-            <span className="z-kicker">Nejbližší termíny</span>
-            <TourModalTrigger slug={slug} name={hotel.name} tourCount={tourCount} />
-          </div>
-          {tours.length === 0 ? <p className="z-data">TERMÍNY SE AKTUALIZUJÍ</p> : (
-            <ul>
-              {tours.map((t, i) => {
-                const q = new URLSearchParams({ date: t.departure_date || '', nights: String(t.duration || 7), adults: '2' })
-                if (t.url) q.set('tour_url', t.url)
-                if (t.agency) q.set('agency', t.agency)
-                return (
-                  <li key={t.id} data-first={i === 0 || undefined}>
-                    <a href={`${API}/api/redirect/${slug}?${q}`} target="_blank" rel="noopener noreferrer sponsored">
-                      <span className="z-bookbox__date">
-                        <b>{formatDateRange(t.departure_date, t.return_date)}</b>
-                        <small>{[t.duration ? `${t.duration} nocí` : null, t.departure_city].filter(Boolean).join(' · ')}</small>
-                      </span>
-                      {t.price > 0 && <span className="z-bookbox__rowprice">{formatPrice(t.price)}</span>}
-                      <Icon name="sipka" size="sm" />
-                    </a>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </div>
-
-        <div className="z-bookbox__stub">
-          <ScrollToButton targetId="terminy" className="z-btn z-btn--offer z-btn--block z-bookbox__cta">
-            Zobrazit všechny termíny<span className="z-btn__go"><Icon name="sipka" /></span>
-          </ScrollToButton>
-          <div className="z-bookbox__row">
-            <FavoriteButton slug={slug} name={hotel.name} variant="detail" className="flex-1 justify-center" />
-            <ShareButton slug={slug} name={hotel.name} />
-          </div>
-          <ul className="z-bookbox__trust">
-            <li><Icon name="ok" size="sm" />Rezervace přímo u CK</li>
-            <li><Icon name="ok" size="sm" />Bez poplatků navíc</li>
-          </ul>
-        </div>
+      <div className="z-bookbox__price">
+        <span className="z-data">OD</span>
+        <span className="z-bookbox__amount">{hotel.min_price ? formatPrice(hotel.min_price) : 'Aktualizuje se'}</span>
+        <span className="z-data">ZA OSOBU</span>
       </div>
+
+      {tours.length > 0 && (
+        <ul className="z-bookbox__list">
+          {tours.map(t => {
+            const q = new URLSearchParams({ date: t.departure_date || '', nights: String(t.duration || 7), adults: '2' })
+            if (t.url) q.set('tour_url', t.url)
+            if (t.agency) q.set('agency', t.agency)
+            return (
+              <li key={t.id}>
+                <a href={`${API}/api/redirect/${slug}?${q}`} target="_blank" rel="noopener noreferrer sponsored">
+                  <span>
+                    <b>{formatDateRange(t.departure_date, t.return_date)}</b>
+                    <small>{[t.duration ? `${t.duration} nocí` : null, t.departure_city].filter(Boolean).join(' · ')}</small>
+                  </span>
+                  {t.price > 0 && <span className="z-bookbox__rowprice">{formatPrice(t.price)}</span>}
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      <ScrollToButton targetId="terminy" className="z-btn z-btn--offer z-btn--block z-bookbox__cta">
+        {tourCount > tours.length ? `Všech ${tourCount} termínů` : 'Zobrazit termíny'}<span className="z-btn__go"><Icon name="sipka" /></span>
+      </ScrollToButton>
+
+      <div className="z-bookbox__row">
+        <FavoriteButton slug={slug} name={hotel.name} variant="detail" />
+        <ShareButton slug={slug} name={hotel.name} />
+      </div>
+      <p className="z-data z-bookbox__note"><Icon name="ok" size="sm" />REZERVACE PŘÍMO U CESTOVNÍ KANCELÁŘE</p>
     </div>
   )
 }

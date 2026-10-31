@@ -3,22 +3,29 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import Icon, { type IconName } from '@/components/ui/Icon'
 import { adminCheck, adminLogout } from '@/lib/adminApi'
-import { PiHouse, PiBuildings, PiAirplane, PiNewspaper, PiMapPin, PiCar, PiSignOut, PiSpinner, PiList, PiX } from '@/components/ui/icons'
-const NAV = [
-  { href: '/admin/prehled',      label: 'Přehled',       icon: PiHouse },
-  { href: '/admin/hotely',       label: 'Hotely',         icon: PiBuildings },
-  { href: '/admin/zajezdy',      label: 'Zájezdy',        icon: PiAirplane },
-  { href: '/admin/clanky',       label: 'Články',         icon: PiNewspaper },
-  { href: '/admin/destinace',    label: 'Destinace',      icon: PiMapPin },
-  { href: '/admin/pujcovna-aut', label: 'Půjčovna aut',   icon: PiCar },
+
+const NAV: { href: string; label: string; icon: IconName }[] = [
+  { href: '/admin/prehled', label: 'Přehled', icon: 'kompas' },
+  { href: '/admin/hotely', label: 'Hotely', icon: 'hotel' },
+  { href: '/admin/zajezdy', label: 'Zájezdy', icon: 'letadlo' },
+  { href: '/admin/clanky', label: 'Články', icon: 'clanek' },
+  { href: '/admin/destinace', label: 'Destinace', icon: 'poloha' },
+  { href: '/admin/pujcovna-aut', label: 'Půjčovna aut', icon: 'auto' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const router   = useRouter()
+  const router = useRouter()
   const pathname = usePathname()
-  const [ready,  setReady]  = useState(false)
+  const [ready, setReady] = useState(false)
   const [mobile, setMobile] = useState(false)
+
+  // v administraci se schová veřejný proužek, zápatí a chat
+  useEffect(() => {
+    document.body.dataset.admin = '1'
+    return () => { delete document.body.dataset.admin }
+  }, [])
 
   useEffect(() => {
     if (pathname === '/admin/prihlaseni') { setReady(true); return }
@@ -29,75 +36,46 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [pathname, router])
 
   if (!ready) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <PiSpinner className="w-8 h-8 text-[#0093FF] animate-spin" />
-    </div>
+    <div className="z-admin z-admin__loading"><Icon name="spinner" size="lg" className="animate-spin" /></div>
   )
 
-  if (pathname === '/admin/prihlaseni') return <>{children}</>
+  if (pathname === '/admin/prihlaseni') return <div className="z-admin">{children}</div>
 
   const logout = () => { adminLogout(); router.push('/admin/prihlaseni') }
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      {/* Mobile overlay */}
-      {mobile && (
-        <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setMobile(false)} />
-      )}
+    <div className="z-admin z-admin__shell">
+      {mobile && <div className="z-admin__scrim" onClick={() => setMobile(false)} />}
 
-      {/* Sidebar */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-50 w-60 bg-white border-r border-gray-100 flex flex-col
-        transition-transform duration-300
-        ${mobile ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:static lg:z-auto
-      `}>
-        <div className="flex items-center gap-2.5 px-5 h-16 border-b border-gray-100 flex-shrink-0">
-          <Image src="/img/logo/logo.png" alt="Zaleto" width={100} height={28} className="object-contain" priority />
-          <button className="ml-auto lg:hidden" onClick={() => setMobile(false)}>
-            <PiX className="w-5 h-5 text-gray-400" />
-          </button>
+      <aside className="z-admin__side" data-open={mobile || undefined}>
+        <div className="z-admin__brand">
+          <Link href="/" aria-label="zaleto. – web"><Image src="/img/logo/logo.png" alt="zaleto." width={110} height={32} className="z-logo" priority /></Link>
+          <span className="z-kicker">Administrace</span>
         </div>
 
-        <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
-          {NAV.map(({ href, label, icon: Icon }) => {
+        <nav className="z-admin__nav" aria-label="Administrace">
+          {NAV.map(({ href, label, icon }) => {
             const active = pathname === href || pathname.startsWith(href + '/')
             return (
-              <Link key={href} href={href} onClick={() => setMobile(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium transition-all ${
-                  active
-                    ? 'bg-[#0093FF]/8 text-[#0093FF]'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                }`}>
-                <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-[#0093FF]' : 'text-gray-400'}`} />
-                {label}
+              <Link key={href} href={href} onClick={() => setMobile(false)} aria-current={active ? 'page' : undefined}>
+                <span className="z-admin__navic"><Icon name={icon} /></span>{label}
               </Link>
             )
           })}
         </nav>
 
-        <div className="px-3 pb-4 flex-shrink-0">
-          <button onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all">
-            <PiSignOut className="w-[18px] h-[18px] flex-shrink-0" />
-            Odhlásit se
-          </button>
+        <div className="z-admin__foot">
+          <Link href="/" className="z-more">Zpět na web</Link>
+          <button type="button" onClick={logout} className="z-btn z-btn--line z-btn--sm">Odhlásit se<span className="z-btn__go"><Icon name="signOut" /></span></button>
         </div>
       </aside>
 
-      {/* Main */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        {/* Top bar (mobile) */}
-        <header className="lg:hidden flex items-center gap-3 h-14 px-4 bg-white border-b border-gray-100">
-          <button onClick={() => setMobile(true)} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100">
-            <PiList className="w-5 h-5 text-gray-600" />
-          </button>
-          <Image src="/img/logo/logo.png" alt="Zaleto" width={80} height={22} className="object-contain" />
+      <div className="z-admin__main">
+        <header className="z-admin__top">
+          <button type="button" className="z-iconbtn" onClick={() => setMobile(true)} aria-label="Menu"><Icon name="menu" /></button>
+          <Image src="/img/logo/logo.png" alt="zaleto." width={90} height={26} className="z-logo" style={{ height: 26, width: 'auto' }} />
         </header>
-
-        <main className="flex-1 p-6 lg:p-8 min-w-0">
-          {children}
-        </main>
+        <main className="z-admin__content">{children}</main>
       </div>
     </div>
   )

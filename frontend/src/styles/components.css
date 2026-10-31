@@ -803,31 +803,23 @@ button.z-navtab { border: 0; cursor: pointer; }
 @media (max-width: 1023px) { .z-destmini { grid-template-columns: auto minmax(0, 1fr); } .z-destmini__links { grid-column: 1 / -1; flex-direction: row; align-items: center; } }
 @media (max-width: 767px) { .z-destmini { grid-template-columns: 1fr; } .z-destmini__photo { width: 96px; } }
 
-/* ---------- Rezervační lístek na detailu hotelu (výrazný prvek) ---------- */
-.z-bookbox .z-tk__in { padding: var(--space-6) var(--space-5) var(--space-5); display: flex; flex-direction: column; border-top: 8px solid var(--accent); border-radius: var(--radius-lg); }
-.z-bookbox__stamp { position: absolute; top: -4px; right: var(--space-4); z-index: 2; }
-.z-bookbox__head { padding-bottom: var(--space-4); }
-.z-bookbox .z-route { font-size: 22px; line-height: 28px; }
-.z-bookbox__price { display: flex; flex-direction: column; gap: 2px; margin-top: var(--space-4); }
-.z-bookbox__amount { font: 600 52px/54px var(--font-serif); letter-spacing: -0.03em; color: var(--accent-strong); font-variant-numeric: tabular-nums; }
-.z-bookbox__list { flex: 1; }
-.z-bookbox__listhead { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
-.z-bookbox__list ul { list-style: none; margin: 0; padding: 0; }
-.z-bookbox__list li + li { border-top: 1px dashed var(--line); }
-.z-bookbox__list a { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-2); margin: 0 calc(-1 * var(--space-2)); border-radius: var(--radius-md); color: var(--ink); text-decoration: none; transition: background .2s; }
-.z-bookbox__list li[data-first] a { background: var(--sky); }
-.z-bookbox__list a:hover { background: var(--accent-soft); }
-.z-bookbox__date { flex: 1; min-width: 0; }
-.z-bookbox__date b { display: block; font: 600 22px/26px var(--font-serif); letter-spacing: -0.01em; }
-.z-bookbox__date small { display: block; font: 400 11px/16px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-muted); }
+/* ---------- Rezervace na detailu hotelu (minimalistická karta) ---------- */
+.z-bookbox { background: var(--raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-ticket); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+.z-bookbox__price { display: flex; flex-direction: column; gap: 2px; padding-bottom: var(--space-4); border-bottom: 2px dotted var(--line); }
+.z-bookbox__amount { font: 600 48px/52px var(--font-serif); letter-spacing: -0.03em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.z-bookbox__list { list-style: none; margin: 0; padding: 0; }
+.z-bookbox__list li + li { border-top: 1px solid var(--line); }
+.z-bookbox__list a { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) 0; color: var(--ink); text-decoration: none; }
+.z-bookbox__list a:hover b { color: var(--brand-strong); }
+.z-bookbox__list b { display: block; font: 600 20px/26px var(--font-serif); }
+.z-bookbox__list small { display: block; font: 400 11px/16px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-muted); }
 .z-bookbox__rowprice { font: 600 18px/22px var(--font-serif); white-space: nowrap; }
-.z-bookbox__stub { display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-4); }
-.z-bookbox__cta { height: 60px; font-size: 16px; }
+.z-bookbox__cta { height: 56px; }
 .z-bookbox__row { display: flex; gap: var(--space-2); }
 .z-bookbox__row > * { flex: 1; }
-.z-bookbox__trust { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); font: 400 12px/18px var(--font-mono); letter-spacing: .02em; color: var(--ink-muted); }
-.z-bookbox__trust li { display: inline-flex; align-items: center; gap: 6px; }
-.z-bookbox__trust .zi { color: var(--success); }
+.z-bookbox__row .z-btn { width: 100%; }
+.z-bookbox__note { margin: 0; display: flex; align-items: center; gap: 6px; }
+.z-bookbox__note .zi { color: var(--success); }
 .z-hotel { grid-template-columns: minmax(0, 1fr) 400px; }
 @media (max-width: 1023px) { .z-hotel { grid-template-columns: 1fr; } }
 
@@ -847,3 +839,73 @@ nav[aria-label="Mobilní navigace"] { border-radius: 0 0 var(--radius-sheet) var
 .z-shead .z-more { margin-bottom: var(--space-3); }
 @media (max-width: 1023px) { .z-shead h1, .z-shead h2 { font-size: 46px !important; line-height: 50px !important; } }
 @media (max-width: 767px) { .z-shead h1, .z-shead h2 { font-size: 36px !important; line-height: 40px !important; } .z-shead { margin-bottom: var(--space-6); } }
+
+/* ======================================================================
+   Administrace v designu „Palubní deník“
+   ====================================================================== */
+body[data-admin] .z-offerbar, body[data-admin] .z-footer, body[data-admin] .z-chat { display: none; }
+.z-admin { min-height: 100vh; background: var(--paper); color: var(--ink); }
+.z-admin__loading { display: grid; place-items: center; min-height: 100vh; color: var(--brand-strong); }
+.z-admin__shell { display: flex; }
+.z-admin__side { position: sticky; top: 0; align-self: flex-start; height: 100vh; width: 280px; flex: none; display: flex; flex-direction: column; background: var(--raised); border-radius: 0 var(--radius-lg) var(--radius-lg) 0; box-shadow: var(--shadow-ticket); padding: var(--space-5) var(--space-4); z-index: 30; }
+.z-admin__brand { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-3) var(--space-5); border-bottom: 2px dotted var(--line); }
+.z-admin__nav { flex: 1; display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-4) 0; overflow-y: auto; }
+.z-admin__nav a { display: flex; align-items: center; gap: var(--space-3); min-height: 52px; padding: 0 var(--space-4) 0 var(--space-2); border-radius: var(--radius-pill); color: var(--ink); text-decoration: none; font: 500 16px/24px var(--font-sans); transition: background .2s, color .2s; }
+.z-admin__nav a:hover { background: var(--paper-deep); }
+.z-admin__navic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--sky); flex: none; }
+.z-admin__nav a[aria-current="page"] { background: var(--ink); color: var(--paper); }
+.z-admin__nav a[aria-current="page"] .z-admin__navic { background: var(--brand-strong); color: var(--on-brand); }
+.z-admin__foot { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); padding: var(--space-4) var(--space-3) 0; border-top: 2px dotted var(--line); }
+.z-admin__main { flex: 1; min-width: 0; }
+.z-admin__top { display: none; align-items: center; gap: var(--space-3); height: 60px; padding: 0 var(--space-4); background: var(--raised); box-shadow: var(--shadow-ticket); }
+.z-admin__content { padding: var(--space-7); max-width: 1500px; }
+.z-admin__scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 40; }
+.z-admin__stack { display: flex; flex-direction: column; gap: var(--space-7); }
+.z-admin__tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--space-4); }
+.z-admintile .z-tk__in { display: flex; flex-direction: column; gap: 4px; padding: var(--space-5); border-radius: var(--radius-lg); }
+.z-admintile__ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--sky); margin-bottom: var(--space-3); }
+.z-admintile__value { font: 600 40px/44px var(--font-serif); letter-spacing: -0.03em; }
+.z-adminlist { list-style: none; margin: 0; padding: 0; }
+.z-adminlist li { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; }
+.z-adminlist li + li { border-top: 1px solid rgba(11, 27, 51, .12); }
+.z-adminlist li > div { flex: 1; min-width: 0; }
+.z-adminlist b { display: block; font: 600 17px/22px var(--font-serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.z-adminlist small { display: block; font: 400 11px/16px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-muted); }
+.z-login { min-height: 100vh; display: grid; place-items: center; padding: var(--space-5); }
+.z-login__box { width: 100%; max-width: 440px; }
+
+/* hlavní nadpisy stránek v administraci */
+.z-admin__content h1 { font: 600 52px/56px var(--font-serif) !important; letter-spacing: -0.03em; color: var(--ink) !important; margin: 0; }
+.z-admin__content h1 + p { font: 400 18px/28px var(--font-serif); color: var(--ink-muted) !important; }
+
+/* přemapování starých formulářů, tabulek a karet (zbylé stránky administrace) */
+.z-admin__content :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]), select, textarea) {
+  border: 1.5px solid var(--line-strong) !important; border-radius: var(--radius-md) !important; background: var(--raised) !important;
+  font-family: var(--font-sans) !important; color: var(--ink) !important; box-shadow: none !important;
+}
+.z-admin__content :is(input, select, textarea):focus { border-color: var(--ink) !important; outline: 2px solid var(--focus); outline-offset: 2px; }
+.z-admin__content :is(input, textarea)::placeholder { color: var(--line-strong); }
+.z-admin__content :is(.bg-white).rounded-2xl, .z-admin__content .rounded-2xl.border { border: 0 !important; border-radius: var(--radius-lg) !important; box-shadow: var(--shadow-ticket); background: var(--raised); }
+.z-admin__content table { border-collapse: collapse; }
+.z-admin__content th { font: 700 11px/16px var(--font-mono) !important; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-muted) !important; background: transparent !important; }
+.z-admin__content :is(td, th, tr) { border-color: var(--line) !important; }
+.z-admin__content tbody tr:hover { background: var(--sky); }
+.z-admin__content button.rounded-xl, .z-admin__content a.rounded-xl { border-radius: var(--radius-pill) !important; }
+.z-admin__content :is(button, a)[class*="bg-[#0093FF]"], .z-admin__content :is(button, a)[class*="bg-[#008afe]"] { background: var(--brand-strong); color: var(--on-brand); font-family: var(--font-sans); font-weight: 500; }
+.z-admin__content :is(button, a)[class*="bg-[#0093FF]"]:hover { background: var(--brand-deep); }
+.z-admin__content .fixed.inset-0 > div[class*="bg-white"] { border-radius: var(--radius-lg) !important; box-shadow: var(--shadow-lift) !important; border: 0 !important; }
+
+@media (max-width: 1023px) {
+  .z-admin__shell { display: block; }
+  .z-admin__side { position: fixed; inset: 0 auto 0 0; transform: translateX(-100%); transition: transform .3s; width: min(300px, 86vw); }
+  .z-admin__side[data-open] { transform: none; }
+  .z-admin__top { display: flex; }
+  .z-admin__content { padding: var(--space-5) var(--space-4); }
+  .z-admin__content h1 { font-size: 38px !important; line-height: 42px !important; }
+}
+
+/* celá políčka vyhledávání jsou klikatelná */
+.z-sfield { cursor: pointer; }
+.z-sfield input[type="text"], .z-sfield input:not([type]) { cursor: text; }
+.z-sfield:hover { background: var(--paper); }
+.z-search .z-sfield:focus-within, .z-filter__in .z-sfield:focus-within { background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink); }
