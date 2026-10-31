@@ -110,6 +110,7 @@ export interface AdminArticle {
   id: number; slug: string; topic: string; title: string
   category: string | null; location: string | null; excerpt: string | null
   content?: string | null; reading_time: number | null; custom_image_url: string | null
+  custom_image_credit?: string | null; custom_image_credit_url?: string | null
   published_at: string; generated_at: string
 }
 export interface ArticleList { articles: AdminArticle[]; total: number }

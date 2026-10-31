@@ -246,6 +246,8 @@ export type Article = {
   reading_time: number
   published_at: string
   custom_image_url: string | null
+  custom_image_credit?: string | null
+  custom_image_credit_url?: string | null
 }
 
 export type ArticleFull = Article & { content: string | null; topic: string; custom_image_url: string | null }

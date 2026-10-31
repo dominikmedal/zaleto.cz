@@ -935,3 +935,32 @@ body[data-admin] .z-offerbar, body[data-admin] .z-footer, body[data-admin] .z-ch
 .z-photohit:hover img { transform: scale(1.06); }
 .z-photohit span { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 10px 6px; background: linear-gradient(to top, rgba(11, 27, 51, .7), transparent); color: var(--on-night); font: 400 11px/14px var(--font-mono); text-align: left; opacity: 0; transition: opacity .2s; }
 .z-photohit:hover span, .z-photohit:focus-visible span { opacity: 1; }
+
+/* ---------- Fotky na kartě hotelu: střídání při najetí ---------- */
+.z-cardphotos { position: relative; width: 100%; height: 100%; }
+.z-cardphotos img { width: 100%; height: 100%; object-fit: cover; }
+.z-cardphotos__dots { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; justify-content: center; gap: 5px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.z-tk:hover .z-cardphotos__dots { opacity: 1; }
+.z-cardphotos__dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 255, 255, .6); box-shadow: 0 0 0 1px rgba(11, 27, 51, .25); }
+.z-cardphotos__dots i[data-on] { background: var(--raised); width: 16px; border-radius: var(--radius-pill); }
+
+/* Půjčovna aut: kroky jako zastávky na trase, výhody jako barevné dlaždice */
+.z-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); position: relative; }
+.z-steps::before { content: ""; position: absolute; left: 28px; right: 28px; top: 28px; border-top: 3px dotted var(--brand); opacity: .45; }
+.z-step { position: relative; }
+.z-step__stop { position: relative; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--brand); color: var(--paper); box-shadow: 0 0 0 8px var(--paper); margin-bottom: var(--space-4); }
+.z-step .h3 { margin: 0 0 var(--space-2); }
+.z-step p { margin: 0; max-width: 34ch; font: 400 17px/27px var(--font-sans); color: var(--ink-muted, var(--ink)); }
+.z-perks { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: var(--space-4); }
+.z-perk { background: var(--raised); border-radius: var(--radius-lg); padding: var(--space-5); border: 1px solid rgba(11, 27, 51, .08); }
+.z-perk__icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 16px 16px 16px 4px; background: var(--paper-deep, rgba(11, 27, 51, .06)); color: var(--brand-strong); margin-bottom: var(--space-4); }
+.z-perk h3 { margin: 0 0 var(--space-2); font: 600 19px/26px var(--font-sans); }
+.z-perk p { margin: 0; font: 400 16px/25px var(--font-sans); }
+.z-perk:nth-child(even) { transform: translateY(14px); }
+@media (max-width: 767px) {
+  .z-steps { grid-template-columns: 1fr; gap: var(--space-5); }
+  .z-steps::before { left: 28px; right: auto; top: 28px; bottom: 28px; border-top: 0; border-left: 3px dotted var(--brand); }
+  .z-step { padding-left: 80px; } .z-step__stop { position: absolute; left: 0; top: 0; margin: 0; }
+  .z-perk:nth-child(even) { transform: none; }
+}
+.z-masthead__lead { color: #fff; text-shadow: 0 1px 14px rgba(5, 25, 55, .75), 0 0 2px rgba(5, 25, 55, .6); }

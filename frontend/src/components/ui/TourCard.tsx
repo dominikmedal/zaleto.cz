@@ -1,10 +1,23 @@
 import Link from 'next/link'
 import Icon from './Icon'
+import CardPhotos from './CardPhotos'
 import { formatDateRange, formatPrice, normalizeMealPlanLabel } from './format'
 import type { Hotel } from '@/lib/types'
 
 type H = Pick<Hotel, 'slug' | 'name' | 'thumbnail_url' | 'min_price' | 'stars'> &
+  { photos?: string | null } &
   Partial<Pick<Hotel, 'agency' | 'country' | 'destination' | 'resort_town' | 'next_departure' | 'next_return_date' | 'has_last_minute' | 'has_first_minute' | 'food_options'>>
+
+/** Až 5 fotek hotelu: miniatura jako první, pak další z galerie (bez duplicit). */
+function cardPhotos(hotel: { thumbnail_url: string | null; photos?: string | null }): string[] {
+  const out: string[] = []
+  if (hotel.thumbnail_url) out.push(hotel.thumbnail_url)
+  try {
+    const arr = hotel.photos ? JSON.parse(hotel.photos) : []
+    if (Array.isArray(arr)) for (const u of arr) if (typeof u === 'string' && !out.includes(u)) out.push(u)
+  } catch { /* neplatný JSON */ }
+  return out.slice(0, 5)
+}
 
 /** Zájezd jako palubní lístek (`z-tk z-tk--h`). Odkaz vede na detail hotelu. */
 export default function TourCard({ hotel, priority }: { hotel: H; priority?: boolean }) {
@@ -17,10 +30,7 @@ export default function TourCard({ hotel, priority }: { hotel: H; priority?: boo
       {stamp && <span className="z-stamp z-stamp--fill">{stamp}</span>}
       <div className="z-tk__in">
         <div className="z-tour__media">
-          {hotel.thumbnail_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={hotel.thumbnail_url} alt={hotel.name} loading={priority ? 'eager' : 'lazy'} />
-          )}
+          <CardPhotos photos={cardPhotos(hotel)} alt={hotel.name} priority={priority} />
         </div>
         <div className="z-tour__body">
           {place && <div className="z-kicker">{place}</div>}

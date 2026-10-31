@@ -9,7 +9,7 @@ function fixUpload<T extends { custom_image_url?: string | null }>(a: T): T {
   return a.custom_image_url?.startsWith('/uploads/') ? { ...a, custom_image_url: null } : a
 }
 
-const ARTICLE_LIST_COLS = 'id, slug, title, category, location, excerpt, reading_time, published_at, custom_image_url'
+const ARTICLE_LIST_COLS = 'id, slug, title, category, location, excerpt, reading_time, published_at, custom_image_url, custom_image_credit, custom_image_credit_url'
 
 export async function listArticles(q: Q) {
   const limit = Math.min(parseInt(q.limit ?? '') || 9, 50)

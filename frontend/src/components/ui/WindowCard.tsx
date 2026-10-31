@@ -24,7 +24,7 @@ export default function WindowCard({ href, name, photo, stamp, count, countLabel
       </div>
       <div className="z-window__cap">
         <h3 className="z-window__name">{name}</h3>
-        {count != null && count > 0 && <span className="z-window__count"><Icon name="plaz" />{count} {countLabel}</span>}
+        {count != null && count > 0 && <span className="z-window__count"><Icon name="hotel" />{count} {countLabel}</span>}
       </div>
     </Link>
   )

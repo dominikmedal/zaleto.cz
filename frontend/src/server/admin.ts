@@ -195,19 +195,19 @@ export async function handleAdmin(
         let where = ''
         if (q) { where = 'WHERE (title ILIKE ? OR topic ILIKE ? OR location ILIKE ?)'; const l = `%${q}%`; params.push(l, l, l) }
         const [rows, total] = await Promise.all([
-          query(`SELECT id, slug, topic, title, category, location, excerpt, reading_time, custom_image_url, published_at, generated_at
+          query(`SELECT id, slug, topic, title, category, location, excerpt, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url, published_at, generated_at
                  FROM articles ${where} ORDER BY published_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]),
           query(`SELECT COUNT(*) AS n FROM articles ${where}`, params),
         ])
         return ok({ articles: rows.rows, total: parseInt(total.rows[0].n) })
       }
       case 'POST articles': {
-        const { title, topic, excerpt, content, category, location, reading_time, custom_image_url } = body ?? {}
+        const { title, topic, excerpt, content, category, location, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url } = body ?? {}
         if (!title) return fail(400, 'title je povinné')
         const slug = slugOf(title)
-        await query(`INSERT INTO articles (topic, slug, title, category, location, excerpt, content, reading_time, custom_image_url, published_at, generated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-          [topic || title, slug, title, n(category), n(location), n(excerpt), n(content), reading_time ?? 5, n(custom_image_url)])
+        await query(`INSERT INTO articles (topic, slug, title, category, location, excerpt, content, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url, published_at, generated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          [topic || title, slug, title, n(category), n(location), n(excerpt), n(content), reading_time ?? 5, n(custom_image_url), n(custom_image_credit), n(custom_image_credit_url)])
         afterArticleChange(slug)
         return ok({ ok: true, slug })
       }
@@ -215,8 +215,8 @@ export async function handleAdmin(
         const b = body ?? {}
         await query(`UPDATE articles SET title = COALESCE(?, title), excerpt = COALESCE(?, excerpt), content = COALESCE(?, content),
                        category = COALESCE(?, category), location = COALESCE(?, location), reading_time = COALESCE(?, reading_time),
-                       custom_image_url = ? WHERE id = ?`,
-          [n(b.title), n(b.excerpt), n(b.content), n(b.category), n(b.location), n(b.reading_time), n(b.custom_image_url), id])
+                       custom_image_url = ?, custom_image_credit = ?, custom_image_credit_url = ? WHERE id = ?`,
+          [n(b.title), n(b.excerpt), n(b.content), n(b.category), n(b.location), n(b.reading_time), n(b.custom_image_url), n(b.custom_image_url ? b.custom_image_credit : null), n(b.custom_image_url ? b.custom_image_credit_url : null), id])
         const slug = (await query('SELECT slug FROM articles WHERE id = ?', [id])).rows[0]?.slug
         afterArticleChange(slug)
         return ok()
@@ -303,6 +303,10 @@ export async function handleAdmin(
         catch (e) { return fail(502, (e as Error).message) }
       }
       case 'POST unsplash/:id': {
+        if (id === 'download') {
+          if (typeof body?.downloadLocation === 'string') await registerDownload(body.downloadLocation)
+          return ok()
+        }
         if (id !== 'pick') break
         const b = body ?? {}
         if (!b.name || typeof b.url !== 'string' || !b.url.startsWith('https://images.unsplash.com/')) return fail(400, 'name a url (Unsplash) jsou povinné')

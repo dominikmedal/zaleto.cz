@@ -67,6 +67,11 @@ export default async function ArticlePage({ params }: Props) {
             <figure style={{ margin: '0 0 var(--space-6)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={hero} alt={article.title} style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 'var(--radius-lg)' }} />
+              {article.custom_image_url && article.custom_image_credit && (
+                <figcaption className="z-data" style={{ marginTop: 'var(--space-2)', textTransform: 'none' }}>
+                  Foto: <a href={article.custom_image_credit_url ?? 'https://unsplash.com'} target="_blank" rel="noopener noreferrer">{article.custom_image_credit}</a> / <a href="https://unsplash.com/?utm_source=zaleto&utm_medium=referral" target="_blank" rel="noopener noreferrer">Unsplash</a>
+                </figcaption>
+              )}
             </figure>
           )}
           {article.content && <ArticleBody content={article.content} />}

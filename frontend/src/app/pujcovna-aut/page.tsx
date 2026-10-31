@@ -36,10 +36,10 @@ const WHY: { icon: IconName; title: string; text: string }[] = [
   { icon: 'auto', title: 'Přes 500 půjčoven', text: 'Srovnáváme velké značky i lokální půjčovny.' },
 ]
 
-const STEPS = [
-  { n: '01', title: 'Vyber destinaci', text: 'Klikni na destinaci níže nebo použij vyhledávání.' },
-  { n: '02', title: 'Porovnej nabídky', text: 'Uvidíš seřazené nabídky s fotkami aut a cenami.' },
-  { n: '03', title: 'Rezervuj online', text: 'Rezervace je okamžitá. Kartu potřebuješ jen jako zálohu na přepážce.' },
+const STEPS: { icon: IconName; title: string; text: string }[] = [
+  { icon: 'poloha', title: 'Vyber destinaci', text: 'Klikni na destinaci níže nebo použij vyhledávání.' },
+  { icon: 'hledat', title: 'Porovnej nabídky', text: 'Uvidíš seřazené nabídky s fotkami aut a cenami.' },
+  { icon: 'ok', title: 'Rezervuj online', text: 'Rezervace je okamžitá. Kartu potřebuješ jen jako zálohu na přepážce.' },
 ]
 
 const webPageSchema = {
@@ -101,6 +101,10 @@ export default async function PujcovnaAutPage() {
                 Porovnáme ceny více než 500 půjčoven. Řecko, Turecko, Chorvatsko a desítky dalších destinací.
               </p>
             </div>
+            <div className="z-search__tabs" role="tablist" aria-label="Co hledáš">
+              <Link href="/" role="tab" className="z-search__tab" aria-selected="false"><Icon name="letadlo" size="sm" />Zájezdy</Link>
+              <span role="tab" className="z-search__tab" aria-selected="true"><Icon name="auto" size="sm" />Půjčovna aut</span>
+            </div>
             <CarRentalForm />
           </div>
         </section>
@@ -112,7 +116,7 @@ export default async function PujcovnaAutPage() {
           </div>
 
           <section className="z-section">
-            <SectionHead num="01" kicker="Destinace" title="kde si půjčit auto" />
+            <SectionHead title="kde si půjčit auto" />
             <div className="z-grid-3w" style={{ rowGap: 'var(--space-6)' }}>
               {active.map(country => (
                 <div key={country}>
@@ -130,29 +134,29 @@ export default async function PujcovnaAutPage() {
           </section>
 
           <section className="z-section">
-            <SectionHead num="02" kicker="Jak to funguje" title="rezervace ve třech krocích" />
-            <div className="z-grid-3">
+            <SectionHead title="rezervace ve třech krocích" />
+            <ol className="z-steps">
               {STEPS.map(s => (
-                <div key={s.n} className="z-info">
-                  <div className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{s.n}</div>
-                  <h3 className="z-info__title" style={{ margin: 'var(--space-3) 0' }}>{s.title}</h3>
-                  <p style={{ margin: 0 }}>{s.text}</p>
-                </div>
+                <li key={s.title} className="z-step">
+                  <span className="z-step__stop" aria-hidden="true"><Icon name={s.icon} /></span>
+                  <h3 className="h3">{s.title}<span className="z-dot">.</span></h3>
+                  <p>{s.text}</p>
+                </li>
               ))}
-            </div>
+            </ol>
           </section>
 
           <section className="z-section">
-            <SectionHead num="03" kicker="Proč přes Zaleto" title="co dostaneš" />
-            <dl className="z-info__grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            <SectionHead title="co dostaneš" />
+            <div className="z-perks">
               {WHY.map(w => (
-                <div key={w.title} className="z-info__item" style={{ background: 'var(--raised)' }}>
-                  <Icon name={w.icon} />
-                  <dt>{w.title}</dt>
-                  <dd style={{ font: '400 15px/24px var(--font-sans)' }}>{w.text}</dd>
+                <div key={w.title} className="z-perk">
+                  <span className="z-perk__icon"><Icon name={w.icon} /></span>
+                  <h3>{w.title}</h3>
+                  <p>{w.text}</p>
                 </div>
               ))}
-            </dl>
+            </div>
           </section>
         </main>
         </div>

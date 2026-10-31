@@ -12,6 +12,8 @@ import NavTabs, { type NavTabItem } from '@/components/ui/NavTabs'
 import { PlaceTickets, FoodMenu, TripRoute } from '@/components/ui/ItemCard'
 import { fetchDestinations, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationPhotoCredit, fetchDestinationAI, fetchHotels, fetchArticles } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
+import { mergeDestinations } from '@/lib/carRental'
+import { fetchDynamicCarDestinations } from '@/lib/api'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -151,6 +153,14 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
     ? `/pocasi/${slugify(dest.name)}`
     : dest.country ? `/pocasi/${slugify(dest.country)}/${slugify(dest.name)}` : null
 
+  // Půjčovna aut: rovnou na odpovídající destinaci (u země na nejpopulárnější místo v ní)
+  const carDests = mergeDestinations(await fetchDynamicCarDestinations().catch(() => []))
+  const norm = (v: string | null | undefined) => slugify(v ?? '')
+  const carMatch = dest.type === 'country'
+    ? carDests.find(d => norm(d.country) === norm(dest.name) && d.popular) ?? carDests.find(d => norm(d.country) === norm(dest.name))
+    : carDests.find(d => norm(d.name) === norm(dest.name)) ?? carDests.find(d => d.slug === norm(dest.name))
+  const carUrl = carMatch ? `/pujcovna-aut/${carMatch.slug}` : '/pujcovna-aut'
+
   const tabs: NavTabItem[] = [
     ...(paragraphs.length > 1 ? [{ href: '#o-destinaci', label: 'O destinaci', icon: 'kompas' as const }] : []),
     ...(bestTime ? [{ href: '#kdy-jet', label: 'Kdy jet', icon: 'kalendar' as const }] : []),
@@ -160,7 +170,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
     { href: '#zajezdy', label: 'Zájezdy', icon: 'letadlo' as const },
     ...(articles.length ? [{ href: '#clanky', label: 'Články', icon: 'clanek' as const }] : []),
     ...(weatherUrl ? [{ href: weatherUrl, label: 'Počasí', icon: 'slunce' as const }] : []),
-    { href: '/pujcovna-aut', label: 'Půjčovna aut', icon: 'auto' as const },
+    { href: carUrl, label: 'Půjčovna aut', icon: 'auto' as const },
   ]
 
   const breadcrumbSchema = {

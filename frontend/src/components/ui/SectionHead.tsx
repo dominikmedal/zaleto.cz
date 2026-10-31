@@ -3,7 +3,7 @@ import Link from 'next/link'
 interface Props {
   /** Číslo kapitoly deníku, např. „01“. */
   num?: string
-  kicker: string
+  kicker?: string
   /** Titulek malými písmeny; tečka se doplní automaticky. */
   title: string
   moreHref?: string
