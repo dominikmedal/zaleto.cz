@@ -10,10 +10,10 @@ import FavoritesToast from './FavoritesToast'
 /** Stránky se širokým záhlavím (masthead), pod kterým je menu zpočátku průhledné. */
 const OVER_ROUTES = ['/', '/pujcovna-aut']
 
-const NAV: { href: string; label: string; type?: 'last_minute' | 'first_minute'; dot?: string }[] = [
+const NAV: { href: string; label: string; type?: 'last_minute' | 'first_minute' }[] = [
   { href: '/zajezdy', label: 'Zájezdy' },
-  { href: '/zajezdy?tour_type=last_minute', label: 'Last minute', type: 'last_minute', dot: 'var(--accent)' },
-  { href: '/zajezdy?tour_type=first_minute', label: 'First minute', type: 'first_minute', dot: 'var(--brand)' },
+  { href: '/zajezdy?tour_type=last_minute', label: 'Last minute', type: 'last_minute' },
+  { href: '/zajezdy?tour_type=first_minute', label: 'First minute', type: 'first_minute' },
   { href: '/destinace', label: 'Destinace' },
   { href: '/pujcovna-aut', label: 'Půjčovna aut' },
   { href: '/clanky', label: 'Články' },
@@ -52,7 +52,6 @@ export default function Header() {
             {NAV.map(item => (
               <li key={item.href}>
                 <Link href={item.href} aria-current={isActive(item) ? 'page' : undefined}>
-                  {item.dot && <i className="z-header__dot" style={{ background: item.dot }} aria-hidden="true" />}
                   {item.label}
                 </Link>
               </li>
