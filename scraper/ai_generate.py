@@ -359,6 +359,9 @@ def main() -> int:
     log.info("hotovo: %d vygenerováno, %d neúspěšných", done, failed)
     if done:
         revalidate()
+    if failed and not done:
+        log.error("nic se nevygenerovalo – zkontroluj GEMINI_API_KEY a kredit u Googlu")
+        return 1
     return 0
 
 

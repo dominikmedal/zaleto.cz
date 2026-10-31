@@ -30,3 +30,5 @@ frontend/.env.local
 
 # ── Root package-lock (not a monorepo root) ──────────
 package-lock.json
+.vercel
+
