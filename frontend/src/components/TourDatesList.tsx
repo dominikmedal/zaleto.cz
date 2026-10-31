@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Icon from '@/components/ui/Icon'
+import DateRangePicker from '@/components/DateRangePicker'
 import type { Tour } from '@/lib/types'
 import { API } from '@/lib/api'
 
@@ -255,9 +256,7 @@ export default function TourDatesList({ slug }: { slug: string }) {
 
         <div className="z-datepair">
           <Icon name="kalendar" size="sm" />
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} aria-label="Odlet od" />
-          <span aria-hidden="true">→</span>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} aria-label="Odlet do" />
+          <DateRangePicker dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} noPrices placeholder="Všechny termíny" />
         </div>
 
         {availableCities.length > 1 && availableCities.map(city => (

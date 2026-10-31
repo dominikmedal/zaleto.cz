@@ -6,8 +6,9 @@ import Header from '@/components/Header'
 import Icon from '@/components/ui/Icon'
 import Crumbs from '@/components/ui/Crumbs'
 import SectionHead from '@/components/ui/SectionHead'
-import TourCard from '@/components/ui/TourCard'
-import TourAd from '@/components/ui/TourAd'
+import InfiniteHotels from '@/components/InfiniteHotels'
+import DestinationSuggest from '@/components/ui/DestinationSuggest'
+import { DateRangeField } from '@/components/DateRangePicker'
 import { fetchFilters, fetchHotels } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 
@@ -58,7 +59,7 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
   const [meta, result] = await Promise.all([
     fetchFilters().catch(() => null),
     fetchHotels({
-      destination: f.destination, date_from: f.date_from, date_to: f.date_to, duration: f.duration,
+      destination: f.destination, date_from: f.date_from, date_to: f.date_to, date_flex: one(searchParams.date_flex), duration: f.duration,
       min_price: f.min_price ? parseFloat(f.min_price) : undefined, max_price: f.max_price ? parseFloat(f.max_price) : undefined,
       stars: f.stars, meal_plan: f.meal_plan, transport: f.transport, tour_type: f.tour_type,
       departure_city: f.departure_city, sort, page, limit: LIMIT,
@@ -67,7 +68,6 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
 
   const hotels = result?.hotels ?? []
   const pg = result?.pagination
-  const adHotel = hotels.find(h => h.thumbnail_url) ?? null
   const active = KEYS.filter(k => k !== 'sort' && f[k]).length
   const title = f.tour_type === 'last_minute' ? 'last minute' : f.tour_type === 'first_minute' ? 'first minute' : f.destination ? f.destination.toLowerCase() : 'všechny zájezdy'
 
@@ -81,17 +81,15 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
 
         <form method="get" action="/zajezdy" className="z-filter" style={{ marginBottom: 'var(--space-7)' }}>
           <div className="z-tk"><div className="z-tk__in z-filter__in">
-            <label className="z-sfield"><span className="z-sfield__label"><Icon name="poloha" />Kam</span>
-              <input name="destination" defaultValue={f.destination} placeholder="Kamkoli" /></label>
+            <div className="z-sfield"><span className="z-sfield__label"><Icon name="poloha" />Kam</span>
+              <DestinationSuggest name="destination" defaultValue={f.destination} /></div>
             <label className="z-sfield"><span className="z-sfield__label"><Icon name="letadlo" />Odkud</span>
               <select name="departure_city" defaultValue={f.departure_city ?? ''}>
                 <option value="">Odkudkoli</option>
                 {meta?.departureCities.slice(0, 12).map(c => <option key={c.departure_city} value={c.departure_city}>{c.departure_city}</option>)}
               </select></label>
-            <label className="z-sfield"><span className="z-sfield__label"><Icon name="kalendar" />Odlet od</span>
-              <input name="date_from" type="date" defaultValue={f.date_from} /></label>
-            <label className="z-sfield"><span className="z-sfield__label"><Icon name="kalendar" />Návrat do</span>
-              <input name="date_to" type="date" defaultValue={f.date_to} /></label>
+            <div className="z-sfield z-sfield--wide"><span className="z-sfield__label"><Icon name="kalendar" />Termín</span>
+              <DateRangeField defaultFrom={f.date_from ?? ''} defaultTo={f.date_to ?? ''} defaultFlex={one(searchParams.date_flex) !== '0'} /></div>
           </div></div>
 
           <details className="z-filter__more" open={!!(f.duration || f.meal_plan || f.stars || f.max_price || f.min_price || f.tour_type)}>
@@ -133,22 +131,16 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
           <div className="z-info"><h2 className="z-info__title">nic jsme nenašli<span className="z-dot">.</span></h2>
             <p style={{ margin: 'var(--space-3) 0 0' }}>Zkus rozšířit termín nebo zrušit některý filtr.</p></div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-5)', alignItems: 'stretch' }}>
-            {hotels.map((h, i) => (
-              <Fragment key={h.slug}>
-                <TourCard hotel={h} priority={i < 3} />
-                {i === 5 && adHotel && <div style={{ display: 'flex' }}><div style={{ width: '100%' }}><TourAd hotel={adHotel} /></div></div>}
-              </Fragment>
-            ))}
-          </div>
-        )}
-
-        {pg && pg.totalPages > 1 && (
-          <nav aria-label="Stránkování" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-7)' }}>
-            {page > 1 ? <Link className="z-more" href={`/zajezdy${qs(searchParams, { page: String(page - 1) })}`}>Předchozí</Link> : <span />}
-            <span className="z-data">STRANA {page} / {pg.totalPages}</span>
-            {pg.hasMore ? <Link className="z-more" href={`/zajezdy${qs(searchParams, { page: String(page + 1) })}`}>Další</Link> : <span />}
-          </nav>
+          <InfiniteHotels
+            initial={hotels}
+            total={pg?.total ?? hotels.length}
+            limit={LIMIT}
+            query={{
+              destination: f.destination, date_from: f.date_from, date_to: f.date_to, date_flex: one(searchParams.date_flex),
+              duration: f.duration, min_price: f.min_price, max_price: f.max_price, stars: f.stars, meal_plan: f.meal_plan,
+              transport: f.transport, tour_type: f.tour_type, departure_city: f.departure_city, sort,
+            }}
+          />
         )}
       </main>
     </>

@@ -1,8 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { PiCaretLeft, PiCaretRight, PiCalendarBlank, PiX } from '@/components/ui/icons'
-import { LuLoader2 as Loader2 } from '@/components/ui/icons'
+import Icon from '@/components/ui/Icon'
 import { fetchCalendarPrices } from '@/lib/api'
 
 interface DayPrice { date: string; min_price: number; tour_count: number }
@@ -12,7 +11,7 @@ interface Props {
   dateTo: string
   destination?: string
   onDateFromChange: (v: string) => void
-  onDateToChange:   (v: string) => void
+  onDateToChange: (v: string) => void
   defaultOpen?: boolean
   noLabel?: boolean
   inline?: boolean
@@ -20,46 +19,37 @@ interface Props {
   flex?: boolean
   onFlexChange?: (v: boolean) => void
   noPrices?: boolean
+  placeholder?: string
 }
 
-function toYMD(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-function addMonths(year: number, month: number, delta: number) {
-  const d = new Date(year, month + delta, 1)
-  return { year: d.getFullYear(), month: d.getMonth() }
-}
-function getDaysInMonth(year: number, month: number) { return new Date(year, month + 1, 0).getDate() }
-function getFirstDayOffset(year: number, month: number) { const jsDay = new Date(year, month, 1).getDay(); return (jsDay + 6) % 7 }
-function cmpYMD(a: string, b: string) { return a < b ? -1 : a > b ? 1 : 0 }
-function fetchRange(year: number, month: number) {
+const pad = (n: number) => String(n).padStart(2, '0')
+const toYMD = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+const addMonths = (year: number, month: number, delta: number) => { const d = new Date(year, month + delta, 1); return { year: d.getFullYear(), month: d.getMonth() } }
+const daysIn = (year: number, month: number) => new Date(year, month + 1, 0).getDate()
+const firstOffset = (year: number, month: number) => (new Date(year, month, 1).getDay() + 6) % 7
+const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
+
+function priceRange(year: number, month: number) {
   const s = addMonths(year, month, -1)
   const e = addMonths(year, month, 2)
-  const from = `${s.year}-${String(s.month + 1).padStart(2, '0')}-01`
-  const lastDay = getDaysInMonth(e.year, e.month)
-  const to = `${e.year}-${String(e.month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-  return { from, to }
+  return { from: `${s.year}-${pad(s.month + 1)}-01`, to: `${e.year}-${pad(e.month + 1)}-${pad(daysIn(e.year, e.month))}` }
 }
 
-const MONTHS = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec']
-const DAYS   = ['Po','Út','St','Čt','Pá','So','Ne']
+const MONTHS = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec']
+const DAYS = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne']
 
-function fmtPrice(p: number) { return `${Math.round(p / 1000)} k` }
-function priceColor(price: number, all: number[]) {
-  if (!all.length) return 'text-gray-400'
-  const s   = [...all].sort((a, b) => a - b)
-  const p33 = s[Math.floor(s.length * 0.33)]
-  const p66 = s[Math.floor(s.length * 0.66)]
-  if (price <= p33) return 'text-emerald-500'
-  if (price <= p66) return 'text-amber-500'
-  return 'text-red-400'
-}
-function fmtDisplay(ymd: string) {
-  const [y, m, d] = ymd.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' })
+const fmtShort = (ymd: string) => { const [y, m, d] = ymd.split('-').map(Number); return `${d}. ${m}. ${y}` }
+const fmtDay = (ymd: string) => { const [y, m, d] = ymd.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }
+
+function tier(price: number, all: number[]): 'low' | 'mid' | 'high' {
+  if (!all.length) return 'mid'
+  const s = [...all].sort((a, b) => a - b)
+  if (price <= s[Math.floor(s.length * 0.33)]) return 'low'
+  if (price <= s[Math.floor(s.length * 0.66)]) return 'mid'
+  return 'high'
 }
 
-interface MonthGridProps {
+interface GridProps {
   year: number; month: number
   priceMap: Map<string, DayPrice>; allPrices: number[]
   dateFrom: string; dateTo: string; hover: string; picking: 'from' | 'to'; today: string
@@ -67,66 +57,45 @@ interface MonthGridProps {
   noPrices?: boolean
 }
 
-function MonthGrid({ year, month, priceMap, allPrices, dateFrom, dateTo, hover, picking, today, onDayClick, onDayHover, noPrices }: MonthGridProps) {
-  const days   = getDaysInMonth(year, month)
-  const offset = getFirstDayOffset(year, month)
-  const cells: (number | null)[] = [...Array(offset).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)]
+function MonthGrid({ year, month, priceMap, allPrices, dateFrom, dateTo, hover, picking, today, onDayClick, onDayHover, noPrices }: GridProps) {
+  const cells: (number | null)[] = [...Array(firstOffset(year, month)).fill(null), ...Array.from({ length: daysIn(year, month) }, (_, i) => i + 1)]
   while (cells.length % 7) cells.push(null)
-
-  const rangeEnd = (picking === 'to' && hover && dateFrom)
-    ? (cmpYMD(hover, dateFrom) >= 0 ? hover : dateFrom)
-    : dateTo
+  const rangeEnd = picking === 'to' && hover && dateFrom ? (cmp(hover, dateFrom) >= 0 ? hover : dateFrom) : dateTo
 
   return (
-    <div className="min-w-0">
-      <p className="text-center text-sm font-semibold text-gray-800 mb-3">{MONTHS[month]} {year}</p>
-      <div className="grid grid-cols-7 mb-1">
-        {DAYS.map(d => (
-          <div key={d} className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider py-1">{d}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7">
+    <div className="z-cal__month">
+      <div className="z-cal__title">{MONTHS[month]} {year}</div>
+      <div className="z-cal__dow">{DAYS.map(d => <span key={d}>{d}</span>)}</div>
+      <div className="z-cal__grid">
         {cells.map((day, i) => {
-          if (!day) return <div key={i} />
-          const ymd     = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-          const info    = priceMap.get(ymd)
-          const past    = cmpYMD(ymd, today) < 0
-          const isFrom  = ymd === dateFrom
-          const isTo    = ymd === dateTo
-          const sel     = isFrom || isTo
-          const inRange = !!(dateFrom && rangeEnd && cmpYMD(ymd, dateFrom) > 0 && cmpYMD(ymd, rangeEnd) < 0)
-
+          if (!day) return <span key={i} />
+          const ymd = `${year}-${pad(month + 1)}-${pad(day)}`
+          const info = priceMap.get(ymd)
+          const past = cmp(ymd, today) < 0
+          const isFrom = ymd === dateFrom
+          const isTo = ymd === dateTo || (picking === 'to' && dateFrom && hover === ymd && cmp(hover, dateFrom) > 0)
+          const inRange = !!(dateFrom && rangeEnd && cmp(ymd, dateFrom) > 0 && cmp(ymd, rangeEnd) < 0)
+          const edge = isFrom ? 'start' : isTo ? 'end' : undefined
           return (
-            <div
+            <button
               key={ymd}
-              onClick={() => !past && onDayClick(ymd)}
+              type="button"
+              disabled={past}
+              aria-label={`${fmtDay(ymd)}${info && !noPrices ? `, od ${Math.round(info.min_price)} Kč` : ''}`}
+              aria-pressed={!!edge}
+              data-edge={edge}
+              data-range={inRange || undefined}
+              data-today={ymd === today || undefined}
+              onClick={() => onDayClick(ymd)}
               onMouseEnter={() => !past && onDayHover(ymd)}
-              className={`flex flex-col items-center justify-center h-11 text-xs select-none transition-all duration-100 ${
-                past ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'
-              } ${
-                sel
-                  ? 'rounded-xl z-10'
-                  : inRange
-                  ? ''
-                  : !past ? 'hover:rounded-xl' : ''
-              }`}
-              style={sel
-                ? { background: 'linear-gradient(135deg, #0093FF, #0070E0)', boxShadow: '0 2px 8px rgba(0,147,255,0.30)' }
-                : inRange
-                ? { background: 'rgba(0,147,255,0.09)' }
-                : !past
-                ? { ['--hover-bg' as string]: 'rgba(0,147,255,0.08)' }
-                : {}
-              }
+              onFocus={() => !past && onDayHover(ymd)}
+              className="z-cal__day"
             >
-              <span className={`font-semibold text-[13px] leading-none ${sel ? 'text-white' : past ? 'text-gray-400' : 'text-gray-800'}`}>
-                {day}
-              </span>
+              <span className="z-cal__num">{day}</span>
               {!noPrices && (info
-                ? <span className={`text-[9px] leading-none mt-0.5 font-medium ${sel ? 'text-white/75' : priceColor(info.min_price, allPrices)}`}>{fmtPrice(info.min_price)}</span>
-                : <span className="text-[9px] leading-none mt-0.5">&nbsp;</span>
-              )}
-            </div>
+                ? <span className="z-cal__price" data-tier={tier(info.min_price, allPrices)}>{Math.round(info.min_price / 1000)} k</span>
+                : <span className="z-cal__price">&nbsp;</span>)}
+            </button>
           )
         })}
       </div>
@@ -134,48 +103,51 @@ function MonthGrid({ year, month, priceMap, allPrices, dateFrom, dateTo, hover, 
   )
 }
 
-export default function DateRangePicker({ dateFrom, dateTo, destination, onDateFromChange, onDateToChange, defaultOpen, noLabel, inline, onComplete, flex, onFlexChange, noPrices }: Props) {
+/** Výběr termínu odletu a návratu: kalendář se dvěma měsíci, cenami po dnech a přehledem vybraných dat. */
+export default function DateRangePicker({
+  dateFrom, dateTo, destination, onDateFromChange, onDateToChange, defaultOpen, inline, onComplete,
+  flex, onFlexChange, noPrices, placeholder = 'Vybrat termín',
+}: Props) {
   const today = toYMD(new Date())
-  const init  = dateFrom
+  const init = dateFrom
     ? (() => { const [y, m] = dateFrom.split('-').map(Number); return { year: y, month: m - 1 } })()
     : { year: new Date().getFullYear(), month: new Date().getMonth() }
 
-  const [viewYear,  setViewYear]  = useState(init.year)
+  const [viewYear, setViewYear] = useState(init.year)
   const [viewMonth, setViewMonth] = useState(init.month)
-  const [open,      setOpen]      = useState(defaultOpen ?? false)
-  const [picking,   setPicking]   = useState<'from' | 'to'>('from')
-  const [hover,     setHover]     = useState('')
-  const [priceMap,  setPriceMap]  = useState<Map<string, DayPrice>>(new Map())
+  const [open, setOpen] = useState(defaultOpen ?? false)
+  const [picking, setPicking] = useState<'from' | 'to'>('from')
+  const [hover, setHover] = useState('')
+  const [priceMap, setPriceMap] = useState<Map<string, DayPrice>>(new Map())
   const [allPrices, setAllPrices] = useState<number[]>([])
-  const [loading,   setLoading]   = useState(false)
-  const [popPos,    setPopPos]    = useState<{ top: number; left: number; width: number } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null)
 
-  const popRef     = useRef<HTMLDivElement>(null)
+  const popRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
 
   const calcPos = useCallback(() => {
     if (!triggerRef.current) return
     const r = triggerRef.current.getBoundingClientRect()
-    const popW = Math.min(680, window.innerWidth - 32)
-    const left = Math.min(r.left, window.innerWidth - popW - 16)
-    setPopPos({ top: r.bottom + 8, left: Math.max(8, left), width: popW })
+    const width = Math.min(720, window.innerWidth - 24)
+    const left = Math.max(12, Math.min(r.left - 20, window.innerWidth - width - 12))
+    const below = r.bottom + 14
+    const top = below + 520 > window.innerHeight && r.top > 540 ? Math.max(12, r.top - 534) : below
+    setPos({ top, left, width })
   }, [])
 
-  // Keep popup anchored to trigger while scrolling / resizing
   useEffect(() => {
     if (!open) return
     window.addEventListener('scroll', calcPos, true)
     window.addEventListener('resize', calcPos)
-    return () => {
-      window.removeEventListener('scroll', calcPos, true)
-      window.removeEventListener('resize', calcPos)
-    }
+    return () => { window.removeEventListener('scroll', calcPos, true); window.removeEventListener('resize', calcPos) }
   }, [open, calcPos])
-  const month2     = addMonths(viewYear, viewMonth, 1)
+
+  const month2 = addMonths(viewYear, viewMonth, 1)
 
   const loadPrices = useCallback(async () => {
     setLoading(true)
-    const { from, to } = fetchRange(viewYear, viewMonth)
+    const { from, to } = priceRange(viewYear, viewMonth)
     const rows = await fetchCalendarPrices(from, to, destination)
     const map = new Map<string, DayPrice>()
     const prices: number[] = []
@@ -187,170 +159,135 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
 
   useEffect(() => {
     if (!open) return
-    const h = (e: MouseEvent) => {
+    const down = (e: MouseEvent) => {
       if (popRef.current?.contains(e.target as Node) || triggerRef.current?.contains(e.target as Node)) return
       setOpen(false); setPicking('from')
     }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); setPicking('from') } }
+    document.addEventListener('mousedown', down)
+    document.addEventListener('keydown', key)
+    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key) }
   }, [open])
 
   const handleDayClick = (ymd: string) => {
     if (picking === 'from') {
       onDateFromChange(ymd); onDateToChange(''); setPicking('to')
     } else {
-      if (cmpYMD(ymd, dateFrom) < 0) { onDateToChange(dateFrom); onDateFromChange(ymd) }
-      else { onDateToChange(ymd) }
+      if (cmp(ymd, dateFrom) < 0) { onDateToChange(dateFrom); onDateFromChange(ymd) } else { onDateToChange(ymd) }
       setPicking('from'); setHover('')
-      if (inline) { onComplete?.() } else { setOpen(false) }
+      if (inline) onComplete?.(); else setOpen(false)
     }
   }
 
+  const clear = () => { onDateFromChange(''); onDateToChange(''); setPicking('from'); setHover('') }
   const prev = () => { const m = addMonths(viewYear, viewMonth, -1); setViewYear(m.year); setViewMonth(m.month) }
-  const next = () => { const m = addMonths(viewYear, viewMonth,  1); setViewYear(m.year); setViewMonth(m.month) }
+  const next = () => { const m = addMonths(viewYear, viewMonth, 1); setViewYear(m.year); setViewMonth(m.month) }
+  const nights = dateFrom && dateTo ? Math.round((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000) : null
 
-  const triggerLabel = dateFrom && dateTo
-    ? `${fmtDisplay(dateFrom)} – ${fmtDisplay(dateTo)}`
-    : dateFrom ? `Od ${fmtDisplay(dateFrom)}…` : null
+  const triggerLabel = dateFrom && dateTo ? `${fmtShort(dateFrom)} – ${fmtShort(dateTo)}` : dateFrom ? `Od ${fmtShort(dateFrom)}…` : null
 
-  // Shared step indicator
-  const stepPill = (
-    <span
-      className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
-      style={{ background: 'rgba(0,147,255,0.08)', color: '#0093FF' }}
-    >
-      {picking === 'from' ? '① Datum odjezdu' : '② Datum návratu'}
-      {loading && <Loader2 className="w-3 h-3 animate-spin" />}
-    </span>
-  )
-
-  const calendarContent = (
-    <div className="relative">
-      {/* Nav row */}
-      <div className="flex items-center justify-between mb-5">
-        <button
-          type="button"
-          onClick={prev}
-          className="w-8 h-8 flex items-center justify-center rounded-xl transition-colors"
-          style={{ background: 'rgba(0,147,255,0.07)', color: '#0093FF' }}
-        >
-          <PiCaretLeft className="w-4 h-4" />
+  const calendar = (
+    <div className="z-cal">
+      <div className="z-cal__top">
+        <button type="button" className="z-cal__step" data-active={picking === 'from'} onClick={() => setPicking('from')}>
+          <span className="z-kicker">Odlet</span>
+          <b>{dateFrom ? fmtShort(dateFrom) : 'Vyber den'}</b>
         </button>
-        {stepPill}
-        <button
-          type="button"
-          onClick={next}
-          className="w-8 h-8 flex items-center justify-center rounded-xl transition-colors"
-          style={{ background: 'rgba(0,147,255,0.07)', color: '#0093FF' }}
-        >
-          <PiCaretRight className="w-4 h-4" />
+        <span className="z-cal__arrow" aria-hidden="true"><Icon name="letadlo" /></span>
+        <button type="button" className="z-cal__step" data-active={picking === 'to'} onClick={() => dateFrom && setPicking('to')} disabled={!dateFrom}>
+          <span className="z-kicker">Návrat</span>
+          <b>{dateTo ? fmtShort(dateTo) : 'Vyber den'}</b>
         </button>
+        {nights != null && <span className="z-chip z-chip--sky">{nights} {nights === 1 ? 'noc' : nights < 5 ? 'noci' : 'nocí'}</span>}
       </div>
 
-      {/* Two-month grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onMouseLeave={() => setHover('')}>
-        <MonthGrid year={viewYear} month={viewMonth} priceMap={priceMap} allPrices={allPrices}
-          dateFrom={dateFrom} dateTo={dateTo} hover={hover} picking={picking} today={today}
-          onDayClick={handleDayClick} onDayHover={setHover} noPrices={noPrices} />
-        <MonthGrid year={month2.year} month={month2.month} priceMap={priceMap} allPrices={allPrices}
-          dateFrom={dateFrom} dateTo={dateTo} hover={hover} picking={picking} today={today}
-          onDayClick={handleDayClick} onDayHover={setHover} noPrices={noPrices} />
+      <div className="z-cal__nav">
+        <button type="button" className="z-iconbtn" onClick={prev} aria-label="Předchozí měsíce"><Icon name="caretLeft" /></button>
+        <span className="z-data">{loading ? 'NAČÍTÁM CENY…' : picking === 'from' ? 'KLIKNI NA DEN ODLETU' : 'KLIKNI NA DEN NÁVRATU'}</span>
+        <button type="button" className="z-iconbtn" onClick={next} aria-label="Další měsíce"><Icon name="caretRight" /></button>
       </div>
 
-      {/* Footer */}
-      <div
-        className="mt-5 pt-4 flex flex-wrap items-center gap-4 text-[11px] text-gray-500"
-        style={{ borderTop: '1px solid rgba(0,147,255,0.08)' }}
-      >
-        {!noPrices && <>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />Levné
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />Průměrné
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />Dražší
-          </span>
-          <span className="text-gray-300 text-[10px]">Ceny od osoby / 2 os.</span>
-        </>}
+      <div className="z-cal__months" onMouseLeave={() => setHover('')}>
+        <MonthGrid year={viewYear} month={viewMonth} priceMap={priceMap} allPrices={allPrices} dateFrom={dateFrom} dateTo={dateTo} hover={hover} picking={picking} today={today} onDayClick={handleDayClick} onDayHover={setHover} noPrices={noPrices} />
+        <MonthGrid year={month2.year} month={month2.month} priceMap={priceMap} allPrices={allPrices} dateFrom={dateFrom} dateTo={dateTo} hover={hover} picking={picking} today={today} onDayClick={handleDayClick} onDayHover={setHover} noPrices={noPrices} />
+      </div>
 
+      <div className="z-cal__foot">
+        {!noPrices && (
+          <div className="z-cal__legend">
+            <span><i data-tier="low" />Levné</span><span><i data-tier="mid" />Průměrné</span><span><i data-tier="high" />Dražší</span>
+            <span className="z-data">CENY OD OSOBY</span>
+          </div>
+        )}
         {onFlexChange && (
-          <div className="glass-pill rounded-xl p-0.5 ml-auto flex items-center gap-0.5">
-            {[{ v: false, l: 'Přesně' }, { v: true, l: '±3 dny' }].map(opt => (
-              <button
-                key={String(opt.v)}
-                type="button"
-                onClick={() => onFlexChange(opt.v)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
-                  flex === opt.v
-                    ? 'bg-white text-[#0093FF] shadow-[0_1px_4px_rgba(0,147,255,0.15)] border border-[#C8E3FF]'
-                    : 'text-gray-500 hover:text-[#0093FF]'
-                }`}
-              >
-                {opt.l}
-              </button>
+          <div className="z-seg" role="group" aria-label="Pružnost termínu">
+            {[{ v: false, l: 'Přesně' }, { v: true, l: '±3 dny' }].map(o => (
+              <button key={String(o.v)} type="button" aria-pressed={flex === o.v} onClick={() => onFlexChange(o.v)}>{o.l}</button>
             ))}
           </div>
         )}
-
-        {!inline && (
-          <button
-            type="button"
-            onClick={() => { setOpen(false); setPicking('from'); setHover('') }}
-            className={`text-xs text-gray-400 hover:text-gray-600 transition-colors ${onFlexChange ? '' : 'ml-auto'}`}
-          >
-            Zavřít
-          </button>
-        )}
+        <div className="z-cal__actions">
+          {(dateFrom || dateTo) && <button type="button" className="z-more" onClick={clear}>Smazat termín</button>}
+          {!inline && <button type="button" className="z-btn z-btn--primary z-btn--sm" onClick={() => { setOpen(false); setPicking('from'); setHover('') }}>Hotovo<span className="z-btn__go"><Icon name="ok" /></span></button>}
+        </div>
       </div>
     </div>
   )
 
-  if (inline) return <div className="w-full min-w-0">{calendarContent}</div>
+  if (inline) return <div className="w-full min-w-0">{calendar}</div>
 
   return (
-    <div className="relative" ref={triggerRef}>
-      {!noLabel && <label className="block text-xs font-medium text-gray-500 mb-1.5">Termín odjezdu</label>}
-
-      {/* Trigger — same glass style as DestinationAutocomplete */}
+    <div ref={triggerRef} className="z-datetrigger">
       <button
         type="button"
-        onClick={() => { const next = !open; if (next) calcPos(); setOpen(next); setPicking('from') }}
-        className="w-full text-left flex items-center gap-2 cursor-pointer"
-        style={{
-          background: 'transparent', border: 0, padding: 0,
-          font: '600 22px/32px var(--font-serif)', letterSpacing: '-0.01em',
-          color: triggerLabel ? 'var(--ink)' : 'var(--line-strong)',
-        }}
+        className="z-datetrigger__btn"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        data-empty={!triggerLabel || undefined}
+        onClick={() => { const n = !open; if (n) calcPos(); setOpen(n); setPicking(dateFrom && !dateTo ? 'to' : 'from') }}
       >
-        <PiCalendarBlank className={`w-4 h-4 flex-shrink-0 transition-colors ${open ? 'text-[#0093FF]' : 'text-gray-400'}`} />
-        <span className="truncate flex-1">{triggerLabel ?? 'Vybrat termín'}</span>
-        {(dateFrom || dateTo) && (
-          <span
-            className="text-gray-400 hover:text-red-400 transition-colors leading-none text-sm"
-            onClick={e => { e.stopPropagation(); onDateFromChange(''); onDateToChange('') }}
-          >
-            <PiX className="w-3.5 h-3.5" />
-          </span>
-        )}
+        <span>{triggerLabel ?? placeholder}</span>
       </button>
+      {(dateFrom || dateTo) && (
+        <button type="button" className="z-datetrigger__clear" aria-label="Smazat termín" onClick={clear}><Icon name="zavrit" size="sm" /></button>
+      )}
 
-      {/* Popup — rendered via portal so overflow:hidden ancestors can't clip it */}
-      {open && popPos && typeof document !== 'undefined' && createPortal(
-        <div
-          ref={popRef}
-          className="p-5"
-          style={{
-            position: 'fixed', top: popPos.top, left: popPos.left, width: popPos.width, zIndex: 9999,
-            background: 'var(--raised)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-lift)',
-          }}
-        >
-          {calendarContent}
+      {open && pos && typeof document !== 'undefined' && createPortal(
+        <div ref={popRef} className="z-calpop" role="dialog" aria-label="Výběr termínu" style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}>
+          {calendar}
         </div>,
-        document.body
+        document.body,
       )}
     </div>
+  )
+}
+
+/**
+ * Pole termínu pro běžné GET formuláře (stránka /zajezdy, hledání na homepage):
+ * uvnitř je kalendář, ven se posílají skryté inputy date_from / date_to (a date_flex).
+ */
+export function DateRangeField({
+  fromName = 'date_from', toName = 'date_to', flexName = 'date_flex',
+  defaultFrom = '', defaultTo = '', defaultFlex = true, withFlex = true, destination, disabled,
+}: {
+  fromName?: string; toName?: string; flexName?: string
+  defaultFrom?: string; defaultTo?: string; defaultFlex?: boolean; withFlex?: boolean
+  destination?: string; disabled?: boolean
+}) {
+  const [from, setFrom] = useState(defaultFrom)
+  const [to, setTo] = useState(defaultTo)
+  const [flex, setFlex] = useState(defaultFlex)
+  return (
+    <>
+      <input type="hidden" name={fromName} value={from} disabled={disabled} />
+      <input type="hidden" name={toName} value={to} disabled={disabled} />
+      {withFlex && from && <input type="hidden" name={flexName} value={flex ? '1' : '0'} disabled={disabled} />}
+      <DateRangePicker
+        dateFrom={from} dateTo={to} destination={destination}
+        onDateFromChange={setFrom} onDateToChange={setTo}
+        flex={flex} onFlexChange={withFlex ? setFlex : undefined}
+        placeholder="Kdykoli"
+      />
+    </>
   )
 }

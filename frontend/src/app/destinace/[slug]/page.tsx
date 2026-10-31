@@ -5,12 +5,11 @@ import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
 import Crumbs from '@/components/ui/Crumbs'
 import Icon from '@/components/ui/Icon'
-import TourCard from '@/components/ui/TourCard'
+import InfiniteHotels from '@/components/InfiniteHotels'
 import TourAd from '@/components/ui/TourAd'
 import StoryCard from '@/components/ui/StoryCard'
 import NavTabs, { type NavTabItem } from '@/components/ui/NavTabs'
-import ItemCard from '@/components/ui/ItemCard'
-import type { IconName } from '@/components/ui/Icon'
+import { PlaceTickets, FoodMenu, TripRoute } from '@/components/ui/ItemCard'
 import { fetchDestinations, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI, fetchHotels, fetchArticles } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 
@@ -119,26 +118,16 @@ function Block({ id, kicker, title, children }: { id: string; kicker: string; ti
   )
 }
 
-/** Položky (místa, jídlo, výlety) jako lístky s ikonou. */
-function ItemCards({ items, icon }: { items: Item[]; icon: IconName }) {
-  return (
-    <div className="z-grid-2">
-      {items.map(it => <ItemCard key={it.name} title={it.name} text={it.description} icon={icon} />)}
-    </div>
-  )
-}
-
 export default async function DestinacePage({ params, searchParams }: Props & { searchParams: { page?: string; sort?: string } }) {
   const dest = await resolveDestination(params.slug)
   if (!dest) notFound()
 
-  const page = Math.max(1, parseInt(searchParams.page ?? '1') || 1)
   const sort = SORTS.some(([v]) => v === searchParams.sort) ? (searchParams.sort as string) : 'price_asc'
 
   const [destAI, heroPhoto, result, articles] = await Promise.all([
     fetchDestinationAI(dest.name).catch(() => null),
     fetchDestinationPhoto(dest.name).then(u => u ?? (dest.country && dest.country !== dest.name ? fetchDestinationPhoto(dest.country) : null)).catch(() => null),
-    fetchHotels({ destination: dest.name, sort, page, limit: LIMIT }).catch(() => null),
+    fetchHotels({ destination: dest.name, sort, page: 1, limit: LIMIT }).catch(() => null),
     fetchArticles(3, dest.name).catch(() => []),
   ])
 
@@ -181,13 +170,6 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
       { '@type': 'ListItem', position: 1, name: 'Zaleto', item: 'https://zaleto.cz' },
       ...dest.breadcrumb.map((c, i) => ({ '@type': 'ListItem', position: i + 2, name: c.label, item: `https://zaleto.cz${c.href}` })),
     ],
-  }
-
-  const pageHref = (n: number) => {
-    const q = new URLSearchParams()
-    if (sort !== 'price_asc') q.set('sort', sort)
-    q.set('page', String(n))
-    return `/destinace/${params.slug}?${q}`
   }
 
   const hasLong = !!(paragraphs.length > 1 || bestTime || places.length || food.length || trips.length)
@@ -236,9 +218,9 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
                   {weatherUrl && <p style={{ marginTop: 'var(--space-4)' }}><Link className="z-more" href={weatherUrl}>Počasí po měsících</Link></p>}
                 </Block>
               )}
-              {places.length > 0 && <Block id="co-videt" kicker="Co vidět" title="místa, která stojí za to"><ItemCards items={places} icon="poloha" /></Block>}
-              {food.length > 0 && <Block id="jidlo" kicker="Jídlo" title="co ochutnat"><ItemCards items={food} icon="jidlo" /></Block>}
-              {trips.length > 0 && <Block id="vylety" kicker="Výlety" title="výlety z místa"><ItemCards items={trips} icon="trasa" /></Block>}
+              {places.length > 0 && <Block id="co-videt" kicker="Co vidět" title="místa, která stojí za to"><PlaceTickets items={places} /></Block>}
+              {food.length > 0 && <Block id="jidlo" kicker="Jídlo" title="co ochutnat"><FoodMenu items={food} /></Block>}
+              {trips.length > 0 && <Block id="vylety" kicker="Výlety" title="výlety z místa"><TripRoute items={trips} /></Block>}
             </div>
 
             <aside className="z-cardest__side">
@@ -268,16 +250,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
           {hotels.length === 0 ? (
             <p className="body">Pro tuto destinaci teď nemáme žádný volný termín.</p>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-5)', alignItems: 'stretch' }}>
-              {hotels.map((h, i) => <TourCard key={h.slug} hotel={h} priority={i < 3} />)}
-            </div>
-          )}
-          {pg && pg.totalPages > 1 && (
-            <nav aria-label="Stránkování" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-7)' }}>
-              {page > 1 ? <Link className="z-more" href={pageHref(page - 1)}>Předchozí</Link> : <span />}
-              <span className="z-data">STRANA {page} / {pg.totalPages}</span>
-              {pg.hasMore ? <Link className="z-more" href={pageHref(page + 1)}>Další</Link> : <span />}
-            </nav>
+            <InfiniteHotels key={sort} initial={hotels} total={pg?.total ?? hotels.length} limit={LIMIT} query={{ destination: dest.name, sort }} />
           )}
         </section>
 

@@ -69,6 +69,7 @@ export interface Filters {
   destination?: string
   date_from?: string
   date_to?: string
+  date_flex?: string
   adults?: number
   duration?: string
   min_price?: number
