@@ -1,4 +1,5 @@
 'use client'
+import PersonsField from './PersonsField'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import Icon from './Icon'
@@ -22,6 +23,8 @@ export default function SearchBox() {
     }
     const p = new URLSearchParams()
     if (dest) p.set('destination', dest)
+    const adults = String(f.get('adults') ?? '')
+    if (adults) p.set('adults', adults)
     const city = String(f.get('departure_city') ?? '')
     if (city) p.set('departure_city', city)
     const from = String(f.get('date_from') ?? '')
@@ -61,6 +64,7 @@ export default function SearchBox() {
             <DateRangeField disabled={tab === 'cars'} />
             <span className="z-sfield__sub">odlet a návrat</span>
           </div>
+          <PersonsField disabled={tab === 'cars'} />
           <div className="z-search__go">
             <button className="z-round" type="submit" aria-label="Hledat"><Icon name="hledat" /></button>
           </div>

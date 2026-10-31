@@ -1,4 +1,6 @@
-﻿import type { Metadata } from 'next'
+﻿import PersonsField from '@/components/ui/PersonsField'
+import RememberFilters from '@/components/RememberFilters'
+import type { Metadata } from 'next'
 import { Fragment } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
@@ -124,6 +126,7 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
           </aside>
         )}
 
+        <RememberFilters params={{ adults: one(searchParams.adults), date_from: f.date_from, date_to: f.date_to, departure_city: f.departure_city }} />
         <form method="get" action="/zajezdy" className="z-filter" style={{ marginBottom: 'var(--space-7)' }}>
           <div className="z-tk"><div className="z-tk__in z-filter__in">
             <div className="z-sfield"><span className="z-sfield__label"><Icon name="poloha" />Kam</span>
@@ -135,6 +138,7 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
               </select></label>
             <div className="z-sfield z-sfield--wide"><span className="z-sfield__label"><Icon name="kalendar" />Termín</span>
               <DateRangeField defaultFrom={f.date_from ?? ''} defaultTo={f.date_to ?? ''} defaultFlex={one(searchParams.date_flex) !== '0'} /></div>
+            <PersonsField defaultValue={parseInt(one(searchParams.adults) ?? '2') || 2} />
           </div></div>
 
           <details className="z-filter__more" open={!!(f.duration || f.meal_plan || f.stars || f.max_price || f.min_price || f.tour_type)}>

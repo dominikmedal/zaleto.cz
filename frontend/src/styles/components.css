@@ -1084,3 +1084,30 @@ body:has(.z-offerbar) .z-header { top: 40px; }
 @media (max-width: 767px) { .z-loading__gallery { grid-template-columns: 1fr; grid-template-rows: none; height: 260px; } .z-loading__gallery .z-skel:not(:first-child) { display: none; } .z-loading__gallery .z-skel:first-child { grid-row: auto; } }
 @media (prefers-reduced-motion: reduce) { .z-skel, .z-loadroute span { animation: none; } }
 .z-skel { background: linear-gradient(90deg, rgba(11, 27, 51, .07), rgba(11, 27, 51, .13), rgba(11, 27, 51, .07)); background-size: 200% 100%; }
+
+/* Administrace – doplňky tabulek a formulářů */
+.z-adm-cell { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.z-adm-thumb--empty { display: grid; place-items: center; background: rgba(11, 27, 51, .06); color: var(--ink-muted); }
+.z-adm-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.z-adm-price { font-weight: 600; color: var(--accent-strong); }
+.z-adm-inline { display: inline-flex; align-items: center; gap: 6px; }
+.z-adm-tags { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.z-adm-code { font: 500 13px/1 var(--font-mono); padding: 4px 8px; border-radius: 8px; background: rgba(11, 27, 51, .06); }
+.z-adm-checks { display: flex; gap: var(--space-5); flex-wrap: wrap; }
+.z-adm-checks label { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font: 500 16px/24px var(--font-sans); }
+.z-adm-checks input { width: 20px; height: 20px; accent-color: var(--brand-strong); }
+.z-adm-table td b + small, .z-adm-table td small + small { display: block; }
+.z-chip--warn { background: rgba(255, 122, 26, .16); border-color: transparent; color: var(--accent-strong); }
+
+/* Počet osob ve vyhledávání */
+.z-sfield--persons { flex: 0 0 auto; min-width: 150px; }
+.z-persons { display: flex; align-items: center; gap: 4px; margin-left: -10px; }
+.z-persons .z-iconbtn { width: 34px; height: 34px; border: 1.5px solid rgba(11, 27, 51, .2); }
+.z-persons .z-iconbtn:hover:not(:disabled) { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.z-persons .z-iconbtn:disabled { opacity: .35; cursor: default; }
+.z-persons output { display: inline-flex; align-items: baseline; gap: 5px; min-width: 62px; justify-content: center; font: 500 14px/1 var(--font-sans); color: var(--ink-muted); }
+.z-persons output b { font: 600 24px/1 var(--font-serif); color: var(--ink); font-variant-numeric: tabular-nums; }
+.z-filter__in { grid-template-columns: 1.2fr 1fr 1.5fr auto; }
+@media (max-width: 1023px) { .z-filter__in { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 767px) { .z-filter__in { grid-template-columns: 1fr; } }
+.z-adm-search input { border: 0 !important; box-shadow: none !important; padding: 0 !important; background: transparent !important; border-radius: 0 !important; }

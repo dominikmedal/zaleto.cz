@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import Icon from '@/components/ui/Icon'
+import Icon, { type IconName } from '@/components/ui/Icon'
 import { uploadImage } from '@/lib/adminApi'
 
 const token = () => (typeof window === 'undefined' ? '' : localStorage.getItem('admin_token') ?? '')
@@ -46,7 +46,7 @@ export function Loading() {
   return <div className="z-admin__loading" style={{ minHeight: 160 }}><Icon name="spinner" size="lg" className="animate-spin" /></div>
 }
 
-export function EmptyState({ icon = 'info', text }: { icon?: 'info' | 'auto' | 'foto'; text: string }) {
+export function EmptyState({ icon = 'info', text }: { icon?: IconName; text: string }) {
   return <div className="z-adm-empty"><Icon name={icon} size="lg" /><p>{text}</p></div>
 }
 
