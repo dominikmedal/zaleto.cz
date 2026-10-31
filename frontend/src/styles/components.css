@@ -909,3 +909,8 @@ body[data-admin] .z-offerbar, body[data-admin] .z-footer, body[data-admin] .z-ch
 .z-sfield input[type="text"], .z-sfield input:not([type]) { cursor: text; }
 .z-sfield:hover { background: var(--paper); }
 .z-search .z-sfield:focus-within, .z-filter__in .z-sfield:focus-within { background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink); }
+
+/* ---------- Ceny v barvě nabídky (accent-strong, kontrast 6 : 1 na bílé), přeškrtnuté původní ceny tlumeně ---------- */
+.z-price, .z-bookbox__amount, .z-bookbox__rowprice, .z-deps__price { color: var(--accent-strong); }
+.z-price s, .z-tour__stub s { color: var(--ink-muted); }
+.z-dateticket__stub .z-price, .z-tour__stub .z-price { color: var(--accent-strong); }

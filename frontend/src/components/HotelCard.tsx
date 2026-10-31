@@ -205,7 +205,7 @@ export default function HotelCard({
             {/* Row 3: price + expanding pill CTA */}
             <div className="flex items-center justify-between gap-2">
               <div>
-                <span className="text-[16px] font-bold tabular-nums" style={{ color: '#049669' }}>
+                <span className="text-[16px] font-bold tabular-nums" style={{ color: 'var(--accent-strong)' }}>
                   {formatPrice(hotel.min_price)}
                 </span>
                 <span className="text-[12px] text-gray-400 ml-1">Kč / os.</span>

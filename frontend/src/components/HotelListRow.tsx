@@ -291,7 +291,7 @@ export default function HotelListRow({ hotel, adults = 2, activeTourType }: { ho
               )}
               <p className="text-[11px] text-gray-400">od osoby</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-xl sm:text-2xl font-bold leading-none" style={{ color: '#049669' }}>{fmt(hotel.min_price)}</span>
+                <span className="text-xl sm:text-2xl font-bold leading-none" style={{ color: 'var(--accent-strong)' }}>{fmt(hotel.min_price)}</span>
                 <span className="text-sm text-gray-400 font-medium">Kč</span>
               </div>
               {adults > 1 && (

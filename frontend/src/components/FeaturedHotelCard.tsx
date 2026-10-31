@@ -304,7 +304,7 @@ export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
               </div>
               <div className="px-3 py-2.5">
                 {stars && <p className="text-amber-500 text-[10px] mb-0.5 leading-none">{stars}</p>}
-                <p className="text-xs font-semibold text-gray-800 leading-snug line-clamp-1 group-hover:text-[#049669] transition-colors">
+                <p className="text-xs font-semibold text-gray-800 leading-snug line-clamp-1 group-hover:text-[var(--accent-strong)] transition-colors">
                   {hotel.name}
                 </p>
                 <p className="text-[10px] text-gray-400 mt-0.5 truncate">
@@ -312,9 +312,9 @@ export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
                 </p>
                 <div className="flex items-center justify-between mt-2">
                   <p className="text-[11px] text-gray-400">
-                    od <span className="text-sm font-bold" style={{ color: '#049669' }}>{formatPrice(hotel.min_price)}</span> Kč
+                    od <span className="text-sm font-bold" style={{ color: 'var(--accent-strong)' }}>{formatPrice(hotel.min_price)}</span> Kč
                   </p>
-                  <PiArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#049669] transition-colors flex-shrink-0" />
+                  <PiArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[var(--accent-strong)] transition-colors flex-shrink-0" />
                 </div>
               </div>
             </Link>
@@ -380,7 +380,7 @@ export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
                   {hotel.name}
                 </p>
                 <p className="text-[11px] text-gray-400 mt-1.5">
-                  od <span className="font-bold" style={{ color: '#049669' }}>{formatPrice(hotel.min_price)}</span> Kč
+                  od <span className="font-bold" style={{ color: 'var(--accent-strong)' }}>{formatPrice(hotel.min_price)}</span> Kč
                 </p>
               </div>
             </Link>

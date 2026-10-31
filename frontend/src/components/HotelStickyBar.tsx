@@ -79,7 +79,7 @@ export default function HotelStickyBar({ name, slug, stars, location, minPrice }
                 od osoby
               </span>
               <div className="flex items-baseline gap-1">
-                <span className="text-[17px] font-bold leading-tight" style={{ color: '#049669' }}>{fmt(minPrice)}</span>
+                <span className="text-[17px] font-bold leading-tight" style={{ color: 'var(--accent-strong)' }}>{fmt(minPrice)}</span>
                 <span className="text-xs text-gray-400 font-medium">Kč</span>
               </div>
             </div>
