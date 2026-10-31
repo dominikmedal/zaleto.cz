@@ -54,9 +54,11 @@ export default async function HomePage() {
   // Počet hotelů v zemi
   const byCountry = new Map<string, number>()
   for (const d of destinations) if (d.country) byCountry.set(d.country, (byCountry.get(d.country) ?? 0) + d.hotel_count)
-  const candidates = POPULAR.filter(c => byCountry.has(c))
+  // kurátorovaný výběr napřed, dál další země podle počtu hotelů; zobrazí se ty, které mají skutečnou fotku destinace
+  const rest = [...byCountry.entries()].filter(([c]) => !POPULAR.includes(c)).sort((a, b) => b[1] - a[1]).map(([c]) => c)
+  const candidates = [...POPULAR.filter(c => byCountry.has(c)), ...rest].slice(0, 30)
   const candidatePhotos = await Promise.all(candidates.map(c => fetchDestinationPhoto(c)))
-  const picked = candidates.map((c, i) => ({ c, photo: candidatePhotos[i] })).filter(x => !isHotelPhoto(x.photo)).slice(0, 8)
+  const picked = candidates.map((c, i) => ({ c, photo: candidatePhotos[i] })).filter(x => !isHotelPhoto(x.photo)).slice(0, 12)
   const countries = picked.map(x => x.c)
   const photos = picked.map(x => x.photo)
 
@@ -109,7 +111,7 @@ export default async function HomePage() {
         {countries.length > 0 && (
           <section className="z-container z-section">
             <SectionHead num="01" kicker="Destinace" title="kam za sluncem" moreHref="/destinace" moreLabel="Všechny destinace" />
-            <div className="z-grid-4 z-windows">
+            <div className="z-grid-4 z-windows z-windows--sm">
               {countries.map((c, i) => (
                 <WindowCard
                   key={c}

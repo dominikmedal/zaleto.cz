@@ -20,9 +20,9 @@ import Crumbs from '@/components/ui/Crumbs'
 import Icon from '@/components/ui/Icon'
 import TourCard from '@/components/ui/TourCard'
 import { airportCode, formatDateRange, formatPrice } from '@/components/ui/format'
-import { fetchHotel, fetchHotelTours, fetchNearbyHotels, API } from '@/lib/api'
+import { fetchHotel, fetchHotels, fetchHotelTours, fetchNearbyHotels, API } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
-import type { Hotel, NearbyHotel, Tour } from '@/lib/types'
+import type { Hotel, Tour } from '@/lib/types'
 
 // Leaflet potřebuje prohlížeč → dynamický import bez SSR
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false })
@@ -245,11 +245,9 @@ export default async function HotelDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {hotel.latitude && hotel.longitude && (
-        <Suspense fallback={null}>
-          <NearbyHotelsGrid lat={hotel.latitude} lon={hotel.longitude} exclude={params.slug} />
-        </Suspense>
-      )}
+      <Suspense fallback={null}>
+        <SimilarHotels hotel={hotel} exclude={params.slug} />
+      </Suspense>
     </>
   )
 }
@@ -306,21 +304,40 @@ async function BookingBox({ hotel, slug, tourCount }: { hotel: Hotel; slug: stri
   )
 }
 
-async function NearbyHotelsGrid({ lat, lon, exclude }: { lat: number; lon: number; exclude: string }) {
-  let nearby: NearbyHotel[] = []
-  try { nearby = await fetchNearbyHotels(lat, lon, exclude, 6) } catch { return null }
-  nearby = nearby.filter(n => n.thumbnail_url).slice(0, 3)
-  if (nearby.length === 0) return null
+/** Podobné hotely: ze stejného místa (letovisko → oblast → země), nejbližší počtem hvězd a cenou. */
+async function SimilarHotels({ hotel, exclude }: { hotel: Hotel; exclude: string }) {
+  const region = hotel.destination?.split('/')[1]?.trim()
+  const places = [hotel.resort_town, region, hotel.country].filter((v, i, arr): v is string => !!v && arr.indexOf(v) === i)
+  const seen = new Set<string>([exclude])
+  const pool: Awaited<ReturnType<typeof fetchHotels>>['hotels'] = []
+  for (const place of places) {
+    const r = await fetchHotels({ destination: place, sort: 'price_asc', limit: 24 }).catch(() => null)
+    for (const h of r?.hotels ?? []) {
+      if (seen.has(h.slug) || !h.thumbnail_url || !h.min_price) continue
+      seen.add(h.slug)
+      pool.push(h)
+    }
+    if (pool.length >= 6) break
+  }
+  const price = hotel.min_price ?? 0
+  const similar = pool
+    .map(h => ({ h, score: Math.abs((h.stars ?? 0) - (hotel.stars ?? 0)) * 2 + (price ? Math.abs(Math.log(h.min_price / price)) : 0) }))
+    .sort((x, y) => x.score - y.score)
+    .slice(0, 3)
+    .map(x => x.h)
+  if (similar.length === 0) return null
+  const where = hotel.resort_town ?? region ?? hotel.country
   return (
-    <section className="z-container z-section">
+    <section className="z-container z-section" aria-labelledby="podobne-hotely">
       <div className="z-shead">
         <div>
-          <div className="z-kicker">V okolí</div>
-          <h2>hotely poblíž<span className="z-dot">.</span></h2>
+          <div className="z-kicker">{where ? `Další v lokalitě ${where}` : 'Další nabídky'}</div>
+          <h2 id="podobne-hotely">podobné hotely<span className="z-dot">.</span></h2>
         </div>
+        {where && <Link className="z-more" href={`/zajezdy?destination=${encodeURIComponent(where)}`}>Všechny zájezdy: {where}</Link>}
       </div>
       <div className="z-grid-3">
-        {nearby.map(n => <TourCard key={n.slug} hotel={{ ...n, min_price: n.min_price }} />)}
+        {similar.map(h => <TourCard key={h.slug} hotel={h} />)}
       </div>
     </section>
   )

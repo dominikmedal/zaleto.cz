@@ -1252,3 +1252,13 @@ body:has(.z-section--deep:last-child) .z-footer { margin-top: 0; }
 .z-sr-stars { display: inline-flex; gap: 1px; margin-left: 8px; vertical-align: -3px; color: var(--ink); }
 .z-sr-stars .zi { width: 14px; height: 14px; }
 .z-search-overlay__keys { display: inline-flex; align-items: center; gap: 8px; }
+
+/* Kam za sluncem na homepage: víc destinací, menší okna (šest vedle sebe) */
+.z-windows--sm { grid-template-columns: repeat(6, 1fr); gap: var(--space-6) var(--space-4); }
+.z-windows--sm .z-window__frame { padding: 7px; }
+.z-windows--sm .z-window__name { font-size: 21px; line-height: 25px; }
+.z-windows--sm .z-window__cap { padding-top: var(--space-3); }
+.z-windows--sm .z-window__count { font-size: 13px; }
+.z-windows--sm .z-stamp { display: none; }
+@media (max-width: 1279px) { .z-windows--sm { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 1023px) { .z-windows--sm { grid-template-columns: repeat(3, 1fr); } }
