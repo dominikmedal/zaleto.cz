@@ -10,8 +10,10 @@ import FavoritesToast from './FavoritesToast'
 /** Stránky se širokým záhlavím (masthead), pod kterým je menu zpočátku průhledné. */
 const OVER_ROUTES = ['/', '/pujcovna-aut']
 
-const NAV = [
+const NAV: { href: string; label: string; type?: 'last_minute' | 'first_minute'; dot?: string }[] = [
   { href: '/zajezdy', label: 'Zájezdy' },
+  { href: '/zajezdy?tour_type=last_minute', label: 'Last minute', type: 'last_minute', dot: 'var(--accent)' },
+  { href: '/zajezdy?tour_type=first_minute', label: 'First minute', type: 'first_minute', dot: 'var(--brand)' },
   { href: '/destinace', label: 'Destinace' },
   { href: '/pujcovna-aut', label: 'Půjčovna aut' },
   { href: '/clanky', label: 'Články' },
@@ -22,6 +24,9 @@ export default function Header() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [tourType, setTourType] = useState<string | null>(null)
+  // typ nabídky z adresy (bez useSearchParams, ať stránky zůstanou statické)
+  useEffect(() => { setTourType(new URLSearchParams(window.location.search).get('tour_type')) }, [pathname])
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24)
     onScroll()
@@ -29,7 +34,11 @@ export default function Header() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
   const over = OVER_ROUTES.includes(pathname) && !scrolled && !open
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
+  const isActive = (item: (typeof NAV)[number]) => {
+    if (item.type) return pathname === '/zajezdy' && tourType === item.type
+    if (item.href === '/zajezdy') return pathname === '/zajezdy' && !tourType
+    return pathname === item.href || pathname.startsWith(item.href + '/')
+  }
 
   return (
     <>
@@ -42,7 +51,8 @@ export default function Header() {
           <ul className="z-header__nav">
             {NAV.map(item => (
               <li key={item.href}>
-                <Link href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+                <Link href={item.href} aria-current={isActive(item) ? 'page' : undefined}>
+                  {item.dot && <i className="z-header__dot" style={{ background: item.dot }} aria-hidden="true" />}
                   {item.label}
                 </Link>
               </li>
