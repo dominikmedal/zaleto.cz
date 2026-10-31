@@ -1,707 +1,156 @@
-﻿import { Suspense } from 'react'
-import { permanentRedirect } from 'next/navigation'
-import type { Metadata } from 'next'
-import Image from 'next/image'
+﻿import type { Metadata } from 'next'
+import { Fragment } from 'react'
 import Link from 'next/link'
-import { PiCalendarStar, PiAirplane, PiTimer, PiSun, PiArrowRight, PiCar } from 'react-icons/pi'
+import { permanentRedirect } from 'next/navigation'
 import Header from '@/components/Header'
-import HotelGrid from '@/components/HotelGrid'
-import DestinationCarousel from '@/components/DestinationCarousel'
-import DestinationCards from '@/components/DestinationCards'
-import ArticlesSection from '@/components/ArticlesSection'
-import { fetchDestinations, fetchFilters, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI, fetchHotels, fetchArticles } from '@/lib/api'
+import Icon from '@/components/ui/Icon'
+import Crumbs from '@/components/ui/Crumbs'
+import SectionHead from '@/components/ui/SectionHead'
+import TourCard from '@/components/ui/TourCard'
+import TourAd from '@/components/ui/TourAd'
+import { fetchFilters, fetchHotels } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
-import type { Filters } from '@/lib/types'
-import JsonLd from '@/components/JsonLd'
-import FilteringBar from '@/components/FilteringBar'
-import DestinationHeroAI from '@/components/DestinationHeroAI'
-import { getCountryFlag } from '@/lib/countryFlags'
-import ActiveFiltersBar from '@/components/ActiveFiltersBar'
 
-export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
-  const destination = Array.isArray(searchParams.destination)
-    ? searchParams.destination[0]
-    : searchParams.destination
+type SP = Record<string, string | string[] | undefined>
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || undefined
 
-  const tourType = Array.isArray(searchParams.tour_type)
-    ? searchParams.tour_type[0]
-    : searchParams.tour_type
+const KEYS = ['destination', 'date_from', 'date_to', 'duration', 'min_price', 'max_price', 'stars', 'meal_plan', 'transport', 'tour_type', 'departure_city', 'sort'] as const
+const SORTS: [string, string][] = [
+  ['price_asc', 'Nejlevnější'], ['price_desc', 'Nejdražší'], ['date_asc', 'Nejbližší odlet'], ['stars_desc', 'Nejvíc hvězd'], ['name_asc', 'Podle názvu'],
+]
+const LIMIT = 24
 
-  if (destination && !destination.includes(',')) {
-    const wiki = await fetchWikiSummary(destination).catch(() => null)
-    const name = wiki?.title ?? destination
-    const description = wiki
-      ? wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ')
-      : `Porovnejte zájezdy do destinace ${name} od předních českých cestovních kanceláří.`
-    return {
-      title: `Zájezdy ${name} 2026 — Srovnej ceny CK | Zaleto`,
-      description,
-      alternates: { canonical: `https://zaleto.cz/zajezdy?destination=${encodeURIComponent(destination)}` },
-      openGraph: {
-        title: `Zájezdy ${name} 2026 | Zaleto`,
-        description,
-        url: `https://zaleto.cz/zajezdy?destination=${encodeURIComponent(destination)}`,
-        type: 'website',
-      },
-    }
-  }
-
-  if (tourType === 'last_minute') {
-    return {
-      title: 'Last minute zájezdy 2026 — Srovnej ceny CK | Zaleto',
-      description: 'Nejlepší last minute zájezdy s odletem v nejbližších dnech. Porovnejte ceny od předních českých cestovních kanceláří.',
-      openGraph: {
-        title: 'Last minute zájezdy 2026 | Zaleto',
-        description: 'Nejlepší last minute zájezdy za zvýhodněné ceny. Vyber, rezervuj a jeď.',
-        url: 'https://zaleto.cz/zajezdy?tour_type=last_minute',
-        type: 'website',
-      },
-    }
-  }
-
-  if (tourType === 'first_minute') {
-    return {
-      title: 'First minute zájezdy 2026 — Srovnej ceny CK | Zaleto',
-      description: 'Nejlepší first minute zájezdy pro ty, kdo plánují s předstihem. Porovnejte ceny od předních českých cestovních kanceláří.',
-      openGraph: {
-        title: 'First minute zájezdy 2026 | Zaleto',
-        description: 'Výhodné zájezdy pro včasné rezervace. Nejlepší ceny first minute.',
-        url: 'https://zaleto.cz/zajezdy?tour_type=first_minute',
-        type: 'website',
-      },
-    }
-  }
-
-  const titles = [
-    'Zájezdy 2026 levně | Srovnávač dovolených online – Zaleto.cz',
-    'Levné zájezdy od CK na jednom místě | Srovnání dovolených – Zaleto.cz',
-    'Dovolená levně 2026 | Nejlepší zájezdy od všech CK – Zaleto.cz',
-    'Najdi nejlevnější dovolenou ✈️ | Srovnávač zájezdů Zaleto.cz',
-    'Porovnej zájezdy a ušetři tisíce | Zaleto.cz – dovolená chytře',
-    'Last minute zájezdy levně 🌴 | Zaleto.cz – srovnávač dovolených',
-    'Levné zájezdy, last minute, dovolená u moře | Srovnávač Zaleto.cz',
-    'Zájezdy k moři 2026 | Last minute, all inclusive – Zaleto.cz',
-  ]
-  const title = titles[Math.floor(Math.random() * titles.length)]
+export async function generateMetadata({ searchParams }: { searchParams: SP }): Promise<Metadata> {
+  const dest = one(searchParams.destination)
+  const type = one(searchParams.tour_type)
+  const hasFilters = KEYS.some(k => k !== 'sort' && one(searchParams[k]))
+  let title = 'Zájezdy 2026 — srovnání cen od českých CK | Zaleto'
+  if (type === 'last_minute') title = 'Last minute zájezdy — srovnání cen CK | Zaleto'
+  else if (type === 'first_minute') title = 'First minute zájezdy — srovnání cen CK | Zaleto'
+  else if (dest && !dest.includes(',')) title = `Zájezdy ${dest} — srovnání cen CK | Zaleto`
   return {
     title,
-    description: 'Porovnejte tisíce leteckých zájezdů od předních českých cestovních kanceláří. Egypt, Řecko, Turecko, Chorvatsko a další. Filtrujte podle termínu, stravování a ceny.',
+    description: 'Porovnej zájezdy od českých cestovních kanceláří podle destinace, termínu, stravování a ceny.',
     alternates: { canonical: 'https://zaleto.cz/zajezdy' },
-    openGraph: {
-      title: 'Zaleto — Srovnávač leteckých zájezdů',
-      description: 'Najděte nejlevnější zájezdy do Egypta, Řecka, Turecka a dalších destinací. Porovnání cen všech CK na jednom místě.',
-      url: 'https://zaleto.cz/zajezdy',
-      type: 'website',
-    },
+    robots: hasFilters ? { index: false, follow: true } : undefined,
   }
 }
 
-const websiteSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'Zaleto',
-  url: 'https://zaleto.cz/zajezdy',
-  description: 'Srovnávač leteckých zájezdů od předních českých cestovních kanceláří.',
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: {
-      '@type': 'EntryPoint',
-      urlTemplate: 'https://zaleto.cz/zajezdy?destination={search_term_string}',
-    },
-    'query-input': 'required name=search_term_string',
-  },
-}
-
-interface PageProps {
-  searchParams: Record<string, string | string[] | undefined>
-}
-
-function getParam(p: string | string[] | undefined): string | undefined {
-  return Array.isArray(p) ? p[0] : p
-}
-
-const fmtShort = (n: number | null) => {
-  if (n == null) return '0'
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')} mil.`
-  if (n >= 10_000)    return `${Math.round(n / 1000)} tis.`
-  if (n >= 1_000)     return `${(n / 1000).toFixed(1).replace('.', ',')} tis.`
-  return n.toLocaleString('cs-CZ')
-}
-const hasActiveFilter = (f: Filters) =>
-  !!(f.destination || f.date_from || f.date_to || f.duration || f.min_price || f.max_price || f.stars || f.meal_plan || f.transport || f.tour_type || f.departure_city)
-
-export default async function HomePage({ searchParams }: PageProps) {
-  const filters: Filters = {
-    destination: getParam(searchParams.destination),
-    date_from:   getParam(searchParams.date_from),
-    date_to:     getParam(searchParams.date_to),
-    duration:    getParam(searchParams.duration),
-    min_price:   getParam(searchParams.min_price)  ? parseFloat(getParam(searchParams.min_price)!)  : undefined,
-    max_price:   getParam(searchParams.max_price)  ? parseFloat(getParam(searchParams.max_price)!)  : undefined,
-    stars:       getParam(searchParams.stars),
-    meal_plan:      getParam(searchParams.meal_plan),
-    transport:      getParam(searchParams.transport),
-    tour_type:      getParam(searchParams.tour_type),
-    departure_city: getParam(searchParams.departure_city),
-    sort:           getParam(searchParams.sort) || 'price_asc',
+function qs(sp: SP, over: Record<string, string | undefined>) {
+  const p = new URLSearchParams()
+  for (const k of [...KEYS, 'page']) {
+    const v = k in over ? over[k] : one(sp[k])
+    if (v) p.set(k, v)
   }
+  const s = p.toString()
+  return s ? `?${s}` : ''
+}
 
-  const singleDest = filters.destination && !filters.destination.includes(',') ? filters.destination : null
+export default async function ZajezdyPage({ searchParams }: { searchParams: SP }) {
+  const f = Object.fromEntries(KEYS.map(k => [k, one(searchParams[k])])) as Record<(typeof KEYS)[number], string | undefined>
+  const page = Math.max(1, parseInt(one(searchParams.page) ?? '1') || 1)
+  const sort = f.sort || 'price_asc'
 
-  // Přesměruj /?destination=X na kanonickou stránku /destinace/{slug}, pokud nejsou aktivní jiné filtry.
-  // Zajišťuje vizuální a obsahovou identitu mezi oběma URL.
-  const hasOnlyDestination = singleDest &&
-    !filters.date_from && !filters.date_to && !filters.duration &&
-    !filters.min_price && !filters.max_price && !filters.stars &&
-    !filters.meal_plan && !filters.transport && !filters.tour_type && !filters.departure_city
-  if (hasOnlyDestination) {
-    const slug = slugify(singleDest!)
-    const sortParam = filters.sort && filters.sort !== 'price_asc' ? `?sort=${filters.sort}` : ''
-    permanentRedirect(`/destinace/${slug}${sortParam}`)
-  }
-  const multiDests = filters.destination ? filters.destination.split(',').map(d => d.trim()).filter(Boolean) : []
-  const tourType = filters.tour_type
-  const noFilters = !hasActiveFilter(filters)
+  // /zajezdy?destination=X bez dalších filtrů → kanonická stránka destinace
+  const onlyDest = f.destination && !f.destination.includes(',') && KEYS.every(k => k === 'destination' || k === 'sort' || !f[k])
+  if (onlyDest) permanentRedirect(`/destinace/${slugify(f.destination!)}${sort !== 'price_asc' ? `?sort=${sort}` : ''}`)
 
-  // Wave 1: všechny nezávislé fetche paralelně
-  const articlesNeeded = (noFilters && !singleDest && !tourType) ? 12 : singleDest ? 6 : 0
-  const [destinations, meta, wiki, tipHotelsRaw, heroPhoto, destAI, articlesRaw] = await Promise.all([
-    fetchDestinations().catch(() => []),
-    fetchFilters().catch(() => ({ mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], totalTours: 0, totalHotels: 0, departureCities: [] })),
-    singleDest ? fetchWikiSummary(singleDest).catch(() => null) : Promise.resolve(null),
-    noFilters ? fetchHotels({ sort: 'price_asc', limit: 200 }).then(r => r.hotels.filter(h => h.thumbnail_url)).catch(() => []) : Promise.resolve([]),
-    singleDest ? fetchDestinationPhoto(singleDest).catch(() => null) : Promise.resolve(null),
-    singleDest ? fetchDestinationAI(singleDest).catch(() => null) : Promise.resolve(null),
-    articlesNeeded > 0 ? (singleDest ? fetchArticles(articlesNeeded, singleDest) : fetchArticles(articlesNeeded)).catch(() => []) : Promise.resolve([]),
+  const [meta, result] = await Promise.all([
+    fetchFilters().catch(() => null),
+    fetchHotels({
+      destination: f.destination, date_from: f.date_from, date_to: f.date_to, duration: f.duration,
+      min_price: f.min_price ? parseFloat(f.min_price) : undefined, max_price: f.max_price ? parseFloat(f.max_price) : undefined,
+      stars: f.stars, meal_plan: f.meal_plan, transport: f.transport, tour_type: f.tour_type,
+      departure_city: f.departure_city, sort, page, limit: LIMIT,
+    }).catch(() => null),
   ])
 
-  const tipHotels = tipHotelsRaw as typeof tipHotelsRaw
-
-  const now = new Date()
-  const dayOfYear  = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
-  const weekOfYear = Math.floor(dayOfYear / 7)
-  const dailyIdx   = tipHotels.length > 0 ? dayOfYear % tipHotels.length : 0
-  let   weeklyIdx  = tipHotels.length > 1 ? (weekOfYear * 7 + 3) % tipHotels.length : 0
-  if (weeklyIdx === dailyIdx) weeklyIdx = (weeklyIdx + 1) % tipHotels.length
-  const dailyTip  = tipHotels[dailyIdx]  ?? null
-  const weeklyTip = tipHotels[weeklyIdx] ?? null
-
-  // Static popular destinations for carousel (curated list, 3 full pages of 7)
-  const CAROUSEL_DESTINATIONS = [
-    'Řecko', 'Lefkáda', 'Turecko', 'Egypt', 'Chorvatsko', 'Rhodos', 'Kréta',
-    'Španělsko', 'Mallorka', 'Itálie', 'Bulharsko', 'Kypr', 'Tunisko', 'Tenerife',
-    'Thajsko', 'Dubaj', 'Maledivy', 'Bali', 'Zanzibar', 'Fuerteventura', 'Kanárské ostrovy',
-  ]
-
-  // Region→country mapping for price fallback lookup
-  const regionCountryMap = new Map<string, string>()
-  for (const d of destinations) {
-    const region = d.destination.split('/').map(s => s.trim())[1] ?? d.destination.split('/')[0].trim()
-    if (d.country && !regionCountryMap.has(region)) regionCountryMap.set(region, d.country)
-  }
-
-  // Min price per region (from tipHotels — sorted price_asc)
-  const regionMinPrice = new Map<string, number>()
-  for (const h of tipHotels) {
-    if (h.min_price == null) continue
-    const region = (h.destination ?? '').split('/').map((s: string) => s.trim())[1]
-      ?? (h.destination ?? '').split('/')[0]?.trim()
-      ?? h.resort_town
-    if (region && !regionMinPrice.has(region)) regionMinPrice.set(region, h.min_price)
-    if (h.country && !regionMinPrice.has(h.country)) regionMinPrice.set(h.country, h.min_price)
-  }
-
-  // Wave 2: fotky závisí na výsledcích vlny 1 — spustíme oboje paralelně
-  const articleLocations = [...new Set((articlesRaw as typeof articlesRaw).map(a => a.location).filter(Boolean) as string[])]
-  const [carouselPhotos, articlePhotoResults] = await Promise.all([
-    noFilters
-      ? Promise.all(CAROUSEL_DESTINATIONS.map(name => fetchDestinationPhoto(name).catch(() => null)))
-      : Promise.resolve([] as (string | null)[]),
-    Promise.all(articleLocations.map(loc => fetchDestinationPhoto(loc).catch(() => null))),
-  ])
-
-  // Build carousel items — static list with photos, trimmed to full pages of 7
-  const _carouselRaw = CAROUSEL_DESTINATIONS
-    .map((name, i) => ({ region: name, count: 0, thumb: carouselPhotos[i] }))
-    .filter((r): r is typeof r & { thumb: string } => r.thumb != null)
-  const topRegionsWithPhotos = _carouselRaw.slice(0, Math.floor(_carouselRaw.length / 7) * 7)
-
-  const articles = articlesRaw
-  const articleImageMap: Record<string, string | null> = {}
-  articleLocations.forEach((loc, i) => { articleImageMap[loc] = articlePhotoResults[i] })
-
-  // Show up to 3 most recent articles
-  const articlesWithPhotos = articles.slice(0, 3)
-
-  const countryCount = new Set(destinations.map(d => d.country)).size
-
-  // Prefer AI description over wiki
-  const aiHeroText = destAI?.description ? destAI.description.split(/\n\n+/)[0] : null
-  const wikiDescription = wiki
-    ? wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 3).join(' ')
-    : ''
-  const heroDescription = aiHeroText ?? wikiDescription
-
-  // Flag for country destinations
-  const singleDestFlag = singleDest ? getCountryFlag(singleDest) : null
-  const heroTitle = singleDest ? (wiki ? wiki.title : singleDest) : null
-
-  // Breadcrumb from DB: find country (and optionally resort) for the selected region/resort
-  const breadcrumb: { label: string; href: string }[] = []
-  if (singleDest) {
-    // Try to find it as a region (middle part of destination path)
-    const asRegion = destinations.find(d => {
-      const parts = d.destination.split('/').map(s => s.trim())
-      return parts[1] === singleDest || parts[0] === singleDest
-    })
-    // Or as a resort_town
-    const asResort = destinations.find(d => d.resort_town === singleDest)
-    const row = asRegion ?? asResort
-
-    if (row) {
-      if (row.country && row.country !== singleDest) {
-        breadcrumb.push({ label: row.country, href: `/destinace/${slugify(row.country)}` })
-      }
-      const region = row.destination.split('/').map(s => s.trim())[1] ?? row.destination.split('/')[0].trim()
-      if (asResort && region !== singleDest) {
-        breadcrumb.push({ label: region, href: `/destinace/${slugify(region)}` })
-      }
-      breadcrumb.push({ label: singleDest, href: `/destinace/${slugify(singleDest)}` })
-    }
-  }
+  const hotels = result?.hotels ?? []
+  const pg = result?.pagination
+  const adHotel = hotels.find(h => h.thumbnail_url) ?? null
+  const active = KEYS.filter(k => k !== 'sort' && f[k]).length
+  const title = f.tour_type === 'last_minute' ? 'last minute' : f.tour_type === 'first_minute' ? 'first minute' : f.destination ? f.destination.toLowerCase() : 'všechny zájezdy'
 
   return (
-    <div className="min-h-screen">
-      <JsonLd data={websiteSchema} />
+    <>
       <Header />
+      <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
+        <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Zájezdy' }]} />
+        <div style={{ height: 'var(--space-6)' }} />
+        <SectionHead as="h1" kicker={pg ? `${pg.total.toLocaleString('cs-CZ')} hotelů s volným termínem` : 'Zájezdy'} title={title} />
 
-      {/* ── Full-bleed hero (destination selected + photo available) ── */}
-      {heroPhoto && singleDest && (
-        <div className="relative overflow-hidden h-[300px] sm:h-[380px]">
-          <Image
-            src={heroPhoto}
-            alt={singleDest}
-            fill
-            className="object-cover"
-            style={{ filter: 'brightness(1.05) saturate(1.05)' }}
-           
-            priority
-          />
-          {/* Left gradient */}
-          <div className="absolute inset-0" style={{
-            background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.88) 30%, rgba(255,255,255,0.5) 58%, rgba(255,255,255,0.0) 100%)'
-          }} />
-          {/* Bottom fade */}
-          <div className="absolute inset-x-0 bottom-0 h-32" style={{
-            background: 'linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.5) 60%, transparent 100%)'
-          }} />
-          {/* Content — anchored bottom-left inside max-w container */}
-          <div className="absolute inset-0 flex items-center">
-            <div className="max-w-[1680px] mx-auto px-4 sm:px-10 w-full pb-6">
-              {breadcrumb.length > 0 && (
-                <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
-                  <Link href="/" className="hover:text-[#008afe] transition-colors">Všechny zájezdy</Link>
-                  {breadcrumb.map((crumb, i) => (
-                    <span key={crumb.href} className="flex items-center gap-1">
-                      <span className="text-gray-200">/</span>
-                      {i === breadcrumb.length - 1
-                        ? <span className="text-gray-700 font-medium">{crumb.label}</span>
-                        : <Link href={crumb.href} className="hover:text-[#008afe] transition-colors">{crumb.label}</Link>
-                      }
-                    </span>
-                  ))}
-                </nav>
-              )}
-              <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 leading-tight mb-2 drop-shadow-sm flex items-center gap-3 flex-wrap">
-                {singleDestFlag && (
-                  <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm" style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
-                    {singleDestFlag}
-                  </span>
-                )}
-                {heroTitle}
-              </h1>
-              <p className="text-gray-700 text-sm sm:text-base max-w-2xl leading-relaxed">
-                {heroDescription || `Zájezdy do destinace ${singleDest} od předních cestovních kanceláří.`}
-              </p>
+        <form method="get" action="/zajezdy" className="z-filter" style={{ marginBottom: 'var(--space-7)' }}>
+          <div className="z-tk"><div className="z-tk__in z-filter__in">
+            <label className="z-sfield"><span className="z-sfield__label"><Icon name="poloha" />Kam</span>
+              <input name="destination" defaultValue={f.destination} placeholder="Kamkoli" /></label>
+            <label className="z-sfield"><span className="z-sfield__label"><Icon name="letadlo" />Odkud</span>
+              <select name="departure_city" defaultValue={f.departure_city ?? ''}>
+                <option value="">Odkudkoli</option>
+                {meta?.departureCities.slice(0, 12).map(c => <option key={c.departure_city} value={c.departure_city}>{c.departure_city}</option>)}
+              </select></label>
+            <label className="z-sfield"><span className="z-sfield__label"><Icon name="kalendar" />Odlet od</span>
+              <input name="date_from" type="date" defaultValue={f.date_from} /></label>
+            <label className="z-sfield"><span className="z-sfield__label"><Icon name="kalendar" />Návrat do</span>
+              <input name="date_to" type="date" defaultValue={f.date_to} /></label>
+          </div></div>
+
+          <details className="z-filter__more" open={!!(f.duration || f.meal_plan || f.stars || f.max_price || f.min_price || f.tour_type)}>
+            <summary className="z-more">Další filtry</summary>
+            <div className="z-filter__grid">
+              <label className="z-sfield"><span className="z-sfield__label"><Icon name="cas" />Délka</span>
+                <select name="duration" defaultValue={f.duration ?? ''}>
+                  <option value="">Libovolná</option>
+                  {meta?.durations.filter(d => d.duration >= 2 && d.duration <= 21).map(d => <option key={d.duration} value={d.duration}>{d.duration} nocí</option>)}
+                </select></label>
+              <label className="z-sfield"><span className="z-sfield__label"><Icon name="jidlo" />Strava</span>
+                <select name="meal_plan" defaultValue={f.meal_plan ?? ''}>
+                  <option value="">Jakákoli</option>
+                  {meta?.mealPlans.map(m => <option key={m.meal_plan} value={m.meal_plan}>{m.meal_plan}</option>)}
+                </select></label>
+              <label className="z-sfield"><span className="z-sfield__label"><Icon name="hvezda" />Hvězdy</span>
+                <select name="stars" defaultValue={f.stars ?? ''}>
+                  <option value="">Libovolné</option>
+                  <option value="5">5</option><option value="4,5">4 a víc</option><option value="3,4,5">3 a víc</option>
+                </select></label>
+              <label className="z-sfield"><span className="z-sfield__label"><Icon name="mena" />Cena do (Kč)</span>
+                <input name="max_price" type="number" min="0" step="500" defaultValue={f.max_price} placeholder="Bez limitu" /></label>
+              <label className="z-sfield"><span className="z-sfield__label"><Icon name="slunce" />Typ</span>
+                <select name="tour_type" defaultValue={f.tour_type ?? ''}>
+                  <option value="">Všechny</option><option value="last_minute">Last minute</option><option value="first_minute">First minute</option>
+                </select></label>
+              <label className="z-sfield"><span className="z-sfield__label"><Icon name="filtr" />Řazení</span>
+                <select name="sort" defaultValue={sort}>{SORTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
             </div>
+          </details>
+
+          <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', marginTop: 'var(--space-4)', flexWrap: 'wrap' }}>
+            <button type="submit" className="z-btn z-btn--primary">Najít zájezd<span className="z-btn__go"><Icon name="hledat" /></span></button>
+            {active > 0 && <Link href="/zajezdy" className="z-more">Zrušit filtry ({active})</Link>}
           </div>
-        </div>
-      )}
+        </form>
 
-      <main className="max-w-[1680px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-5">
-
-        {/* ── Compact hero (no destination photo) ── */}
-        {!(heroPhoto && singleDest) && (
-          <>
-            {noFilters && !singleDest && !tourType ? (
-
-              /* ═══ DEFAULT HOMEPAGE — marketing hero ═══ */
-              <div className="pt-1 pb-6 lg:pt-3 lg:pb-14">
-                <style>{`
-                  @keyframes _hero_up {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                  }
-                  ._hu { animation: _hero_up 0.5s cubic-bezier(.22,.68,0,1.1) both; }
-                  ._hu1 { animation-delay: 0ms; }
-                  ._hu2 { animation-delay: 60ms; }
-                  ._hu3 { animation-delay: 130ms; }
-                  ._hu4 { animation-delay: 200ms; }
-                `}</style>
-
-                <div className="flex flex-col lg:flex-row items-stretch justify-between gap-10 lg:gap-16">
-
-                  {/* ── Left: headline + CTA + stats ── */}
-                  <div className="flex-shrink-0 lg:max-w-[520px] flex flex-col">
-
-                    {/* Headline */}
-                    <h1 className="_hu _hu1 font-extrabold text-gray-900 leading-[1.0] tracking-tight mb-6"
-                      style={{ fontSize: 'clamp(46px, 6vw, 86px)' }}>
-                      Nejlevnější<br />
-                      dovolená<br />
-                      <span className="text-[#0093FF]">na jednom místě.</span>
-                    </h1>
-
-                    {/* Subtitle */}
-                    <p className="_hu _hu2 text-gray-500 text-lg leading-relaxed mb-8 max-w-[420px]">
-                      Srovnáváme tisíce termínů od předních českých CK — Egypt, Řecko, Turecko a desítky dalších destinací.
-                    </p>
-
-                    {/* CTA buttons */}
-                    <div className="_hu _hu3 flex flex-wrap gap-3 mb-4">
-                      <a href="#zajezdy" className="btn-cta text-sm px-6 py-3 rounded-xl">
-                        Prohlédnout zájezdy
-                        <PiArrowRight className="w-4 h-4" />
-                      </a>
-                      <Link href="/pujcovna-aut" className="btn-secondary text-sm px-5 py-3 rounded-xl">
-                        <PiCar className="w-4 h-4" /> Půjčit auto v zahraničí
-                      </Link>
-                    </div>
-
-                    {/* Quick filter links */}
-                    <div className="_hu _hu3 flex items-center gap-4">
-                      <Link
-                        href="/zajezdy?tour_type=last_minute"
-                        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                        Last minute
-                      </Link>
-                      <span className="text-gray-300">·</span>
-                      <Link
-                        href="/zajezdy?tour_type=first_minute"
-                        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-                        First minute
-                      </Link>
-                    </div>
-
-                  </div>
-
-                  {/* ── Right: destination mosaic carousel ── */}
-                  {topRegionsWithPhotos.length >= 1 && (
-                    <>
-                      <div className="block lg:hidden w-full">
-                        <DestinationCarousel
-                          items={topRegionsWithPhotos.map(({ region, count, thumb }) => ({
-                            region, count, thumb,
-                            minPrice: regionMinPrice.get(region)
-                              ?? regionMinPrice.get(regionCountryMap.get(region) ?? '')
-                              ?? null,
-                          }))}
-                        />
-                      </div>
-                      <div className="hidden lg:flex flex-1 min-w-0 flex-col">
-                        <DestinationCarousel
-                          items={topRegionsWithPhotos.map(({ region, count, thumb }) => ({
-                            region, count, thumb,
-                            minPrice: regionMinPrice.get(region)
-                              ?? regionMinPrice.get(regionCountryMap.get(region) ?? '')
-                              ?? null,
-                          }))}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                </div>
-
-              </div>
-
-            ) : multiDests.length > 1 ? (
-
-              /* ═══ MULTI-DESTINATION HERO ═══ */
-              <div className="py-4 lg:py-6">
-                <div className="flex flex-wrap gap-2.5 mb-4">
-                  {multiDests.map(d => {
-                    const flag = getCountryFlag(d)
-                    const destRow = destinations.find(dest =>
-                      dest.country === d ||
-                      dest.destination.split('/').map((s: string) => s.trim())[0] === d ||
-                      dest.destination.split('/').map((s: string) => s.trim())[1] === d
-                    )
-                    return (
-                      <div key={d} className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white border border-gray-100 shadow-sm">
-                        {flag && <span className="text-[1.6rem] leading-none">{flag}</span>}
-                        <div>
-                          <p className="font-bold text-gray-900 text-[15px] leading-tight">{d}</p>
-                          {destRow && <p className="text-[11px] text-gray-400 mt-0.5">{destRow.hotel_count} hotelů</p>}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2">
-                  Zájezdy: {multiDests.join(' + ')}
-                </h1>
-                <p className="text-gray-500 text-sm sm:text-base leading-relaxed">
-                  Srovnání termínů a cen od předních cestovních kanceláří pro vybrané destinace.
-                </p>
-              </div>
-
-            ) : (
-
-              /* ═══ FILTERED / DESTINATION / TOUR TYPE HERO ═══ */
-              <div className="lg:flex lg:items-end lg:justify-between lg:gap-8 py-2">
-                <div className="min-w-0">
-                  {breadcrumb.length > 0 && (
-                    <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
-                      <Link href="/" className="hover:text-[#008afe] transition-colors">Všechny zájezdy</Link>
-                      {breadcrumb.map((crumb, i) => (
-                        <span key={crumb.label} className="flex items-center gap-1">
-                          <span className="text-gray-200">/</span>
-                          {i === breadcrumb.length - 1
-                            ? <span className="text-gray-700 font-medium">{crumb.label}</span>
-                            : <Link href={crumb.href} className="hover:text-[#008afe] transition-colors">{crumb.label}</Link>
-                          }
-                        </span>
-                      ))}
-                    </nav>
-                  )}
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2 flex items-center gap-3 flex-wrap">
-                    {singleDest
-                      ? <>
-                          {singleDestFlag && (
-                            <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm" style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
-                              {singleDestFlag}
-                            </span>
-                          )}
-                          {heroTitle}
-                        </>
-                      : tourType === 'last_minute'
-                      ? <span className="text-red-500 inline-flex items-center gap-2"><PiTimer className="w-7 h-7 sm:w-9 sm:h-9" />Last minute 2026</span>
-                      : tourType === 'first_minute'
-                      ? <span className="text-emerald-500 inline-flex items-center gap-2"><PiCalendarStar className="w-7 h-7 sm:w-9 sm:h-9" />First minute 2026</span>
-                      : <span className="text-gray-900">Filtrované zájezdy</span>}
-                  </h1>
-                  <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-3xl">
-                    {singleDest
-                      ? (heroDescription || `Zájezdy do destinace ${singleDest} od předních cestovních kanceláří.`)
-                      : tourType === 'last_minute'
-                      ? 'Zájezdy s odletem v nejbližších dnech za zvýhodněné ceny. Vyber, rezervuj a jeď.'
-                      : tourType === 'first_minute'
-                      ? 'Výhodné zájezdy pro ty, kdo plánují s předstihem. Nejlepší ceny pro včasné rezervace.'
-                      : 'Výsledky odpovídají nastaveným filtrům.'}
-                  </p>
-                  {!singleDest && !tourType && (
-                    <Suspense fallback={null}>
-                      <ActiveFiltersBar />
-                    </Suspense>
-                  )}
-                </div>
-
-              </div>
-
-            )}
-          </>
-        )}
-
-
-        {/* ── Tips ── */}
-        {noFilters && (dailyTip || weeklyTip) && (
-          <section className="section-island">
-            <p className="text-xs font-bold text-[#0093FF] uppercase tracking-widest mb-4">Tipy pro vás</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {dailyTip && (
-                <Link
-                  href={`/hotel/${dailyTip.slug}`}
-                  className="group block rounded-2xl overflow-hidden bg-gray-100 relative"
-                  style={{ aspectRatio: '16/7', boxShadow: '0 1px 6px rgba(0,0,0,0.07), 0 4px 16px rgba(0,80,180,0.06)' }}
-                >
-                  <Image src={dailyTip.thumbnail_url!} alt={dailyTip.name} fill className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-
-                  {/* Badge */}
-                  <div className="absolute top-4 left-4">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold bg-amber-400 text-white px-2.5 py-1 rounded-full shadow-sm">
-                      <PiSun className="w-3 h-3" /> Tip dne
-                    </span>
-                  </div>
-
-                  {/* Content overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-5 flex items-end justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-white/55 text-[11px] mb-1.5 truncate">
-                        {dailyTip.stars ? '★'.repeat(Math.min(dailyTip.stars, 5)) + '  ·  ' : ''}
-                        {[dailyTip.resort_town, dailyTip.country].filter(Boolean).join(', ')}
-                      </p>
-                      <p
-                        className="text-white font-bold leading-tight line-clamp-2 mb-2"
-                        style={{ fontSize: 'clamp(15px, 2vw, 19px)' }}
-                      >
-                        {dailyTip.name}
-                      </p>
-                      <p className="text-[12px] font-medium text-white/70">
-                        od <span className="text-white font-bold">{fmtShort(dailyTip.min_price ?? null)} Kč</span> / os.
-                      </p>
-                    </div>
-
-                    {/* Expanding pill CTA */}
-                    <div className="flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 group-hover:bg-white group-hover:border-white transition-all duration-200 overflow-hidden flex-shrink-0 px-2.5 py-2 group-hover:px-3.5" style={{ backdropFilter: 'blur(8px)' }}>
-                      <span className="text-[12px] font-semibold text-white group-hover:text-[#0093FF] transition-colors duration-200 max-w-0 group-hover:max-w-[60px] overflow-hidden whitespace-nowrap">
-                        Zobrazit
-                      </span>
-                      <PiArrowRight className="w-3.5 h-3.5 text-white group-hover:text-[#0093FF] transition-all duration-200 group-hover:translate-x-0.5 flex-shrink-0" />
-                    </div>
-                  </div>
-                </Link>
-              )}
-              {weeklyTip && (
-                <Link
-                  href={`/hotel/${weeklyTip.slug}`}
-                  className="group block rounded-2xl overflow-hidden bg-gray-100 relative"
-                  style={{ aspectRatio: '16/7', boxShadow: '0 1px 6px rgba(0,0,0,0.07), 0 4px 16px rgba(0,80,180,0.06)' }}
-                >
-                  <Image src={weeklyTip.thumbnail_url!} alt={weeklyTip.name} fill className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-
-                  {/* Badge */}
-                  <div className="absolute top-4 left-4">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold bg-[#0093FF] text-white px-2.5 py-1 rounded-full shadow-sm">
-                      <PiCalendarStar className="w-3 h-3" /> Tip týdne
-                    </span>
-                  </div>
-
-                  {/* Content overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-5 flex items-end justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-white/55 text-[11px] mb-1.5 truncate">
-                        {weeklyTip.stars ? '★'.repeat(Math.min(weeklyTip.stars, 5)) + '  ·  ' : ''}
-                        {[weeklyTip.resort_town, weeklyTip.country].filter(Boolean).join(', ')}
-                      </p>
-                      <p
-                        className="text-white font-bold leading-tight line-clamp-2 mb-2"
-                        style={{ fontSize: 'clamp(15px, 2vw, 19px)' }}
-                      >
-                        {weeklyTip.name}
-                      </p>
-                      <p className="text-[12px] font-medium text-white/70">
-                        od <span className="text-white font-bold">{fmtShort(weeklyTip.min_price ?? null)} Kč</span> / os.
-                      </p>
-                    </div>
-
-                    {/* Expanding pill CTA */}
-                    <div className="flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 group-hover:bg-white group-hover:border-white transition-all duration-200 overflow-hidden flex-shrink-0 px-2.5 py-2 group-hover:px-3.5" style={{ backdropFilter: 'blur(8px)' }}>
-                      <span className="text-[12px] font-semibold text-white group-hover:text-[#0093FF] transition-colors duration-200 max-w-0 group-hover:max-w-[60px] overflow-hidden whitespace-nowrap">
-                        Zobrazit
-                      </span>
-                      <PiArrowRight className="w-3.5 h-3.5 text-white group-hover:text-[#0093FF] transition-all duration-200 group-hover:translate-x-0.5 flex-shrink-0" />
-                    </div>
-                  </div>
-                </Link>
-              )}
-            </div>
-
-          </section>
-        )}
-
-        {/* ── AI destination description + excursions ── */}
-        {singleDest && destAI && (
-          <DestinationHeroAI
-            data={destAI}
-            destName={singleDest}
-            country={destinations.find(d =>
-              d.country === singleDest ||
-              d.destination.split('/').map(s => s.trim()).includes(singleDest) ||
-              d.resort_town === singleDest
-            )?.country ?? ''}
-          />
-        )}
-
-        {/* ── Articles — homepage ── */}
-        {noFilters && !singleDest && !tourType && articlesWithPhotos.length > 0 && (
-          <div className="section-island">
-            <ArticlesSection articles={articlesWithPhotos} imageMap={articleImageMap} />
-
-            {/* Car rental banner — below article items */}
-            <Link
-              href="/pujcovna-aut"
-              className="group mt-5 relative block rounded-2xl overflow-hidden"
-              style={{ minHeight: 130 }}
-            >
-              <Image
-                src="/img/1602.jpg"
-                alt="Půjčovna aut v zahraničí"
-                fill
-                className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                sizes="100vw"
-              />
-              <div className="absolute inset-0" style={{
-                background: 'linear-gradient(to right, rgba(0,20,60,0.78) 0%, rgba(0,20,60,0.55) 50%, rgba(0,20,60,0.20) 100%)'
-              }} />
-              <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-6 py-5 sm:px-8 sm:py-6 h-full">
-                <div className="max-w-xl">
-                  <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-white/70 uppercase tracking-[0.14em] mb-2">
-                    <PiAirplane className="w-3 h-3" />
-                    Půjčovna aut v zahraničí
-                  </div>
-                  <p
-                    className="font-bold text-white leading-tight mb-1.5"
-                    style={{ fontSize: 'clamp(17px, 2.2vw, 24px)' }}
-                  >
-                    Dovolená jinak — prozkoumejte destinaci za volantem
-                  </p>
-                  <p className="text-white/65 text-[12px] sm:text-[13px] leading-relaxed">
-                    Přes <strong className="text-white/90">500 půjčoven aut</strong> ve více než 20 destinacích. Řecko, Turecko, Chorvatsko a další — vždy garantovaná cena, pojištění v ceně.
-                  </p>
-                </div>
-                <div
-                  className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[13px] text-[#0068CC] transition-all group-hover:scale-[1.04] whitespace-nowrap self-start sm:self-auto"
-                  style={{ background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 12px rgba(0,0,0,0.15)' }}
-                >
-                  Srovnat ceny aut
-                  <PiArrowRight className="w-4 h-4" />
-                </div>
-              </div>
-            </Link>
+        {hotels.length === 0 ? (
+          <div className="z-info"><h2 className="z-info__title">nic jsme nenašli<span className="z-dot">.</span></h2>
+            <p style={{ margin: 'var(--space-3) 0 0' }}>Zkus rozšířit termín nebo zrušit některý filtr.</p></div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-5)', alignItems: 'stretch' }}>
+            {hotels.map((h, i) => (
+              <Fragment key={h.slug}>
+                <TourCard hotel={h} priority={i < 3} />
+                {i === 5 && adHotel && <div style={{ display: 'flex' }}><div style={{ width: '100%' }}><TourAd hotel={adHotel} /></div></div>}
+              </Fragment>
+            ))}
           </div>
         )}
 
-        {/* ── Articles — destination page ── */}
-        {singleDest && articlesWithPhotos.length > 0 && (
-          <div className="section-island">
-            <ArticlesSection
-              articles={articlesWithPhotos}
-              imageMap={articleImageMap}
-              label={`Články o ${singleDest}`}
-            />
-          </div>
+        {pg && pg.totalPages > 1 && (
+          <nav aria-label="Stránkování" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-7)' }}>
+            {page > 1 ? <Link className="z-more" href={`/zajezdy${qs(searchParams, { page: String(page - 1) })}`}>Předchozí</Link> : <span />}
+            <span className="z-data">STRANA {page} / {pg.totalPages}</span>
+            {pg.hasMore ? <Link className="z-more" href={`/zajezdy${qs(searchParams, { page: String(page + 1) })}`}>Další</Link> : <span />}
+          </nav>
         )}
-
-        {/* ── Filter animation bar ── */}
-        <Suspense>
-          <FilteringBar />
-        </Suspense>
-
-        {/* ── Hotel grid ── */}
-        <div id="zajezdy" className="scroll-mt-20">
-          <Suspense>
-            <HotelGrid adults={parseInt(getParam(searchParams.adults) || '2')} />
-          </Suspense>
-        </div>
-
       </main>
-    </div>
+    </>
   )
 }

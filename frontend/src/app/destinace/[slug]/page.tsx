@@ -1,16 +1,15 @@
 ﻿import type { Metadata } from 'next'
-import Image from 'next/image'
 import Link from 'next/link'
-import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import Header from '@/components/Header'
-import HotelGrid from '@/components/HotelGrid'
 import JsonLd from '@/components/JsonLd'
-import FilteringBar from '@/components/FilteringBar'
-import DestinationHeroAI from '@/components/DestinationHeroAI'
-import { fetchDestinations, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI } from '@/lib/api'
+import Crumbs from '@/components/ui/Crumbs'
+import Icon from '@/components/ui/Icon'
+import TourCard from '@/components/ui/TourCard'
+import TourAd from '@/components/ui/TourAd'
+import StoryCard from '@/components/ui/StoryCard'
+import { fetchDestinations, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI, fetchHotels, fetchArticles } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
-import { getCountryFlag } from '@/lib/countryFlags'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -20,23 +19,16 @@ export async function generateStaticParams() {
     const destinations = await fetchDestinations()
     const seen = new Set<string>()
     const params: { slug: string }[] = []
-
-    for (const d of destinations) {
-      if (d.country) {
-        const s = slugify(d.country)
-        if (!seen.has(s)) { seen.add(s); params.push({ slug: s }) }
-      }
-      const region = d.destination?.split('/')[1]?.trim() ?? d.destination?.split('/')[0]?.trim()
-      if (region) {
-        const s = slugify(region)
-        if (!seen.has(s)) { seen.add(s); params.push({ slug: s }) }
-      }
-      if (d.resort_town) {
-        const s = slugify(d.resort_town)
-        if (!seen.has(s)) { seen.add(s); params.push({ slug: s }) }
-      }
+    const add = (name: string | null | undefined) => {
+      if (!name) return
+      const s = slugify(name)
+      if (s && !seen.has(s)) { seen.add(s); params.push({ slug: s }) }
     }
-
+    for (const d of destinations) {
+      add(d.country)
+      add(d.destination?.split('/')[1]?.trim() ?? d.destination?.split('/')[0]?.trim())
+      add(d.resort_town)
+    }
     return params
   } catch {
     return []
@@ -52,24 +44,13 @@ interface DestInfo {
 
 async function resolveDestination(slug: string): Promise<DestInfo | null> {
   let destinations
-  try {
-    destinations = await fetchDestinations()
-  } catch {
-    return null
-  }
+  try { destinations = await fetchDestinations() } catch { return null }
 
-  // Country
   for (const d of destinations) {
     if (d.country && slugify(d.country) === slug) {
-      return {
-        name: d.country,
-        country: d.country,
-        type: 'country',
-        breadcrumb: [{ label: d.country, href: `/destinace/${slugify(d.country)}` }],
-      }
+      return { name: d.country, country: d.country, type: 'country', breadcrumb: [{ label: d.country, href: `/destinace/${slugify(d.country)}` }] }
     }
   }
-  // Region
   for (const d of destinations) {
     const region = d.destination?.split('/')[1]?.trim() ?? d.destination?.split('/')[0]?.trim()
     if (region && slugify(region) === slug) {
@@ -79,7 +60,6 @@ async function resolveDestination(slug: string): Promise<DestInfo | null> {
       return { name: region, country: d.country, type: 'region', breadcrumb: crumbs }
     }
   }
-  // Town
   for (const d of destinations) {
     if (d.resort_town && slugify(d.resort_town) === slug) {
       const region = d.destination?.split('/')[1]?.trim() ?? d.destination?.split('/')[0]?.trim()
@@ -104,214 +84,157 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const name = wiki?.title ?? dest.name
   const description = wiki
     ? wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ')
-    : `Porovnejte zájezdy do destinace ${name} od předních českých cestovních kanceláří.`
-
+    : `Porovnej zájezdy do destinace ${name} od českých cestovních kanceláří.`
   const canonical = `https://zaleto.cz/destinace/${params.slug}`
-  const title = `Zájezdy ${name} ${year} — Srovnej ceny CK | Zaleto`
+  const title = `Zájezdy ${name} ${year} — srovnání cen CK | Zaleto`
 
   return {
     title,
     description,
     alternates: { canonical },
-    openGraph: {
-      title: `Zájezdy ${name} ${year} | Zaleto`,
-      description,
-      url: canonical,
-      type: 'website',
-      siteName: 'Zaleto',
-      locale: 'cs_CZ',
-    },
+    openGraph: { title: `Zájezdy ${name} ${year} | Zaleto`, description, url: canonical, type: 'website', siteName: 'Zaleto', locale: 'cs_CZ' },
     twitter: { card: 'summary_large_image', title, description },
   }
 }
 
-export default async function DestinacePage({ params }: Props) {
+const LIMIT = 24
+const SORTS: [string, string][] = [['price_asc', 'Nejlevnější'], ['date_asc', 'Nejbližší'], ['stars_desc', 'Nejlepší hotely']]
+
+type Item = { name: string; description: string }
+
+function ItemList({ title, items }: { title: string; items: Item[] }) {
+  if (!items?.length) return null
+  return (
+    <>
+      <h2>{title}<span className="z-dot">.</span></h2>
+      <ul>
+        {items.map(i => <li key={i.name}><strong>{i.name}</strong> — {i.description}</li>)}
+      </ul>
+    </>
+  )
+}
+
+export default async function DestinacePage({ params, searchParams }: Props & { searchParams: { page?: string; sort?: string } }) {
   const dest = await resolveDestination(params.slug)
   if (!dest) notFound()
 
-  const [destAI, heroPhoto, allDestinations] = await Promise.all([
+  const page = Math.max(1, parseInt(searchParams.page ?? '1') || 1)
+  const sort = SORTS.some(([v]) => v === searchParams.sort) ? (searchParams.sort as string) : 'price_asc'
+
+  const [destAI, heroPhoto, result, articles] = await Promise.all([
     fetchDestinationAI(dest.name).catch(() => null),
     fetchDestinationPhoto(dest.name).catch(() => null),
-    fetchDestinations().catch(() => [] as Awaited<ReturnType<typeof fetchDestinations>>),
+    fetchHotels({ destination: dest.name, sort, page, limit: LIMIT }).catch(() => null),
+    fetchArticles(3, dest.name).catch(() => []),
   ])
 
-  // Collect unique resort towns for this destination (exclude the destination name itself)
-  const resortTowns = Array.from(new Set(
-    allDestinations
-      .filter(d => {
-        const region = d.destination?.split('/')[1]?.trim() ?? d.destination?.split('/')[0]?.trim()
-        return (
-          d.country === dest.country ||
-          region === dest.name ||
-          d.country === dest.name
-        )
-      })
-      .map(d => d.resort_town)
-      .filter((t): t is string => Boolean(t) && t !== dest.name)
-  )).sort()
+  const aiText = destAI?.description && destAI.description.length >= 20 ? destAI.description : null
+  const wiki = aiText ? null : await fetchWikiSummary(dest.name).catch(() => null)
+  const paragraphs = aiText
+    ? aiText.split(/\n\n+/)
+    : wiki ? [wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 3).join(' ')] : []
+  const title = wiki?.title ?? dest.name
 
-  // Use AI description if available, otherwise fall back to Wikipedia
-  const aiHeroText = destAI?.description && destAI.description.length >= 20
-    ? destAI.description.split(/\n\n+/)[0]
-    : null
+  const hotels = result?.hotels ?? []
+  const pg = result?.pagination
+  const adHotel = hotels.find(h => h.thumbnail_url) ?? null
 
-  const wiki = aiHeroText ? null : await fetchWikiSummary(dest.name).catch(() => null)
-  const heroDescription = aiHeroText
-    ?? (wiki ? wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 3).join(' ') : '')
-
-  const hasHeroAI = destAI && (
-    destAI.best_time || (destAI.places ?? []).length || (destAI.food ?? []).length ||
-    (destAI.trips ?? []).length || (destAI.excursions ?? []).length
-  )
-
-  const countryFlag = dest.type === 'country' ? getCountryFlag(dest.name) : null
-  const heroTitle = wiki ? wiki.title : dest.name
-
-  // Weather page link for this destination
   const weatherUrl = dest.type === 'country'
     ? `/pocasi/${slugify(dest.name)}`
-    : dest.country
-      ? `/pocasi/${slugify(dest.country)}/${slugify(dest.name)}`
-      : null
+    : dest.country ? `/pocasi/${slugify(dest.country)}/${slugify(dest.name)}` : null
 
   const breadcrumbSchema = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Zaleto', item: 'https://zaleto.cz' },
-      ...dest.breadcrumb.map((crumb, i) => ({
-        '@type': 'ListItem',
-        position: i + 2,
-        name: crumb.label,
-        item: `https://zaleto.cz${crumb.href}`,
-      })),
+      ...dest.breadcrumb.map((c, i) => ({ '@type': 'ListItem', position: i + 2, name: c.label, item: `https://zaleto.cz${c.href}` })),
     ],
   }
 
+  const pageHref = (n: number) => {
+    const p = new URLSearchParams()
+    if (sort !== 'price_asc') p.set('sort', sort)
+    p.set('page', String(n))
+    return `/destinace/${params.slug}?${p}`
+  }
+
   return (
-    <div className="min-h-screen">
+    <>
       <JsonLd data={breadcrumbSchema} />
       <Header />
 
-      {/* ── Full-bleed hero (photo available) ── */}
-      {heroPhoto && (
-        <div className="relative min-h-[300px] sm:min-h-[380px]">
-          <Image
-            src={heroPhoto}
-            alt={dest.name}
-            fill
-            className="object-cover"
-            style={{ filter: 'brightness(1.05) saturate(1.05)' }}
-           
-            priority
-          />
-          {/* Left gradient */}
-          <div className="absolute inset-0" style={{
-            background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.88) 30%, rgba(255,255,255,0.55) 58%, rgba(255,255,255,0.0) 100%)'
-          }} />
-          {/* Bottom fade */}
-          <div className="absolute inset-x-0 bottom-0 h-32" style={{
-            background: 'linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.6) 50%, transparent 100%)'
-          }} />
-          <div className="relative flex items-center py-8 sm:py-10">
-            <div className="max-w-[1680px] mx-auto px-4 sm:px-10 w-full pb-6">
-              <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
-                <Link href="/" className="hover:text-[#008afe] transition-colors">Všechny zájezdy</Link>
-                {dest.breadcrumb.map((crumb, i) => (
-                  <span key={i} className="flex items-center gap-1">
-                    <span className="text-gray-200">/</span>
-                    {i === dest.breadcrumb.length - 1
-                      ? <span className="text-gray-700 font-medium">{crumb.label}</span>
-                      : <Link href={crumb.href} className="hover:text-[#008afe] transition-colors">{crumb.label}</Link>
-                    }
-                  </span>
-                ))}
-              </nav>
-              <h1
-                className="font-bold text-gray-900 leading-tight tracking-tight mb-2 drop-shadow-sm flex items-center gap-3 flex-wrap"
-                style={{ fontSize: 'clamp(28px, 5vw, 60px)' }}
-              >
-                {countryFlag && (
-                  <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm" style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
-                    {countryFlag}
-                  </span>
-                )}
-                {heroTitle}
-              </h1>
-              {heroDescription && (
-                <p className="text-gray-700 text-sm sm:text-base max-w-2xl leading-relaxed">
-                  {heroDescription}
-                </p>
-              )}
-              {weatherUrl && (
-                <Link href={weatherUrl} className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-sky-200 text-sky-600 hover:bg-sky-50 hover:border-sky-400 rounded-full text-xs font-semibold transition-all shadow-sm">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="9" r="2.5"/></svg>
-                  Počasí a klima — {dest.name}
-                </Link>
-              )}
-            </div>
+      <div className="z-page">
+        <main>
+          <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Destinace', href: '/destinace' }, ...dest.breadcrumb]} />
+          <h1 className="h1" style={{ margin: 'var(--space-4) 0' }}>{title}<span className="z-dot">.</span></h1>
+          <div className="z-byline">
+            {pg && <span><Icon name="hotel" />{pg.total} hotelů s termínem</span>}
+            {weatherUrl && <span><Icon name="slunce" /><Link href={weatherUrl} style={{ color: 'inherit' }}>Počasí a klima</Link></span>}
           </div>
-        </div>
-      )}
+          {heroPhoto && (
+            <figure style={{ margin: '0 0 var(--space-6)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={heroPhoto} alt={dest.name} style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 'var(--radius-lg)' }} />
+            </figure>
+          )}
 
-      <main className="max-w-[1680px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-5">
+          <div className="z-prose">
+            {paragraphs.map((p, i) => <p key={i} className={i === 0 ? 'z-lead' : undefined}>{p}</p>)}
+            {destAI?.best_time && (
+              <>
+                <h2>kdy jet<span className="z-dot">.</span></h2>
+                {destAI.best_time.split(/\n\n+/).map((p, i) => <p key={i}>{p}</p>)}
+              </>
+            )}
+            <ItemList title="co vidět" items={destAI?.places ?? []} />
+            <ItemList title="co ochutnat" items={destAI?.food ?? []} />
+            <ItemList title="výlety z místa" items={[...(destAI?.trips ?? []), ...(destAI?.excursions ?? [])]} />
+          </div>
+        </main>
+        <aside>{adHotel && <TourAd hotel={adHotel} sticky kicker={`Nabídka — ${dest.name}`} />}</aside>
+      </div>
 
-        {/* ── Compact hero (no photo) ── */}
-        {!heroPhoto && (
+      <section className="z-container z-section">
+        <div className="z-shead">
           <div>
-            <nav className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-3">
-              <Link href="/" className="hover:text-[#008afe] transition-colors">Všechny zájezdy</Link>
-              {dest.breadcrumb.map((crumb, i) => (
-                <span key={crumb.label} className="flex items-center gap-1">
-                  <span className="text-gray-200">/</span>
-                  {i === dest.breadcrumb.length - 1
-                    ? <span className="text-gray-700 font-medium">{crumb.label}</span>
-                    : <Link href={crumb.href} className="hover:text-[#008afe] transition-colors">{crumb.label}</Link>
-                  }
-                </span>
-              ))}
-            </nav>
-            <h1
-              className="font-bold text-gray-900 leading-tight tracking-tight mb-2 flex items-center gap-3 flex-wrap"
-              style={{ fontSize: 'clamp(26px, 4vw, 48px)' }}
-            >
-              {countryFlag && (
-                <span className="inline-flex items-center justify-center rounded-lg overflow-hidden leading-none flex-shrink-0 shadow-sm" style={{ fontSize: '0.75em', lineHeight: 1, padding: '0.05em 0.1em' }}>
-                  {countryFlag}
-                </span>
-              )}
-              {heroTitle}
-            </h1>
-            {heroDescription && (
-              <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-3xl">
-                {heroDescription}
-              </p>
-            )}
-            {weatherUrl && (
-              <Link href={weatherUrl} className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 bg-sky-50 border border-sky-200 text-sky-600 hover:bg-sky-100 hover:border-sky-400 rounded-full text-xs font-semibold transition-all">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="9" r="2.5"/></svg>
-                Počasí a klima — {dest.name}
-              </Link>
-            )}
+            <div className="z-kicker">Zájezdy</div>
+            <h2>lístky do {dest.name}<span className="z-dot">.</span></h2>
+          </div>
+          <nav aria-label="Řazení" style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            {SORTS.map(([v, l]) => (
+              <Link
+                key={v}
+                href={`/destinace/${params.slug}${v === 'price_asc' ? '' : `?sort=${v}`}`}
+                className="z-chip"
+                aria-current={sort === v ? 'true' : undefined}
+                style={{ textDecoration: 'none', ...(sort === v ? { background: 'var(--ink)', color: 'var(--paper)' } : {}) }}
+              >{l}</Link>
+            ))}
+          </nav>
+        </div>
+        {hotels.length === 0 ? (
+          <p className="body">Pro tuto destinaci teď nemáme žádný volný termín.</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-5)', alignItems: 'stretch' }}>
+            {hotels.map((h, i) => <TourCard key={h.slug} hotel={h} priority={i < 3} />)}
           </div>
         )}
-
-        {/* ── AI info cards (side by side, below hero) ── */}
-        {hasHeroAI && destAI && (
-          <DestinationHeroAI data={destAI} destName={dest.name} country={dest.country ?? ''} />
+        {pg && pg.totalPages > 1 && (
+          <nav aria-label="Stránkování" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-7)' }}>
+            {page > 1 ? <Link className="z-more" href={pageHref(page - 1)}>Předchozí</Link> : <span />}
+            <span className="z-data">STRANA {page} / {pg.totalPages}</span>
+            {pg.hasMore ? <Link className="z-more" href={pageHref(page + 1)}>Další</Link> : <span />}
+          </nav>
         )}
+      </section>
 
-        {/* ── Filter animation bar ── */}
-        <Suspense>
-          <FilteringBar />
-        </Suspense>
-
-        {/* ── Hotel grid ── */}
-        <Suspense>
-          <HotelGrid forcedDestination={dest.name} />
-        </Suspense>
-
-      </main>
-    </div>
+      {articles.length > 0 && (
+        <section className="z-container z-section">
+          <div className="z-kicker" style={{ marginBottom: 'var(--space-5)' }}>Z cest: {dest.name}</div>
+          <div className="z-grid-3w">{articles.map(a => <StoryCard key={a.slug} article={a} />)}</div>
+        </section>
+      )}
+    </>
   )
 }

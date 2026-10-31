@@ -4,13 +4,14 @@ import { formatLongDate, readingTime } from './format'
 import type { Article } from '@/lib/api'
 
 /** Obsah (články) lístek není: karta s fotkou 4:3, nadtitulkem a titulkem s podtržením při najetí. */
-export default function StoryCard({ article, lead }: { article: Article; lead?: boolean }) {
+export default function StoryCard({ article, lead, image }: { article: Article; lead?: boolean; image?: string | null }) {
+  const src = article.custom_image_url ?? image ?? null
   return (
     <Link className={`z-story${lead ? ' z-story--lead' : ''}`} href={`/clanky/${article.slug}`}>
       <div className="z-story__media">
-        {article.custom_image_url && (
+        {src && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={article.custom_image_url} alt="" loading={lead ? 'eager' : 'lazy'} />
+          <img src={src} alt="" loading={lead ? 'eager' : 'lazy'} />
         )}
         {article.category && <span className="z-chip"><Icon name="clanek" />{article.category}</span>}
       </div>

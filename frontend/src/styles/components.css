@@ -304,3 +304,14 @@ a.z-tk:hover { transform: translateY(-4px) rotate(-.4deg); filter: drop-shadow(0
   .z-shead h2 { font-size: 28px; line-height: 32px; }
   .z-story--lead .z-story__title { font-size: 28px; line-height: 32px; }
 }
+
+/* ---------- Filtr zájezdů (/zajezdy) ---------- */
+.z-filter__in { display: grid; grid-template-columns: repeat(4, 1fr); padding: var(--space-2); }
+.z-filter__more { margin-top: var(--space-4); }
+.z-filter__more summary { cursor: pointer; list-style: none; }
+.z-filter__more summary::-webkit-details-marker { display: none; }
+.z-filter__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin-top: var(--space-4); }
+.z-filter__grid .z-sfield { background: var(--raised); border-radius: var(--radius-md); }
+.z-sfield select { appearance: none; cursor: pointer; }
+@media (max-width: 1023px) { .z-filter__in { grid-template-columns: repeat(2, 1fr); } .z-filter__grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 767px) { .z-filter__in, .z-filter__grid { grid-template-columns: 1fr; } .z-filter__in .z-sfield + .z-sfield { border-left: 0; border-top: 2px dotted var(--line); } }
