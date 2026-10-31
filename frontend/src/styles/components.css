@@ -1073,3 +1073,14 @@ body[data-admin] .z-offerbar, body[data-admin] .z-footer, body[data-admin] .z-ch
 .z-offerbar__in { height: 40px; min-height: 0; overflow: hidden; }
 body:has(.z-offerbar) .z-header { top: 40px; }
 @media (max-width: 767px) { .z-offerbar__list { white-space: nowrap; } }
+
+/* Načítání: kostra ve stylu lístků + trasa s modrou tečkou */
+.z-loading__gallery { display: grid; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: var(--space-2); height: 460px; margin: var(--space-4) 0 var(--space-7); }
+.z-loading__gallery .z-skel { border-radius: var(--radius-md); }
+.z-loading__gallery .z-skel:first-child { grid-row: 1 / 3; border-radius: var(--radius-lg) var(--radius-md) var(--radius-md) var(--radius-lg); }
+.z-loadroute { position: relative; height: 12px; border-bottom: 2px dotted var(--line-strong); margin-bottom: var(--space-2); }
+.z-loadroute span { position: absolute; bottom: -7px; left: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--brand-strong); animation: z-drive-dot 1.8s ease-in-out infinite alternate; }
+@keyframes z-drive-dot { to { left: calc(100% - 12px); } }
+@media (max-width: 767px) { .z-loading__gallery { grid-template-columns: 1fr; grid-template-rows: none; height: 260px; } .z-loading__gallery .z-skel:not(:first-child) { display: none; } .z-loading__gallery .z-skel:first-child { grid-row: auto; } }
+@media (prefers-reduced-motion: reduce) { .z-skel, .z-loadroute span { animation: none; } }
+.z-skel { background: linear-gradient(90deg, rgba(11, 27, 51, .07), rgba(11, 27, 51, .13), rgba(11, 27, 51, .07)); background-size: 200% 100%; }
