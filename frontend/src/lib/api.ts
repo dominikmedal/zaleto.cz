@@ -347,6 +347,8 @@ export interface DynamicCarDestination {
 }
 
 async function fetchEnrichedCarDestinations(): Promise<DynamicCarDestination[]> {
+  // Obohacení volá desítky dotazů na DiscoverCars – při buildu se přeskočí (stránky se dogenerují za běhu).
+  if (process.env.NEXT_PHASE === 'phase-production-build') return []
   try {
     const res = await apiFetch(`/api/car-rental/enriched-destinations`, {
       next: { revalidate: 21600 },

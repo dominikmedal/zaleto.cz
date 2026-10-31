@@ -1,11 +1,10 @@
 import Link from 'next/link'
 import Icon from './Icon'
 import { formatDateRange, formatPrice, normalizeMealPlanLabel } from './format'
-import type { Hotel, NearbyHotel } from '@/lib/types'
+import type { Hotel } from '@/lib/types'
 
 type H = Pick<Hotel, 'slug' | 'name' | 'thumbnail_url' | 'min_price' | 'stars'> &
-  Partial<Pick<Hotel, 'country' | 'destination' | 'resort_town' | 'next_departure' | 'next_return_date' | 'has_last_minute' | 'has_first_minute' | 'food_options'>> &
-  Partial<NearbyHotel>
+  Partial<Pick<Hotel, 'agency' | 'country' | 'destination' | 'resort_town' | 'next_departure' | 'next_return_date' | 'has_last_minute' | 'has_first_minute' | 'food_options'>>
 
 /** Zájezd jako palubní lístek (`z-tk z-tk--h`). Odkaz vede na detail hotelu. */
 export default function TourCard({ hotel, priority }: { hotel: H; priority?: boolean }) {
