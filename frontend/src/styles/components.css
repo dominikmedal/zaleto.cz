@@ -1220,3 +1220,32 @@ body:has(.z-section--deep:last-child) .z-footer { margin-top: 0; }
 @keyframes z-toast-out { to { opacity: 0; transform: translateY(8px) scale(.97); } }
 @media (max-width: 767px) { .z-toasts { left: var(--space-3); right: var(--space-3); bottom: 84px; } .z-toast { min-width: 0; width: 100%; max-width: none; } }
 @media (prefers-reduced-motion: reduce) { .z-toast, .z-toast[data-leaving] { animation: none; } }
+
+/* Vyhledávání napříč webem */
+.z-search-overlay { position: fixed; inset: 0; z-index: 150; display: flex; justify-content: center; align-items: flex-start; padding: 12vh var(--space-4) var(--space-4); }
+.z-search-overlay__panel { position: relative; width: min(680px, 100%); max-height: 76vh; display: flex; flex-direction: column; background: var(--raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-lift, 0 30px 60px -20px rgba(11, 27, 51, .5)); overflow: hidden; animation: z-exit-in .25s cubic-bezier(.2, .8, .2, 1); }
+.z-search-overlay__bar { display: flex; align-items: center; gap: var(--space-3); padding: 8px 10px 8px var(--space-5); border-bottom: 2px dotted var(--line); }
+.z-search-overlay__bar input { flex: 1; min-width: 0; height: 52px; border: 0 !important; outline: 0; box-shadow: none !important; background: transparent !important; padding: 0 !important; font: 500 20px/28px var(--font-serif); color: var(--ink); }
+.z-search-overlay__body { overflow-y: auto; padding: var(--space-3) var(--space-3) var(--space-4); display: grid; gap: var(--space-3); align-content: start; }
+.z-search-overlay__hint { display: grid; gap: var(--space-3); padding: var(--space-3); }
+.z-search-overlay__empty { margin: 0; padding: var(--space-4); font: 400 17px/26px var(--font-sans); color: var(--ink-muted); }
+.z-search-overlay__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-top: 2px dotted var(--line); flex-wrap: wrap; }
+.z-sr-group h3 { margin: var(--space-2) var(--space-3) var(--space-1); font-weight: 500; }
+.z-sr-item { display: flex; align-items: center; gap: var(--space-3); width: 100%; padding: 8px var(--space-3); border: 0; border-radius: 18px; background: transparent; text-align: left; cursor: pointer; color: var(--ink); font: inherit; }
+.z-sr-item[data-active], .z-sr-item:hover { background: rgba(11, 27, 51, .06); }
+.z-sr-item img, .z-sr-item__icon { flex: none; width: 48px; height: 48px; border-radius: 14px; object-fit: cover; }
+.z-sr-item__icon { display: grid; place-items: center; background: var(--sky); color: var(--brand-strong); }
+.z-sr-item__text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.z-sr-item__text b { font: 600 17px/22px var(--font-sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.z-sr-item__text small { font: 400 14px/20px var(--font-sans); color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.z-sr-item__aside { flex: none; font: 600 15px/20px var(--font-serif); color: var(--accent-strong); white-space: nowrap; }
+.z-searchpage__form { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+.z-searchpage__form .z-adm-search { max-width: 560px; }
+.z-searchpage__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+.z-sr-card { display: block; border-radius: var(--radius-lg); background: var(--raised); box-shadow: var(--shadow-ticket); overflow: hidden; text-decoration: none; color: var(--ink); }
+.z-sr-card img, .z-sr-card__ph { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: var(--paper-deep); }
+.z-sr-card__body { display: grid; gap: 4px; padding: var(--space-3) var(--space-4) var(--space-4); }
+.z-sr-card__body b { font: 600 18px/24px var(--font-serif); }
+.z-sr-card__body small { color: var(--ink-muted); font-size: 14px; }
+.z-searchpage__list { display: grid; gap: var(--space-1); margin-top: var(--space-3); max-width: 760px; }
+@media (max-width: 767px) { .z-search-overlay { padding-top: 0; } .z-search-overlay__panel { max-height: 100dvh; height: 100dvh; border-radius: 0; } .z-search-overlay__bar input { font-size: 18px; } }

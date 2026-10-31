@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import Icon from '@/components/ui/Icon'
 import HeaderFavorites from './HeaderFavorites'
 import FavoritesToast from './FavoritesToast'
+import SiteSearch from './SiteSearch'
 
 /** Stránky se širokým záhlavím (masthead), pod kterým je menu zpočátku průhledné. */
 const OVER_ROUTES = ['/', '/pujcovna-aut']
@@ -61,9 +62,7 @@ export default function Header() {
 
         <div className="z-header__actions">
           <HeaderFavorites />
-          <Link href="/zajezdy" className="z-iconbtn" aria-label="Hledat zájezd">
-            <Icon name="hledat" />
-          </Link>
+          <SiteSearch />
           <button
             type="button"
             className="z-iconbtn z-header__burger"

@@ -3,6 +3,7 @@ import * as hotels from './hotels'
 import * as tours from './tours'
 import * as content from './content'
 import * as car from './carRental'
+import { siteSearch } from './search'
 import { HttpError, type Q } from './hotels'
 
 /**
@@ -15,6 +16,7 @@ const dec = decodeURIComponent
 
 // Pořadí je důležité: konkrétní cesty před `/api/hotels/:slug`.
 const ROUTES: [RegExp, Handler][] = [
+  [/^\/api\/search$/, (_, q) => siteSearch(q)],
   [/^\/api\/hotels$/, (_, q) => hotels.listHotels(q)],
   [/^\/api\/hotels\/geo$/, (_, q) => hotels.hotelsGeo(q)],
   [/^\/api\/hotels\/nearby$/, (_, q) => hotels.nearbyHotels(q)],
