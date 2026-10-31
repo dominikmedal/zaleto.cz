@@ -380,7 +380,7 @@ a.z-tk:hover { transform: translateY(-4px) rotate(-.4deg); filter: drop-shadow(0
 .z-cardest__grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--space-8); align-items: start; margin-top: var(--space-8); }
 .z-cardest__main { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
 .z-cardest__side { display: flex; flex-direction: column; gap: var(--space-5); position: sticky; top: calc(var(--header-height) + var(--space-5)); }
-.z-cardest__block { scroll-margin-top: calc(var(--header-height) + 16px); }
+.z-cardest__block { scroll-margin-top: calc(var(--header-height) + 56px); }
 .z-more-text { margin-top: var(--space-3); }
 .z-more-text summary { cursor: pointer; list-style: none; display: inline-flex; }
 .z-more-text summary::-webkit-details-marker { display: none; }
@@ -1111,3 +1111,64 @@ body:has(.z-offerbar) .z-header { top: 40px; }
 @media (max-width: 1023px) { .z-filter__in { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 767px) { .z-filter__in { grid-template-columns: 1fr; } }
 .z-adm-search input { border: 0 !important; box-shadow: none !important; padding: 0 !important; background: transparent !important; border-radius: 0 !important; }
+
+/* ---------- Mobil ---------- */
+@media (max-width: 767px) {
+  /* okna destinací: horizontální karusel s „přichytáváním“, další okno vykukuje */
+  .z-windows { display: flex; gap: var(--space-4); overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; margin-inline: calc(var(--space-4) * -1); padding: var(--space-2) var(--space-4) var(--space-5); scroll-padding-inline: var(--space-4); scrollbar-width: none; }
+  .z-windows::-webkit-scrollbar { display: none; }
+  .z-windows > .z-window { flex: 0 0 62%; max-width: 260px; scroll-snap-align: start; }
+  .z-windows .z-window__frame { padding: 8px; }
+  .z-windows .z-window__name { font-size: 22px; line-height: 26px; }
+  .z-windows .z-window__cap { padding-top: var(--space-3); }
+  .z-shead { align-items: flex-start; text-align: left; }
+  .z-shead .z-more { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; }
+
+  /* chat: jen kulaté tlačítko, ať nezakrývá obsah */
+  .z-chat__toggle { width: 56px; height: 56px; padding: 0; justify-content: center; border-radius: 50%; }
+  .z-chat__toggle span { display: none; }
+  .z-chat__toggle .zi { margin: 0; }
+
+  /* dotyková plocha odkazů (WCAG ≥ 40 px) bez změny vzhledu */
+  .z-crumbs a, .z-crumbs [aria-current] { display: inline-flex; align-items: center; min-height: 40px; }
+  .z-footer a { display: inline-flex; align-items: center; min-height: 44px; }
+  .z-offerbar__list a { display: inline-flex; align-items: center; min-height: 40px; }
+  .z-more { display: inline-flex; align-items: center; min-height: 40px; }
+}
+@media (max-width: 767px) {
+  .z-windows { gap: var(--space-3); padding-bottom: var(--space-4); }
+  .z-windows > .z-window { flex: 0 0 44%; max-width: 190px; }
+  .z-windows .z-window__frame { aspect-ratio: 1 / 1.18; padding: 6px; }
+  .z-windows .z-window__name { font-size: 19px; line-height: 22px; margin: 2px 0; }
+  .z-windows .z-window__cap { padding: var(--space-2) 0 0; }
+  .z-windows .z-window__count { font-size: 13px; }
+  .z-windows .z-stamp { display: none; }
+}
+@media (max-width: 767px) {
+  .z-section { padding-top: var(--space-7); }
+  .z-sheet > main > .z-section:first-child, .z-sheet > .z-section:first-child { padding-top: var(--space-6); }
+  .z-shead { padding-bottom: var(--space-3); margin-bottom: var(--space-4); gap: var(--space-2); }
+  .z-shead h1, .z-shead h2 { font-size: 34px !important; line-height: 38px !important; }
+  .z-shead .z-more { margin-bottom: 0; }
+
+  /* články: seznam jako kompaktní řádky s náhledem, hlavní článek zůstává velký */
+  .z-grid-3w { gap: var(--space-4); }
+  .z-grid-3w > .z-story { flex-direction: row; align-items: center; gap: var(--space-3); }
+  .z-grid-3w > .z-story .z-story__media { flex: 0 0 108px; aspect-ratio: 1; margin: 0; border-radius: 18px; }
+  .z-grid-3w > .z-story .z-story__media .z-chip { display: none; }
+  .z-grid-3w > .z-story .z-story__title { font-size: 18px; line-height: 23px; margin: 2px 0; }
+  .z-grid-3w > .z-story .z-kicker { font-size: 10px; }
+  .z-story--lead { grid-template-columns: 1fr; gap: var(--space-3); }
+  .z-story--lead .z-story__media { aspect-ratio: 16 / 10; }
+  .z-story--lead .z-story__title { font-size: 25px; line-height: 30px; margin: 4px 0 8px !important; }
+  .z-story--lead .z-story__text { font-size: 15px; line-height: 24px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+}
+@media (max-width: 767px) {
+  /* karty zájezdů: nižší fotka a menší mezery, ať se na displej vejde víc nabídek */
+  .z-tour { --cut: 84px; }
+  .z-tour__media { aspect-ratio: 16 / 8; }
+  .z-tour__body { gap: var(--space-2); padding: var(--space-3) var(--space-3) var(--space-4); }
+  .z-tour__title { font-size: 19px; line-height: 24px; }
+  .z-tour .z-price, .z-tour .z-price__amount { font-size: 24px; }
+  .z-tour .z-round { width: 44px !important; height: 44px !important; }
+}

@@ -109,7 +109,7 @@ export default async function HomePage() {
         {countries.length > 0 && (
           <section className="z-container z-section">
             <SectionHead num="01" kicker="Destinace" title="kam za sluncem" moreHref="/destinace" moreLabel="Všechny destinace" />
-            <div className="z-grid-4">
+            <div className="z-grid-4 z-windows">
               {countries.map((c, i) => (
                 <WindowCard
                   key={c}
@@ -129,7 +129,7 @@ export default async function HomePage() {
             <SectionHead num="02" kicker="Čerstvě z cest" title="čerstvě z cest" moreHref="/clanky" moreLabel="Všechny články" />
             <StoryCard article={lead} lead />
             {restStories.length > 0 && (
-              <div className="z-grid-3w" style={{ marginTop: 56 }}>
+              <div className="z-grid-3w" style={{ marginTop: 24 }}>
                 {restStories.map(a => <StoryCard key={a.slug} article={a} />)}
               </div>
             )}

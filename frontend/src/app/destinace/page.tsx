@@ -68,7 +68,7 @@ export default async function DestinacePage() {
         <div style={{ height: 'var(--space-6)' }} />
         <SectionHead as="h1" keepKicker kicker={`${countries.length} zemí · ${totalHotels.toLocaleString('cs-CZ')} hotelů`} title="kam letos" />
 
-        <div className="z-grid-4">
+        <div className="z-grid-4 z-windows">
           {top.map((c, i) => (
             <WindowCard key={c.name} href={`/destinace/${slugify(c.name)}`} name={c.name} photo={photos[i]} count={c.total} countLabel="hotelů" />
           ))}

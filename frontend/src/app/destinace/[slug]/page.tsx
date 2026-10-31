@@ -242,7 +242,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
           </div>
         )}
 
-        <section id="zajezdy" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 16px)' }}>
+        <section id="zajezdy" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 56px)' }}>
           <div className="z-shead">
             <div>
               <div className="z-kicker">Zájezdy</div>
@@ -252,7 +252,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
               {SORTS.map(([v, l]) => (
                 <Link
                   key={v}
-                  href={`/destinace/${params.slug}${v === 'price_asc' ? '' : `?sort=${v}`}`}
+                  href={`/destinace/${params.slug}${v === 'price_asc' ? '' : `?sort=${v}`}#zajezdy`}
                   className="z-chip"
                   aria-current={sort === v ? 'true' : undefined}
                   style={{ textDecoration: 'none', ...(sort === v ? { background: 'var(--ink)', color: 'var(--paper)' } : {}) }}
@@ -268,7 +268,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
         </section>
 
         {articles.length > 0 && (
-          <section id="clanky" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 16px)' }}>
+          <section id="clanky" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 56px)' }}>
             <div className="z-shead">
               <div>
                 <div className="z-kicker">Z cest</div>
