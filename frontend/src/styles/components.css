@@ -252,7 +252,7 @@ a.z-tk:hover { transform: translateY(-4px) rotate(-.4deg); filter: drop-shadow(0
 .z-hero :focus-visible, .z-footer :focus-visible { outline-color: var(--on-night); }
 
 /* ---------- Šablona článku ---------- */
-.z-page { display: grid; grid-template-columns: minmax(0, var(--article-max)) var(--sidebar-width); gap: var(--space-8); justify-content: center; max-width: var(--container-max); margin: 0 auto; padding: var(--space-6); align-items: start; }
+.z-page { display: grid; grid-template-columns: minmax(0, 1fr) var(--sidebar-width); gap: var(--space-8); max-width: var(--container-max); margin: 0 auto; padding: var(--space-6); align-items: start; }
 
 .z-btn--primary > .zi .zi-dot, .z-round .zi-dot { fill: currentColor; }
 .z-btn--offer .z-btn__go .zi .zi-dot { fill: var(--accent); }
@@ -1061,3 +1061,15 @@ body[data-admin] .z-offerbar, body[data-admin] .z-footer, body[data-admin] .z-ch
 .z-prompt__hint { margin: 0; color: var(--ink-muted); font-size: 14px; line-height: 22px; }
 .z-prompt__actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 .z-prompt-dot { display: inline-block; width: 8px; height: 8px; margin-left: 8px; border-radius: 50%; background: var(--accent-strong); }
+
+/* Jednotná šířka layoutu: hlavička, zápatí i obsah začínají na stejném okraji jako .z-container */
+.z-header, .z-footer { padding-inline: max(var(--space-6), calc((100% - var(--container-max)) / 2 + var(--space-6))); }
+.z-prose { max-width: 780px; }
+@media (max-width: 1023px) { .z-header { padding-inline: var(--space-5); } }
+@media (max-width: 767px) { .z-header, .z-footer { padding-inline: var(--space-4); } }
+
+/* Proužek s nabídkou je připnutý nahoře, hlavička se přichytí hned pod něj */
+.z-offerbar { position: sticky; top: 0; }
+.z-offerbar__in { height: 40px; min-height: 0; overflow: hidden; }
+body:has(.z-offerbar) .z-header { top: 40px; }
+@media (max-width: 767px) { .z-offerbar__list { white-space: nowrap; } }

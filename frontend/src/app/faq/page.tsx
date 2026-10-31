@@ -30,7 +30,7 @@ export default function FaqPage() {
     <>
       <JsonLd data={faqSchema} />
       <Header />
-      <main className="z-container" style={{ paddingTop: 'var(--space-6)', maxWidth: 900 }}>
+      <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
         <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Časté otázky' }]} />
         <div style={{ height: 'var(--space-6)' }} />
         <SectionHead as="h1" kicker="Pomoc" title="časté otázky" />
