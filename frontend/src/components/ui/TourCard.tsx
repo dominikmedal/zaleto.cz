@@ -25,10 +25,11 @@ export default function TourCard({ hotel, priority }: { hotel: H; priority?: boo
         <div className="z-tour__body">
           {place && <div className="z-kicker">{place}</div>}
           <h3 className="z-tour__title">
-            {hotel.name}{hotel.stars ? ` ${'★'.repeat(Math.min(5, hotel.stars))}` : ''}
+            {hotel.name}
           </h3>
           <div className="z-meta">
             {dates && <span><Icon name="kalendar" />{dates}</span>}
+            {hotel.stars ? <span><Icon name="hvezda" />{Math.min(5, hotel.stars)}</span> : null}
             {hotel.agency && <span><Icon name="hotel" />{hotel.agency}</span>}
           </div>
         </div>

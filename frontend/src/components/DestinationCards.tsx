@@ -1,6 +1,6 @@
-﻿import Image from 'next/image'
+import Image from 'next/image'
 import Link from 'next/link'
-import { PiMapPin } from 'react-icons/pi'
+import { PiMapPin } from '@/components/ui/icons'
 import { slugify } from '@/lib/slugify'
 
 interface Item {

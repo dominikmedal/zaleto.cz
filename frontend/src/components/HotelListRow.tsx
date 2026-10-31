@@ -2,11 +2,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
-import {
-  PiMapPin, PiBuildings, PiCalendarBlank, PiForkKnife,
-  PiStarFill, PiCheckCircle, PiRuler, PiArrowRight, PiTimer, PiCalendarStar,
-  PiSwimmingPool, PiWifiHigh, PiFlower, PiUmbrellaSimple, PiArrowSquareOut,
-} from 'react-icons/pi'
+import { PiMapPin, PiBuildings, PiCalendarBlank, PiForkKnife, PiStarFill, PiCheckCircle, PiRuler, PiArrowRight, PiTimer, PiCalendarStar, PiSwimmingPool, PiWifiHigh, PiFlower, PiUmbrellaSimple, PiArrowSquareOut } from '@/components/ui/icons'
 import type { Hotel } from '@/lib/types'
 import FavoriteButton from './FavoriteButton'
 import ToursModal from './ToursModal'

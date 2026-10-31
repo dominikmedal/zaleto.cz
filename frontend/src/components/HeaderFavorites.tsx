@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { PiHeart, PiHeartFill, PiX } from 'react-icons/pi'
+import { PiHeart, PiHeartFill, PiX } from '@/components/ui/icons'
 import { useFavorites } from '@/hooks/useFavorites'
 
 export default function HeaderFavorites() {

@@ -41,7 +41,7 @@ async function getLocation(searchTerm: string): Promise<any | null> {
   const key = `loc:${searchTerm.toLowerCase()}`
   const cached = cGet(key)
   if (cached) return cached
-  const r = await fetch(`https://www.discovercars.com/en/search/autocomplete/${encodeURIComponent(searchTerm)}`, { headers: DC_HEADERS, signal: AbortSignal.timeout(10_000) })
+  const r = await fetch(`https://www.discovercars.com/en/search/autocomplete/${encodeURIComponent(searchTerm)}`, { cache: 'no-store', headers: DC_HEADERS, signal: AbortSignal.timeout(10_000) })
   if (!r.ok) return null
   const data = await r.json()
   if (!Array.isArray(data) || data.length === 0) return null
@@ -75,6 +75,7 @@ async function createSearch(p: {
     partner_id: '0', exclude_locations: '0', luxOnly: '0', abtest: '', token: '', recent_search: '0',
   })
   const r = await fetch('https://www.discovercars.com/en/search/create-search', {
+    cache: 'no-store',
     method: 'POST',
     headers: { ...DC_HEADERS, 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
     body: body.toString(),
@@ -90,7 +91,7 @@ async function pollResults(guid: string, sq: string) {
   for (let i = 0; i < 5; i++) {
     if (i > 0) await new Promise(r => setTimeout(r, 1500))
     try {
-      const r = await fetch(url, { headers: DC_HEADERS, signal: AbortSignal.timeout(10_000) })
+      const r = await fetch(url, { cache: 'no-store', headers: DC_HEADERS, signal: AbortSignal.timeout(10_000) })
       if (!r.ok) continue
       const data = await r.json()
       const offers = data?.data?.offers || data?.offers
@@ -292,7 +293,7 @@ export async function carAutocomplete(q: Q) {
   const term = q.q
   if (!term || term.length < 2) return []
   try {
-    const r = await fetch(`https://www.discovercars.com/en/search/autocomplete/${encodeURIComponent(term)}`, { headers: DC_HEADERS, signal: AbortSignal.timeout(8_000) })
+    const r = await fetch(`https://www.discovercars.com/en/search/autocomplete/${encodeURIComponent(term)}`, { cache: 'no-store', headers: DC_HEADERS, signal: AbortSignal.timeout(8_000) })
     if (!r.ok) return []
     const data = await r.json()
     return Array.isArray(data) ? data.slice(0, 8) : []

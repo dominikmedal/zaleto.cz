@@ -1,6 +1,6 @@
-﻿import Image from 'next/image'
+import Image from 'next/image'
 import Link from 'next/link'
-import { PiStarFill, PiMapPin, PiForkKnife, PiCalendarBlank, PiArrowRight, PiSparkle } from 'react-icons/pi'
+import { PiStarFill, PiMapPin, PiForkKnife, PiCalendarBlank, PiArrowRight, PiSparkle } from '@/components/ui/icons'
 import type { Hotel } from '@/lib/types'
 
 function formatPrice(price: number) {

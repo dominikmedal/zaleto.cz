@@ -1,8 +1,8 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { PiCaretLeft, PiCaretRight, PiCalendarBlank, PiX } from 'react-icons/pi'
-import { Loader2 } from 'lucide-react'
+import { PiCaretLeft, PiCaretRight, PiCalendarBlank, PiX } from '@/components/ui/icons'
+import { LuLoader2 as Loader2 } from '@/components/ui/icons'
 import { fetchCalendarPrices } from '@/lib/api'
 
 interface DayPrice { date: string; min_price: number; tour_count: number }
@@ -317,16 +317,11 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
       <button
         type="button"
         onClick={() => { const next = !open; if (next) calcPos(); setOpen(next); setPicking('from') }}
-        className="w-full px-3 py-2.5 text-sm rounded-xl text-left flex items-center gap-2 cursor-pointer transition-all duration-200"
+        className="w-full text-left flex items-center gap-2 cursor-pointer"
         style={{
-          background: open ? 'rgba(255,255,255,0.95)' : 'rgba(237,246,255,0.72)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          border: open ? '1px solid rgba(0,147,255,0.40)' : '1px solid rgba(200,227,255,0.65)',
-          boxShadow: open
-            ? '0 0 0 3px rgba(0,147,255,0.08), 0 2px 12px rgba(0,147,255,0.10)'
-            : '0 1px 4px rgba(0,147,255,0.06)',
-          color: triggerLabel ? '#111827' : '#9ca3af',
+          background: 'transparent', border: 0, padding: 0,
+          font: '600 22px/32px var(--font-serif)', letterSpacing: '-0.01em',
+          color: triggerLabel ? 'var(--ink)' : 'var(--line-strong)',
         }}
       >
         <PiCalendarBlank className={`w-4 h-4 flex-shrink-0 transition-colors ${open ? 'text-[#0093FF]' : 'text-gray-400'}`} />
@@ -345,18 +340,11 @@ export default function DateRangePicker({ dateFrom, dateTo, destination, onDateF
       {open && popPos && typeof document !== 'undefined' && createPortal(
         <div
           ref={popRef}
-          className="rounded-2xl p-5"
+          className="p-5"
           style={{
-            position: 'fixed',
-            top: popPos.top,
-            left: popPos.left,
-            width: popPos.width,
-            zIndex: 9999,
-            background: 'rgba(248,251,255,0.97)',
-            backdropFilter: 'blur(28px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(28px) saturate(160%)',
-            border: '1px solid rgba(200,227,255,0.70)',
-            boxShadow: '0 12px 48px rgba(0,147,255,0.14), 0 2px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
+            position: 'fixed', top: popPos.top, left: popPos.left, width: popPos.width, zIndex: 9999,
+            background: 'var(--raised)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-lift)',
           }}
         >
           {calendarContent}

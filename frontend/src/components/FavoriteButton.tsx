@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { PiHeart, PiHeartFill } from 'react-icons/pi'
+import { PiHeart, PiHeartFill } from '@/components/ui/icons'
 import { useFavorites } from '@/hooks/useFavorites'
 
 interface Props {

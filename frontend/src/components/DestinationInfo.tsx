@@ -1,6 +1,5 @@
 import Image from 'next/image'
-import { MapPin } from 'lucide-react'
-
+import { LuMapPin as MapPin } from '@/components/ui/icons'
 export interface WikiSummary {
   title: string
   extract: string

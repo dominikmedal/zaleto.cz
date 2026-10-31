@@ -1,8 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { PiShareNetwork, PiLink, PiCheck, PiEnvelope, PiWhatsappLogo, PiFacebookLogo } from 'react-icons/pi'
-
+import { PiShareNetwork, PiLink, PiCheck, PiEnvelope, PiWhatsappLogo, PiFacebookLogo } from '@/components/ui/icons'
 interface Props {
   slug: string
   name: string

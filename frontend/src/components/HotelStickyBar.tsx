@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { PiStarFill, PiMapPin, PiCalendarBlank } from 'react-icons/pi'
+import { PiStarFill, PiMapPin, PiCalendarBlank } from '@/components/ui/icons'
 import FavoriteButton from './FavoriteButton'
 import ShareButton from './ShareButton'
 

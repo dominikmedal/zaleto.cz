@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Star, ThumbsUp, Globe } from 'lucide-react'
+import { LuStar as Star, LuThumbsUp as ThumbsUp, LuGlobe as Globe } from '@/components/ui/icons'
 import { API } from '@/lib/api'
 
 interface Review {

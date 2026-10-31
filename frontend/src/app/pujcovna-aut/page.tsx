@@ -90,12 +90,14 @@ export default async function PujcovnaAutPage() {
         <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
           <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Půjčovna aut' }]} />
 
-          <section className="z-hero" style={{ marginTop: 'var(--space-5)', paddingBottom: 'var(--space-8)', gridTemplateColumns: '1fr' }}>
-            <span className="z-hero__sun" aria-hidden="true" />
-            <div>
+          <section className="z-masthead z-masthead--inset" style={{ marginTop: 'var(--space-5)' }}>
+            <div className="z-masthead__photo" style={{ backgroundImage: 'url("/img/header-car.jpg")' }} aria-hidden="true" />
+            <div className="z-masthead__inner" style={{ paddingBottom: 'var(--space-7)' }}>
               <div className="z-kicker">Srovnání půjčoven aut</div>
-              <h1 className="z-hero__title">kam pojedeš autem<span className="z-dot">.</span></h1>
-              <p className="z-hero__lead">Porovnáme ceny více než 500 půjčoven. Řecko, Turecko, Chorvatsko a desítky dalších destinací.</p>
+              <h1 className="z-masthead__title" style={{ fontSize: 64, lineHeight: '64px' }}>kam pojedeš autem<span className="z-dot">.</span></h1>
+              <p className="z-masthead__lead" style={{ justifySelf: 'start', marginTop: 'var(--space-3)' }}>
+                Porovnáme ceny více než 500 půjčoven. Řecko, Turecko, Chorvatsko a desítky dalších destinací.
+              </p>
             </div>
           </section>
 

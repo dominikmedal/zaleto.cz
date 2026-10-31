@@ -1,9 +1,8 @@
-﻿import Image from 'next/image'
+import Image from 'next/image'
 import Link from 'next/link'
 import { CAR_DESTINATIONS } from '@/lib/carRental'
 import { slugify } from '@/lib/slugify'
-import { Car, ChevronRight, Shield, Clock } from 'lucide-react'
-
+import { LuCar as Car, LuChevronRight as ChevronRight, LuShield as Shield, LuClock as Clock } from '@/components/ui/icons'
 interface Props {
   place: string
   country: string

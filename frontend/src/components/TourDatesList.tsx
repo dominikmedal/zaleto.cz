@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Calendar, Plane, Bus, Car, Moon, Utensils, ExternalLink, Loader2, SlidersHorizontal } from 'lucide-react'
-import { PiUserMinus, PiUserPlus } from 'react-icons/pi'
+import { LuCalendar as Calendar, LuPlane as Plane, LuBus as Bus, LuCar as Car, LuMoon as Moon, LuUtensils as Utensils, LuExternalLink as ExternalLink, LuLoader2 as Loader2, LuSlidersHorizontal as SlidersHorizontal } from '@/components/ui/icons'
+import { PiUserMinus, PiUserPlus } from '@/components/ui/icons'
 import type { Tour } from '@/lib/types'
 import { API } from '@/lib/api'
 

@@ -28,7 +28,7 @@ export default function SearchBox() {
   }
 
   return (
-    <form className="z-search z-hero__search" onSubmit={onSubmit} role="search">
+    <form className="z-search z-masthead__search" onSubmit={onSubmit} role="search">
       <div className="z-search__tabs" role="tablist" aria-label="Co hledáš">
         <button type="button" role="tab" className="z-search__tab" aria-selected={tab === 'tours'} onClick={() => setTab('tours')}>
           <Icon name="letadlo" size="sm" />Zájezdy

@@ -1,8 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { fetchAdminHotels, createHotel, updateHotel, deleteHotel, uploadImage, AdminHotel } from '@/lib/adminApi'
-import { PiMagnifyingGlass, PiSpinner, PiTrash, PiPencil, PiPlus, PiCaretLeft, PiCaretRight, PiStar, PiX, PiCheckCircle, PiUploadSimple, PiImage } from 'react-icons/pi'
-
+import { PiMagnifyingGlass, PiSpinner, PiTrash, PiPencil, PiPlus, PiCaretLeft, PiCaretRight, PiStar, PiX, PiCheckCircle, PiUploadSimple, PiImage } from '@/components/ui/icons'
 const LIMIT = 50
 const API = ''
 

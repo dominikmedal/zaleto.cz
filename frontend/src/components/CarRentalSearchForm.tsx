@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, createContext, useContext } from 'react'
 import { createPortal } from 'react-dom'
-import { Car, User, Search, Loader2, AlertCircle, Star, Users, Briefcase, Fuel, Info, ExternalLink, MapPin, X, Clock } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { buildDCUrlById, buildDCHubUrl, type CarDestination } from '@/lib/carRental'
 import { fetchCarSearch, fetchCarAutocomplete, type CarOffer } from '@/lib/api'
 import DateRangePicker from '@/components/DateRangePicker'
@@ -32,98 +32,67 @@ function formatPerDay(offer: CarOffer): string | null {
   return null
 }
 
-// ─── Car card ─────────────────────────────────────────────────────────────────
+// ─── Car card (lístek) ─────────────────────────────────────────────────────
 
 function CarCard({ offer, fallbackUrl }: { offer: CarOffer; fallbackUrl: string }) {
-  const perDay  = formatPerDay(offer)
-  const total   = formatPrice(offer)
-  const href    = offer.bookUrl ?? fallbackUrl
+  const perDay = formatPerDay(offer)
+  const total = formatPrice(offer)
+  const href = offer.bookUrl ?? fallbackUrl
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden flex flex-col">
-      <div className="relative h-36 bg-gradient-to-br from-sky-50 to-blue-50 flex items-center justify-center overflow-hidden">
-        {offer.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={offer.image} alt={offer.carName} className="object-contain w-full h-full p-3" loading="lazy" />
-        ) : (
-          <Car className="w-16 h-16 text-blue-200" />
-        )}
-        <span className="absolute top-2 left-2 glass-pill text-[10px] font-bold uppercase tracking-wide text-[#0068CC] px-2 py-0.5 rounded-full">
-          {offer.category || offer.sipp}
-        </span>
-        {offer.supplier.logo && (
-          <div className="absolute top-2 right-2 h-6 bg-white/90 rounded px-1.5 flex items-center justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={offer.supplier.logo} alt={offer.supplier.name} style={{ height: '18px', width: 'auto', maxWidth: '60px' }} loading="lazy" />
-          </div>
-        )}
-      </div>
-
-      <div className="p-4 flex flex-col flex-1 gap-3">
-        <div>
-          <p className="font-bold text-gray-900 text-sm leading-tight">{offer.carName}</p>
-          <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5">
-            {offer.supplier.name}
-            {offer.supplier.rating != null && (
-              <span className="inline-flex items-center gap-0.5 text-amber-600">
-                <Star className="w-3 h-3 fill-current" />
-                {Number(offer.supplier.rating).toFixed(1)}
-              </span>
-            )}
-          </p>
+    <a href={href} target="_blank" rel="noopener noreferrer sponsored" className="z-tk z-tk--h z-tour z-carcard">
+      <div className="z-tk__in">
+        <div className="z-tour__media z-carcard__media">
+          {offer.image
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={offer.image} alt={offer.carName} loading="lazy" />
+            : <Icon name="auto" size="lg" />}
+          <span className="z-chip" style={{ position: 'absolute', left: 10, top: 10, background: 'var(--paper)', borderColor: 'transparent' }}>
+            {offer.category || offer.sipp}
+          </span>
+          {offer.supplier.logo && (
+            <span className="z-carcard__logo">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={offer.supplier.logo} alt={offer.supplier.name} loading="lazy" />
+            </span>
+          )}
         </div>
-
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
-          {offer.seats != null && <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{offer.seats} místa</span>}
-          {offer.bags  != null && <span className="flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />{offer.bags} kufr{offer.bags > 1 ? 'y' : ''}</span>}
-          {offer.transmission && <span className="capitalize">{offer.transmission}</span>}
-          {offer.ac && <span>Klima</span>}
-          {offer.fuelPolicy && <span className="flex items-center gap-1"><Fuel className="w-3 h-3" />{offer.fuelPolicy}</span>}
+        <div className="z-tour__body">
+          <div className="z-kicker">
+            {offer.supplier.name}{offer.supplier.rating != null ? ` · ${Number(offer.supplier.rating).toFixed(1)} / 10` : ''}
+          </div>
+          <h3 className="z-tour__title">{offer.carName}</h3>
+          <div className="z-meta">
+            {offer.seats != null && <span><Icon name="osoby" />{offer.seats} místa</span>}
+            {offer.bags != null && <span><Icon name="kufr" />{offer.bags} {offer.bags === 1 ? 'kufr' : 'kufry'}</span>}
+            {offer.transmission && <span>{offer.transmission}</span>}
+            {offer.ac && <span>Klima</span>}
+            {offer.fuelPolicy && <span><Icon name="fuel" />{offer.fuelPolicy}</span>}
+          </div>
         </div>
-
-        <div className="mt-auto pt-3 border-t border-gray-100">
-          <div className="flex items-end justify-between gap-2 mb-2">
-            <div>
-              {perDay && <p className="text-xs text-gray-400">{perDay}</p>}
-              <p className="text-base font-bold text-[#049669] leading-tight">{total}</p>
-              <p className="text-xs text-gray-400">celkem za pronájem</p>
-            </div>
+        <div className="z-tour__stub">
+          <div>
+            <span className="z-price__note">{perDay ?? 'celkem za pronájem'}</span>
+            <span className="z-price">{total}</span>
           </div>
-          <div className="flex gap-2">
-            <a href={href} target="_blank" rel="noopener noreferrer sponsored" className="btn-secondary text-xs px-3 py-2 flex-1 justify-center">
-              Více informací
-            </a>
-            <a href={href} target="_blank" rel="noopener noreferrer sponsored" className="btn-cta text-xs px-3 py-2 flex-1 justify-center">
-              Rezervovat
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
+          <span className="z-round" style={{ width: 52, height: 52 }} aria-hidden="true"><Icon name="sipka" /></span>
         </div>
       </div>
-    </div>
+    </a>
   )
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-
 function SkeletonCard() {
   return (
-    <div className="glass-card rounded-2xl overflow-hidden animate-pulse">
-      <div className="h-36 bg-blue-50/60" />
-      <div className="p-4 space-y-3">
-        <div className="h-4 bg-gray-200 rounded w-3/4" />
-        <div className="h-3 bg-gray-100 rounded w-1/2" />
-        <div className="flex gap-2">
-          <div className="h-3 bg-gray-100 rounded w-16" />
-          <div className="h-3 bg-gray-100 rounded w-14" />
+    <div className="z-tk z-tk--h z-tour" aria-hidden="true">
+      <div className="z-tk__in">
+        <div className="z-tour__media z-skel" />
+        <div className="z-tour__body">
+          <div className="z-skel" style={{ height: 12, width: '40%' }} />
+          <div className="z-skel" style={{ height: 22, width: '75%' }} />
+          <div className="z-skel" style={{ height: 14, width: '60%' }} />
         </div>
-        <div className="pt-3 border-t border-gray-100 flex justify-between items-end">
-          <div className="space-y-1">
-            <div className="h-3 bg-gray-100 rounded w-20" />
-            <div className="h-5 bg-gray-200 rounded w-24" />
-          </div>
-          <div className="h-8 bg-blue-100 rounded-xl w-24" />
-        </div>
+        <div className="z-tour__stub"><div className="z-skel" style={{ height: 30, width: 120 }} /></div>
       </div>
     </div>
   )
@@ -196,40 +165,30 @@ function LocationInput({
 
   return (
     <div ref={wrapRef} className="relative">
-      <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0093FF]" />
+      <div className="z-clear">
         <input
           type="text"
           value={value}
           onChange={e => handleChange(e.target.value)}
-          placeholder="Letiště nebo město…"
-          className="location-input-prominent w-full rounded-xl pl-9 pr-8 py-2.5 text-sm text-gray-800 placeholder-gray-500 outline-none transition-all"
+          placeholder="Letiště nebo město"
           autoComplete="off"
+          aria-label="Místo"
         />
         {loading
-          ? <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 animate-spin" />
+          ? <Icon name="spinner" size="sm" className="animate-spin" />
           : value && (
-            <button onClick={() => { onChange(''); setSuggestions([]); setOpen(false) }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              <X className="w-3.5 h-3.5" />
+            <button type="button" aria-label="Smazat" onClick={() => { onChange(''); setSuggestions([]); setOpen(false) }}>
+              <Icon name="zavrit" size="sm" />
             </button>
-          )
-        }
+          )}
       </div>
 
       {open && suggestions.length > 0 && dropPos && typeof document !== 'undefined' && createPortal(
-        <div
-          className="glass-card rounded-xl overflow-hidden shadow-xl"
-          style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: dropPos.width, zIndex: 9999 }}
-        >
+        <div className="z-suggest" style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: Math.max(dropPos.width, 280), zIndex: 9999 }}>
           {suggestions.map((s, i) => (
-            <button
-              key={i}
-              onMouseDown={() => handleSelect(s)}
-              className="w-full text-left px-4 py-3 hover:bg-[#0093FF]/06 transition-colors border-b border-[#0093FF]/06 last:border-0"
-            >
-              <p className="text-sm font-semibold text-gray-900 leading-tight">{s.place || s.location}</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">{s.city}{s.city !== s.country ? ` · ${s.country}` : ''}</p>
+            <button key={i} type="button" onMouseDown={() => handleSelect(s)}>
+              <b>{s.place || s.location}</b>
+              <small>{s.city}{s.city !== s.country ? ` · ${s.country}` : ''}</small>
             </button>
           ))}
         </div>,
@@ -346,7 +305,7 @@ export function CarRentalProvider({ destination, children }: { destination?: Car
   )
 }
 
-// ─── Form (search inputs only) ────────────────────────────────────────────────
+// ─── Form (vyhledávací lístek) ───────────────────────────────────────────────
 
 export function CarRentalForm({ className = '' }: { className?: string }) {
   const {
@@ -354,103 +313,69 @@ export function CarRentalForm({ className = '' }: { className?: string }) {
     pickupTime, setPickupTime, dropoffTime, setDropoffTime,
     driverAge, setDriverAge, locText, setLocText, setLocSel,
     sameLocation, setSameLocation, dropoffLocText, setDropoffLocText, setDropoffLocSel,
-    status, canSearch, inputBase, handleSearch,
+    status, canSearch, handleSearch,
   } = useContext(CarRentalCtx)
 
   return (
-    <div
-      className={`section-island ${className}`}
-      style={{ borderTop: '3px solid #0093FF' }}
-    >
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: '#0093FF' }}
-        >
-          <Car className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          {destination ? (
-            <>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0093FF]">Půjčovna aut · {destination.country}</p>
-              <p className="font-bold text-gray-900 text-base leading-tight">{destination.name}</p>
-            </>
-          ) : (
-            <>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0093FF]">Srovnávač půjčoven aut</p>
-              <p className="font-bold text-gray-900 text-base leading-tight">Najděte nejlepší cenu</p>
-            </>
+    <div className={`z-carsearch ${className}`}>
+      <div className="z-carsearch__head">
+        <div className="z-kicker">{destination ? `Půjčovna aut · ${destination.country}` : 'Srovnávač půjčoven aut'}</div>
+        <h2 className="h3">{destination ? destination.name : 'najdi nejlepší cenu'}<span className="z-dot">.</span></h2>
+      </div>
+
+      <div className="z-tk z-tk--v z-search" style={{ ['--stub' as string]: '112px' }}>
+        <div className="z-tk__in z-carform">
+          {!destination && (
+            <div className="z-sfield z-sfield--wide">
+              <span className="z-sfield__label"><Icon name="poloha" />Místo vyzvednutí</span>
+              <LocationInput
+                value={locText}
+                onChange={setLocText}
+                onSelect={s => setLocSel({ placeID: s.placeID, searchTerm: s.place || s.location, label: s.place || s.location })}
+              />
+              <span className="z-sfield__sub">letiště, město</span>
+            </div>
           )}
-        </div>
-      </div>
 
-      {/* Fields */}
-      <div className="flex flex-col lg:flex-row gap-3 items-end">
-        {!destination && (
-          <div className="w-full lg:flex-[2] min-w-0">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 flex items-center gap-1 block">
-              <MapPin className="w-3 h-3" /> Místo vyzvednutí
-            </label>
-            <LocationInput
-              value={locText}
-              onChange={setLocText}
-              onSelect={s => setLocSel({ placeID: s.placeID, searchTerm: s.place || s.location, label: s.place || s.location })}
+          <div className="z-sfield z-sfield--wide z-picker">
+            <span className="z-sfield__label"><Icon name="kalendar" />Termín</span>
+            <DateRangePicker
+              dateFrom={pickupDate} dateTo={dropoffDate}
+              onDateFromChange={setPickupDate} onDateToChange={setDropoffDate}
+              noLabel noPrices
             />
+            <span className="z-sfield__sub">vyzvednutí → vrácení</span>
           </div>
-        )}
 
-        <div className={`w-full min-w-0 ${destination ? 'lg:flex-[2]' : 'lg:flex-[1.5]'}`}>
-          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 block">Termín</label>
-          <DateRangePicker
-            dateFrom={pickupDate} dateTo={dropoffDate}
-            onDateFromChange={setPickupDate} onDateToChange={setDropoffDate}
-            noLabel noPrices
-          />
-        </div>
+          <div className="z-sfield">
+            <span className="z-sfield__label"><Icon name="cas" />Čas</span>
+            <div className="z-timepair">
+              <select value={pickupTime} onChange={e => setPickupTime(e.target.value)} aria-label="Čas vyzvednutí">
+                {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <span aria-hidden="true">→</span>
+              <select value={dropoffTime} onChange={e => setDropoffTime(e.target.value)} aria-label="Čas vrácení">
+                {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
 
-        <div className="w-full lg:w-44 flex-shrink-0">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 flex items-center gap-1 block">
-            <Clock className="w-3 h-3" /> Čas
+          <label className="z-sfield" style={{ maxWidth: 130 }}>
+            <span className="z-sfield__label"><Icon name="ucet" />Věk</span>
+            <input type="number" value={driverAge} min={18} max={99} onChange={e => setDriverAge(Number(e.target.value))} />
+            <span className="z-sfield__sub">let</span>
           </label>
-          <div className="flex items-center gap-1.5">
-            <select value={pickupTime} onChange={e => setPickupTime(e.target.value)} title="Čas vyzvednutí"
-              className="flex-1 bg-[#f0f7ff] border border-[#deeeff] rounded-xl px-2 py-2.5 text-sm text-gray-700 outline-none focus:border-[#0093FF]/50 focus:ring-2 focus:ring-[#0093FF]/10 transition-all cursor-pointer">
-              {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <span className="text-gray-300 text-xs font-medium flex-shrink-0">→</span>
-            <select value={dropoffTime} onChange={e => setDropoffTime(e.target.value)} title="Čas vrácení"
-              className="flex-1 bg-[#f0f7ff] border border-[#deeeff] rounded-xl px-2 py-2.5 text-sm text-gray-700 outline-none focus:border-[#0093FF]/50 focus:ring-2 focus:ring-[#0093FF]/10 transition-all cursor-pointer">
-              {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-        </div>
 
-        <div className="w-full lg:w-24 flex-shrink-0">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 flex items-center gap-1 block">
-            <User className="w-3 h-3" /> Věk
-          </label>
-          <div className="relative">
-            <input type="number" value={driverAge} min={18} max={99}
-              onChange={e => setDriverAge(Number(e.target.value))} className={inputBase} />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">let</span>
+          <div className="z-search__go">
+            <button type="button" className="z-round" onClick={handleSearch} disabled={status === 'loading' || !canSearch} aria-label="Hledat auta">
+              {status === 'loading' ? <Icon name="spinner" className="animate-spin" /> : <Icon name="hledat" />}
+            </button>
           </div>
-        </div>
-
-        <div className="w-full lg:w-auto flex-shrink-0">
-          <button onClick={handleSearch} disabled={status === 'loading' || !canSearch}
-            className="btn-cta w-full lg:w-auto justify-center disabled:opacity-50 disabled:cursor-not-allowed px-7"
-            style={{ paddingTop: '11px', paddingBottom: '11px' }}>
-            {status === 'loading'
-              ? <><Loader2 className="w-4 h-4 animate-spin" />Hledám…</>
-              : <><Search className="w-4 h-4" />Hledat auta</>}
-          </button>
         </div>
       </div>
 
-      {/* Same return location toggle */}
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <label className="inline-flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+      <div className="z-carsearch__foot">
+        <label className="z-check">
           <input
             type="checkbox"
             checked={sameLocation}
@@ -458,26 +383,20 @@ export function CarRentalForm({ className = '' }: { className?: string }) {
               setSameLocation(e.target.checked)
               if (e.target.checked) { setDropoffLocText(''); setDropoffLocSel(null) }
             }}
-            className="w-3.5 h-3.5 accent-[#0093FF] cursor-pointer"
           />
-          Vrátit auto na stejném místě jako vyzvednutí
+          Vrátit auto na stejném místě
         </label>
         {!sameLocation && (
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap flex-shrink-0 flex items-center gap-1">
-              <MapPin className="w-3 h-3" /> Místo vrácení
-            </span>
-            <div className="flex-1 min-w-[180px]">
-              <LocationInput
-                value={dropoffLocText}
-                onChange={setDropoffLocText}
-                onSelect={s => setDropoffLocSel({ placeID: s.placeID, searchTerm: s.place || s.location, label: s.place || s.location })}
-              />
-            </div>
+          <div className="z-carsearch__drop">
+            <span className="z-kicker"><Icon name="poloha" size="sm" /> Místo vrácení</span>
+            <LocationInput
+              value={dropoffLocText}
+              onChange={setDropoffLocText}
+              onSelect={s => setDropoffLocSel({ placeID: s.placeID, searchTerm: s.place || s.location, label: s.place || s.location })}
+            />
           </div>
         )}
       </div>
-
     </div>
   )
 }
@@ -493,121 +412,63 @@ export function CarRentalResults({ className = '' }: { className?: string }) {
     <div className={className}>
       {status === 'loading' && (
         <div>
-          {/* Car driving animation */}
-          <div className="flex flex-col items-center py-10 mb-6">
-            <div className="relative w-72 h-16 mb-4">
-              {/* Road surface */}
-              <div
-                className="absolute inset-x-0 bottom-0 h-9 rounded-2xl"
-                style={{ background: 'rgba(0,147,255,0.04)', border: '1px solid rgba(0,147,255,0.09)' }}
-              />
-              {/* Scrolling road markings */}
-              <div className="absolute bottom-3.5 inset-x-0 overflow-hidden h-1.5">
-                <div className="flex gap-3 animate-road-scroll w-[200%]">
-                  {Array.from({ length: 24 }).map((_, i) => (
-                    <div key={i} className="flex-none w-8 h-px bg-[#0093FF]/18 rounded-full" />
-                  ))}
-                </div>
-              </div>
-              {/* Car — bouncing */}
-              <div className="absolute bottom-4 left-1/2 animate-car-bounce">
-                <svg viewBox="0 0 56 28" className="w-14 h-7" fill="none">
-                  {/* Body */}
-                  <rect x="4" y="10" width="48" height="13" rx="4" fill="#0093FF" opacity="0.9" />
-                  {/* Roof */}
-                  <path d="M14 10 L18 2 L38 2 L42 10Z" fill="#0070E0" opacity="0.9" />
-                  {/* Windows */}
-                  <path d="M19.5 3.5 L17 9h8V3.5Z" fill="rgba(255,255,255,0.55)" rx="1" />
-                  <rect x="27" y="3.5" width="10" height="5.5" rx="1" fill="rgba(255,255,255,0.55)" />
-                  {/* Wheels */}
-                  <circle cx="15" cy="23" r="4.5" fill="#1a2a4a" />
-                  <circle cx="15" cy="23" r="2" fill="#6b8fc4" />
-                  <circle cx="41" cy="23" r="4.5" fill="#1a2a4a" />
-                  <circle cx="41" cy="23" r="2" fill="#6b8fc4" />
-                  {/* Headlight */}
-                  <rect x="50" y="14" width="3" height="4" rx="1" fill="rgba(255,220,100,0.85)" />
-                  {/* Taillight */}
-                  <rect x="3" y="14" width="3" height="4" rx="1" fill="rgba(255,80,80,0.7)" />
-                </svg>
-              </div>
+          <div className="z-roadload" role="status">
+            <div className="z-roadload__track">
+              <span className="z-roadload__car"><Icon name="auto" size="lg" /></span>
             </div>
-            <p className="text-sm font-semibold text-gray-700">Hledám nejlepší nabídky…</p>
-            <p className="text-xs text-gray-400 mt-1">může trvat až 10 vteřin</p>
+            <p className="h4" style={{ margin: 0 }}>hledám nejlepší nabídky<span className="z-dot">.</span></p>
+            <p className="z-data" style={{ margin: 0 }}>MŮŽE TRVAT AŽ 10 VTEŘIN</p>
           </div>
-          {/* Skeleton cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+          <div className="z-grid-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+            {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         </div>
       )}
 
       {status === 'error' && (
-        <div className="section-island flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold text-gray-900 text-sm">Lokaci se nepodařilo najít</p>
-            <p className="text-sm text-gray-500 mt-1">
-              Zkuste zadat jiný název.
-            </p>
-          </div>
-        </div>
+        <div className="z-info"><h3 className="z-info__title">lokaci jsme nenašli<span className="z-dot">.</span></h3>
+          <p style={{ margin: 'var(--space-3) 0 0' }}>Zkus zadat jiný název letiště nebo města.</p></div>
       )}
 
       {status === 'done' && cars.length === 0 && (
-        <div className="section-island flex items-start gap-3">
-          <Info className="w-5 h-5 text-[#0093FF] flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold text-gray-900 text-sm">Pro tyto termíny nejsou k dispozici žádné nabídky</p>
-            <p className="text-sm text-gray-500 mt-1">
-              Zkuste jiné datum nebo hledejte na{' '}
-              <a href={allUrl} target="_blank" rel="noopener noreferrer sponsored" className="text-[#0093FF] hover:underline">DiscoverCars.com</a>.
-            </p>
-          </div>
-        </div>
+        <div className="z-info"><h3 className="z-info__title">pro tyto termíny nic není<span className="z-dot">.</span></h3>
+          <p style={{ margin: 'var(--space-3) 0 0' }}>
+            Zkus jiné datum, nebo hledej přímo na{' '}
+            <a href={allUrl} target="_blank" rel="noopener noreferrer sponsored">DiscoverCars.com</a>.
+          </p></div>
       )}
 
       {status === 'done' && cars.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div className="z-shead" style={{ marginBottom: 'var(--space-5)' }}>
             <div>
-              <p className="font-semibold text-gray-900 text-sm">
-                {visibleCars.length} nabídek{locInfo ? ` — ${locInfo}` : ''}
-                {activecat && <span className="text-gray-400 font-normal"> · {activecat}</span>}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {pickupDate} → {dropoffDate} · řidič {driverAge} let · seřazeno od nejlevnějšího
-              </p>
+              <div className="z-kicker">{visibleCars.length} nabídek{locInfo ? ` — ${locInfo}` : ''}{activecat ? ` · ${activecat}` : ''}</div>
+              <div className="z-data" style={{ marginTop: 6 }}>{pickupDate} → {dropoffDate} · ŘIDIČ {driverAge} LET · OD NEJLEVNĚJŠÍHO</div>
             </div>
           </div>
 
           {categories.length > 1 && (
-            <div className="flex flex-wrap gap-2 mb-5">
-              <button onClick={() => setActivecat(null)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                  activecat === null ? 'bg-[#0093FF] text-white border-[#0093FF]' : 'bg-[#f0f7ff] text-gray-600 border-[#deeeff] hover:border-[#0093FF]/40 hover:text-[#0093FF]'
-                }`}>
+            <div className="z-chips" style={{ marginBottom: 'var(--space-5)' }}>
+              <button type="button" onClick={() => setActivecat(null)} className="z-chip" aria-pressed={activecat === null}
+                style={activecat === null ? { background: 'var(--ink)', color: 'var(--paper)' } : undefined}>
                 Vše ({cars.length})
               </button>
               {categories.map(cat => (
-                <button key={cat} onClick={() => setActivecat(activecat === cat ? null : cat)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                    activecat === cat ? 'bg-[#0093FF] text-white border-[#0093FF]' : 'bg-[#f0f7ff] text-gray-600 border-[#deeeff] hover:border-[#0093FF]/40 hover:text-[#0093FF]'
-                  }`}>
+                <button key={cat} type="button" onClick={() => setActivecat(activecat === cat ? null : cat)} className="z-chip" aria-pressed={activecat === cat}
+                  style={activecat === cat ? { background: 'var(--ink)', color: 'var(--paper)' } : undefined}>
                   {cat} ({cars.filter(c => c.category === cat).length})
                 </button>
               ))}
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {visibleCars.map((car, i) => (
-              <CarCard key={car.offerHash ?? i} offer={car} fallbackUrl={fallbackUrl} />
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-5)', alignItems: 'stretch' }}>
+            {visibleCars.map((car, i) => <CarCard key={car.offerHash ?? i} offer={car} fallbackUrl={fallbackUrl} />)}
           </div>
 
-          <p className="mt-4 text-xs text-gray-400 flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5 flex-shrink-0" />
-            Ceny zahrnují základní pojištění (CDW). Finální cena potvrzena při rezervaci na DiscoverCars.com.
+          <p className="z-data" style={{ marginTop: 'var(--space-5)', display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Icon name="info" size="sm" />
+            Ceny zahrnují základní pojištění (CDW). Finální cena se potvrdí při rezervaci na DiscoverCars.com.
           </p>
         </div>
       )}
@@ -627,7 +488,7 @@ export default function CarRentalSearchForm({ destination, className = '' }: Pro
     <CarRentalProvider destination={destination}>
       <div className={className}>
         <CarRentalForm />
-        <CarRentalResults className="mt-6" />
+        <CarRentalResults className="z-carresults" />
       </div>
     </CarRentalProvider>
   )

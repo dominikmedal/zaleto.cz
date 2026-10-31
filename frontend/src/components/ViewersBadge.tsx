@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { PiEye } from 'react-icons/pi'
-
+import { PiEye } from '@/components/ui/icons'
 export default function ViewersBadge() {
   const [count, setCount] = useState<number | null>(null)
 

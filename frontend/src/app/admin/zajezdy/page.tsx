@@ -1,8 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { fetchAdminTours, createTour, updateTour, deleteTour, AdminTour } from '@/lib/adminApi'
-import { PiMagnifyingGlass, PiSpinner, PiTrash, PiPencil, PiPlus, PiCaretLeft, PiCaretRight, PiAirplane, PiX, PiCheckCircle } from 'react-icons/pi'
-
+import { PiMagnifyingGlass, PiSpinner, PiTrash, PiPencil, PiPlus, PiCaretLeft, PiCaretRight, PiAirplane, PiX, PiCheckCircle } from '@/components/ui/icons'
 const LIMIT = 50
 
 const MEAL_LABELS: Record<string, string> = {

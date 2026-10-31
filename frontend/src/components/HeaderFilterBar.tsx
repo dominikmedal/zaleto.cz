@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, useTransition } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { PiCaretDown, PiSliders, PiUserMinus, PiUserPlus, PiTimer, PiCalendarStar, PiSpinner, PiX, PiMagnifyingGlass } from 'react-icons/pi'
+import { PiCaretDown, PiSliders, PiUserMinus, PiUserPlus, PiTimer, PiCalendarStar, PiSpinner, PiX, PiMagnifyingGlass } from '@/components/ui/icons'
 import { API } from '@/lib/api'
 import DestinationAutocomplete from './DestinationAutocomplete'
 import DateRangePicker from './DateRangePicker'

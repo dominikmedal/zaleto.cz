@@ -1,7 +1,6 @@
 'use client'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { PiX, PiCalendarBlank, PiMoonStars, PiForkKnife, PiStar, PiCurrencyDollar, PiAirplane, PiMapPin } from 'react-icons/pi'
-
+import { PiX, PiCalendarBlank, PiMoonStars, PiForkKnife, PiStar, PiCurrencyDollar, PiAirplane, PiMapPin } from '@/components/ui/icons'
 function formatDateShort(s: string) {
   if (!s) return ''
   return new Date(s + 'T00:00:00').toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })

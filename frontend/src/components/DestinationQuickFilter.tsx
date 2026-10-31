@@ -1,8 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { PiTimer, PiCalendarStar, PiSun, PiMapPin } from 'react-icons/pi'
-
+import { PiTimer, PiCalendarStar, PiSun, PiMapPin } from '@/components/ui/icons'
 interface Props {
   resortTowns: string[]
 }

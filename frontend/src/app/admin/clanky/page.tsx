@@ -1,8 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { fetchAdminArticles, createArticle, updateArticle, deleteArticle, uploadImage, AdminArticle } from '@/lib/adminApi'
-import { PiMagnifyingGlass, PiSpinner, PiTrash, PiPencil, PiPlus, PiCaretLeft, PiCaretRight, PiUploadSimple, PiCheckCircle, PiX, PiImage } from 'react-icons/pi'
-
+import { PiMagnifyingGlass, PiSpinner, PiTrash, PiPencil, PiPlus, PiCaretLeft, PiCaretRight, PiUploadSimple, PiCheckCircle, PiX, PiImage } from '@/components/ui/icons'
 const LIMIT = 50
 const API = ''
 

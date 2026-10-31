@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PiAirplane, PiLockKey, PiSpinner, PiEye, PiEyeSlash } from 'react-icons/pi'
+import { PiAirplane, PiLockKey, PiSpinner, PiEye, PiEyeSlash } from '@/components/ui/icons'
 import { adminLogin } from '@/lib/adminApi'
 
 export default function LoginPage() {

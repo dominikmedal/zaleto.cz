@@ -123,7 +123,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
 
   const [destAI, heroPhoto, result, articles] = await Promise.all([
     fetchDestinationAI(dest.name).catch(() => null),
-    fetchDestinationPhoto(dest.name).catch(() => null),
+    fetchDestinationPhoto(dest.name).then(u => u ?? (dest.country && dest.country !== dest.name ? fetchDestinationPhoto(dest.country) : null)).catch(() => null),
     fetchHotels({ destination: dest.name, sort, page, limit: LIMIT }).catch(() => null),
     fetchArticles(3, dest.name).catch(() => []),
   ])

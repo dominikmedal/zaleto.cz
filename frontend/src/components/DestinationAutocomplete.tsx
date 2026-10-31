@@ -1,8 +1,8 @@
 'use client'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Check } from 'lucide-react'
-import { PiMagnifyingGlass, PiSpinner, PiMapPin, PiBuildings, PiGlobe, PiArrowRight } from 'react-icons/pi'
+import { LuX as X, LuCheck as Check } from '@/components/ui/icons'
+import { PiMagnifyingGlass, PiSpinner, PiMapPin, PiBuildings, PiGlobe, PiArrowRight } from '@/components/ui/icons'
 import { fetchHotelSearch } from '@/lib/api'
 
 const PLACEHOLDER_CYCLE = [

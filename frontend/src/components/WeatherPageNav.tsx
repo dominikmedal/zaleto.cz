@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { PiThermometer, PiSun, PiLeaf, PiWind, PiAirplane, PiMapPin, PiCloudSun } from 'react-icons/pi'
-
+import { PiThermometer, PiSun, PiLeaf, PiWind, PiAirplane, PiMapPin, PiCloudSun } from '@/components/ui/icons'
 const ICONS: Record<string, React.ElementType> = {
   pocasi:  PiCloudSun,
   teploty: PiThermometer,

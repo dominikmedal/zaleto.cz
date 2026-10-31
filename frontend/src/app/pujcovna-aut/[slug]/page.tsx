@@ -1,22 +1,17 @@
 import type { Metadata } from 'next'
-import type { ReactNode, ElementType } from 'react'
+import type { ReactNode } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
+import Icon, { type IconName } from '@/components/ui/Icon'
+import Crumbs from '@/components/ui/Crumbs'
 import CarRentalSearchForm from '@/components/CarRentalSearchForm'
 import { getCarDestination, mergeDestinations, getRelatedDestinations } from '@/lib/carRental'
 import {
   fetchDestinationPhoto, fetchDynamicCarDestinations, fetchCarRentalAI,
-  type CarRentalAIData, type AirportInfo, type CarExample,
-  type CarRentalTripTip, type CarRentalFAQ,
+  type CarRentalAIData, type AirportInfo, type CarRentalTripTip, type CarRentalFAQ,
 } from '@/lib/api'
-import {
-  Car, ChevronRight, Fuel, BookOpen, CircleDollarSign, MapPin,
-  MessageCircleQuestion, Star, Users, Briefcase, Zap, Route, Clock,
-  CheckCircle2, Plane, TrendingUp, ArrowRight, ExternalLink,
-} from 'lucide-react'
 
 export const revalidate = 86400
 export const dynamicParams = true
@@ -34,18 +29,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!dest) return { title: 'Půjčovna aut | Zaleto' }
 
   const aiData = await fetchCarRentalAI(params.slug).catch(() => null)
-  const cheapestPrice = aiData?.car_examples?.length
+  const cheapest = aiData?.car_examples?.length
     ? Math.min(...aiData.car_examples.map(c => c.price_from_eur).filter(Boolean))
     : null
-
   const year = new Date().getFullYear()
-  const priceStr = cheapestPrice ? ` od ${cheapestPrice} €/den` : ''
-  const title = `Půjčovna aut ${dest.name} ${year} – Aktuální ceny${priceStr}`
+  const priceStr = cheapest ? ` od ${cheapest} €/den` : ''
+  const title = `Půjčovna aut ${dest.name} ${year} – aktuální ceny${priceStr}`
   const description =
-    `Půjčte si auto v ${dest.name}${priceStr}. Srovnání 500+ půjčoven, pohonné hmoty, ` +
-    `pravidla provozu a výlety autem po ${dest.country}. Garantovaná cena bez skrytých poplatků.`
+    `Půjč si auto v ${dest.name}${priceStr}. Srovnání 500+ půjčoven, pohonné hmoty, ` +
+    `pravidla provozu a výlety autem po ${dest.country}.`
   const canonical = `https://zaleto.cz/pujcovna-aut/${dest.slug}`
-
   return {
     title, description,
     alternates: { canonical },
@@ -54,20 +47,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
+const paras = (s: string | null | undefined) => (s ? s.split('\n\n').filter(Boolean) : [])
+
 export default async function PujcovnaAutSlugPage({ params }: Props) {
-  const [dynamic, aiData, heroPhoto] = await Promise.all([
+  const [dynamic, aiData] = await Promise.all([
     fetchDynamicCarDestinations().catch(() => []),
     fetchCarRentalAI(params.slug).catch(() => null),
-    fetchDestinationPhoto(params.slug).catch(() => null),
   ])
-
   const allDests = mergeDestinations(dynamic)
   const dest = getCarDestination(params.slug, allDests)
   if (!dest) notFound()
 
-  const relatedDests = getRelatedDestinations(params.slug, allDests, 8)
+  const heroPhoto =
+    (await fetchDestinationPhoto(dest.name).catch(() => null)) ??
+    (await fetchDestinationPhoto(dest.country).catch(() => null)) ??
+    '/img/header-car.jpg'
+
+  const related = getRelatedDestinations(params.slug, allDests, 8)
   const year = new Date().getFullYear()
   const hasContent = !!aiData?.intro
+  const intro = paras(aiData?.intro)
 
   const breadcrumbSchema = {
     '@context': 'https://schema.org', '@type': 'BreadcrumbList',
@@ -77,563 +76,303 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
       { '@type': 'ListItem', position: 3, name: `Půjčovna aut ${dest.name}`, item: `https://zaleto.cz/pujcovna-aut/${dest.slug}` },
     ],
   }
-
   const howToSchema = {
     '@context': 'https://schema.org', '@type': 'HowTo',
     name: `Jak si půjčit auto v ${dest.name}`,
     description: `Postup rezervace půjčeného auta v ${dest.name} přes srovnávač Zaleto.`,
     step: [
-      { '@type': 'HowToStep', position: 1, name: 'Zadejte termín', text: `Vyberte datum vyzvednutí a vrácení auta v ${dest.name}.` },
-      { '@type': 'HowToStep', position: 2, name: 'Porovnejte nabídky', text: 'Seřazené nabídky od 500+ půjčoven s cenou, typem auta a pojištěním.' },
-      { '@type': 'HowToStep', position: 3, name: 'Rezervujte online', text: 'Rezervace je okamžitá. Platíte až na místě nebo online.' },
-      { '@type': 'HowToStep', position: 4, name: 'Vyzvedněte auto', text: 'Přijďte na místo vyzvednutí s řidičákem, pasem a platební kartou.' },
+      { '@type': 'HowToStep', position: 1, name: 'Zadej termín', text: `Vyber datum vyzvednutí a vrácení auta v ${dest.name}.` },
+      { '@type': 'HowToStep', position: 2, name: 'Porovnej nabídky', text: 'Seřazené nabídky od 500+ půjčoven s cenou, typem auta a pojištěním.' },
+      { '@type': 'HowToStep', position: 3, name: 'Rezervuj online', text: 'Rezervace je okamžitá. Platíš až na místě nebo online.' },
+      { '@type': 'HowToStep', position: 4, name: 'Vyzvedni auto', text: 'Přijď na místo vyzvednutí s řidičákem, pasem a platební kartou.' },
     ],
   }
-
   const faqSchema = aiData?.faq?.length ? {
     '@context': 'https://schema.org', '@type': 'FAQPage',
     mainEntity: aiData.faq.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })),
   } : null
 
-  const displayPhoto = heroPhoto ?? '/img/header-car.jpg'
-  const introParagraphs = aiData?.intro?.split('\n\n').filter(Boolean) ?? []
+  const tabs: { href: string; label: string; icon: IconName }[] = []
+  if (aiData?.airport_info) tabs.push({ href: '#letiste', label: 'Letiště', icon: 'letadlo' })
+  if (aiData?.monthly_prices?.length === 12) tabs.push({ href: '#ceny-mesice', label: 'Ceny dle měsíce', icon: 'mena' })
+  if (aiData?.trip_tips?.length) tabs.push({ href: `/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`, label: 'Výlety autem', icon: 'trasa' })
+  if (aiData?.driving_rules) tabs.push({ href: `/pujcovna-aut/${dest.slug}/pravidla-provozu`, label: 'Pravidla provozu', icon: 'clanek' })
+  if (aiData?.faq?.length) tabs.push({ href: `/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`, label: 'FAQ', icon: 'info' })
 
   return (
-    <div className="min-h-screen bg-white">
+    <>
       <JsonLd data={breadcrumbSchema} />
       <JsonLd data={howToSchema} />
       {faqSchema && <JsonLd data={faqSchema} />}
       <Header />
 
-      {/* ── Hero ── */}
-      <div className="relative min-h-[420px] sm:min-h-[520px] overflow-hidden">
-        <Image
-          src={displayPhoto}
-          alt={`Půjčovna aut ${dest.name} ${year}`}
-          fill
-          className="object-cover object-center"
-          style={{ filter: 'brightness(1.05) saturate(1.05)' }}
-          priority
-        />
-        {/* White fade — left */}
-        <div className="absolute inset-0" style={{
-          background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.92) 35%, rgba(255,255,255,0.6) 60%, rgba(255,255,255,0.0) 100%)'
-        }} />
-        {/* White fade — bottom */}
-        <div className="absolute inset-0" style={{
-          background: 'linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.5) 35%, transparent 100%)'
-        }} />
+      <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
+        <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Půjčovna aut', href: '/pujcovna-aut' }, { label: dest.name }]} />
 
-        {/* Content — flows top-down on left half */}
-        <div className="relative max-w-[1680px] mx-auto px-4 sm:px-10 py-6 pb-10 w-full">
-        <div className="flex flex-col gap-5 w-full max-w-[600px] lg:max-w-[52%]">
-          {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-xs text-gray-500">
-            <Link href="/" className="hover:text-gray-800 transition-colors">Zaleto</Link>
-            <ChevronRight className="w-3 h-3 opacity-40" />
-            <Link href="/pujcovna-aut" className="hover:text-gray-800 transition-colors">Půjčovna aut</Link>
-            <ChevronRight className="w-3 h-3 opacity-40" />
-            <span className="text-gray-700 font-medium">{dest.name}</span>
-          </nav>
-
-          {/* Title */}
+        <div className="z-cardest">
           <div>
-            <p className="text-gray-400 text-[11px] font-semibold uppercase tracking-[0.22em] mb-2">
-              Půjčovna aut · {dest.country}
-            </p>
-            <h1 className="font-black leading-none tracking-tight">
-              <span className="text-gray-900 block" style={{ fontSize: 'clamp(36px, 5.5vw, 72px)' }}>
-                {dest.name}
-              </span>
-              <span className="text-gray-400 font-bold block mt-1.5" style={{ fontSize: 'clamp(13px, 1.5vw, 19px)', letterSpacing: '0.01em' }}>
-                Půjčovna aut {year}
-              </span>
-            </h1>
+            <div className="z-kicker" style={{ marginTop: 'var(--space-5)' }}>Půjčovna aut · {dest.country}</div>
+            <h1 className="h1" style={{ margin: 'var(--space-3) 0 var(--space-4)' }}>{dest.name}<span className="z-dot">.</span></h1>
+            {intro[0] && <p className="lead" style={{ margin: 0 }}>{intro[0]}</p>}
+            {intro.length > 1 && (
+              <details className="z-more-text">
+                <summary className="z-more">Číst dále</summary>
+                <div className="z-prose">{intro.slice(1).map((p, i) => <p key={i}>{p}</p>)}</div>
+              </details>
+            )}
+            {tabs.length > 0 && (
+              <nav aria-label="Rychlá navigace" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginTop: 'var(--space-5)' }}>
+                {tabs.map(t => (
+                  t.href.startsWith('#')
+                    ? <a key={t.label} href={t.href} className="z-chip z-chip--sky" style={{ textDecoration: 'none' }}><Icon name={t.icon} size="sm" />{t.label}</a>
+                    : <Link key={t.label} href={t.href} className="z-chip z-chip--sky" style={{ textDecoration: 'none' }}><Icon name={t.icon} size="sm" />{t.label}</Link>
+                ))}
+              </nav>
+            )}
           </div>
-
-          {/* Intro text */}
-          {introParagraphs.length > 0 && (
-            <div>
-              <p className="text-gray-700 text-[15px] sm:text-base leading-relaxed">
-                {introParagraphs[0]}
-              </p>
-              {introParagraphs.length > 1 && (
-                <details className="group mt-1.5">
-                  <summary className="list-none cursor-pointer select-none">
-                    <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#0093FF] group-open:hidden">
-                      Číst dále
-                      <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </span>
-                    <span className="hidden group-open:inline-flex items-center gap-1 text-[13px] font-semibold text-gray-400">
-                      Skrýt
-                      <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </span>
-                  </summary>
-                  <div className="mt-3 space-y-2.5">
-                    {introParagraphs.slice(1).map((p, i) => (
-                      <p key={i} className="text-gray-600 text-sm sm:text-[15px] leading-relaxed">{p}</p>
-                    ))}
-                  </div>
-                </details>
-              )}
-            </div>
-          )}
-
-          {/* Nav tabs */}
-          {aiData?.intro && (
-            <nav className="flex flex-wrap gap-2">
-              {aiData.airport_info && <HeroTab href="#letiste" label="Letiště" icon={Plane} />}
-              {aiData.monthly_prices?.length === 12 && <HeroTab href="#ceny-mesice" label="Ceny dle měsíce" icon={TrendingUp} />}
-              {aiData.trip_tips?.length > 0 && <HeroTab href={`/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`} label="Výlety autem" isLink icon={Route} />}
-              {aiData.driving_rules && <HeroTab href={`/pujcovna-aut/${dest.slug}/pravidla-provozu`} label="Pravidla provozu" isLink icon={BookOpen} />}
-              {aiData.faq?.length > 0 && <HeroTab href={`/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`} label="FAQ" isLink icon={MessageCircleQuestion} />}
-            </nav>
-          )}
+          <div className="z-cardest__photo">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={heroPhoto} alt={`Půjčovna aut ${dest.name} ${year}`} />
+          </div>
         </div>
-        </div>
-      </div>
 
-      {/* ── Search form band ── */}
-      <div style={{ background: 'linear-gradient(135deg, #f0f7ff 0%, #f8faff 100%)' }} className="border-b border-blue-100/70">
-        <div className="max-w-[1680px] mx-auto px-4 sm:px-8 py-8 pb-10">
+        <div style={{ marginTop: 'var(--space-6)' }}>
           <CarRentalSearchForm destination={dest} />
         </div>
-      </div>
 
-      {/* ── Content: 2-column editorial layout ── */}
-      {hasContent && (
-        <div className="max-w-[1680px] mx-auto px-4 sm:px-8 py-12 sm:py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10 xl:gap-16 items-start">
+        {hasContent && (
+          <>
+            <div className="z-cardest__grid">
+              <div className="z-cardest__main">
+                {aiData!.airport_info && <AirportSection airport={aiData!.airport_info} destName={dest.name} />}
+                {aiData!.monthly_prices?.length === 12 && <MonthlyPrices prices={aiData!.monthly_prices} destName={dest.name} />}
+                <PracticalInfo aiData={aiData!} country={dest.country} slug={dest.slug} />
+                {aiData!.trip_tips.length > 0 && <TripTips tips={aiData!.trip_tips} destName={dest.name} slug={dest.slug} />}
+                {aiData!.practical_tips.length > 0 && <PracticalTips tips={aiData!.practical_tips} destName={dest.name} />}
+                {aiData!.faq.length > 0 && <Faq faq={aiData!.faq} destName={dest.name} year={year} slug={dest.slug} />}
+              </div>
 
-            {/* ── Left: main content ── */}
-            <div className="min-w-0 space-y-14">
-
-              {aiData!.airport_info && (
-                <AirportSection airport={aiData!.airport_info} destName={dest.name} />
-              )}
-
-              {aiData!.monthly_prices?.length === 12 && (
-                <MonthlyPricesSection prices={aiData!.monthly_prices} destName={dest.name} />
-              )}
-
-              <PracticalInfoSection aiData={aiData!} country={dest.country} destSlug={dest.slug} />
-
-              {aiData!.trip_tips.length > 0 && (
-                <TripTipsSection tips={aiData!.trip_tips} destName={dest.name} destSlug={dest.slug} />
-              )}
-
-              {aiData!.practical_tips.length > 0 && (
-                <PracticalTipsSection tips={aiData!.practical_tips} destName={dest.name} />
-              )}
-
-              {aiData!.faq.length > 0 && (
-                <FAQSection faq={aiData!.faq} destName={dest.name} year={year} destSlug={dest.slug} />
-              )}
-
+              <aside className="z-cardest__side">
+                <PriceBox aiData={aiData!} destName={dest.name} />
+                <SubpageLinks dest={dest} />
+                <RelatedCountry dest={dest} related={related} />
+              </aside>
             </div>
 
-            {/* ── Right: sidebar ── */}
-            <div className="space-y-5 lg:sticky lg:top-24">
-
-              <PriceSection aiData={aiData!} destName={dest.name} />
-
-              <SubpageLinksCard dest={dest} />
-
-              <RelatedInCountryCard dest={dest} relatedDests={relatedDests} />
-
-            </div>
-          </div>
-
-          {/* ── World destinations — full width below grid ── */}
-          <RelatedWorldSection relatedDests={relatedDests} dest={dest} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Utility components ────────────────────────────────────────────────────────
-
-function HeroTab({ href, label, isLink, icon: Icon }: { href: string; label: string; isLink?: boolean; icon: ElementType }) {
-  const inner = (
-    <>
-      <span className="flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0"
-        style={{ background: '#EDF6FF', boxShadow: '0 0 0 1px rgba(0,147,255,0.12)' }}>
-        <Icon style={{ color: '#0093FF', width: 18, height: 18 }} />
-      </span>
-      <span className="font-semibold" style={{ fontSize: '14px', letterSpacing: '-0.01em' }}>{label}</span>
+            <RelatedWorld related={related} dest={dest} />
+          </>
+        )}
+      </main>
     </>
   )
-  const cls = "group inline-flex items-center gap-3 px-5 py-3 rounded-2xl whitespace-nowrap transition-all duration-200 hover:-translate-y-px"
-  const style = { background: '#fff', border: '1.5px solid rgba(0,147,255,0.14)', color: '#374151', boxShadow: '0 2px 6px rgba(0,0,0,0.06)' }
-  return isLink
-    ? <Link href={href} className={cls} style={style}>{inner}</Link>
-    : <a href={href} className={cls} style={style}>{inner}</a>
 }
 
-function SectionLabel({ children }: { children: ReactNode }) {
+// ─── Pomocné ────────────────────────────────────────────────────────────────
+
+function Block({ id, kicker, title, more, children }: { id?: string; kicker: string; title: string; more?: { href: string; label: string }; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-2.5 mb-3">
-      <div className="w-[3px] h-4 rounded-full bg-[#0093FF] flex-shrink-0" />
-      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0093FF]">{children}</p>
-    </div>
+    <section id={id} className="z-cardest__block">
+      <div className="z-shead" style={{ marginBottom: 'var(--space-5)' }}>
+        <div>
+          <div className="z-kicker">{kicker}</div>
+          <h2 style={{ fontSize: 32, lineHeight: '38px' }}>{title}<span className="z-dot">.</span></h2>
+        </div>
+        {more && <Link className="z-more" href={more.href}>{more.label}</Link>}
+      </div>
+      {children}
+    </section>
   )
 }
-
-// ─── Section components ────────────────────────────────────────────────────────
 
 function AirportSection({ airport, destName }: { airport: AirportInfo; destName: string }) {
   return (
-    <section id="letiste" className="scroll-mt-24">
-      <SectionLabel>Letiště</SectionLabel>
-      <h2 className="font-bold text-gray-900 tracking-tight mb-5" style={{ fontSize: 'clamp(20px, 2.5vw, 32px)' }}>
-        Letiště {destName}
-      </h2>
-      <div className="flex flex-col sm:flex-row gap-5 bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-        <div className="flex-shrink-0 w-20 h-20 rounded-2xl bg-[#0093FF] flex items-center justify-center text-white font-black text-xl">
-          {airport.iata}
-        </div>
-        <div className="flex-1">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <h3 className="font-bold text-gray-900 text-base leading-tight">{airport.name}</h3>
-            <span className="text-xs font-semibold text-[#0068CC] bg-[#EDF6FF] px-2.5 py-1 rounded-full flex-shrink-0">
-              {airport.distance_km} km od centra
-            </span>
+    <Block id="letiste" kicker="Letiště" title={`letiště ${destName}`}>
+      <div className="z-tk z-tk--v" style={{ ['--stub' as string]: '170px' }}>
+        <div className="z-tk__in z-airport">
+          <div>
+            <h3 className="h4">{airport.name}</h3>
+            <p style={{ margin: 'var(--space-2) 0 0', color: 'var(--ink-muted)' }}>{airport.description}</p>
           </div>
-          <p className="text-sm text-gray-600 leading-relaxed">{airport.description}</p>
+          <div className="z-airport__stub">
+            <span className="code">{airport.iata}</span>
+            <span className="z-data">{airport.distance_km} KM OD CENTRA</span>
+          </div>
         </div>
       </div>
-    </section>
+    </Block>
   )
 }
 
-const MONTHS_CS_FULL = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec']
-const MONTHS_CS_SHORT = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čer', 'Čec', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro']
+const MONTHS_FULL = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec']
+const MONTHS_SHORT = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čer', 'Čec', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro']
 
-function priceColor(idx: number) {
-  if (idx <= 75)  return '#22C55E'
-  if (idx <= 105) return '#F59E0B'
-  if (idx <= 140) return '#F97316'
-  return '#EF4444'
+function level(idx: number) {
+  if (idx <= 75) return { color: 'var(--success)', label: 'Levná sezóna' }
+  if (idx <= 105) return { color: 'var(--brand-strong)', label: 'Průměr' }
+  if (idx <= 140) return { color: 'var(--accent)', label: 'Dražší' }
+  return { color: 'var(--danger)', label: 'Hlavní sezóna' }
 }
 
-function MonthlyPricesSection({ prices, destName }: { prices: number[]; destName: string }) {
+function MonthlyPrices({ prices, destName }: { prices: number[]; destName: string }) {
   const max = Math.max(...prices)
   return (
-    <section id="ceny-mesice" className="scroll-mt-24">
-      <SectionLabel>Kdy jet</SectionLabel>
-      <h2 className="font-bold text-gray-900 tracking-tight mb-2" style={{ fontSize: 'clamp(20px, 2.5vw, 32px)' }}>
-        Ceny půjčovny aut {destName} podle měsíce
-      </h2>
-      <p className="text-gray-500 text-sm mb-6 max-w-2xl">
-        Orientační přehled cenové hladiny — 100 = roční průměr. Přesné ceny závisí na termínu a kategorii.
+    <Block id="ceny-mesice" kicker="Kdy jet" title={`ceny aut v ${destName} podle měsíce`}>
+      <p style={{ margin: '0 0 var(--space-5)', color: 'var(--ink-muted)', maxWidth: 640 }}>
+        Orientační cenová hladina, 100 = roční průměr. Přesné ceny závisí na termínu a kategorii.
       </p>
-      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-end gap-1.5 sm:gap-2 h-28 mb-3">
-          {prices.map((val, i) => {
-            const heightPct = Math.round((val / max) * 100)
-            return (
-              <div key={i} className="flex-1 flex flex-col items-center group relative">
-                <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                  <div className="bg-gray-900 text-white text-[10px] font-semibold px-2 py-1 rounded-lg whitespace-nowrap">
-                    {MONTHS_CS_FULL[i]}: {val}
-                  </div>
-                </div>
-                <div className="w-full rounded-t-sm transition-opacity hover:opacity-80"
-                  style={{ height: `${heightPct}%`, background: priceColor(val), minHeight: 4 }} />
-              </div>
-            )
-          })}
-        </div>
-        <div className="flex gap-1.5 sm:gap-2">
-          {MONTHS_CS_SHORT.map(m => (
-            <div key={m} className="flex-1 text-center text-[9px] sm:text-[10px] font-semibold text-gray-400">{m}</div>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-4 pt-4 border-t border-gray-100">
-          {[{ color: '#22C55E', label: 'Levná sezóna' }, { color: '#F59E0B', label: 'Průměr' }, { color: '#F97316', label: 'Dražší' }, { color: '#EF4444', label: 'Hlavní sezóna' }].map(({ color, label }) => (
-            <div key={label} className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color }} />
-              <span className="text-[10px] text-gray-500">{label}</span>
+      <div className="z-info" style={{ padding: 'var(--space-5)' }}>
+        <div className="z-bars" role="img" aria-label={`Cenový index po měsících: ${prices.map((v, i) => `${MONTHS_FULL[i]} ${v}`).join(', ')}`}>
+          {prices.map((v, i) => (
+            <div key={i} className="z-bars__col" title={`${MONTHS_FULL[i]}: ${v} (${level(v).label})`}>
+              <span className="z-bars__val">{v}</span>
+              <span className="z-bars__bar" style={{ height: `${Math.max(6, Math.round((v / max) * 100))}%`, background: level(v).color }} />
+              <span className="z-bars__m">{MONTHS_SHORT[i]}</span>
             </div>
           ))}
         </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2) var(--space-5)', marginTop: 'var(--space-4)' }}>
+          {['Levná sezóna', 'Průměr', 'Dražší', 'Hlavní sezóna'].map((l, i) => (
+            <span key={l} className="z-data" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: level([60, 100, 120, 160][i]).color }} />{l}
+            </span>
+          ))}
+        </div>
       </div>
-      <div className="mt-3 overflow-x-auto">
-        <table className="w-full text-xs border-collapse">
-          <thead>
-            <tr>{MONTHS_CS_SHORT.map(m => <th key={m} className="py-2 px-1 text-center font-semibold text-gray-500 bg-gray-50 border border-gray-100 min-w-[44px]">{m}</th>)}</tr>
-          </thead>
-          <tbody>
-            <tr>{prices.map((val, i) => <td key={i} className="py-2 px-1 text-center font-bold border border-gray-100" style={{ color: priceColor(val), background: `${priceColor(val)}12` }}>{val}</td>)}</tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+    </Block>
   )
 }
 
-function PracticalInfoSection({ aiData, country, destSlug }: { aiData: CarRentalAIData; country: string; destSlug: string }) {
+function TextCard({ icon, title, text }: { icon: IconName; title: string; text: string | null }) {
+  if (!text) return null
+  return (
+    <div className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)', height: '100%' }}>
+      <Icon name={icon} size="lg" />
+      <h3 className="h4" style={{ margin: 'var(--space-3) 0' }}>{title}</h3>
+      {paras(text).map((p, i) => <p key={i} style={{ margin: '0 0 var(--space-3)', color: 'var(--ink-muted)' }}>{p}</p>)}
+    </div></div>
+  )
+}
+
+function PracticalInfo({ aiData, country, slug }: { aiData: CarRentalAIData; country: string; slug: string }) {
   if (!aiData.fuel_info && !aiData.driving_rules) return null
   return (
-    <section id="pravidla" className="scroll-mt-24">
-      <div className="flex items-start justify-between gap-4 mb-3 flex-wrap">
-        <SectionLabel>Praktické informace</SectionLabel>
-        <Link href={`/pujcovna-aut/${destSlug}/pravidla-provozu`}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-[#0068CC] hover:underline flex-shrink-0">
-          Celá stránka <ExternalLink className="w-3 h-3" />
-        </Link>
+    <Block id="pravidla" kicker="Praktické informace" title={`pohonné hmoty a pravidla – ${country}`} more={{ href: `/pujcovna-aut/${slug}/pravidla-provozu`, label: 'Celá stránka' }}>
+      <div className="z-grid-2">
+        <TextCard icon="fuel" title={`Pohonné hmoty – ${country}`} text={aiData.fuel_info} />
+        <TextCard icon="clanek" title={`Pravidla provozu – ${country}`} text={aiData.driving_rules} />
       </div>
-      <h2 className="font-bold text-gray-900 tracking-tight mb-6" style={{ fontSize: 'clamp(20px, 2.5vw, 32px)' }}>
-        Pohonné hmoty a pravidla provozu – {country}
-      </h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {aiData.fuel_info && (
-          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0 bg-[#0093FF]">
-                <Fuel className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-gray-900">Pohonné hmoty – {country}</h3>
-            </div>
-            {aiData.fuel_info.split('\n\n').filter(Boolean).map((p, i) => (
-              <p key={i} className="text-sm text-gray-600 leading-relaxed mb-3 last:mb-0">{p}</p>
-            ))}
-          </div>
-        )}
-        {aiData.driving_rules && (
-          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0 bg-[#0093FF]">
-                <BookOpen className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-gray-900">Pravidla silničního provozu – {country}</h3>
-            </div>
-            {aiData.driving_rules.split('\n\n').filter(Boolean).map((p, i) => (
-              <p key={i} className="text-sm text-gray-600 leading-relaxed mb-3 last:mb-0">{p}</p>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
+    </Block>
   )
 }
 
-function PriceSection({ aiData, destName }: { aiData: CarRentalAIData; destName: string }) {
-  if (!aiData.price_overview && !aiData.best_car_types) return null
+function TripTips({ tips, destName, slug }: { tips: CarRentalTripTip[]; destName: string; slug: string }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-      {aiData.price_overview && (
-        <div className="p-5 border-b border-gray-100">
-          <div className="flex items-center gap-2 mb-2">
-            <CircleDollarSign className="w-3.5 h-3.5 text-[#0093FF]" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0093FF]">Ceny</p>
-          </div>
-          <h3 className="font-bold text-gray-900 text-base mb-3">Kolik stojí půjčení auta – {destName}?</h3>
-          {aiData.price_overview.split('\n\n').filter(Boolean).map((p, i) => (
-            <p key={i} className="text-sm text-gray-600 leading-relaxed mb-2 last:mb-0">{p}</p>
-          ))}
-        </div>
-      )}
-      {aiData.best_car_types && (
-        <div className="p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <Car className="w-3.5 h-3.5 text-[#0093FF]" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0093FF]">Doporučení</p>
-          </div>
-          <h3 className="font-bold text-gray-900 text-base mb-3">Jaké auto si vybrat – {destName}?</h3>
-          {aiData.best_car_types.split('\n\n').filter(Boolean).map((p, i) => (
-            <p key={i} className="text-sm text-gray-600 leading-relaxed mb-2 last:mb-0">{p}</p>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function TripTipsSection({ tips, destName, destSlug }: { tips: CarRentalTripTip[]; destName: string; destSlug: string }) {
-  const preview = tips.slice(0, 3)
-  const hasMore = tips.length > 3
-  return (
-    <section id="vylety" className="scroll-mt-24">
-      <div className="flex items-start justify-between gap-4 mb-3 flex-wrap">
-        <SectionLabel>Výlety autem</SectionLabel>
-        <Link href={`/pujcovna-aut/${destSlug}/tipy-na-vylety-autem`}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-[#0068CC] hover:underline flex-shrink-0">
-          Všechny výlety ({tips.length}) <ExternalLink className="w-3 h-3" />
-        </Link>
-      </div>
-      <h2 className="font-bold text-gray-900 tracking-tight mb-6" style={{ fontSize: 'clamp(20px, 2.5vw, 32px)' }}>
-        Tipy na výlety autem – {destName}
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {preview.map((tip, i) => (
-          <article key={i} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex flex-col gap-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              {tip.distance_km && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0068CC] bg-[#EDF6FF] px-2.5 py-1 rounded-full">
-                  <MapPin className="w-3 h-3" /> {tip.distance_km} km
-                </span>
-              )}
-              {tip.duration_h && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">
-                  <Clock className="w-3 h-3" /> {tip.duration_h} h
-                </span>
-              )}
+    <Block id="vylety" kicker="Výlety autem" title={`tipy na výlety – ${destName}`} more={{ href: `/pujcovna-aut/${slug}/tipy-na-vylety-autem`, label: `Všechny výlety (${tips.length})` }}>
+      <div className="z-grid-2">
+        {tips.slice(0, 4).map((tip, i) => (
+          <article key={i} className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)', height: '100%' }}>
+            <div className="z-meta" style={{ marginBottom: 'var(--space-3)' }}>
+              {tip.distance_km ? <span><Icon name="trasa" />{tip.distance_km} km</span> : null}
+              {tip.duration_h ? <span><Icon name="cas" />{tip.duration_h} h</span> : null}
             </div>
-            <h3 className="font-bold text-gray-900 leading-tight">{tip.title}</h3>
-            <p className="text-sm text-gray-500 leading-relaxed flex-1">{tip.description}</p>
-          </article>
+            <h3 className="h4">{tip.title}</h3>
+            <p style={{ margin: 'var(--space-2) 0 0', color: 'var(--ink-muted)' }}>{tip.description}</p>
+          </div></article>
         ))}
       </div>
-      {hasMore && (
-        <div className="mt-5">
-          <Link href={`/pujcovna-aut/${destSlug}/tipy-na-vylety-autem`}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#0093FF] bg-[#EDF6FF] hover:bg-[#0093FF]/15 px-5 py-2.5 rounded-full transition-colors">
-            Zobrazit všechny výlety <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      )}
-    </section>
+    </Block>
   )
 }
 
-function PracticalTipsSection({ tips, destName }: { tips: string[]; destName: string }) {
+function PracticalTips({ tips, destName }: { tips: string[]; destName: string }) {
   return (
-    <section id="tipy" className="scroll-mt-24">
-      <SectionLabel>Tipy a rady</SectionLabel>
-      <h2 className="font-bold text-gray-900 tracking-tight mb-6" style={{ fontSize: 'clamp(20px, 2.5vw, 32px)' }}>
-        Praktické tipy – půjčovna aut {destName}
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {tips.map((tip, i) => (
-          <div key={i} className="flex items-start gap-3 bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-            <div className="w-5 h-5 rounded-full bg-[#EDF6FF] flex items-center justify-center flex-shrink-0 mt-0.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#0093FF]" />
-            </div>
-            <p className="text-sm text-gray-700 leading-relaxed">{tip}</p>
-          </div>
-        ))}
-      </div>
-    </section>
+    <Block id="tipy" kicker="Tipy a rady" title={`praktické tipy – ${destName}`}>
+      <ul className="z-ticks">
+        {tips.map((t, i) => <li key={i}><Icon name="ok" size="sm" />{t}</li>)}
+      </ul>
+    </Block>
   )
 }
 
-function FAQSection({ faq, destName, year, destSlug }: { faq: CarRentalFAQ[]; destName: string; year: number; destSlug: string }) {
-  const preview = faq.slice(0, 5)
-  const hasMore = faq.length > 5
+function Faq({ faq, destName, year, slug }: { faq: CarRentalFAQ[]; destName: string; year: number; slug: string }) {
   return (
-    <section id="faq" className="scroll-mt-24">
-      <div className="flex items-start justify-between gap-4 mb-3 flex-wrap">
-        <SectionLabel>Časté dotazy</SectionLabel>
-        <Link href={`/pujcovna-aut/${destSlug}/nejcastejsi-dotazy`}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-[#0068CC] hover:underline flex-shrink-0">
-          Všechny dotazy ({faq.length}) <ExternalLink className="w-3 h-3" />
-        </Link>
-      </div>
-      <h2 className="font-bold text-gray-900 tracking-tight mb-5" style={{ fontSize: 'clamp(20px, 2.5vw, 32px)' }}>
-        Nejčastější dotazy – půjčovna aut {destName} {year}
-      </h2>
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100 max-w-3xl">
-        {preview.map((item, i) => (
-          <details key={i} className="group">
-            <summary className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none font-semibold text-gray-800 hover:text-[#0093FF] transition-colors select-none text-sm">
-              <span>{item.question}</span>
-              <ChevronRight className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-open:rotate-90 text-gray-300 group-hover:text-[#0093FF]" />
-            </summary>
-            <div className="px-5 pb-4">
-              <p className="text-sm text-gray-600 leading-relaxed">{item.answer}</p>
-            </div>
+    <Block id="faq" kicker="Časté dotazy" title={`dotazy – ${destName} ${year}`} more={{ href: `/pujcovna-aut/${slug}/nejcastejsi-dotazy`, label: `Všechny dotazy (${faq.length})` }}>
+      <div>
+        {faq.slice(0, 5).map((f, i) => (
+          <details key={i} className="z-faq">
+            <summary><span className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{String(i + 1).padStart(2, '0')}</span><span className="h4">{f.question}</span></summary>
+            <p>{f.answer}</p>
           </details>
         ))}
       </div>
-      {hasMore && (
-        <div className="mt-4">
-          <Link href={`/pujcovna-aut/${destSlug}/nejcastejsi-dotazy`}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#0093FF] bg-[#EDF6FF] hover:bg-[#0093FF]/15 px-5 py-2.5 rounded-full transition-colors">
-            Zobrazit všechny otázky <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      )}
-    </section>
+    </Block>
   )
 }
 
-// ─── Sidebar components ────────────────────────────────────────────────────────
+// ─── Postranní panel ───────────────────────────────────────────────────────
 
-function SubpageLinksCard({ dest }: { dest: ReturnType<typeof getCarDestination> & {} }) {
+function PriceBox({ aiData, destName }: { aiData: CarRentalAIData; destName: string }) {
+  if (!aiData.price_overview && !aiData.best_car_types) return null
+  return (
+    <div className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)' }}>
+      {aiData.price_overview && (
+        <>
+          <div className="z-kicker">Ceny</div>
+          <h3 className="h4" style={{ margin: 'var(--space-2) 0 var(--space-3)' }}>Kolik stojí auto – {destName}?</h3>
+          {paras(aiData.price_overview).map((p, i) => <p key={i} style={{ margin: '0 0 var(--space-3)', color: 'var(--ink-muted)' }}>{p}</p>)}
+        </>
+      )}
+      {aiData.best_car_types && (
+        <>
+          <div className="z-kicker" style={{ marginTop: 'var(--space-4)' }}>Doporučení</div>
+          <h3 className="h4" style={{ margin: 'var(--space-2) 0 var(--space-3)' }}>Jaké auto si vybrat?</h3>
+          {paras(aiData.best_car_types).map((p, i) => <p key={i} style={{ margin: '0 0 var(--space-3)', color: 'var(--ink-muted)' }}>{p}</p>)}
+        </>
+      )}
+    </div></div>
+  )
+}
+
+function SubpageLinks({ dest }: { dest: NonNullable<ReturnType<typeof getCarDestination>> }) {
   const links = [
-    { href: `/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`, label: `Výlety autem – ${dest.name}`, sub: 'Trasy a zajímavá místa' },
-    { href: `/pujcovna-aut/${dest.slug}/pravidla-provozu`,     label: `Pravidla provozu – ${dest.country}`, sub: 'Limity, předpisy, pokuty' },
-    { href: `/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`,   label: 'Nejčastější dotazy', sub: 'Odpovědi na vaše otázky' },
-    { href: `/pocasi/${dest.countrySlug}`,                     label: `Počasí – ${dest.country}`, sub: 'Teploty a srážky měsíčně' },
-    { href: `/destinace/${dest.countrySlug}`,                  label: `Hotely – ${dest.country}`, sub: 'Zájezdy a ubytování' },
+    { href: `/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`, label: `Výlety autem – ${dest.name}` },
+    { href: `/pujcovna-aut/${dest.slug}/pravidla-provozu`, label: `Pravidla provozu – ${dest.country}` },
+    { href: `/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`, label: 'Nejčastější dotazy' },
+    { href: `/pocasi/${dest.countrySlug}`, label: `Počasí – ${dest.country}` },
+    { href: `/destinace/${dest.countrySlug}`, label: `Hotely – ${dest.country}` },
   ]
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-      <div className="px-4 pt-4 pb-2 border-b border-gray-50">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">Stránky půjčovny</p>
-      </div>
-      <div className="divide-y divide-gray-50">
-        {links.map(({ href, label, sub }) => (
-          <Link key={href} href={href}
-            className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#f8faff] transition-colors group">
-            <div className="min-w-0">
-              <p className="font-semibold text-gray-800 text-sm group-hover:text-[#0093FF] transition-colors leading-tight truncate">{label}</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>
-            </div>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-200 group-hover:text-[#0093FF] transition-colors flex-shrink-0" />
-          </Link>
-        ))}
-      </div>
+    <div className="z-info" style={{ padding: 'var(--space-5)' }}>
+      <div className="z-kicker" style={{ marginBottom: 'var(--space-3)' }}>Stránky půjčovny</div>
+      <ul className="z-linklist">
+        {links.map(l => <li key={l.href}><Link href={l.href}>{l.label}<Icon name="sipka" size="sm" /></Link></li>)}
+      </ul>
     </div>
   )
 }
 
-function RelatedInCountryCard({ dest, relatedDests }: {
-  dest: ReturnType<typeof getCarDestination> & {}
-  relatedDests: ReturnType<typeof getRelatedDestinations>
-}) {
-  const sameCountry = relatedDests.filter(d => d.country === dest.country).slice(0, 6)
-  if (!sameCountry.length) return null
+function RelatedCountry({ dest, related }: { dest: NonNullable<ReturnType<typeof getCarDestination>>; related: ReturnType<typeof getRelatedDestinations> }) {
+  const same = related.filter(d => d.country === dest.country).slice(0, 6)
+  if (!same.length) return null
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400 mb-3">
-        Půjčovny aut – {dest.country}
-      </p>
-      <div className="flex flex-wrap gap-1.5">
-        {sameCountry.map(d => (
-          <Link key={d.slug} href={`/pujcovna-aut/${d.slug}`}
-            className="text-sm font-semibold text-gray-700 hover:text-[#0093FF] bg-gray-50 hover:bg-[#EDF6FF] px-3 py-1.5 rounded-full transition-colors">
-            {d.name}
-          </Link>
-        ))}
+    <div>
+      <div className="z-kicker" style={{ marginBottom: 'var(--space-3)' }}>Půjčovny aut – {dest.country}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+        {same.map(d => <Link key={d.slug} className="z-chip" href={`/pujcovna-aut/${d.slug}`} style={{ textDecoration: 'none' }}>{d.name}</Link>)}
       </div>
-      <Link href="/pujcovna-aut" className="inline-flex items-center gap-1 text-xs font-semibold text-[#0093FF] hover:underline mt-3">
-        Všechny destinace <ArrowRight className="w-3 h-3" />
-      </Link>
     </div>
   )
 }
 
-function RelatedWorldSection({ relatedDests, dest }: {
-  relatedDests: ReturnType<typeof getRelatedDestinations>
-  dest: ReturnType<typeof getCarDestination> & {}
-}) {
-  const world = relatedDests.filter(d => d.country !== dest.country)
+function RelatedWorld({ related, dest }: { related: ReturnType<typeof getRelatedDestinations>; dest: NonNullable<ReturnType<typeof getCarDestination>> }) {
+  const world = related.filter(d => d.country !== dest.country)
   if (!world.length) return null
   return (
-    <div className="mt-16 pt-10 border-t border-gray-100">
-      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400 mb-4">Populární světové destinace</p>
-      <div className="flex flex-wrap gap-2">
-        {world.map(d => (
-          <Link key={d.slug} href={`/pujcovna-aut/${d.slug}`}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-[#0093FF] bg-white border border-gray-100 hover:border-[#0093FF]/25 px-4 py-2 rounded-xl shadow-sm transition-all">
-            {d.name}
-            <ArrowRight className="w-3.5 h-3.5 opacity-30" />
-          </Link>
-        ))}
+    <section style={{ marginTop: 'var(--space-8)' }}>
+      <div className="z-kicker" style={{ marginBottom: 'var(--space-4)' }}>Populární světové destinace</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+        {world.map(d => <Link key={d.slug} className="z-chip" href={`/pujcovna-aut/${d.slug}`} style={{ textDecoration: 'none' }}>{d.name}</Link>)}
       </div>
-    </div>
+    </section>
   )
 }

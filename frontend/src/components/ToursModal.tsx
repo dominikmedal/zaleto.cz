@@ -1,7 +1,7 @@
-﻿'use client'
+'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Plane, Bus, Car, Moon, Utensils, ExternalLink, X, Loader2 } from 'lucide-react'
-import { PiCalendarBlank, PiUserMinus, PiUserPlus, PiArrowsDownUp, PiTag, PiX, PiCalendarStar } from 'react-icons/pi'
+import { LuPlane as Plane, LuBus as Bus, LuCar as Car, LuMoon as Moon, LuUtensils as Utensils, LuExternalLink as ExternalLink, LuX as X, LuLoader2 as Loader2 } from '@/components/ui/icons'
+import { PiCalendarBlank, PiUserMinus, PiUserPlus, PiArrowsDownUp, PiTag, PiX, PiCalendarStar } from '@/components/ui/icons'
 import type { Tour } from '@/lib/types'
 import { API } from '@/lib/api'
 

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { PiMagnifyingGlass, PiMapPin, PiBuildings, PiX, PiArrowRight } from 'react-icons/pi'
+import { PiMagnifyingGlass, PiMapPin, PiBuildings, PiX, PiArrowRight } from '@/components/ui/icons'
 import { fetchDestinations, fetchHotelSearch } from '@/lib/api'
 import { getCountryFlag } from '@/lib/countryFlags'
 

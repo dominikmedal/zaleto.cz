@@ -1,8 +1,8 @@
-﻿'use client'
+'use client'
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { PiCaretLeft, PiCaretRight, PiArrowRight } from 'react-icons/pi'
+import { PiCaretLeft, PiCaretRight, PiArrowRight } from '@/components/ui/icons'
 import { slugify } from '@/lib/slugify'
 
 const AUTOPLAY_MS = 7000

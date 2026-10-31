@@ -1,6 +1,6 @@
-﻿import Image from 'next/image'
+import Image from 'next/image'
 import Link from 'next/link'
-import { PiMapPin, PiClock, PiArrowRight } from 'react-icons/pi'
+import { PiMapPin, PiClock, PiArrowRight } from '@/components/ui/icons'
 import type { Article } from '@/lib/api'
 
 interface Props {

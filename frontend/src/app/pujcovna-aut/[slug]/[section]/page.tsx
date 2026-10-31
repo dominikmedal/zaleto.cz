@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Header from '@/components/Header'
@@ -9,11 +9,7 @@ import {
   fetchDynamicCarDestinations, fetchCarRentalAI,
   type CarRentalAIData, type CarRentalTripTip, type CarRentalFAQ,
 } from '@/lib/api'
-import {
-  Car, ChevronRight, Fuel, BookOpen, CircleDollarSign, MapPin,
-  MessageCircleQuestion, Route, Clock, CheckCircle2, ArrowLeft, ArrowRight,
-} from 'lucide-react'
-
+import { LuCar as Car, LuChevronRight as ChevronRight, LuFuel as Fuel, LuBookOpen as BookOpen, LuCircleDollarSign as CircleDollarSign, LuMapPin as MapPin, LuMessageCircleQuestion as MessageCircleQuestion, LuRoute as Route, LuClock as Clock, LuCheckCircle2 as CheckCircle2, LuArrowLeft as ArrowLeft, LuArrowRight as ArrowRight } from '@/components/ui/icons'
 export const revalidate = 86400
 export const dynamicParams = true
 

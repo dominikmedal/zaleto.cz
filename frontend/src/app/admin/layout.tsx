@@ -4,11 +4,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { adminCheck, adminLogout } from '@/lib/adminApi'
-import {
-  PiHouse, PiBuildings, PiAirplane, PiNewspaper, PiMapPin, PiCar,
-  PiSignOut, PiSpinner, PiList, PiX
-} from 'react-icons/pi'
-
+import { PiHouse, PiBuildings, PiAirplane, PiNewspaper, PiMapPin, PiCar, PiSignOut, PiSpinner, PiList, PiX } from '@/components/ui/icons'
 const NAV = [
   { href: '/admin/prehled',      label: 'Přehled',       icon: PiHouse },
   { href: '/admin/hotely',       label: 'Hotely',         icon: PiBuildings },

@@ -1,6 +1,5 @@
 import type { SVGProps } from 'react'
-
-type Def = { body: JSX.Element; dot?: [number, number, number] }
+import { EXTRA } from './iconsExtra'
 
 /** Sada ikon „Palubní deník“: tah 1,5 px na 24 px, tečka z loga jen tam, kde něco znamená. */
 const ICONS = {
@@ -144,6 +143,7 @@ const ICONS = {
   mapa: (<><path d="M3.5 6.5 9 4.5l6 2 5.5-2v13l-5.5 2-6-2-5.5 2z" /><path d="M9 4.5v13M15 6.5v13" /></>),
   ok: (<path d="m5 12.5 4.5 4.5L19 7.5" />),
   hvezda: (<path d="m12 4 2.4 5 5.4.7-4 3.7 1 5.4L12 16.2l-4.8 2.6 1-5.4-4-3.7 5.4-.7z" />),
+  ...EXTRA,
 } satisfies Record<string, JSX.Element>
 
 export type IconName = keyof typeof ICONS

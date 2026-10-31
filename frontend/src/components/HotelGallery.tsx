@@ -1,8 +1,7 @@
 'use client'
 import { useState, useCallback, useRef } from 'react'
 import Image from 'next/image'
-import { X, ChevronLeft, ChevronRight, Grid2x2 } from 'lucide-react'
-
+import { LuX as X, LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight, LuGrid2x2 as Grid2x2 } from '@/components/ui/icons'
 interface Props {
   photos: string[]
   name: string

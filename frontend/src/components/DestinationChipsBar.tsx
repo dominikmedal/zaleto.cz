@@ -1,7 +1,7 @@
 'use client'
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { PiCaretLeft, PiCaretRight, PiMapPin } from 'react-icons/pi'
+import { PiCaretLeft, PiCaretRight, PiMapPin } from '@/components/ui/icons'
 import { slugify } from '@/lib/slugify'
 
 interface Item {

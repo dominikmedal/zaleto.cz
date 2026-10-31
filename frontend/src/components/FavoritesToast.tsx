@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Heart, X } from 'lucide-react'
-
+import { LuHeart as Heart, LuX as X } from '@/components/ui/icons'
 interface Toast { id: number; name: string; added: boolean; leaving: boolean }
 
 export default function FavoritesToast() {

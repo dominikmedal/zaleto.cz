@@ -2,11 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { fetchAdminStats, AdminStats } from '@/lib/adminApi'
-import {
-  PiBuildings, PiAirplane, PiNewspaper, PiMapPin, PiSpinner,
-  PiArrowRight, PiStar, PiCurrencyCircleDollar
-} from 'react-icons/pi'
-
+import { PiBuildings, PiAirplane, PiNewspaper, PiMapPin, PiSpinner, PiArrowRight, PiStar, PiCurrencyCircleDollar } from '@/components/ui/icons'
 function fmtKc(n: number | null): string {
   if (n == null) return '—'
   if (n >= 10_000) return `${Math.round(n / 1000)} tis. Kč`

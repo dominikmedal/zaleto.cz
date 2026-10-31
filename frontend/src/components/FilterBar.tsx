@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useTransition, useCallback } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { PiX, PiSpinner, PiCaretDown, PiSliders, PiUserPlus, PiUserMinus, PiTimer, PiCalendarStar, PiSun } from 'react-icons/pi'
+import { PiX, PiSpinner, PiCaretDown, PiSliders, PiUserPlus, PiUserMinus, PiTimer, PiCalendarStar, PiSun } from '@/components/ui/icons'
 import DateRangePicker from './DateRangePicker'
 import DestinationAutocomplete from './DestinationAutocomplete'
 

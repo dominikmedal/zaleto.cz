@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { LuLoader2 as Loader2 } from '@/components/ui/icons'
 import { API } from '@/lib/api'
 
 interface MapHotel {

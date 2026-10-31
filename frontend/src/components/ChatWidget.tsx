@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { PiChatCircle, PiX, PiPaperPlaneTilt, PiCheckCircle, PiSparkleFill } from 'react-icons/pi'
+import { PiChatCircle, PiX, PiPaperPlaneTilt, PiCheckCircle, PiSparkleFill } from '@/components/ui/icons'
 import { API } from '@/lib/api'
 
 type State = 'closed' | 'open' | 'sent'

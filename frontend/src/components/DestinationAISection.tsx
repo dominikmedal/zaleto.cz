@@ -1,12 +1,6 @@
 'use client'
 import { useState } from 'react'
-import {
-  PiSun,
-  PiMapPin,
-  PiForkKnife,
-  PiMapTrifold,
-  PiCompass,
-} from 'react-icons/pi'
+import { PiSun, PiMapPin, PiForkKnife, PiMapTrifold, PiCompass } from '@/components/ui/icons'
 import type { DestinationAIData, DestinationAIItem } from '@/lib/api'
 
 interface Props {

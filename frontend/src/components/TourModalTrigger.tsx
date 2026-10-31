@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { PiCalendarBlank } from 'react-icons/pi'
+import { PiCalendarBlank } from '@/components/ui/icons'
 import ToursModal from './ToursModal'
 
 interface Props {

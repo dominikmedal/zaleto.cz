@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { PiMapPin, PiBuildings } from 'react-icons/pi'
+import { PiMapPin, PiBuildings } from '@/components/ui/icons'
 import { fetchNearbyHotels } from '@/lib/api'
 import type { NearbyHotel } from '@/lib/types'
 

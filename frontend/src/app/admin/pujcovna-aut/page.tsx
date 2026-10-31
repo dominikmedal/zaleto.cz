@@ -4,11 +4,7 @@ import {
   fetchAdminCarDests, createCarDest, updateCarDest, deleteCarDest,
   AdminCarDest,
 } from '@/lib/adminApi'
-import {
-  PiMagnifyingGlass, PiSpinner, PiTrash, PiPencil, PiPlus,
-  PiCaretLeft, PiCaretRight, PiX, PiCheckCircle, PiCar,
-} from 'react-icons/pi'
-
+import { PiMagnifyingGlass, PiSpinner, PiTrash, PiPencil, PiPlus, PiCaretLeft, PiCaretRight, PiX, PiCheckCircle, PiCar } from '@/components/ui/icons'
 const LIMIT = 50
 
 type EditState = {

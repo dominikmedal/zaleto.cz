@@ -1,12 +1,9 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
-import {
-  PiThermometer, PiSun, PiLeaf, PiWind, PiAirplane,
-  PiCloudSun, PiCalendarBlank, PiMapPin, PiFlower, PiSnowflake,
-} from 'react-icons/pi'
+import { PiThermometer, PiSun, PiLeaf, PiWind, PiAirplane, PiCloudSun, PiCalendarBlank, PiMapPin, PiFlower, PiSnowflake } from '@/components/ui/icons'
 import Header from '@/components/Header'
 import HotelGrid from '@/components/HotelGrid'
 import WeatherWidget from '@/components/WeatherWidget'

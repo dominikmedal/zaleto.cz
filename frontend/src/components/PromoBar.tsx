@@ -1,8 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { PiArrowRight, PiSparkleFill } from 'react-icons/pi'
-
+import { PiArrowRight, PiSparkleFill } from '@/components/ui/icons'
 const PROMOS = [
   { text: 'Letní výprodej — All Inclusive od 8 990 Kč · Porovnej termíny hned', href: '/zajezdy?meal_plan=All+Inclusive&sort=price_asc' },
   { text: 'Egypt v červenci od 9 490 Kč / osoba · Rezervuj s předstihem', href: '/zajezdy?destination=Egypt&sort=price_asc' },

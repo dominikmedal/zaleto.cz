@@ -67,6 +67,7 @@ export default async function HomePage() {
   const heroHotel = deals[0] ?? null
 
   const [lead, ...restStories] = articles
+  const mastPhoto = photos.find(Boolean) ?? heroHotel?.thumbnail_url ?? null
 
   return (
     <>
@@ -74,33 +75,33 @@ export default async function HomePage() {
       <Header />
 
       <main>
-        <div className="z-container" style={{ paddingTop: 24 }}>
-          <section className="z-hero">
-            <span className="z-hero__sun" aria-hidden="true" />
-            <svg className="z-hero__route" viewBox="0 0 1192 560" preserveAspectRatio="none" aria-hidden="true">
-              <path d="M-20 520 C 260 520, 420 300, 640 330 S 900 120, 1000 90" />
-            </svg>
-            <div>
-              <div className="z-kicker">Cestovní deník — {new Date().toLocaleDateString('cs-CZ', { month: 'long', year: 'numeric' })}</div>
-              <h1 className="z-hero__title">kam letos<span className="z-dot">.</span></h1>
-              <p className="z-hero__lead">Zajímavosti o místech, články z cest, zájezdy a auta. Přehledně, na jednom místě.</p>
+        <section className="z-masthead" aria-label="Hledání zájezdu">
+          {mastPhoto && <div className="z-masthead__photo" style={{ backgroundImage: `url("${mastPhoto}")` }} aria-hidden="true" />}
+          <span className="z-masthead__sun" aria-hidden="true" />
+          <svg className="z-masthead__route" viewBox="0 0 1600 360" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M-20 330 C 320 340, 520 160, 860 200 S 1300 60, 1640 40" />
+          </svg>
+          <div className="z-masthead__inner">
+            <div className="z-masthead__head">
+              <div>
+                <div className="z-kicker">Cestovní deník — {new Date().toLocaleDateString('cs-CZ', { month: 'long', year: 'numeric' })}</div>
+                <h1 className="z-masthead__title">kam letos<span className="z-dot">.</span></h1>
+              </div>
+              <p className="z-masthead__lead">
+                Zajímavosti o místech, články z cest, zájezdy a auta. Přehledně, na jednom místě.
+                {heroHotel && (
+                  <>
+                    {' '}
+                    <Link href={`/hotel/${heroHotel.slug}`} className="z-masthead__tip">
+                      Tip týdne: {heroHotel.resort_town ?? heroHotel.country} od {formatPrice(heroHotel.min_price)}
+                    </Link>
+                  </>
+                )}
+              </p>
             </div>
-            {heroHotel && (
-              <Link className="z-hero__window z-window" href={`/hotel/${heroHotel.slug}`} aria-label={`${heroHotel.name} od ${formatPrice(heroHotel.min_price)}`}>
-                <div className="z-window__frame">
-                  <div className="z-window__glass">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={heroHotel.thumbnail_url!} alt="" />
-                  </div>
-                  <span className="z-stamp z-stamp--fill" style={{ top: 'auto', bottom: '16%', right: -18 }}>
-                    {heroHotel.resort_town ?? heroHotel.country} · od {formatPrice(heroHotel.min_price)}
-                  </span>
-                </div>
-              </Link>
-            )}
-          </section>
-          <SearchBox />
-        </div>
+            <SearchBox />
+          </div>
+        </section>
 
         {countries.length > 0 && (
           <section className="z-container z-section">

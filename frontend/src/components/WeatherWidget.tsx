@@ -1,10 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import {
-  PiSun, PiCloudSun, PiCloud, PiCloudRain, PiCloudSnow,
-  PiCloudLightning, PiWind, PiDrop,
-} from 'react-icons/pi'
-
+import { PiSun, PiCloudSun, PiCloud, PiCloudRain, PiCloudSnow, PiCloudLightning, PiWind, PiDrop } from '@/components/ui/icons'
 interface WeatherDay { date: string; maxTemp: number; minTemp: number; code: number; precipProb: number }
 interface WeatherData { current: { temp: number; code: number; humidity: number; windSpeed: number }; days: WeatherDay[] }
 type WmoEntry = { label: string; Icon: React.ElementType; color: string }
