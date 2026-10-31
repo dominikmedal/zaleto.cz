@@ -24,7 +24,7 @@ export default function CollapsibleSection({ title, defaultOpen = true, lazy = f
   }
 
   return (
-    <section className="z-coll">
+    <section className="z-coll" data-rail={title}>
       <button type="button" onClick={toggle} className="z-coll__head" aria-expanded={open}>
         <h2 className="h3">{title}<span className="z-dot">.</span></h2>
         <Icon name="chevron" className={open ? 'z-coll__chev z-coll__chev--open' : 'z-coll__chev'} />

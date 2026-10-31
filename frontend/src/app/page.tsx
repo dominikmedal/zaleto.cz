@@ -113,10 +113,10 @@ export default async function HomePage() {
         </section>
 
         <div className="z-sheet">
-          <div className="z-container" style={{ paddingTop: 'var(--space-5)' }}><CarRentalResults /></div>
+          <div className="z-container"><CarRentalResults /></div>
 
         {countries.length > 0 && (
-          <section className="z-container z-section">
+          <section className="z-container z-section z-section--tight">
             <SectionHead num="01" kicker="Destinace" title="kam za sluncem" moreHref="/destinace" moreLabel="Všechny destinace" />
             <div className="z-grid-4 z-windows z-windows--sm">
               {countries.map((c, i) => (

@@ -108,7 +108,7 @@ type Item = { name: string; description: string }
 
 function Block({ id, kicker, title, children }: { id: string; kicker: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="z-cardest__block">
+    <section id={id} data-rail={kicker} className="z-cardest__block">
       <div className="z-shead" style={{ marginBottom: 'var(--space-5)' }}>
         <div>
           <div className="z-kicker">{kicker}</div>
@@ -242,7 +242,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
           </div>
         )}
 
-        <section id="zajezdy" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 56px)' }}>
+        <section id="zajezdy" data-rail="Zájezdy" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 56px)' }}>
           <div className="z-shead">
             <div>
               <div className="z-kicker">Zájezdy</div>
@@ -268,7 +268,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
         </section>
 
         {articles.length > 0 && (
-          <section id="clanky" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 56px)' }}>
+          <section id="clanky" data-rail="Články" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 56px)' }}>
             <div className="z-shead">
               <div>
                 <div className="z-kicker">Z cest</div>

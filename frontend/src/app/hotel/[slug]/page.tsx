@@ -224,7 +224,7 @@ export default async function HotelDetailPage({ params }: Props) {
               </CollapsibleSection>
             )}
 
-            <section id="terminy" className="z-coll" style={{ scrollMarginTop: 'calc(var(--header-height) + 16px)' }}>
+            <section id="terminy" data-rail="Termíny" className="z-coll" style={{ scrollMarginTop: 'calc(var(--header-height) + 16px)' }}>
               <div className="z-coll__head" style={{ cursor: 'default' }}>
                 <h2 className="h3">dostupné termíny<span className="z-dot">.</span></h2>
                 <span className="z-chip z-chip--sky">{tourCount} {tourCount === 1 ? 'termín' : tourCount < 5 ? 'termíny' : 'termínů'}</span>
@@ -328,7 +328,7 @@ async function SimilarHotels({ hotel, exclude }: { hotel: Hotel; exclude: string
   if (similar.length === 0) return null
   const where = hotel.resort_town ?? region ?? hotel.country
   return (
-    <section className="z-container z-section" aria-labelledby="podobne-hotely">
+    <section className="z-container z-section" data-rail="Podobné hotely" aria-labelledby="podobne-hotely">
       <div className="z-shead">
         <div>
           <div className="z-kicker">{where ? `Další v lokalitě ${where}` : 'Další nabídky'}</div>

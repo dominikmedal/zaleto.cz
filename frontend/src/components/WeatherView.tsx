@@ -183,7 +183,7 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
 
 function Section({ id, kicker, title, more, children }: { id: string; kicker: string; title: string; more?: { href: string; label: string }; children: React.ReactNode }) {
   return (
-    <section id={id} style={{ scrollMarginTop: 'calc(var(--header-height) + 16px)' }}>
+    <section id={id} data-rail={kicker} style={{ scrollMarginTop: 'calc(var(--header-height) + 16px)' }}>
       <div className="z-shead">
         <div>
           <div className="z-kicker">{kicker}</div>

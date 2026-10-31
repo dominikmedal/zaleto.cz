@@ -179,7 +179,7 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
 
 function Block({ id, kicker, title, more, children }: { id?: string; kicker: string; title: string; more?: { href: string; label: string }; children: ReactNode }) {
   return (
-    <section id={id} className="z-cardest__block">
+    <section id={id} data-rail={kicker} className="z-cardest__block">
       <div className="z-shead" style={{ marginBottom: 'var(--space-5)' }}>
         <div>
           <div className="z-kicker">{kicker}</div>

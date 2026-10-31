@@ -1397,3 +1397,27 @@ a.z-offer:hover { box-shadow: var(--shadow-lift, 0 18px 36px -16px rgba(11, 27, 
 .z-dsuggest__ic .zi { width: 22px; height: 22px; }
 .z-sr-item__icon { background: linear-gradient(145deg, #e3f3ff, #c3e1ff); box-shadow: inset 0 0 0 1px rgba(0, 120, 220, .12); }
 .z-masthead__searchwrap { display: block; }
+
+/* Homepage: menší mezera nad prvním nadpisem pod záhlavím */
+.z-section--tight { padding-top: var(--space-6) !important; }
+@media (max-width: 767px) { .z-section--tight { padding-top: var(--space-5) !important; } }
+
+/* ---------- Virtuální posuvník se značkami sekcí (jen desktop) ---------- */
+.z-rail { display: none; }
+@media (min-width: 1200px) {
+  .z-rail { display: block; position: fixed; right: 10px; top: 50%; transform: translateY(-50%); height: min(62vh, 560px); width: 24px; z-index: 40; }
+  .z-rail__track { position: relative; height: 100%; width: 100%; cursor: pointer; touch-action: none; user-select: none; }
+  .z-rail__track::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 4px; margin-left: -2px; border-radius: 4px; background: rgba(11, 27, 51, .14); }
+  .z-rail__fill { position: absolute; left: 50%; top: 0; width: 4px; margin-left: -2px; border-radius: 4px; background: var(--brand); pointer-events: none; }
+  .z-rail__thumb { position: absolute; left: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--ink); border: 3px solid var(--paper); box-shadow: 0 2px 8px rgba(11, 27, 51, .35); pointer-events: none; transition: transform .15s; }
+  .z-rail[data-dragging] .z-rail__thumb { transform: scale(1.25); }
+  .z-rail__mark { position: absolute; left: 50%; width: 24px; height: 24px; margin: -12px 0 0 -12px; padding: 0; border: 0; background: transparent; cursor: pointer; display: grid; place-items: center; }
+  .z-rail__mark i { width: 10px; height: 10px; border-radius: 50%; background: var(--paper); border: 2px solid var(--line-strong); transition: transform .15s, background .15s, border-color .15s; }
+  .z-rail__mark[data-passed] i { border-color: var(--brand-strong); }
+  .z-rail__mark[data-active] i { background: var(--brand-strong); border-color: var(--brand-strong); transform: scale(1.35); }
+  .z-rail__label { position: absolute; right: 30px; top: 50%; transform: translateY(-50%) translateX(6px); padding: 4px 11px; border-radius: var(--radius-pill); background: var(--ink); color: var(--paper); font: 500 12px/18px var(--font-sans); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; box-shadow: 0 6px 16px rgba(11, 27, 51, .25); }
+  .z-rail__mark:hover .z-rail__label, .z-rail__mark:focus-visible .z-rail__label, .z-rail__mark[data-active] .z-rail__label { opacity: 1; transform: translateY(-50%); }
+  .z-rail__mark[data-active]:not(:hover) .z-rail__label { background: var(--paper); color: var(--ink); box-shadow: 0 0 0 1.5px var(--line-strong); }
+  .z-rail__mark:focus-visible { outline: 2px solid var(--brand-strong); outline-offset: 2px; border-radius: 50%; }
+}
+@media (prefers-reduced-motion: reduce) { .z-rail__thumb, .z-rail__label, .z-rail__mark i { transition: none; } }
