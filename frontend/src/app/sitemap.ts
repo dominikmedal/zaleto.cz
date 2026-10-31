@@ -3,8 +3,7 @@ import { fetchAllHotelSlugs, fetchAllArticleSlugs, fetchDestinations, fetchDynam
 import { slugify } from '@/lib/slugify'
 import { CAR_DESTINATIONS, mergeDestinations } from '@/lib/carRental'
 
-// Nevygenerovat při buildu — Railway by timeoutovalo.
-// Sitemap se vygeneruje on-demand a Vercel ji cachuje 24 hodin.
+// Sitemap se generuje on-demand (nikdy při buildu) a Vercel ji cachuje 24 hodin.
 export const dynamic = 'force-dynamic'
 export const revalidate = 86400
 
@@ -13,16 +12,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
 
   // ── Statické stránky ──────────────────────────────────────────────────────
+  // Stránky s pevným obsahem mají pevné datum změny; seznamy nabídek se mění průběžně.
+  const staticDate = new Date('2026-10-31T00:00:00Z')
   const staticPages: MetadataRoute.Sitemap = [
-    { url: base,                               lastModified: now, changeFrequency: 'hourly',  priority: 1.0 },
-    { url: `${base}/?tour_type=last_minute`,   lastModified: now, changeFrequency: 'hourly',  priority: 0.9 },
-    { url: `${base}/?tour_type=first_minute`,  lastModified: now, changeFrequency: 'daily',   priority: 0.85 },
-    { url: `${base}/destinace`,                lastModified: now, changeFrequency: 'daily',   priority: 0.85 },
-    { url: `${base}/clanky`,                   lastModified: now, changeFrequency: 'daily',   priority: 0.8 },
-    { url: `${base}/faq`,                      lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${base}/kontakt`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
-    { url: `${base}/o-zaleto`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
-    { url: `${base}/pujcovna-aut`,             lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
+    { url: base,                                    lastModified: now,        changeFrequency: 'hourly',  priority: 1.0 },
+    { url: `${base}/zajezdy`,                       lastModified: now,        changeFrequency: 'hourly',  priority: 0.9 },
+    { url: `${base}/zajezdy?tour_type=last_minute`, lastModified: now,        changeFrequency: 'hourly',  priority: 0.9 },
+    { url: `${base}/zajezdy?tour_type=first_minute`, lastModified: now,       changeFrequency: 'daily',   priority: 0.85 },
+    { url: `${base}/destinace`,                     lastModified: now,        changeFrequency: 'daily',   priority: 0.85 },
+    { url: `${base}/clanky`,                        lastModified: now,        changeFrequency: 'daily',   priority: 0.8 },
+    { url: `${base}/pujcovna-aut`,                  lastModified: now,        changeFrequency: 'weekly',  priority: 0.85 },
+    { url: `${base}/faq`,                           lastModified: staticDate, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${base}/kontakt`,                       lastModified: staticDate, changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${base}/o-zaleto`,                      lastModified: staticDate, changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${base}/ochrana-osobnich-udaju`,        lastModified: staticDate, changeFrequency: 'yearly',  priority: 0.3 },
   ]
 
   // ── Stránky destinací ─────────────────────────────────────────────────────

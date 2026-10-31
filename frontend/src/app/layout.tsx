@@ -86,13 +86,26 @@ const orgSchema = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'Zaleto',
+  legalName: 'Bc. Dominik Medal',
   url: 'https://zaleto.cz',
   logo: 'https://zaleto.cz/img/logo/logo.png',
-  description: 'Zaleto je český srovnávač leteckých zájezdů od předních cestovních kanceláří.',
+  description: 'Zaleto je český srovnávač zájezdů od českých cestovních kanceláří a půjčoven aut.',
   email: 'info@zaleto.cz',
+  identifier: { '@type': 'PropertyValue', propertyID: 'IČO', value: '17271541' },
   address: {
     '@type': 'PostalAddress',
+    streetAddress: 'Majerského 2032/9',
+    addressLocality: 'Praha 4 - Chodov',
+    postalCode: '149 00',
     addressCountry: 'CZ',
+  },
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'customer support',
+    email: 'info@zaleto.cz',
+    availableLanguage: ['cs'],
+    areaServed: 'CZ',
+    url: 'https://zaleto.cz/kontakt',
   },
 }
 

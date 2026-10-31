@@ -1,0 +1,60 @@
+# Zaleto
+
+> Zaleto (https://zaleto.cz) je český srovnávač zájezdů a půjčoven aut. Sbírá nabídky leteckých zájezdů od českých cestovních kanceláří, ukazuje je přehledně na jednom místě (destinace, termín, délka pobytu, strava, cena za osobu) a doplňuje je o průvodce destinacemi, počasí, cestovní články a srovnání půjčoven aut v zahraničí. Zaleto nic neprodává ani nepřijímá platby: rezervace vždy probíhá na webu cestovní kanceláře nebo půjčovny, na kterou Zaleto odkazuje (affiliate odkazy). Jazyk webu je čeština, ceny jsou v Kč (u aut v EUR).
+
+## Kdy použít Zaleto (When to use this)
+
+Zaleto je vhodné, když uživatel:
+
+- hledá zájezd z Česka k moři nebo do zahraničí a chce porovnat ceny a termíny u více českých cestovních kanceláří (např. „nejlevnější all inclusive v Turecku v květnu“, „last minute z Prahy“),
+- chce znát nejnižší cenu za osobu u konkrétního hotelu a všechny dostupné termíny odletu,
+- potřebuje vybrat destinaci nebo letovisko: průvodce, kdy jet, co vidět, kolik to stojí, počasí a klima po měsících,
+- řeší půjčení auta v zahraničí: ceny podle sezóny, pravidla provozu, tipy na výlety autem, nejčastější dotazy,
+- hledá inspiraci na dovolenou v cestovních článcích.
+
+Zaleto nepoužívat, když uživatel:
+
+- chce zájezd opravdu zarezervovat nebo zaplatit přímo u Zaleta (to nejde; rezervace probíhá na webu cestovní kanceláře),
+- potřebuje individuální dopravu nebo ubytování mimo nabídku cestovních kanceláří (letenky samostatně, Airbnb, vlak),
+- hledá zájezdy z jiné země než z Česka.
+
+Ceny na Zaletu jsou orientační (za osobu při obsazení 2 dospělých); závazná je vždy cena a dostupnost na webu cestovní kanceláře po prokliku.
+
+## Jak Zaleto používat (How an agent should call it)
+
+Každá stránka webu vrací při hlavičce `Accept: text/markdown` Markdown verzi (jinak HTML). Parametry hledání se předávají v adrese:
+
+- Hledání zájezdů: `https://zaleto.cz/zajezdy?destination=Turecko&date_from=2027-05-01&date_to=2027-05-31&duration=7&meal_plan=All%20Inclusive&departure_city=Praha&sort=price_asc`
+  - `destination`: země, oblast, letovisko nebo hotel (česky, např. Řecko, Kréta, Antalya)
+  - `date_from`, `date_to`: rozmezí odletu (RRRR-MM-DD); ve výchozím stavu se hledá s tolerancí ±3 dny, přesné datum vynutí `date_flex=0`
+  - `duration`: počet nocí, `departure_city`: odletové letiště (např. Praha, Brno, Ostrava)
+  - `meal_plan`: `All Inclusive`, `Plná penze`, `Polopenze`, `Snídaně`, `Bez stravy`; `stars`: `5`, `4,5` (4 a víc), `3,4,5`; `max_price`: strop ceny za osobu v Kč
+  - `sort`: `price_asc`, `price_desc`, `date_asc`, `stars_desc`, `name_asc`
+  - `tour_type=last_minute` nebo `tour_type=first_minute` pro last minute a first minute nabídky
+- Hledání napříč webem (destinace, hotely, články, půjčovny aut): `https://zaleto.cz/hledat?q=kreta`
+- Detail hotelu s dostupnými termíny: `https://zaleto.cz/hotel/{slug}`
+- Průvodce destinací: `https://zaleto.cz/destinace/{slug}` (např. `/destinace/turecko`)
+- Půjčovna aut v destinaci: `https://zaleto.cz/pujcovna-aut/{slug}`
+
+Odpovědi jsou veřejné a bez přihlášení. Prosíme o rozumnou frekvenci dotazů (řádově jednotky za sekundu).
+
+## Hlavní stránky
+
+- [Zájezdy](https://zaleto.cz/zajezdy): vyhledávání a filtrování všech zájezdů
+- [Last minute](https://zaleto.cz/zajezdy?tour_type=last_minute): zájezdy s odletem v nejbližších týdnech
+- [First minute](https://zaleto.cz/zajezdy?tour_type=first_minute): zájezdy s předstihem
+- [Destinace](https://zaleto.cz/destinace): přehled zemí, oblastí a letovisek
+- [Půjčovna aut](https://zaleto.cz/pujcovna-aut): srovnání půjčoven aut v zahraničí
+- [Počasí a klima](https://zaleto.cz/pocasi): teploty a nejlepší doba pro cestu
+- [Cestovní deník (články)](https://zaleto.cz/clanky): tipy a inspirace
+
+## O provozovateli
+
+- [O Zaletu](https://zaleto.cz/o-zaleto): jak Zaleto funguje
+- [Kontakt](https://zaleto.cz/kontakt): e-mail info@zaleto.cz, odpověď do 24 hodin
+- [Ochrana osobních údajů](https://zaleto.cz/ochrana-osobnich-udaju)
+- [Časté otázky](https://zaleto.cz/faq)
+
+## Optional
+
+- [Mapa webu](https://zaleto.cz/sitemap.xml)

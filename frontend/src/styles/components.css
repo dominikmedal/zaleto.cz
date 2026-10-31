@@ -1301,3 +1301,61 @@ body:has(.z-section--deep:last-child) .z-footer { margin-top: 0; }
 .z-ad__go::after { content: ""; position: absolute; inset: 0; z-index: 3; border-radius: inherit; }
 .z-ad__go { position: static; }
 body:has(.z-mnav) .z-chat, body:has(.z-mnav) .z-toasts { display: none; }
+
+/* ---------- Mobil: kompaktní vyhledávací lístek (zájezdy i auta) ---------- */
+@media (max-width: 767px) {
+  .z-search .z-tk__in { display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 4px; }
+  .z-search .z-sfield { padding: 9px 14px 10px; gap: 1px; border: 0 !important; border-top: 2px dotted var(--line) !important; min-width: 0; max-width: none !important; }
+  .z-search .z-sfield__sub { display: none; }
+  .z-search .z-sfield__label { font-size: 10px; }
+  .z-search .z-sfield :is(input, select), .z-search .z-sfield .z-picker button, .z-search .z-sfield__value { font-size: 19px !important; line-height: 25px !important; }
+  .z-search .z-sfield .z-iconbtn { font-size: inherit; }
+
+  /* homepage: Kam přes celou šířku, Odkud | Kdy, Osoby | Hledat */
+  .z-masthead__search .z-tk__in > :nth-child(1) { grid-column: 1 / -1; border-top: 0 !important; }
+  .z-masthead__search .z-tk__in > :nth-child(3) { border-left: 2px dotted var(--line) !important; }
+  .z-masthead__search .z-tk__in > :nth-child(4) { grid-column: 1; }
+  .z-masthead__search .z-tk__in > .z-search__go { grid-column: 2; border-top: 2px dotted var(--line); }
+
+  /* půjčovna aut: místo a termín přes celou šířku, Čas | Věk, Hledat přes celou šířku */
+  .z-carform .z-sfield--wide { grid-column: 1 / -1; }
+  .z-carform > :first-child { border-top: 0 !important; }
+  .z-carform > .z-sfield:nth-last-child(2) { border-left: 2px dotted var(--line) !important; }
+  .z-carform > .z-search__go { grid-column: 1 / -1; }
+
+  /* počet osob: kompaktní stepper */
+  .z-sfield--persons { min-width: 0; }
+  .z-persons { margin-left: -4px; gap: 2px; }
+  .z-persons .z-iconbtn { width: 32px; height: 32px; }
+  .z-persons output { min-width: 52px; }
+  .z-persons output b { font-size: 20px; }
+
+  /* hlavní tlačítko: široké s popiskem místo kulatého s lupou */
+  .z-search .z-search__go { width: auto; padding: 8px 6px 6px; display: block; }
+  .z-search .z-search__go .z-round { width: 100%; height: 52px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+  .z-search .z-search__go .z-round::after { content: "Hledat"; font: 600 16px/1 var(--font-sans); }
+  .z-search .z-search__go .z-round:hover { transform: none; }
+  .z-search .z-tk__in .z-return, .z-return { padding: 10px 14px; }
+}
+
+/* ---------- Dotyková zařízení a telefony: žádné hover efekty a přechody na položkách ---------- */
+@media (hover: none), (max-width: 767px) {
+  a.z-tk:hover { transform: none; filter: drop-shadow(0 1px 0 rgba(11, 27, 51, .07)) drop-shadow(0 14px 18px rgba(11, 27, 51, .14)); }
+  .z-tk, .z-window__glass img, .z-story__media img, .z-story__title span, .z-cardphotos img, .z-round, .z-heart, .z-navtab, .z-btn__go, .z-photohit img { transition: none !important; }
+  .z-window:hover .z-window__glass img, .z-story:hover .z-story__media img, .z-photohit:hover img { transform: none; }
+  .z-window:hover .z-window__glass::after { height: 0; }
+  .z-window__glass::after { transition: none; }
+  .z-story:hover .z-story__title span { background-size: 0 2px; }
+  .z-round:hover, .z-heart:hover, .z-navtab:hover { transform: none; }
+  .z-btn:hover .z-btn__go, .z-navtab:hover .z-navtab__go { transform: none; }
+}
+
+/* Zvýrazněná část hlavního nadpisu: oranžový přechod (barva nabídek) */
+.z-hl { background: linear-gradient(95deg, #ffb347 0%, var(--accent, #ff7a1a) 55%, #ff5a1f 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; padding-bottom: .06em; }
+
+@media (max-width: 767px) {
+  .z-search .z-sfield { border-radius: 0; }
+  .z-search .z-sfield .z-datetrigger__btn { font-size: 19px !important; line-height: 25px !important; }
+  .z-search .z-sfield .z-datetrigger { font-size: 19px; line-height: 25px; }
+  .z-masthead__search .z-tk__in > .z-search__go { border-radius: 0; }
+}

@@ -32,6 +32,14 @@ const nextConfig = {
       { source: '/', has: [{ type: 'query', key: 'sort' }], destination: '/zajezdy', permanent: true },
     ]
   },
+  // Anglické adresy pro AI agenty a vyhledávače (obsah se servíruje přímo, bez přesměrování)
+  async rewrites() {
+    return [
+      { source: '/about', destination: '/o-zaleto' },
+      { source: '/contact', destination: '/kontakt' },
+      { source: '/privacy', destination: '/ochrana-osobnich-udaju' },
+    ]
+  },
   images: {
     unoptimized: true,
     remotePatterns: [

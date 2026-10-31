@@ -67,6 +67,22 @@ export default function KontaktPage() {
           </div></div>
         </div>
 
+        <section className="z-section" style={{ paddingTop: 'var(--space-7)', maxWidth: 'var(--article-max)' }}>
+          <h2 className="h3">s čím ti poradíme<span className="z-dot">.</span></h2>
+          <div className="z-prose" style={{ marginTop: 'var(--space-3)' }}>
+            <p>
+              Zaleto je nezávislý srovnávač zájezdů a půjčoven aut. Napiš nám, pokud si nevíš rady s hledáním zájezdu, chybí ti
+              nějaká destinace, narazil jsi na chybnou cenu nebo termín, nebo máš tip, co bychom na webu měli zlepšit.
+              Odpovídáme v pracovní dny, obvykle do 24 hodin.
+            </p>
+            <p>
+              Rezervace a platby zájezdů probíhají přímo u cestovních kanceláří, proto s provedenou rezervací, fakturou nebo reklamací
+              prosím kontaktuj příslušnou cestovní kancelář. Informace o tom, jak nakládáme s tvými údaji, najdeš v&nbsp;
+              <a href="/ochrana-osobnich-udaju">zásadách ochrany osobních údajů</a>, a jak Zaleto funguje, vysvětlujeme na stránce <a href="/o-zaleto">Co je Zaleto</a>.
+            </p>
+          </div>
+        </section>
+
         <p className="z-data" style={{ marginTop: 'var(--space-6)', maxWidth: 640 }}>
           Zaleto je srovnávač zájezdů, rezervace probíhají přímo u cestovních kanceláří. S dotazy k provedené rezervaci se obrať na příslušnou CK.
         </p>

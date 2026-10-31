@@ -23,7 +23,11 @@ export const metadata: Metadata = {
     description: 'Zájezdy od českých cestovních kanceláří a auta na dovolenou. Ceny porovnáme za tebe.',
     url: 'https://zaleto.cz',
     type: 'website',
+    siteName: 'Zaleto',
+    locale: 'cs_CZ',
+    images: [{ url: 'https://zaleto.cz/img/og-image.png', width: 1200, height: 630, alt: 'Zaleto — najdi dovolenou za nejlepší cenu' }],
   },
+  twitter: { card: 'summary_large_image', images: ['https://zaleto.cz/img/og-image.png'] },
 }
 
 const siteSchema = {
@@ -33,7 +37,7 @@ const siteSchema = {
   url: 'https://zaleto.cz',
   potentialAction: {
     '@type': 'SearchAction',
-    target: { '@type': 'EntryPoint', urlTemplate: 'https://zaleto.cz/zajezdy?destination={search_term_string}' },
+    target: { '@type': 'EntryPoint', urlTemplate: 'https://zaleto.cz/hledat?q={search_term_string}' },
     'query-input': 'required name=search_term_string',
   },
 }
@@ -88,7 +92,7 @@ export default async function HomePage() {
             <div className="z-masthead__head">
               <div>
                 <div className="z-kicker">Srovnání zájezdů a půjčoven aut</div>
-                <h1 className="z-masthead__title">najdi dovolenou za nejlepší cenu<span className="z-dot">.</span></h1>
+                <h1 className="z-masthead__title">najdi dovolenou za <span className="z-hl">nejlepší cenu</span><span className="z-dot">.</span></h1>
               </div>
               <p className="z-masthead__lead">
                 Tisíce termínů od českých cestovních kanceláří i auta na dovolenou na jednom místě. Ceny porovnáme, rezervuješ přímo u nich.
