@@ -26,6 +26,7 @@ import ScrollToTop from '@/components/ScrollToTop'
 import Footer from '@/components/Footer'
 import NavigationProgress from '@/components/NavigationProgress'
 import OfferBar from '@/components/OfferBar'
+import ExitOffer from '@/components/ExitOffer'
 import FieldClicks from '@/components/ui/FieldClicks'
 import ServiceWorkerSetup from '@/components/ServiceWorkerSetup'
 import JsonLd from '@/components/JsonLd'
@@ -117,6 +118,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <ScrollToTop />
         <ChatWidget />
+        <ExitOffer />
       </body>
     </html>
   )

@@ -1172,3 +1172,22 @@ body:has(.z-offerbar) .z-header { top: 40px; }
   .z-tour .z-price, .z-tour .z-price__amount { font-size: 24px; }
   .z-tour .z-round { width: 44px !important; height: 44px !important; }
 }
+
+/* Dialog „než odejdeš“ */
+.z-exit { z-index: 120; }
+.z-exit__panel { position: relative; width: min(440px, calc(100% - 32px)); animation: z-exit-in .35s cubic-bezier(.2, .8, .2, 1); --cut: 112px; }
+@keyframes z-exit-in { from { opacity: 0; transform: translateY(24px) scale(.97); } to { opacity: 1; transform: none; } }
+.z-exit .z-tk__in { padding: 10px; display: flex; flex-direction: column; }
+.z-exit__close { position: absolute; right: 18px; top: 18px; z-index: 3; width: 40px; height: 40px; background: var(--raised); box-shadow: var(--shadow-ticket); }
+.z-exit__stamp { position: absolute; left: -8px; top: 24px; z-index: 3; transform: rotate(-4deg); }
+.z-exit__media { aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; background: var(--paper-deep); }
+.z-exit__media img { width: 100%; height: 100%; object-fit: cover; }
+.z-exit__body { padding: var(--space-4) var(--space-3) var(--space-4); display: grid; gap: var(--space-2); }
+.z-exit__title { margin: 0; font: 600 40px/42px var(--font-serif); letter-spacing: -0.03em; }
+.z-exit__hotel { margin: 0; font: 500 17px/24px var(--font-sans); }
+.z-exit__stub { min-height: calc(var(--cut) - 10px); display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 0 var(--space-3); flex-wrap: wrap; }
+.z-exit__stub .z-price { display: block; font-size: 32px; line-height: 36px; color: var(--accent-strong); }
+.z-exit__skip { display: block; margin: var(--space-3) auto 0; background: none; border: 0; cursor: pointer; color: var(--on-night); }
+.z-exit .z-modal__scrim { backdrop-filter: blur(3px); }
+@media (max-width: 480px) { .z-exit__title { font-size: 34px; line-height: 36px; } .z-exit__stub { padding-bottom: var(--space-3); } }
+@media (prefers-reduced-motion: reduce) { .z-exit__panel { animation: none; } }
