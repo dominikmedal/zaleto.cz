@@ -111,6 +111,15 @@ export async function fetchDestinationPhoto(destination: string): Promise<string
   } catch { return null }
 }
 
+export async function fetchDestinationPhotoCredit(destination: string): Promise<{ url: string | null; credit: string | null; creditUrl: string | null }> {
+  try {
+    const res = await apiFetch(`/api/destination-photo/${encodeURIComponent(destination)}`, { next: { revalidate: 86400 } })
+    if (!res.ok) return { url: null, credit: null, creditUrl: null }
+    const d = await res.json()
+    return { url: d.url ?? null, credit: d.credit ?? null, creditUrl: d.creditUrl ?? null }
+  } catch { return { url: null, credit: null, creditUrl: null } }
+}
+
 export async function fetchWikiSummary(query: string): Promise<{
   title: string; extract: string; thumbnail?: { source: string; width: number; height: number }
 } | null> {

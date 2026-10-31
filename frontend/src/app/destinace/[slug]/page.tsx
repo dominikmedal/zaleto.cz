@@ -10,7 +10,7 @@ import TourAd from '@/components/ui/TourAd'
 import StoryCard from '@/components/ui/StoryCard'
 import NavTabs, { type NavTabItem } from '@/components/ui/NavTabs'
 import { PlaceTickets, FoodMenu, TripRoute } from '@/components/ui/ItemCard'
-import { fetchDestinations, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI, fetchHotels, fetchArticles } from '@/lib/api'
+import { fetchDestinations, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationPhotoCredit, fetchDestinationAI, fetchHotels, fetchArticles } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 
 export const revalidate = 3600
@@ -126,7 +126,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
 
   const [destAI, heroPhoto, result, articles] = await Promise.all([
     fetchDestinationAI(dest.name).catch(() => null),
-    fetchDestinationPhoto(dest.name).then(u => u ?? (dest.country && dest.country !== dest.name ? fetchDestinationPhoto(dest.country) : null)).catch(() => null),
+    fetchDestinationPhotoCredit(dest.name).then(async r => (r.url ? r : dest.country && dest.country !== dest.name ? fetchDestinationPhotoCredit(dest.country) : r)),
     fetchHotels({ destination: dest.name, sort, page: 1, limit: LIMIT }).catch(() => null),
     fetchArticles(3, dest.name).catch(() => []),
   ])
@@ -194,10 +194,13 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
               {weatherUrl ? <span><Icon name="slunce" /><Link href={weatherUrl} style={{ color: 'inherit' }}>Počasí a klima</Link></span> : null}
             </div>
           </div>
-          {heroPhoto && (
+          {heroPhoto?.url && (
             <div className="z-cardest__photo">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={heroPhoto} alt={dest.name} />
+              <img src={heroPhoto.url} alt={dest.name} />
+              {heroPhoto.credit && (
+                <span className="z-photocredit">Foto: <a href={heroPhoto.creditUrl ?? 'https://unsplash.com'} target="_blank" rel="noopener noreferrer">{heroPhoto.credit}</a> / <a href="https://unsplash.com/?utm_source=zaleto&utm_medium=referral" target="_blank" rel="noopener noreferrer">Unsplash</a></span>
+              )}
             </div>
           )}
         </div>

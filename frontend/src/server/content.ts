@@ -103,19 +103,21 @@ async function hotelPhoto(name: string): Promise<string | null> {
 }
 
 const missingUntil = new Map<string, number>()
+const creditCache = new Map<string, { credit: string; creditUrl: string | null }>()
 
 /** Pořadí: uložená původní fotka → Pexels (je-li klíč) → fotka hotelu z destinace. */
-export async function destinationPhoto(name: string): Promise<{ url: string | null }> {
+export async function destinationPhoto(name: string): Promise<{ url: string | null; credit?: string | null; creditUrl?: string | null }> {
   const key = `photo_${name}`
   const cached = metaCache.get(key)
-  if (cached !== null && cached !== undefined) return { url: cached as string }
+  if (cached !== null && cached !== undefined) return { url: cached as string, ...(creditCache.get(name) ?? {}) }
   if ((missingUntil.get(name) ?? 0) > Date.now()) return { url: null }
   try {
-    const row = (await query('SELECT photo_url FROM destination_photos WHERE name = ?', [name])).rows[0]
+    const row = (await query('SELECT photo_url, photo_credit, photo_credit_url FROM destination_photos WHERE name = ?', [name])).rows[0]
     const usable = row?.photo_url && !String(row.photo_url).startsWith('/uploads/') && !/wikimedia\.org/.test(row.photo_url)
     if (usable) {
       metaCache.set(key, row.photo_url)
-      return { url: row.photo_url }
+      if (row.photo_credit) creditCache.set(name, { credit: row.photo_credit, creditUrl: row.photo_credit_url })
+      return { url: row.photo_url, credit: row.photo_credit ?? null, creditUrl: row.photo_credit_url ?? null }
     }
     const fromPexels = await pexelsPhoto(DEST_EN[name] ?? `${name} travel beach`)
     if (fromPexels) {

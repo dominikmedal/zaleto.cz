@@ -12,6 +12,7 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: '/admin/zajezdy', label: 'Zájezdy', icon: 'letadlo' },
   { href: '/admin/clanky', label: 'Články', icon: 'clanek' },
   { href: '/admin/destinace', label: 'Destinace', icon: 'poloha' },
+  { href: '/admin/fotky', label: 'Fotky destinací', icon: 'foto' },
   { href: '/admin/pujcovna-aut', label: 'Půjčovna aut', icon: 'auto' },
 ]
 

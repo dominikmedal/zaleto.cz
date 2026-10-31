@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 import { put } from '@vercel/blob'
 import { query } from './db'
 import { metaCache } from './cache'
+import { searchUnsplash, registerDownload } from './unsplash'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -293,6 +294,28 @@ export async function handleAdmin(
         await ensureCarDestinationsTable()
         await query('DELETE FROM car_destinations WHERE id = ?', [id])
         return ok()
+
+      // ── Unsplash: kandidáti a výběr fotky destinace ──
+      case 'GET unsplash': {
+        const q = (sp.get('q') ?? '').trim()
+        if (q.length < 2) return ok({ hits: [] })
+        try { return ok({ hits: await searchUnsplash(q, Math.max(1, int(sp.get('page'), 1))) }) }
+        catch (e) { return fail(502, (e as Error).message) }
+      }
+      case 'POST unsplash/:id': {
+        if (id !== 'pick') break
+        const b = body ?? {}
+        if (!b.name || typeof b.url !== 'string' || !b.url.startsWith('https://images.unsplash.com/')) return fail(400, 'name a url (Unsplash) jsou povinné')
+        await query('ALTER TABLE destination_photos ADD COLUMN IF NOT EXISTS photo_credit text, ADD COLUMN IF NOT EXISTS photo_credit_url text')
+        await query(`INSERT INTO destination_photos (name, photo_url, photo_credit, photo_credit_url, updated_at) VALUES (?, ?, ?, ?, NOW())
+                     ON CONFLICT (name) DO UPDATE SET photo_url = EXCLUDED.photo_url, photo_credit = EXCLUDED.photo_credit,
+                       photo_credit_url = EXCLUDED.photo_credit_url, updated_at = NOW()`,
+          [b.name, b.url, n(b.credit), n(b.creditUrl)])
+        if (typeof b.downloadLocation === 'string') await registerDownload(b.downloadLocation)
+        metaCache.delete(`photo_${b.name}`)
+        try { revalidateTag('api') } catch { /* mimo request kontext */ }
+        return ok()
+      }
 
       // ── Upload (Vercel Blob) ──
       case 'POST upload': {
