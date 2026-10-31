@@ -1,4 +1,3 @@
-import 'server-only'
 import { unstable_cache } from 'next/cache'
 import * as hotels from './hotels'
 import * as tours from './tours'

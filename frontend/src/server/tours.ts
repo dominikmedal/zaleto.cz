@@ -1,4 +1,3 @@
-import 'server-only'
 import { query } from './db'
 import { toursCache, metaCache } from './cache'
 import { normalizeMealPlan, MEAL_ORDER } from './mealPlan'

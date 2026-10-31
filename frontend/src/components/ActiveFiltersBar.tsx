@@ -124,7 +124,7 @@ export default function ActiveFiltersBar() {
       for (const key of chip.removeKeys) params.delete(key)
     }
     const qs = params.toString()
-    router.push(qs ? `/?${qs}` : '/')
+    router.push(qs ? `/zajezdy?${qs}` : '/zajezdy')
   }
 
   return (

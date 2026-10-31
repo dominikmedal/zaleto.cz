@@ -1,16 +1,11 @@
 const BASE     = ''
 const FRONTEND = typeof window !== 'undefined' ? window.location.origin : ''
-const REVALIDATE_SECRET = process.env.NEXT_PUBLIC_REVALIDATE_SECRET ?? ''
 
 async function revalidateFrontend(path: string, tag?: string) {
   await fetch(`${FRONTEND}/api/revalidate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      path,
-      ...(tag    ? { tag }    : {}),
-      ...(REVALIDATE_SECRET ? { secret: REVALIDATE_SECRET } : {}),
-    }),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+    body: JSON.stringify({ path, ...(tag ? { tag } : {}) }),
   })
 }
 

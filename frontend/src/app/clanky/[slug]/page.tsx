@@ -195,7 +195,7 @@ export default async function ArticlePage({ params }: Props) {
             <div className="mt-12 pt-8" style={{ borderTop: '1px solid rgba(0,147,255,0.08)' }}>
               <p className="text-gray-500 text-sm mb-4">Hledáte zájezd do {article.location ?? 'této destinace'}?</p>
               <Link
-                href={article.location ? `/?destination=${encodeURIComponent(article.location)}` : '/'}
+                href={article.location ? `/zajezdy?destination=${encodeURIComponent(article.location)}` : '/'}
                 className="btn-cta"
               >
                 Porovnat zájezdy {article.location ? `— ${article.location}` : ''}

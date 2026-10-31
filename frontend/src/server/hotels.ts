@@ -1,4 +1,3 @@
-import 'server-only'
 import { query, withClient } from './db'
 import { hotelsCache, hotelDetailCache } from './cache'
 import { MEAL_SQL } from './mealPlan'

@@ -1,4 +1,3 @@
-import 'server-only'
 import { Pool, neonConfig, type QueryResultRow } from '@neondatabase/serverless'
 
 // Neon pooled connection (pgbouncer) – funguje na Vercelu v Node i Edge runtime.

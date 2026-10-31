@@ -1,4 +1,3 @@
-import 'server-only'
 import { query } from './db'
 import { metaCache } from './cache'
 import { HttpError, type Q } from './hotels'

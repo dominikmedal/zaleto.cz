@@ -1,4 +1,3 @@
-import 'server-only'
 import { query } from './db'
 import type { Q } from './hotels'
 

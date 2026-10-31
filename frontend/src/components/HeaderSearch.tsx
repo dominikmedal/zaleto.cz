@@ -26,7 +26,7 @@ function buildDestOptions(rows: DestRow[]): DestOption[] {
       seen.add(r.country)
       out.push({
         label: r.country,
-        href: `/?destination=${encodeURIComponent(r.country)}`,
+        href: `/zajezdy?destination=${encodeURIComponent(r.country)}`,
         kind: 'country',
         flag: getCountryFlag(r.country) ?? '🌍',
         count: counts.get(r.country),
@@ -36,11 +36,11 @@ function buildDestOptions(rows: DestRow[]): DestOption[] {
     const region = parts[1] ?? parts[0]
     if (region && !seen.has(region)) {
       seen.add(region)
-      out.push({ label: region, href: `/?destination=${encodeURIComponent(region)}`, kind: 'region' })
+      out.push({ label: region, href: `/zajezdy?destination=${encodeURIComponent(region)}`, kind: 'region' })
     }
     if (r.resort_town && !seen.has(r.resort_town)) {
       seen.add(r.resort_town)
-      out.push({ label: r.resort_town, href: `/?destination=${encodeURIComponent(r.resort_town)}`, kind: 'resort' })
+      out.push({ label: r.resort_town, href: `/zajezdy?destination=${encodeURIComponent(r.resort_town)}`, kind: 'resort' })
     }
   }
   return out
@@ -122,7 +122,7 @@ export default function HeaderSearch() {
       if (highlighted >= 0 && highlighted < filteredDest.length) { e.preventDefault(); navigate(filteredDest[highlighted].href); return }
       const hotel = hotelResults[highlighted - filteredDest.length]
       if (hotel) { e.preventDefault(); navigate(`/hotel/${hotel.slug}`); return }
-      if (qNorm.length >= 1) { e.preventDefault(); navigate(`/?destination=${encodeURIComponent(query.trim())}`) }
+      if (qNorm.length >= 1) { e.preventDefault(); navigate(`/zajezdy?destination=${encodeURIComponent(query.trim())}`) }
     }
   }
 

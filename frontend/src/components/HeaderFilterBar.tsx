@@ -164,7 +164,7 @@ export default function HeaderFilterBar() {
   const router   = useRouter()
   const [isPending, startTransition] = useTransition()
 
-  const isHome = pathname === '/'
+  const isHome = pathname === '/zajezdy'
 
   // ── Initial state: from URL (home page) or sessionStorage (hotel pages) ───
   const getInitialState = () => {
@@ -304,7 +304,7 @@ export default function HeaderFilterBar() {
     const timer = setTimeout(() => {
       // Notify HotelGrid immediately — before router navigation commits
       window.dispatchEvent(new CustomEvent('filterchange', { detail: qs }))
-      startTransition(() => router.push(qs ? `/?${qs}` : '/'))
+      startTransition(() => router.push(qs ? `/zajezdy?${qs}` : '/zajezdy'))
     }, 350)
     return () => clearTimeout(timer)
   }, [stateKey]) // eslint-disable-line react-hooks/exhaustive-deps

@@ -12,7 +12,7 @@ type NextInit = RequestInit & { next?: { revalidate?: number | false; tags?: str
  */
 export async function apiFetch(path: string, init: NextInit = {}): Promise<{ ok: boolean; status: number; json: () => Promise<any> }> {
   if (typeof window === 'undefined') {
-    const { dispatch } = await import('../server/dispatch')
+    const { dispatch } = await import('@/server/dispatch')
     const r = await dispatch(path, { revalidate: init.next?.revalidate, tags: init.next?.tags })
     return { ok: r.ok, status: r.status, json: async () => r.data }
   }

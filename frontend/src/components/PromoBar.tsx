@@ -4,12 +4,12 @@ import { useRouter } from 'next/navigation'
 import { PiArrowRight, PiSparkleFill } from 'react-icons/pi'
 
 const PROMOS = [
-  { text: 'Letní výprodej — All Inclusive od 8 990 Kč · Porovnej termíny hned', href: '/?meal_plan=All+Inclusive&sort=price_asc' },
-  { text: 'Egypt v červenci od 9 490 Kč / osoba · Rezervuj s předstihem', href: '/?destination=Egypt&sort=price_asc' },
-  { text: 'Řecko 7 nocí All Inclusive od 7 990 Kč · Zjistit víc', href: '/?destination=%C5%98ecko&meal_plan=All+Inclusive&sort=price_asc' },
-  { text: 'Turecko od 11 490 Kč · Stovky termínů na jednom místě', href: '/?destination=Turecko&meal_plan=All+Inclusive&sort=price_asc' },
-  { text: 'Last minute slevy až −40 % · Neváhej a rezervuj dnes', href: '/?sort=price_asc' },
-  { text: 'Španělsko all inclusive od 12 490 Kč · Srovnej CK v jednom kroku', href: '/?destination=%C5%A0pan%C4%9Blsko&meal_plan=All+Inclusive&sort=price_asc' },
+  { text: 'Letní výprodej — All Inclusive od 8 990 Kč · Porovnej termíny hned', href: '/zajezdy?meal_plan=All+Inclusive&sort=price_asc' },
+  { text: 'Egypt v červenci od 9 490 Kč / osoba · Rezervuj s předstihem', href: '/zajezdy?destination=Egypt&sort=price_asc' },
+  { text: 'Řecko 7 nocí All Inclusive od 7 990 Kč · Zjistit víc', href: '/zajezdy?destination=%C5%98ecko&meal_plan=All+Inclusive&sort=price_asc' },
+  { text: 'Turecko od 11 490 Kč · Stovky termínů na jednom místě', href: '/zajezdy?destination=Turecko&meal_plan=All+Inclusive&sort=price_asc' },
+  { text: 'Last minute slevy až −40 % · Neváhej a rezervuj dnes', href: '/zajezdy?sort=price_asc' },
+  { text: 'Španělsko all inclusive od 12 490 Kč · Srovnej CK v jednom kroku', href: '/zajezdy?destination=%C5%A0pan%C4%9Blsko&meal_plan=All+Inclusive&sort=price_asc' },
 ]
 
 export default function PromoBar() {

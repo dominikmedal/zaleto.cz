@@ -4,7 +4,7 @@ run_all.py — Orchestrátor scraperů pro zaleto.cz
 
 Spouští všechny scrapery sekvenčně, po každém cyklu odesílá report e-mailem
 a spouští párování hotelů napříč cestovkami (canonical_slug).
-Navrženo pro nasazení na Railway (infinite loop).
+Běží jako GitHub Actions workflow (`--once`); lokálně lze spustit i jako infinite loop.
 
 Použití:
     python run_all.py                  # produkce — infinite loop
@@ -667,90 +667,30 @@ def run_scraper(scraper: dict, conn=None) -> dict:
 # ---------------------------------------------------------------------------
 
 def _invalidate_api_cache(final: bool = False):
-    """Zavolá backend endpoint pro invalidaci in-memory cache po dokončení scrapingu."""
-    backend = os.environ.get("BACKEND_URL", "http://localhost:3001")
-    url = f"{backend}/api/cache/invalidate" + ("?final=1" if final else "")
+    """Po dokončení scrapingu zneplatní Next.js data cache na Vercelu (revalidateTag).
+
+    Env: SITE_URL (např. https://zaleto.cz), REVALIDATE_SECRET.
+    Bez nich se jen zaloguje varování — web si data stejně obnoví podle `revalidate` TTL.
+    """
+    site = os.environ.get("SITE_URL", "").rstrip("/")
+    secret = os.environ.get("REVALIDATE_SECRET", "")
+    if not site or not secret:
+        logger.warning("Cache: SITE_URL / REVALIDATE_SECRET nejsou nastaveny — přeskakuji revalidaci")
+        return
     try:
-        resp = requests.post(url, timeout=5)
+        resp = requests.post(f"{site}/api/revalidate", json={"tag": "api", "secret": secret}, timeout=15)
         if resp.ok:
-            logger.info("Cache: invalidována")
+            logger.info("Cache: Next.js data cache zneplatněna")
         else:
-            logger.warning(f"Cache: invalidace selhala ({resp.status_code})")
+            logger.warning(f"Cache: revalidace selhala ({resp.status_code})")
     except Exception as e:
-        logger.warning(f"Cache: invalidace selhala — {e}")
+        logger.warning(f"Cache: revalidace selhala — {e}")
 
 
 def _trigger_ai(endpoint: str, label: str) -> int:
-    """
-    Spustí AI generování na daném endpointu (fire-and-forget).
-    Vrátí počet zařazených destinací.
-    """
-    backend = os.environ.get("BACKEND_URL", "http://localhost:3001")
-    try:
-        resp = requests.post(f"{backend}{endpoint}", timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        queued  = data.get("queued", 0)
-        pending = data.get("pending", 0)
-        if queued == 0 and pending == 0:
-            logger.info(f"{label}: vše již vygenerováno, přeskakuji")
-        else:
-            logger.info(f"{label}: zařazeno {queued} destinací (celkem čeká {pending}) — generování běží na pozadí")
-        return queued
-    except Exception as e:
-        logger.warning(f"{label}: spuštění selhalo — {e}")
-        return 0
-
-
-def wait_for_ai_generation(timeout_minutes: int = 360):
-    """
-    Spustí generování AI popisků pro všechny destinace bez popisu a čeká na dokončení.
-    Vrátí počet nově zařazených destinací (0 = vše bylo již vygenerováno).
-    """
-    backend = os.environ.get("BACKEND_URL", "http://localhost:3001")
-
-    # Spusť generování a zjisti, kolik bylo zařazeno do fronty
-    try:
-        resp = requests.post(f"{backend}/api/destination-ai/generate", timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        queued = data.get("queued", 0)
-        pending = data.get("pending", 0)
-    except Exception as e:
-        logger.warning(f"AI generování: spuštění selhalo — {e}")
-        return 0
-
-    if queued == 0 and pending == 0:
-        logger.info("AI generování: všechny destinace již mají popis, přeskakuji čekání")
-        return 0
-
-    logger.info(f"AI generování: zařazeno {queued} destinací do fronty (celkem čeká {pending})")
-
-    # Čekej na dokončení — kontroluj každých 60 s
-    deadline = time.time() + timeout_minutes * 60
-    last_pending = pending
-    while time.time() < deadline:
-        if _shutdown:
-            logger.info("AI generování: přerušeno (shutdown signál)")
-            return queued
-        time.sleep(60)
-        try:
-            status = requests.get(f"{backend}/api/destination-ai/status", timeout=5).json()
-            current_pending = status.get("pending", 0)
-        except Exception as e:
-            logger.warning(f"AI generování: kontrola stavu selhala — {e}")
-            continue
-
-        if current_pending != last_pending:
-            done = queued - current_pending if current_pending <= queued else 0
-            logger.info(f"AI generování: {current_pending} zbývá z {queued} ({done} hotovo)")
-            last_pending = current_pending
-
-        if current_pending == 0:
-            logger.info(f"AI generování: dokončeno ({queued} destinací)")
-            return queued
-
-    logger.warning(f"AI generování: timeout {timeout_minutes} min — pokračuji se scrapingem")
+    """AI generování už neběží v backendu — spouští ho samostatný krok workflow (frontend/scripts/generate-content)."""
+    logger.info(f"{label}: generování zajišťuje samostatný krok workflow, přeskakuji")
+    return 0
 
 
 def send_email(subject: str, html: str, text: str):
@@ -1185,8 +1125,14 @@ def main():
     parser = argparse.ArgumentParser(description="Zaleto scraper orchestrátor")
     parser.add_argument("--once",       action="store_true", help="Jednorázový běh a konec")
     parser.add_argument("--skip-email", action="store_true", help="Neodesílat report email")
+    parser.add_argument("--purge-only", action="store_true", help="Jen úklid expirovaných termínů (bez scraperů) a konec")
     parser.add_argument("--delete",     action="store_true", help="Smaže všechna data v DB a spustí scraping znovu")
     args = parser.parse_args()
+
+    if args.purge_only:
+        run_purge_cycle()
+        _invalidate_api_cache()
+        return
 
     if args.delete:
         logger.info("--delete: mažu všechna data v DB...")
