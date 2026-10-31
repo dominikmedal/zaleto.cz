@@ -1,0 +1,221 @@
+import 'server-only'
+import { query } from './db'
+import { metaCache } from './cache'
+import { HttpError, type Q } from './hotels'
+
+// ─── Články ────────────────────────────────────────────────────────────────
+
+const ARTICLE_LIST_COLS = 'id, slug, title, category, location, excerpt, reading_time, published_at, custom_image_url'
+
+export async function listArticles(q: Q) {
+  const limit = Math.min(parseInt(q.limit ?? '') || 9, 50)
+  const offset = Math.min(parseInt(q.offset ?? '') || 0, 500)
+  const location = q.location?.trim() || null
+  const key = `articles_${limit}_${offset}_${location ?? ''}`
+  const cached = metaCache.get(key)
+  if (cached) return cached
+  try {
+    const r = location
+      ? await query(`SELECT ${ARTICLE_LIST_COLS} FROM articles WHERE LOWER(location) = LOWER(?) ORDER BY published_at DESC LIMIT ? OFFSET ?`, [location, limit, offset])
+      : await query(`SELECT ${ARTICLE_LIST_COLS} FROM articles ORDER BY published_at DESC LIMIT ? OFFSET ?`, [limit, offset])
+    metaCache.set(key, r.rows)
+    return r.rows
+  } catch (e) {
+    console.error('[articles] list error:', (e as Error).message)
+    return []
+  }
+}
+
+export async function getArticle(slug: string) {
+  const key = `article_${slug}`
+  const cached = metaCache.get(key)
+  if (cached) return cached
+  const r = await query('SELECT * FROM articles WHERE slug = ?', [slug])
+  if (!r.rows[0]) throw new HttpError(404, 'Not found')
+  metaCache.set(key, r.rows[0])
+  return r.rows[0]
+}
+
+export async function articleSlugs() {
+  const cached = metaCache.get('article_slugs')
+  if (cached) return cached
+  const r = await query('SELECT slug, published_at FROM articles ORDER BY published_at DESC')
+  metaCache.set('article_slugs', r.rows)
+  return r.rows
+}
+
+// ─── Fotky destinací (Pexels) ──────────────────────────────────────────────
+
+const DEST_EN: Record<string, string> = {
+  'Egypt': 'Egypt beach Red Sea', 'Řecko': 'Greece travel island', 'Turecko': 'Turkey beach resort',
+  'Španělsko': 'Spain travel beach', 'Thajsko': 'Thailand beach tropical', 'Maldivky': 'Maldives beach overwater',
+  'Dubaj': 'Dubai skyline luxury', 'Chorvatsko': 'Croatia coast Adriatic', 'Tunisko': 'Tunisia beach Mediterranean',
+  'Itálie': 'Italy travel coast', 'Kypr': 'Cyprus beach Mediterranean', 'Portugalsko': 'Portugal travel coast',
+  'Bulharsko': 'Bulgaria Black Sea beach', 'Maroko': 'Morocco travel medina', 'Mexiko': 'Mexico beach Caribbean',
+  'Malta': 'Malta island Mediterranean', 'Dominikánská republika': 'Dominican Republic beach Caribbean',
+  'Francie': 'France travel Riviera', 'Gran Canaria': 'Gran Canaria beach Canary Islands',
+  'Tenerife': 'Tenerife beach Canary Islands', 'Kréta': 'Crete Greece beach',
+  'Rhodos': 'Rhodes Greece island', 'Korfu': 'Corfu Greece island', 'Zakynthos': 'Zakynthos Greece Navagio',
+  'Hurghada': 'Hurghada Red Sea beach', 'Sharm el Sheikh': 'Sharm el Sheikh Red Sea',
+  'Antalya': 'Antalya Turkey beach resort', 'Bodrum': 'Bodrum Turkey coast',
+  'Side': 'Side Turkey beach ancient', 'Alanya': 'Alanya Turkey beach castle',
+  'Spojené arabské emiráty': 'UAE Abu Dhabi beach', 'Srí Lanka': 'Sri Lanka beach tropical',
+  'Bali': 'Bali Indonesia beach temple', 'Vietnam': 'Vietnam beach Ha Long',
+  'Kefalonie': 'Kefalonia Greece beach', 'Santorini': 'Santorini Greece sunset',
+  'Mykonos': 'Mykonos Greece beach', 'Lefkada': 'Lefkada Greece beach',
+  'Halkidiki': 'Halkidiki Greece beach', 'Kos': 'Kos Greece beach island',
+  'Lanzarote': 'Lanzarote Canary Islands', 'Fuerteventura': 'Fuerteventura beach Canary',
+  'Mallorca': 'Mallorca Spain beach', 'Ibiza': 'Ibiza Spain beach',
+  'Kapverdské ostrovy': 'Cape Verde beach island', 'Zanzibar': 'Zanzibar Tanzania beach',
+  'Mauricius': 'Mauritius beach island', 'Seychely': 'Seychelles beach paradise',
+}
+const STALE_DAYS = 30
+
+export async function destinationPhoto(name: string): Promise<{ url: string | null }> {
+  const key = `photo_${name}`
+  const cached = metaCache.get(key)
+  if (cached !== null && cached !== undefined) return { url: cached as string }
+  try {
+    const row = (await query('SELECT photo_url, updated_at FROM destination_photos WHERE name = ?', [name])).rows[0]
+    if (row) {
+      const ageDays = (Date.now() - new Date(row.updated_at).getTime()) / 86400000
+      if (ageDays < STALE_DAYS) {
+        metaCache.set(key, row.photo_url)
+        return { url: row.photo_url }
+      }
+    }
+    let url: string | null = null
+    const apiKey = process.env.PEXELS_API_KEY
+    if (apiKey) {
+      const term = DEST_EN[name] ?? `${name} travel beach`
+      try {
+        const r = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(term)}&per_page=3&orientation=landscape`, { headers: { Authorization: apiKey } })
+        if (r.ok) {
+          const data = await r.json()
+          url = data.photos?.[0]?.src?.large2x ?? data.photos?.[0]?.src?.large ?? null
+        }
+      } catch (e) { console.error('Pexels fetch error:', (e as Error).message) }
+    }
+    await query(
+      `INSERT INTO destination_photos (name, photo_url, updated_at) VALUES (?, ?, NOW())
+       ON CONFLICT (name) DO UPDATE SET photo_url = EXCLUDED.photo_url, updated_at = EXCLUDED.updated_at`,
+      [name, url],
+    )
+    metaCache.set(key, url)
+    return { url }
+  } catch (e) {
+    console.error('destination-photo error:', (e as Error).message)
+    return { url: null }
+  }
+}
+
+// ─── AI obsah destinací (čtení) ────────────────────────────────────────────
+
+const EMPTY_DEST_AI = { description: null, excursions: [], best_time: null, places: [], food: [], trips: [] }
+
+const parseJson = (s: string | null | undefined) => { try { return JSON.parse(s || '[]') } catch { return [] } }
+
+export async function destinationAI(name: string) {
+  const key = `ai_${name}`
+  const cached = metaCache.get(key)
+  if (cached) return cached
+  try {
+    const row = (await query('SELECT description, excursions, best_time, places, food, trips FROM destination_ai WHERE name = ?', [name])).rows[0]
+    if (!row) return EMPTY_DEST_AI
+    const result = {
+      description: row.description,
+      excursions: parseJson(row.excursions),
+      best_time: row.best_time || null,
+      places: parseJson(row.places),
+      food: parseJson(row.food),
+      trips: parseJson(row.trips),
+    }
+    metaCache.set(key, result)
+    return result
+  } catch (e) {
+    console.error('destination-ai error:', (e as Error).message)
+    return EMPTY_DEST_AI
+  }
+}
+
+// ─── Počasí (čtení) ────────────────────────────────────────────────────────
+
+const EMPTY_WEATHER = {
+  description: null, monthly_air: null, monthly_sea: null, monthly_rain_days: null, monthly_sun_hours: null,
+  best_months: [], winter: null, spring: null, summer: null, autumn: null, wind_info: null, sea_info: null,
+}
+const parseOrNull = (s: string | null | undefined) => { if (!s) return null; try { return JSON.parse(s) } catch { return null } }
+
+export async function weatherAI(name: string) {
+  const key = `weather_ai_${name}`
+  const cached = metaCache.get(key)
+  if (cached) return cached
+  try {
+    const row = (await query(
+      `SELECT description, monthly_air, monthly_sea, monthly_rain_days, monthly_sun_hours,
+              best_months, winter, spring, summer, autumn, wind_info, sea_info
+       FROM weather_ai WHERE name = ?`, [name])).rows[0]
+    if (!row) return EMPTY_WEATHER
+    const result = {
+      description: row.description,
+      monthly_air: parseOrNull(row.monthly_air),
+      monthly_sea: parseOrNull(row.monthly_sea),
+      monthly_rain_days: parseOrNull(row.monthly_rain_days),
+      monthly_sun_hours: parseOrNull(row.monthly_sun_hours),
+      best_months: parseOrNull(row.best_months) ?? [],
+      winter: row.winter, spring: row.spring, summer: row.summer, autumn: row.autumn,
+      wind_info: row.wind_info, sea_info: row.sea_info,
+    }
+    metaCache.set(key, result)
+    return result
+  } catch (e) {
+    console.error('weather-ai error:', (e as Error).message)
+    return EMPTY_WEATHER
+  }
+}
+
+export async function weatherLocation(name: string) {
+  try {
+    const row = (await query(
+      `SELECT ROUND(AVG(latitude)::numeric, 4) AS lat, ROUND(AVG(longitude)::numeric, 4) AS lon
+       FROM hotels WHERE (country = ? OR destination ILIKE ? OR resort_town = ?)
+         AND latitude IS NOT NULL AND longitude IS NOT NULL`, [name, `%${name}%`, name])).rows[0]
+    if (row?.lat && row?.lon) return { lat: parseFloat(row.lat), lon: parseFloat(row.lon) }
+  } catch { /* ignore */ }
+  return { lat: null, lon: null }
+}
+
+// ─── Půjčovna aut – AI obsah (čtení) ───────────────────────────────────────
+
+const EMPTY_CAR_AI = {
+  name: null, country: null, intro: null, fuel_info: null, driving_rules: null, price_overview: null,
+  best_car_types: null, trip_tips: [], faq: [], practical_tips: [], car_examples: [], airport_info: null, monthly_prices: null,
+}
+
+export async function carRentalAI(slug: string) {
+  const key = `car_rental_ai_${slug}`
+  const cached = metaCache.get(key)
+  if (cached) return cached
+  try {
+    const row = (await query(
+      `SELECT name, country, intro, fuel_info, driving_rules, price_overview, best_car_types,
+              trip_tips, faq, practical_tips, car_examples, airport_info, monthly_prices
+       FROM car_rental_ai WHERE slug = ?`, [slug])).rows[0]
+    if (!row) return EMPTY_CAR_AI
+    const result = {
+      name: row.name, country: row.country, intro: row.intro, fuel_info: row.fuel_info,
+      driving_rules: row.driving_rules, price_overview: row.price_overview, best_car_types: row.best_car_types,
+      trip_tips: parseOrNull(row.trip_tips) ?? [],
+      faq: parseOrNull(row.faq) ?? [],
+      practical_tips: parseOrNull(row.practical_tips) ?? [],
+      car_examples: parseOrNull(row.car_examples) ?? [],
+      airport_info: parseOrNull(row.airport_info),
+      monthly_prices: parseOrNull(row.monthly_prices),
+    }
+    metaCache.set(key, result)
+    return result
+  } catch (e) {
+    console.error('[car-rental-ai] error:', (e as Error).message)
+    return EMPTY_CAR_AI
+  }
+}

@@ -4,7 +4,7 @@ import { fetchAdminArticles, createArticle, updateArticle, deleteArticle, upload
 import { PiMagnifyingGlass, PiSpinner, PiTrash, PiPencil, PiPlus, PiCaretLeft, PiCaretRight, PiUploadSimple, PiCheckCircle, PiX, PiImage } from 'react-icons/pi'
 
 const LIMIT = 50
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+const API = ''
 
 function fmtDate(s: string) {
   return new Date(s).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' })

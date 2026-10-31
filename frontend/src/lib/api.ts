@@ -1,6 +1,23 @@
 import type { Hotel, NearbyHotel, Tour, Filters, Pagination } from './types'
 
-export const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+/** Prázdný základ = stejný origin (route handlery v app/api). Na serveru se volá in-process přes apiFetch. */
+export const API = ''
+
+type NextInit = RequestInit & { next?: { revalidate?: number | false; tags?: string[] } }
+
+/**
+ * Drop-in náhrada `apiFetch(`/api/...`)`:
+ *  - na serveru volá service vrstvu přímo (bez HTTP, funguje i při buildu),
+ *  - v prohlížeči běžný fetch na stejný origin.
+ */
+export async function apiFetch(path: string, init: NextInit = {}): Promise<{ ok: boolean; status: number; json: () => Promise<any> }> {
+  if (typeof window === 'undefined') {
+    const { dispatch } = await import('../server/dispatch')
+    const r = await dispatch(path, { revalidate: init.next?.revalidate, tags: init.next?.tags })
+    return { ok: r.ok, status: r.status, json: async () => r.data }
+  }
+  return fetch(path, init)
+}
 
 function buildParams(filters: Filters & { page?: number; limit?: number }): string {
   const p = new URLSearchParams()
@@ -20,7 +37,7 @@ export async function fetchHotels(filters: Filters & { page?: number; limit?: nu
   pagination: Pagination
 }> {
   const qs = buildParams(filters)
-  const res = await fetch(`${API}/api/hotels${qs ? `?${qs}` : ''}`, {
+  const res = await apiFetch(`/api/hotels${qs ? `?${qs}` : ''}`, {
     next: { revalidate: 300 },
     signal: timeout(30_000),   // 30s — slow path (GROUP BY) může trvat déle, ale ne navždy
   })
@@ -29,14 +46,14 @@ export async function fetchHotels(filters: Filters & { page?: number; limit?: nu
 }
 
 export async function fetchHotel(slug: string): Promise<Hotel> {
-  const res = await fetch(`${API}/api/hotels/${slug}`, { next: { revalidate: 3600 }, signal: timeout() })
+  const res = await apiFetch(`/api/hotels/${slug}`, { next: { revalidate: 3600 }, signal: timeout() })
   if (!res.ok) throw new Error('Hotel not found')
   return res.json()
 }
 
 export async function fetchHotelTours(slug: string, filters: Partial<Filters> = {}): Promise<{ tours: Tour[] }> {
   const qs = buildParams(filters)
-  const res = await fetch(`${API}/api/hotels/${slug}/tours${qs ? `?${qs}` : ''}`, {
+  const res = await apiFetch(`/api/hotels/${slug}/tours${qs ? `?${qs}` : ''}`, {
     next: { revalidate: 3600 },
   })
   if (!res.ok) throw new Error('Failed to fetch tours')
@@ -44,7 +61,7 @@ export async function fetchHotelTours(slug: string, filters: Partial<Filters> = 
 }
 
 export async function fetchDestinations(): Promise<{ country: string; destination: string; resort_town: string | null; hotel_count: number }[]> {
-  const res = await fetch(`${API}/api/destinations`, { next: { revalidate: 3600 }, signal: timeout() })
+  const res = await apiFetch(`/api/destinations`, { next: { revalidate: 3600 }, signal: timeout() })
   if (!res.ok) return []
   return res.json()
 }
@@ -57,7 +74,7 @@ export async function fetchCalendarPrices(
   const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo })
   if (destination) params.set('destination', destination)
   try {
-    const res = await fetch(`${API}/api/calendar-prices?${params.toString()}`)
+    const res = await apiFetch(`/api/calendar-prices?${params.toString()}`)
     if (!res.ok) return []
     return res.json()
   } catch {
@@ -75,7 +92,7 @@ export async function fetchHotelReviews(slug: string): Promise<{
   source: string
 }> {
   try {
-    const res = await fetch(`${API}/api/hotels/${slug}/reviews`, { next: { revalidate: 3600 } })
+    const res = await apiFetch(`/api/hotels/${slug}/reviews`, { next: { revalidate: 3600 } })
     if (!res.ok) return { reviews: [], overall_rating: null, total_ratings: null, source: 'error' }
     return res.json()
   } catch {
@@ -85,8 +102,7 @@ export async function fetchHotelReviews(slug: string): Promise<{
 
 export async function fetchDestinationPhoto(destination: string): Promise<string | null> {
   try {
-    const res = await fetch(
-      `${API}/api/destination-photo/${encodeURIComponent(destination)}`,
+    const res = await apiFetch(`/api/destination-photo/${encodeURIComponent(destination)}`,
       { next: { revalidate: 86400 } }
     )
     if (!res.ok) return null
@@ -114,7 +130,7 @@ export async function fetchWikiSummary(query: string): Promise<{
 export async function fetchNearbyHotels(lat: number, lon: number, exclude: string, limit = 6): Promise<NearbyHotel[]> {
   try {
     const params = new URLSearchParams({ lat: String(lat), lon: String(lon), exclude, limit: String(limit) })
-    const res = await fetch(`${API}/api/hotels/nearby?${params}`, { next: { revalidate: 600 } })
+    const res = await apiFetch(`/api/hotels/nearby?${params}`, { next: { revalidate: 600 } })
     if (!res.ok) return []
     return res.json()
   } catch { return [] }
@@ -123,7 +139,7 @@ export async function fetchNearbyHotels(lat: number, lon: number, exclude: strin
 export async function fetchAllHotelSlugs(limit?: number): Promise<{ slug: string; updated_at: string | null }[]> {
   try {
     const qs = limit ? `?limit=${limit}` : ''
-    const res = await fetch(`${API}/api/hotels/slugs${qs}`, { next: { revalidate: 3600 }, signal: timeout(20_000) })
+    const res = await apiFetch(`/api/hotels/slugs${qs}`, { next: { revalidate: 3600 }, signal: timeout(20_000) })
     if (!res.ok) return []
     return res.json()
   } catch { return [] }
@@ -134,7 +150,7 @@ export async function fetchHotelSearch(q: string): Promise<{
 }[]> {
   if (q.trim().length < 2) return []
   try {
-    const res = await fetch(`${API}/api/hotels/search?q=${encodeURIComponent(q.trim())}`)
+    const res = await apiFetch(`/api/hotels/search?q=${encodeURIComponent(q.trim())}`)
     if (!res.ok) return []
     return res.json()
   } catch { return [] }
@@ -152,8 +168,7 @@ export type DestinationAIData = {
 
 export async function fetchDestinationAI(destination: string): Promise<DestinationAIData> {
   try {
-    const res = await fetch(
-      `${API}/api/destination-ai/${encodeURIComponent(destination)}`,
+    const res = await apiFetch(`/api/destination-ai/${encodeURIComponent(destination)}`,
       { next: { revalidate: 3600 }, signal: timeout() }
     )
     if (!res.ok) return { description: null, excursions: [], best_time: null, places: [], food: [], trips: [] }
@@ -193,8 +208,7 @@ const EMPTY_WEATHER: WeatherAIData = {
 
 export async function fetchWeatherAI(destination: string): Promise<WeatherAIData> {
   try {
-    const res = await fetch(
-      `${API}/api/weather-ai/${encodeURIComponent(destination)}`,
+    const res = await apiFetch(`/api/weather-ai/${encodeURIComponent(destination)}`,
       { next: { revalidate: 86400 }, signal: timeout() }
     )
     if (!res.ok) return EMPTY_WEATHER
@@ -205,8 +219,7 @@ export async function fetchWeatherAI(destination: string): Promise<WeatherAIData
 
 export async function fetchWeatherLocation(destination: string): Promise<{ lat: number | null; lon: number | null }> {
   try {
-    const res = await fetch(
-      `${API}/api/weather-ai/location/${encodeURIComponent(destination)}`,
+    const res = await apiFetch(`/api/weather-ai/location/${encodeURIComponent(destination)}`,
       { next: { revalidate: 86400 }, signal: timeout() }
     )
     if (!res.ok) return { lat: null, lon: null }
@@ -230,7 +243,7 @@ export type ArticleFull = Article & { content: string | null; topic: string; cus
 
 export async function fetchAllArticleSlugs(): Promise<{ slug: string; published_at: string }[]> {
   try {
-    const res = await fetch(`${API}/api/articles/slugs`, { next: { revalidate: 3600 }, signal: timeout(20_000) })
+    const res = await apiFetch(`/api/articles/slugs`, { next: { revalidate: 3600 }, signal: timeout(20_000) })
     if (!res.ok) return []
     return res.json()
   } catch { return [] }
@@ -240,7 +253,7 @@ export async function fetchArticles(limit = 3, location?: string): Promise<Artic
   try {
     const params = new URLSearchParams({ limit: String(limit) })
     if (location) params.set('location', location)
-    const res = await fetch(`${API}/api/articles?${params}`, {
+    const res = await apiFetch(`/api/articles?${params}`, {
       next: { revalidate: 3600, tags: ['articles'] },
       signal: timeout(),
     })
@@ -251,7 +264,7 @@ export async function fetchArticles(limit = 3, location?: string): Promise<Artic
 
 export async function fetchArticle(slug: string): Promise<ArticleFull | null> {
   try {
-    const res = await fetch(`${API}/api/articles/${encodeURIComponent(slug)}`, {
+    const res = await apiFetch(`/api/articles/${encodeURIComponent(slug)}`, {
       next: { revalidate: 300, tags: [`article-${slug}`] },
       signal: timeout(),
     })
@@ -309,7 +322,7 @@ export async function fetchCarSearch(params: {
     if (params.dropoffLocation && params.dropoffLocation !== params.location) {
       p.set('dropoff_location', params.dropoffLocation)
     }
-    const res = await fetch(`${API}/api/car-rental/search?${p}`, {
+    const res = await apiFetch(`/api/car-rental/search?${p}`, {
       signal: AbortSignal.timeout(35_000),
     })
     if (!res.ok) return { cars: [] }
@@ -335,7 +348,7 @@ export interface DynamicCarDestination {
 
 async function fetchEnrichedCarDestinations(): Promise<DynamicCarDestination[]> {
   try {
-    const res = await fetch(`${API}/api/car-rental/enriched-destinations`, {
+    const res = await apiFetch(`/api/car-rental/enriched-destinations`, {
       next: { revalidate: 21600 },
       signal: timeout(30_000),
     })
@@ -346,7 +359,7 @@ async function fetchEnrichedCarDestinations(): Promise<DynamicCarDestination[]> 
 
 async function fetchCustomCarDestinations(): Promise<DynamicCarDestination[]> {
   try {
-    const res = await fetch(`${API}/api/car-rental/custom-destinations`, {
+    const res = await apiFetch(`/api/car-rental/custom-destinations`, {
       next: { revalidate: 3600 },
       signal: timeout(10_000),
     })
@@ -383,7 +396,7 @@ export async function fetchCarAutocomplete(q: string): Promise<{
 }[]> {
   if (q.trim().length < 2) return []
   try {
-    const res = await fetch(`${API}/api/car-rental/autocomplete?q=${encodeURIComponent(q.trim())}`)
+    const res = await apiFetch(`/api/car-rental/autocomplete?q=${encodeURIComponent(q.trim())}`)
     if (!res.ok) return []
     return res.json()
   } catch {
@@ -447,8 +460,7 @@ const EMPTY_CAR_RENTAL_AI: CarRentalAIData = {
 
 export async function fetchCarRentalAI(slug: string): Promise<CarRentalAIData> {
   try {
-    const res = await fetch(
-      `${API}/api/car-rental-ai/${encodeURIComponent(slug)}`,
+    const res = await apiFetch(`/api/car-rental-ai/${encodeURIComponent(slug)}`,
       { next: { revalidate: 86400 }, signal: timeout() }
     )
     if (!res.ok) return EMPTY_CAR_RENTAL_AI
@@ -469,7 +481,7 @@ export async function fetchFilters(): Promise<{
   totalHotels: number
   departureCities: { departure_city: string; count: number }[]
 }> {
-  const res = await fetch(`${API}/api/filters`, { next: { revalidate: 3600 }, signal: timeout() })
+  const res = await apiFetch(`/api/filters`, { next: { revalidate: 3600 }, signal: timeout() })
   if (!res.ok) return { mealPlans: [], priceRange: { min: 0, max: 200000 }, durations: [], stars: [], transports: [], totalTours: 0, totalHotels: 0, departureCities: [] }
   return res.json()
 }

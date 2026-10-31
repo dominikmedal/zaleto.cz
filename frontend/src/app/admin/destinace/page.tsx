@@ -7,7 +7,7 @@ import {
 } from 'react-icons/pi'
 
 const LIMIT = 50
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+const API = ''
 
 interface EditState { name: string; photo_url: string; isNew?: boolean }
 

@@ -1,4 +1,4 @@
-const BASE     = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+const BASE     = ''
 const FRONTEND = typeof window !== 'undefined' ? window.location.origin : ''
 const REVALIDATE_SECRET = process.env.NEXT_PUBLIC_REVALIDATE_SECRET ?? ''
 

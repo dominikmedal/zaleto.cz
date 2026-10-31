@@ -4,7 +4,7 @@ import { fetchAdminHotels, createHotel, updateHotel, deleteHotel, uploadImage, A
 import { PiMagnifyingGlass, PiSpinner, PiTrash, PiPencil, PiPlus, PiCaretLeft, PiCaretRight, PiStar, PiX, PiCheckCircle, PiUploadSimple, PiImage } from 'react-icons/pi'
 
 const LIMIT = 50
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+const API = ''
 
 function fmtKc(n: number | null) {
   if (n == null) return '—'
