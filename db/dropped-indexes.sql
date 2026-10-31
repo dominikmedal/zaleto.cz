@@ -1,0 +1,11 @@
+CREATE INDEX idx_tours_hotel ON public.tours USING btree (hotel_id);
+CREATE INDEX idx_tours_hotel_date ON public.tours USING btree (hotel_id, departure_date);
+CREATE INDEX idx_tours_departure ON public.tours USING btree (departure_date);
+CREATE INDEX idx_tours_dep_ret_hotel ON public.tours USING btree (departure_date, return_date, hotel_id, price) WHERE (price > (0)::double precision);
+CREATE INDEX idx_tours_dep_price ON public.tours USING btree (departure_date, price);
+CREATE INDEX idx_tours_covering ON public.tours USING btree (hotel_id, price, departure_date, id);
+CREATE INDEX idx_tours_price ON public.tours USING btree (price);
+CREATE INDEX idx_tours_transport ON public.tours USING btree (transport);
+CREATE INDEX idx_tours_meal_plan ON public.tours USING btree (meal_plan);
+CREATE INDEX idx_tours_duration ON public.tours USING btree (duration);
+CREATE INDEX idx_tours_departure_city ON public.tours USING btree (departure_city);
