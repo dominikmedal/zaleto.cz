@@ -613,3 +613,17 @@ button.z-navtab { border: 0; cursor: pointer; }
 .z-chat__field input::placeholder, .z-chat__field textarea::placeholder { color: var(--line-strong); }
 .z-chat__sent { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; padding: var(--space-6) 0; }
 @media (max-width: 767px) { .z-chat { right: var(--space-3); bottom: var(--space-3); } }
+
+/* ---------- Jednotná typografie běžného textu ----------
+   Dlouhé čtení (popisy, články, AI texty): Fraunces 19/31 (token „body“ z designu).
+   Text uvnitř karet a lístků: Fraunces 17/27. Platí pro odstavce bez vlastní třídy. */
+.z-text { font: 400 19px/31px var(--font-serif); color: var(--ink); }
+.z-text--sm { font-size: 17px; line-height: 27px; }
+.z-text--muted { color: var(--ink-muted); }
+:where(main, aside, .z-modal__body, .z-cardest, .z-hotel) p:not([class]) { font: 400 19px/31px var(--font-serif); }
+:where(.z-tk__in, .z-info, .z-season, .z-chartcard, .z-ticks, .z-chat__form) p:not([class]) { font-size: 17px; line-height: 27px; }
+.z-prose, .z-prose p { font-size: 19px; line-height: 31px; }
+.z-faq p { font-size: 18px; line-height: 29px; }
+.z-story__text { font: 400 17px/27px var(--font-serif); }
+.z-footer p { font: 400 17px/27px var(--font-sans); }
+@media (max-width: 767px) { .z-text, :where(main, aside, .z-modal__body, .z-cardest, .z-hotel) p:not([class]), .z-prose, .z-prose p { font-size: 18px; line-height: 29px; } }

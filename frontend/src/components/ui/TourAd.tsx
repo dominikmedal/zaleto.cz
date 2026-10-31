@@ -11,9 +11,9 @@ export default function TourAd({ hotel, sticky = false, kicker = 'Nabídka dne' 
   const dates = formatDateRange(hotel.next_departure, hotel.next_return_date)
   const place = [hotel.resort_town, hotel.country].filter(Boolean).join(' · ')
   return (
-    <aside className={`z-tk z-tk--h z-ad${sticky ? ' z-ad--sticky' : ''}`} aria-label="Reklama">
+    <aside className={`z-tk z-tk--h z-ad${sticky ? ' z-ad--sticky' : ''}`} aria-label="Nabídka">
       <div className="z-tk__in">
-        <div className="z-ad__top"><span className="z-kicker">{kicker}</span><span className="z-ad__label">Reklama</span></div>
+        <div className="z-ad__top"><span className="z-kicker">{kicker}</span></div>
         {place && <div className="z-kicker" style={{ marginBottom: 12 }}>{place}</div>}
         <div className="z-ad__media">
           {hotel.thumbnail_url && (

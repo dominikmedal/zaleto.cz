@@ -149,7 +149,7 @@ export default function ReviewsSection({ slug }: { slug: string }) {
                   {/* Text */}
                   {review.text ? (
                     <div>
-                      <p className="text-sm text-gray-700 leading-relaxed">{displayText}</p>
+                      <p className="z-text z-text--sm" style={{ margin: 0 }}>{displayText}</p>
                       {isLong && (
                         <button
                           onClick={() => setExpanded(p => ({ ...p, [review.id]: !p[review.id] }))}
@@ -160,7 +160,7 @@ export default function ReviewsSection({ slug }: { slug: string }) {
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400 italic">Bez textového hodnocení</p>
+                    <p className="z-text z-text--sm z-text--muted" style={{ margin: 0, fontStyle: 'italic' }}>Bez textového hodnocení</p>
                   )}
                 </div>
               </div>

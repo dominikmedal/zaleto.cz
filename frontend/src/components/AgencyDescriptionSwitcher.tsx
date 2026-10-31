@@ -25,23 +25,22 @@ export default function AgencyDescriptionSwitcher({ descriptions }: Props) {
   return (
     <div>
       {descriptions.length > 1 && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
+        <div className="z-chips" style={{ marginBottom: 'var(--space-4)' }}>
           {descriptions.map((d, i) => (
             <button
               key={d.agency}
+              type="button"
               onClick={() => setActive(i)}
-              className={`text-xs font-semibold px-3 py-1 rounded-full border transition-colors ${
-                i === active
-                  ? 'bg-blue-500 text-white border-blue-500'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300 hover:text-blue-500'
-              }`}
+              className="z-chip"
+              aria-pressed={i === active}
+              style={{ cursor: 'pointer', ...(i === active ? { background: 'var(--ink)', color: 'var(--paper)' } : {}) }}
             >
               {d.agency}
             </button>
           ))}
         </div>
       )}
-      <p className="text-gray-500 leading-relaxed text-sm whitespace-pre-line">
+      <p className="z-text" style={{ whiteSpace: 'pre-line', margin: 0 }}>
         {stripHtml(current.description)}
       </p>
     </div>
