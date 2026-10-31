@@ -1,0 +1,41 @@
+name: ai-content
+
+on:
+  schedule:
+    - cron: '0 4 * * *'   # denně 04:00 UTC; když nic nechybí, doběhne za pár sekund
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Jen tento druh (article | destination | weather | car_rental), prázdné = vše'
+        type: string
+        default: ''
+      limit:
+        description: 'Nejvýše tolik položek (0 = bez limitu)'
+        type: string
+        default: '0'
+
+concurrency:
+  group: ai-content
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: scraper/requirements.txt
+      - run: pip install -r scraper/requirements.txt
+      - name: Generování obsahu (Gemini)
+        working-directory: scraper
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+          AI_PAUSE: '35'
+        run: python ai_generate.py --max-minutes 320 --limit ${{ inputs.limit || '0' }} ${{ inputs.only && format('--only {0}', inputs.only) || '' }}
