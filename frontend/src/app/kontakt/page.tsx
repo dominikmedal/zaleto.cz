@@ -41,7 +41,7 @@ export default function KontaktPage() {
         <div className="z-grid-3">
           <a href="mailto:info@zaleto.cz?subject=Dotaz ohledně Zaleto" className="z-tk z-tk--h" style={{ ['--cut' as string]: '76px' }}>
             <div className="z-tk__in" style={{ padding: 'var(--space-5)', minHeight: 230, display: 'flex', flexDirection: 'column' }}>
-              <Icon name="info" size="lg" />
+              <Icon name="envelope" size="lg" />
               <h2 className="h3" style={{ margin: 'var(--space-3) 0 var(--space-2)' }}>podpora</h2>
               <p style={{ margin: 0, color: 'var(--ink-muted)' }}>Napiš nám e-mail, odpovíme do 24 hodin.</p>
               <div className="z-data" style={{ marginTop: 'auto', paddingTop: 'var(--space-5)', color: 'var(--ink)' }}>INFO@ZALETO.CZ</div>
@@ -49,7 +49,7 @@ export default function KontaktPage() {
           </a>
 
           <div className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)', minHeight: 230 }}>
-            <Icon name="hotel" size="lg" />
+            <Icon name="mena" size="lg" />
             <h2 className="h3" style={{ margin: 'var(--space-3) 0 var(--space-2)' }}>fakturační údaje</h2>
             <address style={{ fontStyle: 'normal', color: 'var(--ink-muted)' }}>
               <strong style={{ color: 'var(--ink)' }}>Bc. Dominik Medal</strong><br />
@@ -60,7 +60,7 @@ export default function KontaktPage() {
           </div></div>
 
           <div className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)', minHeight: 230, display: 'flex', flexDirection: 'column' }}>
-            <Icon name="kompas" size="lg" />
+            <Icon name="info" size="lg" />
             <h2 className="h3" style={{ margin: 'var(--space-3) 0 var(--space-2)' }}>časté otázky</h2>
             <p style={{ margin: '0 0 var(--space-4)', color: 'var(--ink-muted)' }}>Odpovědi na nejčastější dotazy o Zaleto.</p>
             <div style={{ marginTop: 'auto' }}><Button href="/faq" small>Zobrazit FAQ</Button></div>
