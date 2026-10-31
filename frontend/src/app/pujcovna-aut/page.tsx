@@ -1,26 +1,27 @@
 ﻿import type { Metadata } from 'next'
-import Image from 'next/image'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
+import Icon, { type IconName } from '@/components/ui/Icon'
+import Crumbs from '@/components/ui/Crumbs'
+import SectionHead from '@/components/ui/SectionHead'
 import { CarRentalProvider, CarRentalForm, CarRentalResults } from '@/components/CarRentalSearchForm'
-import { CAR_DESTINATIONS, buildDCHubUrl, mergeDestinations } from '@/lib/carRental'
+import { mergeDestinations } from '@/lib/carRental'
 import { fetchDynamicCarDestinations, fetchCarRentalAI } from '@/lib/api'
-import { Car, Shield, BadgeCheck, Clock, ChevronRight, MapPin } from 'lucide-react'
 
 export const revalidate = 86400
 
 const year = new Date().getFullYear()
 
 export const metadata: Metadata = {
-  title: `Půjčovna aut v zahraničí ${year} – Srovnání cen`,
+  title: `Půjčovna aut v zahraničí ${year} – srovnání cen | Zaleto`,
   description:
-    `Porovnejte ceny půjčoven aut ve více než 20 destinacích – Řecko, Turecko, Chorvatsko, Španělsko a další. ` +
-    `Vyberte si auto od ${year} snadno a rychle s garancí nejlepší ceny.`,
+    `Porovnej ceny půjčoven aut ve více než 20 destinacích – Řecko, Turecko, Chorvatsko, Španělsko a další. ` +
+    `Vyber si auto snadno a rychle.`,
   alternates: { canonical: 'https://zaleto.cz/pujcovna-aut' },
   openGraph: {
     title: `Půjčovna aut v zahraničí ${year}`,
-    description: 'Srovnejte ceny půjčoven aut ve více než 20 populárních destinacích. Bez skrytých poplatků.',
+    description: 'Srovnej ceny půjčoven aut v populárních destinacích. Bez skrytých poplatků.',
     url: 'https://zaleto.cz/pujcovna-aut',
     type: 'website',
     siteName: 'Zaleto',
@@ -29,33 +30,17 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image' },
 }
 
-const WHY_ITEMS = [
-  {
-    icon: <BadgeCheck className="w-5 h-5" />,
-    title: 'Garantovaná cena',
-    text: 'Cena zobrazená při rezervaci je finální. Žádné skryté poplatky na přepážce.',
-  },
-  {
-    icon: <Shield className="w-5 h-5" />,
-    title: 'Pojištění v ceně',
-    text: 'Základní pojištění CDW i TP je automaticky zahrnuté, bez nutnosti doplatku.',
-  },
-  {
-    icon: <Clock className="w-5 h-5" />,
-    title: 'Zdarma zrušení',
-    text: 'Většina nabídek umožňuje bezplatné storno až 48 hodin před vyzvednutím.',
-  },
-  {
-    icon: <Car className="w-5 h-5" />,
-    title: 'Přes 500 půjčoven',
-    text: 'Srovnáváme nabídky Hertz, Europcar, Sixt, lokálních i malých půjčoven.',
-  },
+const WHY: { icon: IconName; title: string; text: string }[] = [
+  { icon: 'ok', title: 'Cena předem', text: 'Cena při rezervaci je finální, bez skrytých poplatků na přepážce.' },
+  { icon: 'info', title: 'Pojištění v ceně', text: 'Základní pojištění CDW i TP bývá zahrnuté, bez doplatku.' },
+  { icon: 'cas', title: 'Zrušení zdarma', text: 'Většina nabídek se dá zdarma zrušit až 48 hodin před vyzvednutím.' },
+  { icon: 'auto', title: 'Přes 500 půjčoven', text: 'Srovnáváme velké značky i lokální půjčovny.' },
 ]
 
 const STEPS = [
-  { n: '01', title: 'Vyberte destinaci', text: 'Klikněte na destinaci níže nebo použijte vyhledávací formulář.' },
-  { n: '02', title: 'Porovnejte nabídky', text: 'Na DiscoverCars.com uvidíte seřazené nabídky s fotografiemi aut a porovnáním cen.' },
-  { n: '03', title: 'Rezervujte online', text: 'Rezervace je okamžitá a bezpečná. Platební karta jako záloha na přepážce.' },
+  { n: '01', title: 'Vyber destinaci', text: 'Klikni na destinaci níže nebo použij vyhledávání.' },
+  { n: '02', title: 'Porovnej nabídky', text: 'Uvidíš seřazené nabídky s fotkami aut a cenami.' },
+  { n: '03', title: 'Rezervuj online', text: 'Rezervace je okamžitá. Kartu potřebuješ jen jako zálohu na přepážce.' },
 ]
 
 const webPageSchema = {
@@ -77,194 +62,96 @@ export default async function PujcovnaAutPage() {
   const dynamicDests = await fetchDynamicCarDestinations().catch(() => [])
   const allDests = mergeDestinations(dynamicDests)
 
-  // Fetch AI data for all destinations in parallel, keep only fully-populated ones
+  // Zobrazíme jen destinace s kompletním AI obsahem
   const aiResults = await Promise.all(allDests.map(d => fetchCarRentalAI(d.slug).catch(() => null)))
-  const aiCompleteSlugs = new Set(
+  const complete = new Set(
     allDests
       .filter((_, i) => {
         const ai = aiResults[i]
-        return ai?.airport_info && ai?.monthly_prices?.length === 12 &&
-          ai?.trip_tips?.length > 0 && ai?.driving_rules && ai?.faq?.length > 0
+        return ai?.airport_info && ai?.monthly_prices?.length === 12 && ai?.trip_tips?.length > 0 && ai?.driving_rules && ai?.faq?.length > 0
       })
-      .map(d => d.slug)
+      .map(d => d.slug),
   )
 
-  // Group AI-complete destinations by country, preserve original country order
-  const COUNTRIES = Array.from(new Map(allDests.map(d => [d.country, true])).keys())
-  const destsByCountry = allDests.reduce<Record<string, typeof allDests>>((acc, d) => {
-    if (!aiCompleteSlugs.has(d.slug)) return acc
-    if (!acc[d.country]) acc[d.country] = []
-    acc[d.country].push(d)
+  const countries = Array.from(new Map(allDests.map(d => [d.country, true])).keys())
+  const byCountry = allDests.reduce<Record<string, typeof allDests>>((acc, d) => {
+    if (!complete.has(d.slug)) return acc
+    ;(acc[d.country] ??= []).push(d)
     return acc
   }, {})
-  const activeCountries = COUNTRIES.filter(c => destsByCountry[c]?.length > 0)
+  const active = countries.filter(c => byCountry[c]?.length > 0)
 
   return (
-    <div className="min-h-screen">
+    <>
       <JsonLd data={webPageSchema} />
       <Header />
 
       <CarRentalProvider>
+        <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
+          <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Půjčovna aut' }]} />
 
-        {/* ── Hero + search form ──────────────────────────────────────────── */}
-        <div className="relative min-h-[420px] sm:min-h-[520px]">
-          <Image
-            src="/img/header-car.jpg"
-            alt="Půjčovna aut v zahraničí"
-            fill
-            className="object-cover"
-            style={{ filter: 'brightness(1.05) saturate(1.1)' }}
-            priority
-          />
-          <div className="absolute inset-0" style={{
-            background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.90) 38%, rgba(255,255,255,0.55) 65%, rgba(255,255,255,0.0) 100%)'
-          }} />
-          <div className="absolute inset-x-0 bottom-0 h-40" style={{
-            background: 'linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.6) 55%, transparent 100%)'
-          }} />
+          <section className="z-hero" style={{ marginTop: 'var(--space-5)', paddingBottom: 'var(--space-8)', gridTemplateColumns: '1fr' }}>
+            <span className="z-hero__sun" aria-hidden="true" />
+            <div>
+              <div className="z-kicker">Srovnání půjčoven aut</div>
+              <h1 className="z-hero__title">kam pojedeš autem<span className="z-dot">.</span></h1>
+              <p className="z-hero__lead">Porovnáme ceny více než 500 půjčoven. Řecko, Turecko, Chorvatsko a desítky dalších destinací.</p>
+            </div>
+          </section>
 
-          <div className="relative max-w-[1680px] mx-auto px-4 sm:px-10 pt-8 pb-12">
-            <nav className="flex items-center gap-1 text-xs text-gray-400 mb-5">
-              <Link href="/" className="hover:text-[#0093FF] transition-colors">Zaleto</Link>
-              <ChevronRight className="w-3.5 h-3.5" />
-              <span className="text-gray-700 font-medium">Půjčovna aut</span>
-            </nav>
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#0093FF] uppercase tracking-[0.12em] mb-3">
-              <Car className="w-3.5 h-3.5 flex-shrink-0" />
-              Nejlepší český srovnávač půjčoven aut
-            </p>
-            <h1
-              className="font-bold text-gray-900 leading-tight tracking-tight mb-3"
-              style={{ fontSize: 'clamp(26px, 4.5vw, 52px)' }}
-            >
-              Půjčovna aut v zahraničí
-            </h1>
-            <p className="text-gray-600 text-sm sm:text-base leading-relaxed max-w-xl mb-8">
-              Porovnejte ceny více než <strong className="text-gray-800">500 půjčoven aut</strong> —
-              Řecko, Turecko, Chorvatsko a desítky dalších destinací.
-            </p>
+          <div style={{ marginTop: 'var(--space-6)' }}>
             <CarRentalForm />
           </div>
-        </div>
 
-        <main className="max-w-[1680px] mx-auto px-4 sm:px-8 py-8 sm:py-14 space-y-16">
+          <div style={{ marginTop: 'var(--space-6)' }}>
+            <CarRentalResults />
+          </div>
 
-          {/* ── Search results ────────────────────────────────────────────── */}
-          <CarRentalResults />
-
-          {/* ── Destinations by country ──────────────────────────────────── */}
-          <section>
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin className="w-4 h-4 text-[#0093FF]" />
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: '#0093FF' }}>
-                Destinace
-              </p>
-            </div>
-            <h2
-              className="font-bold text-gray-900 tracking-tight mb-6"
-              style={{ fontSize: 'clamp(22px, 3vw, 36px)' }}
-            >
-              Kde si půjčit auto?
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeCountries.map(country => {
-                const dests = destsByCountry[country] ?? []
-                return (
-                  <div key={country} className="bg-white rounded-2xl p-5"
-                    style={{ border: '1px solid #f0f0f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                    <div className="flex items-center gap-2.5 mb-4">
-                      <div className="w-[3px] h-5 rounded-full bg-[#0093FF] flex-shrink-0" />
-                      <h3 className="font-bold text-gray-900 text-[15px]">{country}</h3>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {dests.map(d => (
-                        <Link
-                          key={d.slug}
-                          href={`/pujcovna-aut/${d.slug}`}
-                          className="inline-flex items-center gap-1 text-[13px] font-semibold text-gray-600 hover:text-[#0093FF] bg-[#f8f9fa] hover:bg-[#EDF6FF] border border-[#f0f0f0] hover:border-[#0093FF]/20 transition-all duration-150 px-3 py-1.5 rounded-xl"
-                        >
-                          {d.name}
-                          <ChevronRight className="w-3 h-3 opacity-35 flex-shrink-0" />
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
+          <section className="z-section">
+            <SectionHead num="01" kicker="Destinace" title="kde si půjčit auto" />
+            <div className="z-grid-3w" style={{ rowGap: 'var(--space-6)' }}>
+              {active.map(country => (
+                <div key={country}>
+                  <h3 className="h3" style={{ marginBottom: 'var(--space-3)' }}>{country}<span className="z-dot">.</span></h3>
+                  <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                    {byCountry[country].map(d => (
+                      <li key={d.slug}>
+                        <Link className="z-chip" href={`/pujcovna-aut/${d.slug}`} style={{ textDecoration: 'none' }}>{d.name}</Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </section>
 
-          {/* ── How it works ──────────────────────────────────────────────── */}
-          <section>
-            <div className="text-center mb-10">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] mb-2" style={{ color: '#0093FF' }}>
-                Jak to funguje
-              </p>
-              <h2
-                className="font-bold text-gray-900 tracking-tight"
-                style={{ fontSize: 'clamp(22px, 3vw, 36px)' }}
-              >
-                Rezervace ve 3 krocích
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <section className="z-section">
+            <SectionHead num="02" kicker="Jak to funguje" title="rezervace ve třech krocích" />
+            <div className="z-grid-3">
               {STEPS.map(s => (
-                <div key={s.n} className="glass-card rounded-2xl p-7 relative overflow-hidden">
-                  <div
-                    className="absolute top-4 right-4 font-black text-5xl leading-none select-none"
-                    style={{ color: 'rgba(0,147,255,0.07)',  }}
-                  >
-                    {s.n}
-                  </div>
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center mb-4 font-bold text-white text-sm"
-                    style={{ background: '#0093FF' }}
-                  >
-                    {s.n.replace('0', '')}
-                  </div>
-                  <h3 className="font-bold text-gray-900 mb-2">{s.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{s.text}</p>
+                <div key={s.n} className="z-info">
+                  <div className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{s.n}</div>
+                  <h3 className="z-info__title" style={{ margin: 'var(--space-3) 0' }}>{s.title}</h3>
+                  <p style={{ margin: 0 }}>{s.text}</p>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* ── Why Discover Cars ─────────────────────────────────────────── */}
-          <section className="section-island">
-            <div className="mb-8">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] mb-2" style={{ color: '#0093FF' }}>
-                Proč objednání auta přes portál Zaleto?
-              </p>
-              <h2
-                className="font-bold text-gray-900 tracking-tight"
-                style={{ fontSize: 'clamp(20px, 2.5vw, 32px)' }}
-              >
-                Garance nejlepší ceny a kvality
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {WHY_ITEMS.map(item => (
-                <div key={item.title} className="flex gap-4">
-                  <div
-                    className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white"
-                    style={{ background: '#0093FF' }}
-                  >
-                    {item.icon}
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm mb-0.5">{item.title}</p>
-                    <p className="text-sm text-gray-500 leading-relaxed">{item.text}</p>
-                  </div>
+          <section className="z-section">
+            <SectionHead num="03" kicker="Proč přes Zaleto" title="co dostaneš" />
+            <dl className="z-info__grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+              {WHY.map(w => (
+                <div key={w.title} className="z-info__item" style={{ background: 'var(--raised)' }}>
+                  <Icon name={w.icon} />
+                  <dt>{w.title}</dt>
+                  <dd style={{ font: '400 15px/24px var(--font-sans)' }}>{w.text}</dd>
                 </div>
               ))}
-            </div>
-
+            </dl>
           </section>
-
         </main>
-
       </CarRentalProvider>
-    </div>
+    </>
   )
 }

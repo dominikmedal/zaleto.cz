@@ -1,17 +1,18 @@
 ﻿import type { Metadata } from 'next'
 import Header from '@/components/Header'
-import Link from 'next/link'
-import Image from 'next/image'
 import JsonLd from '@/components/JsonLd'
-import { PiMagnifyingGlass, PiArrowsLeftRight, PiShieldCheck, PiClock, PiArrowRight } from 'react-icons/pi'
+import Crumbs from '@/components/ui/Crumbs'
+import SectionHead from '@/components/ui/SectionHead'
+import Icon, { type IconName } from '@/components/ui/Icon'
+import Button from '@/components/ui/Button'
 
 export const metadata: Metadata = {
   title: 'Co je Zaleto?',
-  description: 'Zaleto je český srovnávač leteckých zájezdů. Agregujeme nabídky předních cestovních kanceláří na jednom místě. Ušetřete čas a snadno najděte nejlepší dovolenou.',
+  description: 'Zaleto je český srovnávač leteckých zájezdů a cestovní deník. Nabídky předních cestovních kanceláří na jednom místě.',
   alternates: { canonical: 'https://zaleto.cz/o-zaleto' },
   openGraph: {
     title: 'Co je Zaleto? | Srovnávač zájezdů',
-    description: 'Zaleto agreguje nabídky leteckých zájezdů od předních českých CK. Porovnejte ceny, termíny a rezervujte přímo u cestovní kanceláře.',
+    description: 'Zaleto agreguje nabídky leteckých zájezdů od českých CK. Porovnej ceny, termíny a rezervuj přímo u cestovní kanceláře.',
     url: 'https://zaleto.cz/o-zaleto',
     type: 'website',
   },
@@ -25,152 +26,67 @@ const websiteSchema = {
   description: 'Zaleto je český srovnávač leteckých zájezdů od předních cestovních kanceláří.',
   potentialAction: {
     '@type': 'SearchAction',
-    target: {
-      '@type': 'EntryPoint',
-      urlTemplate: 'https://zaleto.cz/?destination={search_term_string}',
-    },
+    target: { '@type': 'EntryPoint', urlTemplate: 'https://zaleto.cz/zajezdy?destination={search_term_string}' },
     'query-input': 'required name=search_term_string',
   },
 }
 
-const features = [
-  {
-    Icon: PiMagnifyingGlass,
-    title: 'Vyhledávání na jednom místě',
-    desc: 'Prohledáme nabídky předních českých cestovních kanceláří najednou. Nemusíte procházet desítky webů.',
-  },
-  {
-    Icon: PiArrowsLeftRight,
-    title: 'Srovnání cen a termínů',
-    desc: 'U každého hotelu vidíte všechny dostupné termíny, délky pobytu a varianty stravování seřazené od nejlevnějšího.',
-  },
-  {
-    Icon: PiShieldCheck,
-    title: 'Rezervace přímo u CK',
-    desc: 'Nezprostředkováváme platby ani data. Kliknutím na Rezervovat vás přesměrujeme přímo na stránky cestovní kanceláře.',
-  },
-  {
-    Icon: PiClock,
-    title: 'Aktuální data',
-    desc: 'Ceny a dostupnost termínů pravidelně stahujeme přímo ze zdrojů CK, aby byly výsledky co nejpřesnější.',
-  },
+const FEATURES: { icon: IconName; title: string; desc: string }[] = [
+  { icon: 'hledat', title: 'Vyhledávání na jednom místě', desc: 'Prohledáme nabídky českých cestovních kanceláří najednou. Nemusíš procházet desítky webů.' },
+  { icon: 'filtr', title: 'Srovnání cen a termínů', desc: 'U každého hotelu vidíš všechny termíny, délky pobytu a stravování seřazené od nejlevnějšího.' },
+  { icon: 'ok', title: 'Rezervace přímo u CK', desc: 'Nezprostředkováváme platby ani data. Po kliknutí tě přesměrujeme na web cestovní kanceláře.' },
+  { icon: 'cas', title: 'Aktuální data', desc: 'Ceny a dostupnost pravidelně stahujeme ze zdrojů CK, aby byly výsledky co nejpřesnější.' },
 ]
 
-const HOW_STEPS = [
-  { t: 'Zadejte destinaci a termín', d: 'Vyhledejte zájezd podle destinace, data odjezdu, počtu nocí nebo stravování.' },
-  { t: 'Porovnejte výsledky', d: 'Procházejte hotely v mřížce, seznamu nebo na mapě. U každého vidíte ceny od více CK.' },
-  { t: 'Otevřete detail hotelu', d: 'Prohlédněte si fotky, vybavení, recenze a všechny dostupné termíny s cenami.' },
-  { t: 'Rezervujte přímo u CK', d: 'Klikněte na Rezervovat — přesměrujeme vás na web CK, kde bezpečně dokončíte rezervaci.' },
+const STEPS = [
+  { t: 'Zadej destinaci a termín', d: 'Hledej podle destinace, data odletu, počtu nocí nebo stravování.' },
+  { t: 'Porovnej výsledky', d: 'U každého hotelu vidíš ceny od více cestovních kanceláří.' },
+  { t: 'Otevři detail hotelu', d: 'Fotky, vybavení, recenze a všechny dostupné termíny s cenami.' },
+  { t: 'Rezervuj přímo u CK', d: 'Klikni na termín a rezervaci dokončíš na webu cestovní kanceláře.' },
 ]
 
 export default function OZaletoPage() {
   return (
-    <div className="min-h-screen">
+    <>
       <JsonLd data={websiteSchema} />
       <Header />
-      <main className="max-w-4xl mx-auto px-6 sm:px-8 py-12">
+      <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
+        <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'O Zaleto' }]} />
+        <div style={{ height: 'var(--space-6)' }} />
+        <SectionHead as="h1" kicker="O projektu" title="co je zaleto" />
+        <p className="lead" style={{ maxWidth: 'var(--article-max)', marginBottom: 'var(--space-7)' }}>
+          Zaleto je český vyhledávač zájezdů a cestovní deník. Agregujeme nabídky leteckých zájezdů od českých cestovních kanceláří
+          a ukazujeme je přehledně na jednom místě, abys ušetřil čas a našel tu nejlepší dovolenou.
+        </p>
 
-        {/* Hero */}
-        <div className="mb-12 flex items-start justify-between gap-8">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] mb-3" style={{ color: '#0093FF' }}>
-              O projektu
-            </p>
-            <h1
-              className="font-bold text-gray-900 leading-tight tracking-tight mb-4"
-              style={{ fontSize: 'clamp(32px, 4.5vw, 52px)' }}
-            >
-              Co je <em className="not-italic" style={{ color: '#0093FF' }}>Zaleto</em>?
-            </h1>
-            <p className="text-gray-500 text-base leading-relaxed max-w-xl">
-              Zaleto je český vyhledávač zájezdů. Agregujeme nabídky leteckých zájezdů od předních
-              cestovních kanceláří a zobrazujeme je přehledně na jednom místě — abyste ušetřili čas
-              a snadno našli tu nejlepší dovolenou.
-            </p>
-          </div>
-          <div className="hidden sm:block flex-shrink-0">
-            <Image
-              src="/img/logo/logo.png"
-              alt="Zaleto — srovnávač zájezdů"
-              width={130}
-              height={44}
-              className="h-10 w-auto object-contain opacity-80"
-            />
-          </div>
-        </div>
-
-        {/* Feature cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-          {features.map(f => (
-            <div
-              key={f.title}
-              className="glass-card rounded-2xl p-6 transition-all hover:shadow-[0_8px_32px_rgba(0,147,255,0.12)]"
-            >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: 'rgba(0,147,255,0.09)' }}
-              >
-                <f.Icon className="w-5 h-5 text-[#0093FF]" />
-              </div>
-              <h2 className="text-[15px] font-semibold text-gray-900 mb-2">{f.title}</h2>
-              <p className="text-sm text-gray-400 leading-relaxed">{f.desc}</p>
+        <div className="z-grid-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+          {FEATURES.map(f => (
+            <div key={f.title} className="z-info__item" style={{ background: 'var(--raised)', boxShadow: 'var(--shadow-ticket)' }}>
+              <Icon name={f.icon} />
+              <h2 className="h4" style={{ margin: 'var(--space-2) 0' }}>{f.title}</h2>
+              <p style={{ margin: 0, color: 'var(--ink-muted)' }}>{f.desc}</p>
             </div>
           ))}
         </div>
 
-        {/* How it works */}
-        <div
-          className="rounded-2xl p-8 mb-8"
-          style={{
-            background: 'rgba(245,248,255,0.97)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(200,227,255,0.65)',
-            boxShadow: '0 4px 24px rgba(0,80,200,0.07)',
-          }}
-        >
-          <div className="flex items-center gap-2.5 mb-7">
-            <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0,147,255,0.09)' }}>
-              <PiArrowRight className="w-3.5 h-3.5 text-[#0093FF]" />
-            </div>
-            <h2 className="text-base font-bold text-gray-900 tracking-tight">Jak to funguje?</h2>
-          </div>
-
-          <ol className="space-y-5">
-            {HOW_STEPS.map((step, i) => (
-              <li key={i} className="flex items-start gap-4">
-                <span
-                  className="flex-shrink-0 w-7 h-7 rounded-xl text-white text-xs font-bold flex items-center justify-center mt-0.5"
-                  style={{
-                    background: 'linear-gradient(135deg, #0093FF 0%, #0070E0 100%)',
-                    boxShadow: '0 2px 8px rgba(0,147,255,0.28)',
-                  }}
-                >
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="text-[15px] font-semibold text-gray-900 mb-0.5">{step.t}</p>
-                  <p className="text-sm text-gray-400 leading-relaxed">{step.d}</p>
-                </div>
+        <section className="z-section">
+          <SectionHead kicker="Jak to funguje" title="čtyři kroky" />
+          <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 'var(--space-5)', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            {STEPS.map((s, i) => (
+              <li key={s.t}>
+                <div className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{String(i + 1).padStart(2, '0')}</div>
+                <h3 className="h4" style={{ margin: 'var(--space-2) 0' }}>{s.t}</h3>
+                <p style={{ margin: 0, color: 'var(--ink-muted)' }}>{s.d}</p>
               </li>
             ))}
           </ol>
-        </div>
+        </section>
 
-        {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Link href="/" className="btn-cta">
-            Hledat zájezdy <PiArrowRight className="w-4 h-4" />
-          </Link>
-          <Link
-            href="/kontakt"
-            className="btn-secondary"
-          >
-            Kontakt
-          </Link>
+        <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', marginTop: 'var(--space-8)' }}>
+          <Button href="/zajezdy">Najít zájezd</Button>
+          <Button href="/kontakt" variant="line">Kontakt</Button>
         </div>
-
       </main>
-    </div>
+    </>
   )
 }

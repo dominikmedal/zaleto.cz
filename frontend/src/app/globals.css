@@ -48,86 +48,35 @@ a { color: var(--brand-strong); }
   box-shadow: 0 0 0 2px rgba(0,147,255,0.14) !important;
 }
 
-/* ── Card ── clean white with subtle border */
-.glass-card {
-  background: #ffffff;
-  border: 1px solid #f0f0f0;
-}
-
-/* ── Bar (header, sticky elements) ── */
-.glass-bar {
-  background: #ffffff;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-/* ── Pill / tag ── light blue tint */
-.glass-pill {
-  background: #f0f7ff;
-  border: 1px solid #deeeff;
-}
-
-/* ── Section island ── light gray container */
-.section-island {
-  background: #f9fafb;
-  border-radius: 20px;
-  padding: 28px;
-  border: 1px solid #f0f0f0;
-  position: relative;
-}
-
 /* ════════════════════════════════════════════
-   Button system
+   Legacy skin — staré Tailwind komponenty v paletě „Palubní deník“
+   (karty, tlačítka a šedé/modré utility přemapované na tokeny)
    ════════════════════════════════════════════ */
+.glass-card { background: var(--raised); border: 1px solid var(--line); box-shadow: var(--shadow-ticket); border-radius: var(--radius-lg); }
+.glass-bar { background: var(--paper); border-bottom: 1px solid var(--line); }
+.glass-pill { background: var(--sky); border: 1px solid transparent; }
+.section-island { background: var(--paper-deep); border-radius: var(--radius-lg); padding: 28px; border: 0; position: relative; }
 
-.btn-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 22px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #ffffff;
-  background: #0093FF;
-  border: none;
-  transition: background 0.15s ease, opacity 0.15s ease;
-  cursor: pointer;
-  white-space: nowrap;
-  letter-spacing: 0.01em;
-  text-decoration: none;
+.btn-cta, .btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius-pill);
+  font: 500 15px/24px var(--font-sans); cursor: pointer; white-space: nowrap; text-decoration: none;
+  transition: background .2s, color .2s;
 }
-.btn-cta:hover {
-  background: #007ee0;
-}
-.btn-cta:active {
-  background: #006cc2;
-  opacity: 0.95;
-}
+.btn-cta { padding: 12px 24px; color: var(--on-brand); background: var(--brand-strong); border: 1.5px solid transparent; }
+.btn-cta:hover { background: var(--brand-deep); }
+.btn-secondary { padding: 11px 20px; color: var(--ink); background: transparent; border: 1.5px solid var(--ink); }
+.btn-secondary:hover { background: var(--ink); color: var(--paper); }
 
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #0068CC;
-  background: #f0f7ff;
-  border: 1px solid #c8e3ff;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-  cursor: pointer;
-  white-space: nowrap;
-  text-decoration: none;
-}
-.btn-secondary:hover {
-  background: #e0efff;
-  border-color: #9fcbf5;
-  color: #0093FF;
-}
-.btn-secondary:active {
-  background: #d4e9ff;
-}
+/* šedé a modré utility ze starého designu → tokeny */
+.bg-white { background-color: var(--raised); }
+.bg-gray-50, .bg-gray-100, .bg-\[\#f9fafb\], .bg-\[\#f8f9fa\] { background-color: var(--paper-deep); }
+.bg-\[\#f0f7ff\], .bg-\[\#EDF6FF\], .bg-blue-50 { background-color: var(--sky); }
+.border-gray-100, .border-gray-200, .border-\[\#f0f0f0\], .border-\[\#deeeff\] { border-color: var(--line); }
+.text-gray-900, .text-gray-800, .text-gray-700 { color: var(--ink); }
+.text-gray-600, .text-gray-500, .text-gray-400 { color: var(--ink-muted); }
+.text-\[\#0093FF\], .text-\[\#008afe\], .text-\[\#0068CC\], .text-sky-600, .text-blue-600 { color: var(--brand-strong); }
+.bg-\[\#0093FF\] { background-color: var(--brand-strong); color: var(--on-brand); }
+.hover\:text-\[\#0093FF\]:hover, .hover\:text-\[\#008afe\]:hover { color: var(--brand-deep); }
 
 /* ── Car search loading animation ── */
 @keyframes car-bounce {
@@ -162,8 +111,7 @@ a { color: var(--brand-strong); }
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--line-strong); }
 
-*:focus { outline: none; }
-*:focus-visible { outline: none; }
+

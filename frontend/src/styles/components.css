@@ -344,3 +344,10 @@ a.z-tk:hover { transform: translateY(-4px) rotate(-.4deg); filter: drop-shadow(0
 .z-deps small { display: block; font: 400 11px/14px var(--font-mono); letter-spacing: .04em; color: var(--ink-muted); }
 .z-deps__price { font: 600 16px/20px var(--font-serif); white-space: nowrap; }
 @media (max-width: 1023px) { .z-hotel { grid-template-columns: 1fr; } .z-hotel > aside { position: static; order: -1; } }
+
+/* ---------- FAQ ---------- */
+.z-faq { border-bottom: 2px dotted var(--line); }
+.z-faq summary { display: flex; gap: var(--space-4); align-items: baseline; padding: var(--space-5) 0; cursor: pointer; list-style: none; }
+.z-faq summary::-webkit-details-marker { display: none; }
+.z-faq summary:hover .h4 { color: var(--brand-strong); }
+.z-faq p { margin: 0 0 var(--space-5) 56px; max-width: var(--article-max); font: 400 17px/28px var(--font-serif); color: var(--ink); }
