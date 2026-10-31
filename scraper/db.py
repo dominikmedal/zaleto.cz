@@ -254,6 +254,19 @@ class ZaletoDB:
 
     # ── Termíny ──────────────────────────────────────────────────────────
 
+    def _tour_agency(self, hotel_id: int, t: dict) -> str:
+        """Agentura termínu: z termínu, jinak z hotelu (dřívější výchozí 'Fischer' mylně označovala termíny Čedoku a Blue Style)."""
+        a = t.get("agency") or t.get("_agency")
+        if a:
+            return a
+        cache = self.__dict__.setdefault("_agency_cache", {})
+        if hotel_id not in cache:
+            cur = self._cur()
+            cur.execute("SELECT agency FROM hotels WHERE id = %s", (hotel_id,))
+            row = cur.fetchone()
+            cache[hotel_id] = (row["agency"] if row else None) or "Fischer"
+        return cache[hotel_id]
+
     def upsert_tour(self, hotel_id: int, t: dict):
         cur = self._cur()
         cur.execute("""
@@ -283,7 +296,7 @@ class ZaletoDB:
                 updated_at      = NOW()
         """, (
             hotel_id,
-            t.get("agency", t.get("_agency", "Fischer")),
+            self._tour_agency(hotel_id, t),
             t["departure_date"],
             t.get("return_date"),
             t.get("duration"),
