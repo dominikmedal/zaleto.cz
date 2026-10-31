@@ -15,7 +15,7 @@ import { slugify } from '@/lib/slugify'
 export const revalidate = 3600
 
 export const metadata: Metadata = {
-  title: 'Zaleto — kam letos | Zájezdy, články z cest a půjčovna aut',
+  title: 'Zaleto — zájezdy a auta na jednom místě | srovnání cen',
   description: 'Zajímavosti o místech, články z cest, zájezdy od českých cestovních kanceláří a půjčení auta. Přehledně, na jednom místě.',
   alternates: { canonical: 'https://zaleto.cz' },
   openGraph: {
@@ -87,11 +87,11 @@ export default async function HomePage() {
           <div className="z-masthead__inner">
             <div className="z-masthead__head">
               <div>
-                <div className="z-kicker">Srovnání zájezdů a půjčoven aut</div>
-                <h1 className="z-masthead__title">kam letos<span className="z-dot">.</span></h1>
+                <div className="z-kicker">Srovnávač zájezdů a půjčoven aut</div>
+                <h1 className="z-masthead__title">zájezdy a auta na jednom místě<span className="z-dot">.</span></h1>
               </div>
               <p className="z-masthead__lead">
-                Zájezdy od českých cestovních kanceláří a auta na dovolenou. Ceny porovnáme za tebe.
+                Ceny od českých cestovních kanceláří a půjčoven aut porovnáme za tebe. Rezervuješ přímo u nich.
                 {heroHotel && (
                   <>
                     {' '}

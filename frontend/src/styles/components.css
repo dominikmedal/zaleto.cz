@@ -1262,3 +1262,9 @@ body:has(.z-section--deep:last-child) .z-footer { margin-top: 0; }
 .z-windows--sm .z-stamp { display: none; }
 @media (max-width: 1279px) { .z-windows--sm { grid-template-columns: repeat(4, 1fr); } }
 @media (max-width: 1023px) { .z-windows--sm { grid-template-columns: repeat(3, 1fr); } }
+
+/* Homepage: delší popisný nadpis – zalomí se na dva řádky a nepřetlačí úvodní text */
+.z-masthead__title { max-width: 9.2em; text-wrap: balance; font-size: 76px; line-height: 76px; }
+@media (max-width: 1023px) { .z-masthead__title { font-size: 58px; line-height: 58px; max-width: none; } }
+@media (max-width: 767px) { .z-masthead__title { font-size: 42px; line-height: 44px; } }
+@media (max-width: 767px) { .z-offerbar__list a { gap: .3em; } }
