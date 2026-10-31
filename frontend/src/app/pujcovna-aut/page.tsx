@@ -105,6 +105,7 @@ export default async function PujcovnaAutPage() {
           </div>
         </section>
 
+        <div className="z-sheet">
         <main className="z-container">
           <div style={{ marginTop: 'var(--space-6)' }}>
             <CarRentalResults />
@@ -154,6 +155,7 @@ export default async function PujcovnaAutPage() {
             </dl>
           </section>
         </main>
+        </div>
       </CarRentalProvider>
     </>
   )

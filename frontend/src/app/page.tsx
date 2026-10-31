@@ -99,6 +99,8 @@ export default async function HomePage() {
           </div>
         </section>
 
+        <div className="z-sheet">
+
         {countries.length > 0 && (
           <section className="z-container z-section">
             <SectionHead num="01" kicker="Destinace" title="kam za sluncem" moreHref="/destinace" moreLabel="Všechny destinace" />
@@ -140,6 +142,7 @@ export default async function HomePage() {
             </div>
           </section>
         )}
+        </div>
       </main>
     </>
   )

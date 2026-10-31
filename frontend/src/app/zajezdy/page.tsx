@@ -77,7 +77,7 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
       <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
         <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Zájezdy' }]} />
         <div style={{ height: 'var(--space-6)' }} />
-        <SectionHead as="h1" kicker={pg ? `${pg.total.toLocaleString('cs-CZ')} hotelů s volným termínem` : 'Zájezdy'} title={title} />
+        <SectionHead as="h1" keepKicker kicker={pg ? `${pg.total.toLocaleString('cs-CZ')} hotelů s volným termínem` : 'Zájezdy'} title={title} />
 
         <form method="get" action="/zajezdy" className="z-filter" style={{ marginBottom: 'var(--space-7)' }}>
           <div className="z-tk"><div className="z-tk__in z-filter__in">

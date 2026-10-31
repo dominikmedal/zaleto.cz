@@ -448,7 +448,7 @@ export function CarRentalResults({ className = '' }: { className?: string }) {
         <div>
           <div className="z-shead" style={{ marginBottom: 'var(--space-5)' }}>
             <div>
-              <div className="z-kicker">{visibleCars.length} nabídek{locInfo ? ` — ${locInfo}` : ''}{activecat ? ` · ${activecat}` : ''}</div>
+              <div className="z-kicker z-kicker--keep">{visibleCars.length} nabídek{locInfo ? ` — ${locInfo}` : ''}{activecat ? ` · ${activecat}` : ''}</div>
               <div className="z-data" style={{ marginTop: 6 }}>{pickupDate} → {dropoffDate} · ŘIDIČ {driverAge} LET · OD NEJLEVNĚJŠÍHO</div>
             </div>
           </div>

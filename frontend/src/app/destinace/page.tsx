@@ -64,7 +64,7 @@ export default async function DestinacePage() {
       <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
         <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Destinace' }]} />
         <div style={{ height: 'var(--space-6)' }} />
-        <SectionHead as="h1" kicker={`${countries.length} zemí · ${totalHotels.toLocaleString('cs-CZ')} hotelů`} title="kam letos" />
+        <SectionHead as="h1" keepKicker kicker={`${countries.length} zemí · ${totalHotels.toLocaleString('cs-CZ')} hotelů`} title="kam letos" />
 
         <div className="z-grid-4">
           {top.map((c, i) => (

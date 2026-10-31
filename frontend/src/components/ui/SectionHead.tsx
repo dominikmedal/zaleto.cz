@@ -9,13 +9,15 @@ interface Props {
   moreHref?: string
   moreLabel?: string
   as?: 'h1' | 'h2'
+  /** Nadtitulek se jinak skrývá; zobrazí se jen u údajů (např. počet hotelů). */
+  keepKicker?: boolean
 }
 
-export default function SectionHead({ num, kicker, title, moreHref, moreLabel, as: Tag = 'h2' }: Props) {
+export default function SectionHead({ num, kicker, title, moreHref, moreLabel, as: Tag = 'h2', keepKicker }: Props) {
   return (
     <div className="z-shead">
       <div>
-        <div className="z-kicker">
+        <div className={`z-kicker${keepKicker ? ' z-kicker--keep' : ''}`}>
           {num && <><span className="z-shead__num">{num}</span> — </>}{kicker}
         </div>
         <Tag>{title}<span className="z-dot">.</span></Tag>

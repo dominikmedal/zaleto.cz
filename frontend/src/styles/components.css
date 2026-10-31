@@ -627,3 +627,15 @@ button.z-navtab { border: 0; cursor: pointer; }
 .z-story__text { font: 400 17px/27px var(--font-serif); }
 .z-footer p { font: 400 17px/27px var(--font-sans); }
 @media (max-width: 767px) { .z-text, :where(main, aside, .z-modal__body, .z-cardest, .z-hotel) p:not([class]), .z-prose, .z-prose p { font-size: 18px; line-height: 29px; } }
+
+/* ---------- Sekce se zaoblenými horními rohy (přesah přes záhlaví) ---------- */
+.z-sheet { position: relative; z-index: 2; background: var(--paper); border-radius: var(--radius-sheet) var(--radius-sheet) 0 0; margin-top: calc(var(--radius-sheet) * -1); }
+.z-masthead--under .z-masthead__inner, .z-masthead__inner { padding-bottom: calc(var(--space-7) + var(--radius-sheet)); }
+.z-section--deep { border-radius: var(--radius-sheet) var(--radius-sheet) 0 0; }
+.z-footer { border-radius: var(--radius-sheet) var(--radius-sheet) 0 0; }
+.z-sheet > main > .z-section:first-child, .z-sheet > .z-section:first-child { padding-top: var(--space-8); }
+@media (max-width: 767px) { :root { --radius-sheet: 32px; } }
+
+/* Nadtitulky („02 — Čerstvě z cest“ apod.) u nadpisů sekcí se nezobrazují; údaje nesou třídu z-kicker--keep */
+.z-shead .z-kicker:not(.z-kicker--keep) { display: none; }
+.z-shead h2, .z-shead h1 { margin-top: 0; }
