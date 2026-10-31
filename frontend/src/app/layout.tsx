@@ -25,6 +25,7 @@ const spaceMono = Space_Mono({
 import ScrollToTop from '@/components/ScrollToTop'
 import Footer from '@/components/Footer'
 import NavigationProgress from '@/components/NavigationProgress'
+import OfferBar from '@/components/OfferBar'
 import ServiceWorkerSetup from '@/components/ServiceWorkerSetup'
 import JsonLd from '@/components/JsonLd'
 import ChatWidget from '@/components/ChatWidget'
@@ -109,6 +110,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <NavigationProgress />
         <ServiceWorkerSetup />
         <JsonLd data={orgSchema} />
+        <OfferBar />
         {children}
         <Footer />
         <ScrollToTop />

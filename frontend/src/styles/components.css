@@ -775,3 +775,20 @@ button.z-navtab { border: 0; cursor: pointer; }
 .z-header--over .z-favs__btn { color: var(--on-night); }
 .z-header--over .z-favs__panel button, .z-header--over .z-favs__panel a { color: var(--ink); }
 .z-header--over .z-favs__panel .z-iconbtn:hover { background: var(--paper-deep); }
+
+/* ---------- Úzký proužek s nabídkou nad menu ---------- */
+.z-offerbar { position: relative; z-index: 51; background: var(--accent); color: var(--ink); }
+.z-offerbar__in { max-width: var(--container-max); margin: 0 auto; padding: 0 var(--space-6); min-height: 40px; display: flex; align-items: center; gap: var(--space-5); font: 500 14px/20px var(--font-sans); }
+.z-offerbar__tag { flex: none; padding: 2px 10px; border: 1.5px solid var(--ink); border-radius: var(--radius-sm); font: 700 11px/16px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; transform: rotate(-3deg); }
+.z-offerbar__list { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-2) var(--space-5); margin: 0; padding: 0; list-style: none; overflow: hidden; white-space: nowrap; }
+.z-offerbar__list li { display: inline-flex; align-items: center; gap: var(--space-5); }
+.z-offerbar__list li + li::before { content: ""; width: 26px; border-top: 2px dotted rgba(11, 27, 51, .55); }
+.z-offerbar a { color: var(--ink); text-decoration: none; }
+.z-offerbar__list a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.z-offerbar__list b { font-weight: 700; }
+.z-offerbar__all { flex: none; display: inline-flex; align-items: center; gap: 6px; font: 700 12px/16px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+.z-offerbar__all:hover .zi { transform: translateX(3px); }
+.z-offerbar__all .zi { transition: transform .25s; }
+.z-offerbar :focus-visible { outline-color: var(--ink); }
+@media (max-width: 1023px) { .z-offerbar__list li:nth-child(n+2) { display: none; } }
+@media (max-width: 767px) { .z-offerbar__in { padding: 0 var(--space-4); gap: var(--space-3); } .z-offerbar__all { display: none; } .z-offerbar__list { white-space: normal; } }
