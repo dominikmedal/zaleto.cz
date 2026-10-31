@@ -10,6 +10,7 @@ import StoryCard from '@/components/ui/StoryCard'
 import WindowCard from '@/components/ui/WindowCard'
 import { formatPrice } from '@/components/ui/format'
 import { fetchArticles, fetchDestinationPhoto, fetchDestinations, fetchHotels } from '@/lib/api'
+import { bestHotelPhotos } from '@/server/content'
 import { slugify } from '@/lib/slugify'
 
 export const revalidate = 3600
@@ -53,7 +54,8 @@ export default async function HomePage() {
   const byCountry = new Map<string, number>()
   for (const d of destinations) if (d.country) byCountry.set(d.country, (byCountry.get(d.country) ?? 0) + d.hotel_count)
   const countries = POPULAR.filter(c => byCountry.has(c)).slice(0, 8)
-  const photos = await Promise.all(countries.map(c => fetchDestinationPhoto(c)))
+  const best = await bestHotelPhotos(countries)
+  const photos = await Promise.all(countries.map(c => (best[c] ? Promise.resolve(best[c]) : fetchDestinationPhoto(c))))
 
   // Lístky: nejdřív last minute, doplněné nejlevnějšími; jen s fotkou
   const withPhoto = (hs: typeof cheapest) => hs.filter(h => h.thumbnail_url)

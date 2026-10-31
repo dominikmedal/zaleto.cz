@@ -247,3 +247,34 @@ export async function carRentalAI(slug: string) {
     return EMPTY_CAR_AI
   }
 }
+
+// ─── Fotky nejlepších hotelů podle země (okénka destinací) ───────────────
+
+/**
+ * Pro každou zemi vrátí fotku nejlépe hodnoceného hotelu s aktuálním termínem
+ * (nejdřív hodnocení hostů, pak hvězdičky, pak cena).
+ */
+export async function bestHotelPhotos(countries: string[]): Promise<Record<string, string>> {
+  if (countries.length === 0) return {}
+  const key = `best_hotel_photos_${countries.join('|')}`
+  const cached = metaCache.get(key) as Record<string, string> | null
+  if (cached) return cached
+  try {
+    const r = await query(
+      `SELECT DISTINCT ON (h.country) h.country, h.thumbnail_url
+       FROM hotels h JOIN hotel_stats s ON s.hotel_id = h.id
+       WHERE h.country = ANY($1) AND h.thumbnail_url IS NOT NULL
+         AND s.min_price IS NOT NULL AND s.next_departure >= CURRENT_DATE::text
+         AND (h.canonical_slug IS NULL OR h.canonical_slug = h.slug)
+       ORDER BY h.country, h.review_score DESC NULLS LAST, h.stars DESC NULLS LAST, s.min_price ASC`,
+      [countries],
+    )
+    const out: Record<string, string> = {}
+    for (const row of r.rows) out[row.country] = row.thumbnail_url
+    metaCache.set(key, out)
+    return out
+  } catch (e) {
+    console.error('bestHotelPhotos error:', (e as Error).message)
+    return {}
+  }
+}

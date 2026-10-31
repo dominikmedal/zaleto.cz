@@ -6,6 +6,7 @@ import Crumbs from '@/components/ui/Crumbs'
 import SectionHead from '@/components/ui/SectionHead'
 import WindowCard from '@/components/ui/WindowCard'
 import { fetchDestinations, fetchDestinationPhoto } from '@/lib/api'
+import { bestHotelPhotos } from '@/server/content'
 import { slugify } from '@/lib/slugify'
 
 export const revalidate = 3600
@@ -54,7 +55,8 @@ export default async function DestinacePage() {
   const rows = await fetchDestinations().catch(() => [] as Row[])
   const countries = group(rows)
   const top = countries.slice(0, 8)
-  const photos = await Promise.all(top.map(c => fetchDestinationPhoto(c.name).catch(() => null)))
+  const best = await bestHotelPhotos(top.map(c => c.name))
+  const photos = await Promise.all(top.map(c => (best[c.name] ? Promise.resolve(best[c.name]) : fetchDestinationPhoto(c.name).catch(() => null))))
   const totalHotels = countries.reduce((s, c) => s + c.total, 0)
 
   return (
