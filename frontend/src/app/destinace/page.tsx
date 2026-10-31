@@ -6,7 +6,6 @@ import Crumbs from '@/components/ui/Crumbs'
 import SectionHead from '@/components/ui/SectionHead'
 import WindowCard from '@/components/ui/WindowCard'
 import { fetchDestinations, fetchDestinationPhoto } from '@/lib/api'
-import { bestHotelPhotos } from '@/server/content'
 import { slugify } from '@/lib/slugify'
 
 export const revalidate = 3600
@@ -26,6 +25,9 @@ const breadcrumbSchema = {
     { '@type': 'ListItem', position: 2, name: 'Destinace', item: 'https://zaleto.cz/destinace' },
   ],
 }
+
+/** Fotky hotelů od CK (content4travel) nejsou fotky destinace. */
+const isHotelPhoto = (u: string | null) => !u || /content4travel\.com/.test(u)
 
 interface Row { country: string; destination: string; resort_town: string | null; hotel_count: number }
 
@@ -54,9 +56,12 @@ function group(rows: Row[]) {
 export default async function DestinacePage() {
   const rows = await fetchDestinations().catch(() => [] as Row[])
   const countries = group(rows)
-  const top = countries.slice(0, 8)
-  const best = await bestHotelPhotos(top.map(c => c.name))
-  const photos = await Promise.all(top.map(c => (best[c.name] ? Promise.resolve(best[c.name]) : fetchDestinationPhoto(c.name).catch(() => null))))
+  // Pravé fotky destinací (stejné jako na detailu), ne fotky hotelů od cestovních kanceláří.
+  const candidates = countries.slice(0, 30)
+  const candidatePhotos = await Promise.all(candidates.map(c => fetchDestinationPhoto(c.name).catch(() => null)))
+  const picked = candidates.map((c, i) => ({ c, photo: candidatePhotos[i] })).filter(x => !isHotelPhoto(x.photo)).slice(0, 12)
+  const top = picked.map(x => x.c)
+  const photos = picked.map(x => x.photo)
   const totalHotels = countries.reduce((s, c) => s + c.total, 0)
 
   return (
@@ -68,7 +73,7 @@ export default async function DestinacePage() {
         <div style={{ height: 'var(--space-6)' }} />
         <SectionHead as="h1" keepKicker kicker={`${countries.length} zemí · ${totalHotels.toLocaleString('cs-CZ')} hotelů`} title="kam letos" />
 
-        <div className="z-grid-4 z-windows">
+        <div className="z-grid-4 z-windows z-windows--sm">
           {top.map((c, i) => (
             <WindowCard key={c.name} href={`/destinace/${slugify(c.name)}`} name={c.name} photo={photos[i]} count={c.total} countLabel="hotelů" />
           ))}
