@@ -11,6 +11,7 @@ import {
 } from '@/lib/api'
 import Icon, { type IconName } from '@/components/ui/Icon'
 import Crumbs from '@/components/ui/Crumbs'
+import ItemCard from '@/components/ui/ItemCard'
 export const revalidate = 86400
 export const dynamicParams = true
 
@@ -202,15 +203,16 @@ function TripTipsFullPage({ tips, destName }: { tips: CarRentalTripTip[]; destNa
       </p>
       <div className="z-grid-3">
         {tips.map((tip, i) => (
-          <article key={i} className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)', height: '100%' }}>
-            <div className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{String(i + 1).padStart(2, '0')}</div>
-            <h2 className="h4" style={{ margin: 'var(--space-2) 0 var(--space-3)' }}>{tip.title}</h2>
-            <div className="z-meta" style={{ marginBottom: 'var(--space-3)' }}>
+          <ItemCard
+            key={i}
+            title={tip.title}
+            text={tip.description}
+            icon="trasa"
+            meta={<>
               {tip.distance_km ? <span><Icon name="trasa" />{tip.distance_km} km</span> : null}
               {tip.duration_h ? <span><Icon name="cas" />{tip.duration_h} h</span> : null}
-            </div>
-            <p style={{ margin: 0, color: 'var(--ink-muted)' }}>{tip.description}</p>
-          </div></article>
+            </>}
+          />
         ))}
       </div>
     </div>
@@ -253,7 +255,7 @@ function FAQFullPage({ faq, destName }: { faq: CarRentalFAQ[]; destName: string 
       <p className="lead" style={{ margin: '0 0 var(--space-5)' }}>Odpovědi na {faq.length} nejčastějších otázek o půjčování aut v {destName}.</p>
       {faq.map((item, i) => (
         <details key={i} className="z-faq">
-          <summary><span className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{String(i + 1).padStart(2, '0')}</span><span className="h4">{item.question}</span></summary>
+          <summary><span className="h4">{item.question}</span></summary>
           <p>{item.answer}</p>
         </details>
       ))}

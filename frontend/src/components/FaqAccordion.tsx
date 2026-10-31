@@ -6,10 +6,9 @@ export { FAQS }
 export default function FaqAccordion() {
   return (
     <div>
-      {FAQS.map(({ q, a }, i) => (
+      {FAQS.map(({ q, a }) => (
         <details key={q} className="z-faq">
           <summary>
-            <span className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{String(i + 1).padStart(2, '0')}</span>
             <span className="h4">{q}</span>
           </summary>
           <p>{a}</p>

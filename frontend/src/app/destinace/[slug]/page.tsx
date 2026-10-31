@@ -9,6 +9,8 @@ import TourCard from '@/components/ui/TourCard'
 import TourAd from '@/components/ui/TourAd'
 import StoryCard from '@/components/ui/StoryCard'
 import NavTabs, { type NavTabItem } from '@/components/ui/NavTabs'
+import ItemCard from '@/components/ui/ItemCard'
+import type { IconName } from '@/components/ui/Icon'
 import { fetchDestinations, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationAI, fetchHotels, fetchArticles } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 
@@ -117,17 +119,11 @@ function Block({ id, kicker, title, children }: { id: string; kicker: string; ti
   )
 }
 
-/** Položky jako číslované karty (název + popis). */
-function ItemCards({ items }: { items: Item[] }) {
+/** Položky (místa, jídlo, výlety) jako lístky s ikonou. */
+function ItemCards({ items, icon }: { items: Item[]; icon: IconName }) {
   return (
     <div className="z-grid-2">
-      {items.map((it, i) => (
-        <article key={it.name} className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)', height: '100%' }}>
-          <div className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{String(i + 1).padStart(2, '0')}</div>
-          <h3 className="h4" style={{ margin: 'var(--space-2) 0' }}>{it.name}</h3>
-          <p style={{ margin: 0, color: 'var(--ink-muted)' }}>{it.description}</p>
-        </div></article>
-      ))}
+      {items.map(it => <ItemCard key={it.name} title={it.name} text={it.description} icon={icon} />)}
     </div>
   )
 }
@@ -240,9 +236,9 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
                   {weatherUrl && <p style={{ marginTop: 'var(--space-4)' }}><Link className="z-more" href={weatherUrl}>Počasí po měsících</Link></p>}
                 </Block>
               )}
-              {places.length > 0 && <Block id="co-videt" kicker="Co vidět" title="místa, která stojí za to"><ItemCards items={places} /></Block>}
-              {food.length > 0 && <Block id="jidlo" kicker="Jídlo" title="co ochutnat"><ItemCards items={food} /></Block>}
-              {trips.length > 0 && <Block id="vylety" kicker="Výlety" title="výlety z místa"><ItemCards items={trips} /></Block>}
+              {places.length > 0 && <Block id="co-videt" kicker="Co vidět" title="místa, která stojí za to"><ItemCards items={places} icon="poloha" /></Block>}
+              {food.length > 0 && <Block id="jidlo" kicker="Jídlo" title="co ochutnat"><ItemCards items={food} icon="jidlo" /></Block>}
+              {trips.length > 0 && <Block id="vylety" kicker="Výlety" title="výlety z místa"><ItemCards items={trips} icon="trasa" /></Block>}
             </div>
 
             <aside className="z-cardest__side">

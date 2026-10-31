@@ -351,7 +351,7 @@ a.z-tk:hover { transform: translateY(-4px) rotate(-.4deg); filter: drop-shadow(0
 .z-faq summary { display: flex; gap: var(--space-4); align-items: baseline; padding: var(--space-5) 0; cursor: pointer; list-style: none; }
 .z-faq summary::-webkit-details-marker { display: none; }
 .z-faq summary:hover .h4 { color: var(--brand-strong); }
-.z-faq p { margin: 0 0 var(--space-5) 56px; max-width: var(--article-max); font: 400 17px/28px var(--font-serif); color: var(--ink); }
+.z-faq p { margin: 0 0 var(--space-5); max-width: var(--article-max); font: 400 17px/28px var(--font-serif); color: var(--ink); }
 
 /* ---------- Masthead (hero homepage): na celou šířku, nízký, s hledáním uvnitř ---------- */
 .z-masthead { position: relative; background: var(--night); color: var(--on-night); overflow: hidden; }
@@ -638,3 +638,22 @@ button.z-navtab { border: 0; cursor: pointer; }
 /* Nadtitulky („02 — Čerstvě z cest“ apod.) u nadpisů sekcí se nezobrazují; údaje nesou třídu z-kicker--keep */
 .z-shead .z-kicker:not(.z-kicker--keep) { display: none; }
 .z-shead h2, .z-shead h1 { margin-top: 0; }
+
+/* ---------- Karty míst / jídla / výletů (lístek s ústřižkem) ---------- */
+.z-itemcard { height: 100%; }
+.z-itemcard__in { display: grid; grid-template-columns: minmax(0, 1fr) var(--stub); height: 100%; }
+.z-itemcard__body { padding: var(--space-5) var(--space-5) var(--space-5) var(--space-6); }
+.z-itemcard__body h3 { margin: 0 0 var(--space-2); }
+.z-itemcard__body p { margin: 0; font: 400 17px/27px var(--font-serif); color: var(--ink-muted); }
+.z-itemcard__stub { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-4) var(--space-3); }
+.z-itemcard__ic { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--sky); color: var(--ink); }
+.z-itemcard__ic .zi { width: 26px; height: 26px; }
+.z-itemcard__route { flex: 1; min-height: 16px; border-left: 2px dotted var(--line-strong); }
+.z-itemcard__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); }
+@media (max-width: 767px) {
+  .z-itemcard { --stub: 0px !important; }
+  .z-itemcard__in { grid-template-columns: 1fr; }
+  .z-itemcard.z-tk--v .z-tk__in { -webkit-mask: none; mask: none; }
+  .z-itemcard.z-tk--v .z-tk__in::after { display: none; }
+  .z-itemcard__stub { display: none; }
+}

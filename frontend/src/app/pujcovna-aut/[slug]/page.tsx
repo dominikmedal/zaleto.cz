@@ -6,6 +6,7 @@ import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
 import Icon, { type IconName } from '@/components/ui/Icon'
 import Crumbs from '@/components/ui/Crumbs'
+import ItemCard from '@/components/ui/ItemCard'
 import CarRentalSearchForm from '@/components/CarRentalSearchForm'
 import { getCarDestination, mergeDestinations, getRelatedDestinations } from '@/lib/carRental'
 import {
@@ -277,14 +278,16 @@ function TripTips({ tips, destName, slug }: { tips: CarRentalTripTip[]; destName
     <Block id="vylety" kicker="Výlety autem" title={`tipy na výlety – ${destName}`} more={{ href: `/pujcovna-aut/${slug}/tipy-na-vylety-autem`, label: `Všechny výlety (${tips.length})` }}>
       <div className="z-grid-2">
         {tips.slice(0, 4).map((tip, i) => (
-          <article key={i} className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)', height: '100%' }}>
-            <div className="z-meta" style={{ marginBottom: 'var(--space-3)' }}>
+          <ItemCard
+            key={i}
+            title={tip.title}
+            text={tip.description}
+            icon="trasa"
+            meta={<>
               {tip.distance_km ? <span><Icon name="trasa" />{tip.distance_km} km</span> : null}
               {tip.duration_h ? <span><Icon name="cas" />{tip.duration_h} h</span> : null}
-            </div>
-            <h3 className="h4">{tip.title}</h3>
-            <p style={{ margin: 'var(--space-2) 0 0', color: 'var(--ink-muted)' }}>{tip.description}</p>
-          </div></article>
+            </>}
+          />
         ))}
       </div>
     </Block>
@@ -307,7 +310,7 @@ function Faq({ faq, destName, year, slug }: { faq: CarRentalFAQ[]; destName: str
       <div>
         {faq.slice(0, 5).map((f, i) => (
           <details key={i} className="z-faq">
-            <summary><span className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{String(i + 1).padStart(2, '0')}</span><span className="h4">{f.question}</span></summary>
+            <summary><span className="h4">{f.question}</span></summary>
             <p>{f.answer}</p>
           </details>
         ))}
