@@ -66,7 +66,6 @@ if _env_file.exists():
 
 BASE_DIR   = Path(__file__).resolve().parent
 
-RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 SMTP_HOST    = os.environ.get("SMTP_HOST", "")
 SMTP_PORT    = int(os.environ.get("SMTP_PORT", "587"))
 SMTP_USER    = os.environ.get("SMTP_USER", "")
@@ -694,39 +693,18 @@ def _trigger_ai(endpoint: str, label: str) -> int:
 
 
 def send_email(subject: str, html: str, text: str):
-    """Odešle report — Resend HTTP API (primární) nebo SMTP (fallback)."""
+    """Odešle report přes SMTP (smtplib)."""
     if not REPORT_TO:
         logger.info("Email: přeskakuji (REPORT_TO není nastaven)")
         return
-    if RESEND_API_KEY:
-        _send_via_resend(subject, html, text)
-    elif SMTP_HOST:
+    if SMTP_HOST:
         _send_via_smtp(subject, html, text)
     else:
-        logger.info("Email: přeskakuji (není nastaven RESEND_API_KEY ani SMTP_HOST)")
-
-
-def _send_via_resend(subject: str, html: str, text: str):
-    """Resend.com HTTP API — funguje na Railway (SMTP je tam blokováno)."""
-    sender = REPORT_FROM or "scraper@zaleto.cz"
-    try:
-        resp = requests.post(
-            "https://api.resend.com/emails",
-            headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
-            json={"from": sender, "to": REPORT_TO, "subject": subject, "html": html, "text": text},
-            timeout=15,
-        )
-        resp.raise_for_status()
-        logger.info(f"Email (Resend): odeslán na {', '.join(REPORT_TO)}")
-    except requests.HTTPError as e:
-        body = e.response.text[:300] if e.response is not None else ""
-        logger.warning(f"Email (Resend): HTTP chyba — {e} | {body}")
-    except Exception as e:
-        logger.warning(f"Email (Resend): chyba — {e}")
+        logger.info("Email: přeskakuji (SMTP_HOST není nastaven)")
 
 
 def _send_via_smtp(subject: str, html: str, text: str):
-    """SMTP fallback — funguje lokálně, na Railway je port 587/465 blokován."""
+    """SMTP (např. smtp.seznam.cz:587 se STARTTLS, nebo port 465 přes SSL)."""
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
@@ -734,8 +712,10 @@ def _send_via_smtp(subject: str, html: str, text: str):
         msg["To"]      = ", ".join(REPORT_TO)
         msg.attach(MIMEText(text, "plain", "utf-8"))
         msg.attach(MIMEText(html, "html",  "utf-8"))
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as s:
-            s.ehlo(); s.starttls(); s.ehlo()
+        smtp = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30) if SMTP_PORT == 465 else smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30)
+        with smtp as s:
+            if SMTP_PORT != 465:
+                s.ehlo(); s.starttls(); s.ehlo()
             if SMTP_USER:
                 s.login(SMTP_USER, SMTP_PASS)
             s.sendmail(msg["From"], REPORT_TO, msg.as_bytes())
