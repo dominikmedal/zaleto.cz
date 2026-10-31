@@ -67,7 +67,6 @@ export default async function HomePage() {
   const heroHotel = deals[0] ?? null
 
   const [lead, ...restStories] = articles
-  const mastPhoto = photos.find(Boolean) ?? heroHotel?.thumbnail_url ?? null
 
   return (
     <>
@@ -75,8 +74,8 @@ export default async function HomePage() {
       <Header />
 
       <main>
-        <section className="z-masthead" aria-label="Hledání zájezdu">
-          {mastPhoto && <div className="z-masthead__photo" style={{ backgroundImage: `url("${mastPhoto}")` }} aria-hidden="true" />}
+        <section className="z-masthead z-masthead--under" aria-label="Hledání zájezdu">
+          <div className="z-masthead__photo" style={{ backgroundImage: 'url("/img/header-car.jpg")' }} aria-hidden="true" />
           <span className="z-masthead__sun" aria-hidden="true" />
           <svg className="z-masthead__route" viewBox="0 0 1600 360" preserveAspectRatio="none" aria-hidden="true">
             <path d="M-20 330 C 320 340, 520 160, 860 200 S 1300 60, 1640 40" />

@@ -2,10 +2,13 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Icon from '@/components/ui/Icon'
 import HeaderFavorites from './HeaderFavorites'
 import FavoritesToast from './FavoritesToast'
+
+/** Stránky se širokým záhlavím (masthead), pod kterým je menu zpočátku průhledné. */
+const OVER_ROUTES = ['/', '/pujcovna-aut']
 
 const NAV = [
   { href: '/zajezdy', label: 'Zájezdy' },
@@ -18,13 +21,21 @@ const NAV = [
 export default function Header() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  const over = OVER_ROUTES.includes(pathname) && !scrolled && !open
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
 
   return (
     <>
-      <header className="z-header">
+      <header className={`z-header${over ? ' z-header--over' : ''}`}>
         <Link href="/" aria-label="zaleto. – domů">
-          <Image src="/img/logo/logo.png" alt="zaleto." width={120} height={34} className="z-logo" priority />
+          <Image src="/img/logo/logo.png" alt="zaleto." width={120} height={34} className={`z-logo${over ? ' z-logo--light' : ''}`} priority />
         </Link>
 
         <nav aria-label="Hlavní navigace" style={{ display: 'contents' }}>

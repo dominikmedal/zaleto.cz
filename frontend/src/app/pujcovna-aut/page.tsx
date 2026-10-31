@@ -3,7 +3,6 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
 import Icon, { type IconName } from '@/components/ui/Icon'
-import Crumbs from '@/components/ui/Crumbs'
 import SectionHead from '@/components/ui/SectionHead'
 import { CarRentalProvider, CarRentalForm, CarRentalResults } from '@/components/CarRentalSearchForm'
 import { mergeDestinations } from '@/lib/carRental'
@@ -87,24 +86,26 @@ export default async function PujcovnaAutPage() {
       <Header />
 
       <CarRentalProvider>
-        <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
-          <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Půjčovna aut' }]} />
-
-          <section className="z-masthead z-masthead--inset" style={{ marginTop: 'var(--space-5)' }}>
-            <div className="z-masthead__photo" style={{ backgroundImage: 'url("/img/header-car.jpg")' }} aria-hidden="true" />
-            <div className="z-masthead__inner" style={{ paddingBottom: 'var(--space-7)' }}>
-              <div className="z-kicker">Srovnání půjčoven aut</div>
-              <h1 className="z-masthead__title" style={{ fontSize: 64, lineHeight: '64px' }}>kam pojedeš autem<span className="z-dot">.</span></h1>
-              <p className="z-masthead__lead" style={{ justifySelf: 'start', marginTop: 'var(--space-3)' }}>
+        <section className="z-masthead z-masthead--under" aria-label="Hledání půjčovny aut">
+          <div className="z-masthead__photo" style={{ backgroundImage: 'url("/img/header-car.jpg")' }} aria-hidden="true" />
+          <svg className="z-masthead__route" viewBox="0 0 1600 360" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M-20 330 C 320 340, 520 160, 860 200 S 1300 60, 1640 40" />
+          </svg>
+          <div className="z-masthead__inner">
+            <div className="z-masthead__head">
+              <div>
+                <div className="z-kicker">Srovnávač půjčoven aut</div>
+                <h1 className="z-masthead__title">kam autem<span className="z-dot">.</span></h1>
+              </div>
+              <p className="z-masthead__lead">
                 Porovnáme ceny více než 500 půjčoven. Řecko, Turecko, Chorvatsko a desítky dalších destinací.
               </p>
             </div>
-          </section>
-
-          <div style={{ marginTop: 'var(--space-6)' }}>
             <CarRentalForm />
           </div>
+        </section>
 
+        <main className="z-container">
           <div style={{ marginTop: 'var(--space-6)' }}>
             <CarRentalResults />
           </div>
