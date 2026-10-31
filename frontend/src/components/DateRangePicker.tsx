@@ -187,7 +187,8 @@ export default function DateRangePicker({
   const next = () => { const m = addMonths(viewYear, viewMonth, 1); setViewYear(m.year); setViewMonth(m.month) }
   const nights = dateFrom && dateTo ? Math.round((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000) : null
 
-  const triggerLabel = dateFrom && dateTo ? `${fmtShort(dateFrom)} – ${fmtShort(dateTo)}` : dateFrom ? `Od ${fmtShort(dateFrom)}…` : null
+  const daysLabel = car && nights != null ? ` · ${Math.max(nights, 1)} ${nights <= 1 ? 'den' : nights < 5 ? 'dny' : 'dní'}` : ''
+  const triggerLabel = dateFrom && dateTo ? `${fmtShort(dateFrom)} – ${fmtShort(dateTo)}${daysLabel}` : dateFrom ? `Od ${fmtShort(dateFrom)}…` : null
 
   const calendar = (
     <div className="z-cal">

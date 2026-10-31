@@ -1367,3 +1367,33 @@ body:has(.z-mnav) .z-chat, body:has(.z-mnav) .z-toasts { display: none; }
 .z-dev-endpoint code { font: 600 14px/20px var(--font-mono); color: var(--ink); }
 .z-dev-endpoint__text { flex: 1 1 260px; display: grid; gap: 2px; min-width: 0; }
 .z-dev-endpoint__text small { color: var(--ink-muted); font: 500 12px/16px var(--font-mono); }
+
+/* ---------- Nabídky aut: karta pronájmu (ne letenka) ---------- */
+.z-offer { position: relative; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); background: var(--raised); border-radius: 24px; box-shadow: var(--shadow-ticket); color: var(--ink); text-decoration: none; border: 1px solid rgba(11, 27, 51, .06); transition: box-shadow .2s, transform .2s; }
+a.z-offer:hover { box-shadow: var(--shadow-lift, 0 18px 36px -16px rgba(11, 27, 51, .35)); transform: translateY(-2px); }
+.z-offer__top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.z-offer__top .z-chip { background: var(--sky); border-color: transparent; }
+.z-offer__supplier { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.z-offer__supplier img { height: 22px; width: auto; max-width: 84px; object-fit: contain; }
+.z-offer__supplier b { font: 600 13px/18px var(--font-sans); color: var(--ink-muted); }
+.z-offer__rating { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: var(--radius-pill); background: rgba(11, 27, 51, .06); font: 600 12px/18px var(--font-mono); }
+.z-offer__rating .zi { width: 13px; height: 13px; }
+.z-offer__img { display: grid; place-items: center; height: 150px; border-radius: 18px; background: radial-gradient(ellipse at 50% 85%, rgba(11, 27, 51, .10), transparent 60%), linear-gradient(180deg, var(--paper), var(--paper-deep)); }
+.z-offer__img img { max-width: 88%; max-height: 132px; object-fit: contain; }
+.z-offer__name { margin: 0; font: 600 21px/26px var(--font-serif); letter-spacing: -0.01em; }
+.z-offer__name small { display: block; margin-top: 2px; font: 400 13px/18px var(--font-sans); color: var(--ink-muted); letter-spacing: 0; }
+.z-offer__specs { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.z-offer__specs li { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-pill); background: rgba(11, 27, 51, .05); font: 500 13px/20px var(--font-sans); }
+.z-offer__foot { margin-top: auto; padding-top: var(--space-3); border-top: 1px solid rgba(11, 27, 51, .08); display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.z-offer__price { display: block; font: 600 28px/32px var(--font-serif); letter-spacing: -0.02em; color: var(--accent-strong); font-variant-numeric: tabular-nums; }
+.z-offer__note { display: block; margin-top: 2px; font: 500 12px/16px var(--font-mono); color: var(--ink-muted); }
+.z-offer--skel { min-height: 330px; box-shadow: none; }
+@media (hover: none), (max-width: 767px) { a.z-offer:hover { transform: none; box-shadow: var(--shadow-ticket); } .z-offer { transition: none; } }
+@media (max-width: 767px) { .z-offer__img { height: 120px; } .z-offer__img img { max-height: 104px; } .z-offer__price { font-size: 24px; line-height: 28px; } }
+
+/* ---------- Našeptávač: modernější odznak ikony (země, oblast, letovisko, hotel) ---------- */
+.z-dsuggest__ic { background: linear-gradient(145deg, #e3f3ff, #c3e1ff); color: var(--brand-strong); box-shadow: inset 0 0 0 1px rgba(0, 120, 220, .12); }
+.z-dsuggest__item[data-active="true"] .z-dsuggest__ic { background: linear-gradient(145deg, #ffffff, #d6ebff); }
+.z-dsuggest__ic .zi { width: 22px; height: 22px; }
+.z-sr-item__icon { background: linear-gradient(145deg, #e3f3ff, #c3e1ff); box-shadow: inset 0 0 0 1px rgba(0, 120, 220, .12); }
+.z-masthead__searchwrap { display: block; }

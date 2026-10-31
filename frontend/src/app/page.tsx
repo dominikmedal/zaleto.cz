@@ -4,6 +4,7 @@ import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
 import SectionHead from '@/components/ui/SectionHead'
 import SearchBox from '@/components/ui/SearchBox'
+import { CarRentalProvider, CarRentalResults } from '@/components/CarRentalSearchForm'
 import TourCard from '@/components/ui/TourCard'
 import TourAd from '@/components/ui/TourAd'
 import StoryCard from '@/components/ui/StoryCard'
@@ -82,6 +83,7 @@ export default async function HomePage() {
       <Header />
 
       <main>
+        <CarRentalProvider>
         <section className="z-masthead z-masthead--under" aria-label="Hledání zájezdu">
           <div className="z-masthead__photo" style={{ backgroundImage: 'url("/img/header-car.jpg")' }} aria-hidden="true" />
           <span className="z-masthead__sun" aria-hidden="true" />
@@ -111,6 +113,7 @@ export default async function HomePage() {
         </section>
 
         <div className="z-sheet">
+          <div className="z-container" style={{ paddingTop: 'var(--space-5)' }}><CarRentalResults /></div>
 
         {countries.length > 0 && (
           <section className="z-container z-section">
@@ -154,6 +157,7 @@ export default async function HomePage() {
           </section>
         )}
         </div>
+        </CarRentalProvider>
       </main>
     </>
   )

@@ -32,51 +32,45 @@ function formatPerDay(offer: CarOffer): string | null {
   return null
 }
 
-// ─── Car card (lístek) ─────────────────────────────────────────────────────
+// ─── Car card (karta nabídky) ─────────────────────────────────────────────────────
 
-function CarCard({ offer, fallbackUrl }: { offer: CarOffer; fallbackUrl: string }) {
+export function CarCard({ offer, fallbackUrl }: { offer: CarOffer; fallbackUrl: string }) {
   const perDay = formatPerDay(offer)
   const total = formatPrice(offer)
   const href = offer.bookUrl ?? fallbackUrl
 
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer sponsored" className="z-tk z-tk--h z-tour z-carcard">
-      <div className="z-tk__in">
-        <div className="z-tour__media z-carcard__media">
-          {offer.image
+    <a href={href} target="_blank" rel="noopener noreferrer sponsored" className="z-offer">
+      <div className="z-offer__top">
+        <span className="z-chip">{offer.category || offer.sipp}</span>
+        <span className="z-offer__supplier">
+          {offer.supplier.logo
             // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={offer.image} alt={offer.carName} loading="lazy" />
-            : <Icon name="auto" size="lg" />}
-          <span className="z-chip" style={{ position: 'absolute', left: 10, top: 10, background: 'var(--paper)', borderColor: 'transparent' }}>
-            {offer.category || offer.sipp}
-          </span>
-          {offer.supplier.logo && (
-            <span className="z-carcard__logo">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={offer.supplier.logo} alt={offer.supplier.name} loading="lazy" />
-            </span>
-          )}
+            ? <img src={offer.supplier.logo} alt={offer.supplier.name} loading="lazy" />
+            : <b>{offer.supplier.name}</b>}
+          {offer.supplier.rating != null && <span className="z-offer__rating"><Icon name="hvezda" size="sm" />{Number(offer.supplier.rating).toFixed(1)}</span>}
+        </span>
+      </div>
+      <div className="z-offer__img">
+        {offer.image
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={offer.image} alt={offer.carName} loading="lazy" />
+          : <Icon name="auto" size="lg" />}
+      </div>
+      <h3 className="z-offer__name">{offer.carName}<small>nebo podobné</small></h3>
+      <ul className="z-offer__specs">
+        {offer.seats != null && <li><Icon name="osoby" size="sm" />{offer.seats} místa</li>}
+        {offer.bags != null && <li><Icon name="kufr" size="sm" />{offer.bags} {offer.bags === 1 ? 'kufr' : 'kufry'}</li>}
+        {offer.transmission && <li>{offer.transmission}</li>}
+        {offer.ac && <li><Icon name="snowflake" size="sm" />Klima</li>}
+        {offer.fuelPolicy && <li><Icon name="fuel" size="sm" />{offer.fuelPolicy}</li>}
+      </ul>
+      <div className="z-offer__foot">
+        <div>
+          <span className="z-offer__price">{total}</span>
+          <span className="z-offer__note">{perDay ? `${perDay} · celkem za pronájem` : 'celkem za pronájem'}</span>
         </div>
-        <div className="z-tour__body">
-          <div className="z-kicker">
-            {offer.supplier.name}{offer.supplier.rating != null ? ` · ${Number(offer.supplier.rating).toFixed(1)} / 10` : ''}
-          </div>
-          <h3 className="z-tour__title">{offer.carName}</h3>
-          <div className="z-meta">
-            {offer.seats != null && <span><Icon name="osoby" />{offer.seats} místa</span>}
-            {offer.bags != null && <span><Icon name="kufr" />{offer.bags} {offer.bags === 1 ? 'kufr' : 'kufry'}</span>}
-            {offer.transmission && <span>{offer.transmission}</span>}
-            {offer.ac && <span>Klima</span>}
-            {offer.fuelPolicy && <span><Icon name="fuel" />{offer.fuelPolicy}</span>}
-          </div>
-        </div>
-        <div className="z-tour__stub">
-          <div>
-            <span className="z-price__note">{perDay ?? 'celkem za pronájem'}</span>
-            <span className="z-price">{total}</span>
-          </div>
-          <span className="z-round" style={{ width: 52, height: 52 }} aria-hidden="true"><Icon name="sipka" /></span>
-        </div>
+        <span className="z-btn z-btn--offer z-btn--sm">Vybrat<span className="z-btn__go"><Icon name="sipka" /></span></span>
       </div>
     </a>
   )
@@ -84,16 +78,12 @@ function CarCard({ offer, fallbackUrl }: { offer: CarOffer; fallbackUrl: string 
 
 function SkeletonCard() {
   return (
-    <div className="z-tk z-tk--h z-tour" aria-hidden="true">
-      <div className="z-tk__in">
-        <div className="z-tour__media z-skel" />
-        <div className="z-tour__body">
-          <div className="z-skel" style={{ height: 12, width: '40%' }} />
-          <div className="z-skel" style={{ height: 22, width: '75%' }} />
-          <div className="z-skel" style={{ height: 14, width: '60%' }} />
-        </div>
-        <div className="z-tour__stub"><div className="z-skel" style={{ height: 30, width: 120 }} /></div>
-      </div>
+    <div className="z-offer z-offer--skel" aria-hidden="true">
+      <div className="z-skel" style={{ height: 24, width: '40%' }} />
+      <div className="z-skel" style={{ height: 130 }} />
+      <div className="z-skel" style={{ height: 22, width: '70%' }} />
+      <div className="z-skel" style={{ height: 16, width: '55%' }} />
+      <div className="z-skel" style={{ height: 40, marginTop: 'auto' }} />
     </div>
   )
 }

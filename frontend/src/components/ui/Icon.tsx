@@ -27,6 +27,14 @@ const ICONS = {
       <circle className="zi-dot" cx="7.2" cy="12.3" r="1.75" />
     </>
   ),
+  zeme: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M3.8 9.4h16.4M3.8 14.6h16.4" />
+      <path d="M12 3.5c2.5 2.3 3.7 5.3 3.7 8.5s-1.2 6.2-3.7 8.5c-2.5-2.3-3.7-5.3-3.7-8.5S9.5 5.8 12 3.5z" />
+      <circle className="zi-dot" cx="17.6" cy="6.6" r="1.6" />
+    </>
+  ),
   agentura: (
     <>
       <path d="M4 9.5 5.5 5h13L20 9.5" />

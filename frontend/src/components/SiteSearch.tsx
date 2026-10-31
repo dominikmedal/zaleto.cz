@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Icon, { type IconName } from '@/components/ui/Icon'
 import { formatPrice } from '@/components/ui/format'
@@ -12,7 +13,7 @@ const EMPTY: SearchResults = { q: '', destinations: [], hotels: [], articles: []
 export function flatten(r: SearchResults): Item[] {
   const kind = { country: 'země', region: 'oblast', resort: 'letovisko' } as const
   return [
-    ...r.destinations.map(d => ({ key: `d-${d.href}`, group: 'Destinace', icon: 'poloha' as IconName, title: d.name, sub: [kind[d.kind], d.country].filter(Boolean).join(' · '), href: d.href, aside: `${d.count} hotelů` })),
+    ...r.destinations.map(d => ({ key: `d-${d.href}`, group: 'Destinace', icon: ({ country: 'zeme', region: 'poloha', resort: 'mesto' } as const)[d.kind] as IconName, title: d.name, sub: [kind[d.kind], d.country].filter(Boolean).join(' · '), href: d.href, aside: `${d.count} hotelů` })),
     ...r.hotels.map(h => ({ key: `h-${h.slug}`, group: 'Zájezdy', icon: 'hotel' as IconName, title: h.name, sub: h.place, stars: h.stars, href: h.href, aside: h.price ? `od ${formatPrice(h.price)}` : undefined, photo: h.photo })),
     ...r.articles.map(a => ({ key: `a-${a.slug}`, group: 'Články', icon: 'clanek' as IconName, title: a.title, sub: a.location ?? undefined, href: a.href, photo: a.image })),
     ...r.cars.map(c => ({ key: `c-${c.href}`, group: 'Půjčovna aut', icon: 'auto' as IconName, title: `Půjčovna aut ${c.name}`, sub: c.country, href: c.href })),
@@ -93,7 +94,7 @@ export default function SiteSearch() {
         <Icon name="hledat" />
       </button>
 
-      {open && (
+      {open && createPortal(
         <div className="z-search-overlay" role="dialog" aria-modal="true" aria-label="Hledání na webu">
           <div className="z-modal__scrim" onClick={close} />
           <div className="z-search-overlay__panel">
@@ -162,7 +163,8 @@ export default function SiteSearch() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   )

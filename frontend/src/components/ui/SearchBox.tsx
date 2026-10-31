@@ -5,6 +5,7 @@ import { useState } from 'react'
 import Icon from './Icon'
 import DestinationSuggest from './DestinationSuggest'
 import { DateRangeField } from '@/components/DateRangePicker'
+import { CarRentalForm } from '@/components/CarRentalSearchForm'
 
 const CITIES = ['Praha', 'Brno', 'Ostrava', 'Pardubice', 'Karlovy Vary']
 
@@ -17,10 +18,6 @@ export default function SearchBox() {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
     const dest = String(f.get('destination') ?? '').trim()
-    if (tab === 'cars') {
-      router.push('/pujcovna-aut')
-      return
-    }
     const p = new URLSearchParams()
     if (dest) p.set('destination', dest)
     const adults = String(f.get('adults') ?? '')
@@ -34,26 +31,34 @@ export default function SearchBox() {
     router.push(`/zajezdy${p.toString() ? `?${p}` : ''}`)
   }
 
+  const tabs = (
+    <div className="z-search__tabs" role="tablist" aria-label="Co hledáš">
+      <button type="button" role="tab" className="z-search__tab" aria-selected={tab === 'tours'} onClick={() => setTab('tours')}>
+        <Icon name="letadlo" size="sm" />Zájezdy
+      </button>
+      <button type="button" role="tab" className="z-search__tab" aria-selected={tab === 'cars'} onClick={() => setTab('cars')}>
+        <Icon name="auto" size="sm" />Půjčovna aut
+      </button>
+    </div>
+  )
+
+  // záložka „Půjčovna aut“ přepne formulář na vyhledávání aut (výsledky se zobrazí pod záhlavím)
+  if (tab === 'cars') return <div className="z-masthead__searchwrap">{tabs}<CarRentalForm /></div>
+
   return (
+    <div className="z-masthead__searchwrap">
+    {tabs}
     <form className="z-search z-masthead__search" onSubmit={onSubmit} role="search">
-      <div className="z-search__tabs" role="tablist" aria-label="Co hledáš">
-        <button type="button" role="tab" className="z-search__tab" aria-selected={tab === 'tours'} onClick={() => setTab('tours')}>
-          <Icon name="letadlo" size="sm" />Zájezdy
-        </button>
-        <button type="button" role="tab" className="z-search__tab" aria-selected={tab === 'cars'} onClick={() => setTab('cars')}>
-          <Icon name="auto" size="sm" />Půjčovna aut
-        </button>
-      </div>
       <div className="z-tk z-tk--v">
         <div className="z-tk__in">
           <div className="z-sfield">
             <span className="z-sfield__label"><Icon name="poloha" />Kam</span>
-            <DestinationSuggest name="destination" disabled={tab === 'cars'} />
+            <DestinationSuggest name="destination"  />
             <span className="z-sfield__sub">země, oblast, hotel</span>
           </div>
           <label className="z-sfield">
             <span className="z-sfield__label"><Icon name="letadlo" />Odkud</span>
-            <select name="departure_city" defaultValue="" disabled={tab === 'cars'}>
+            <select name="departure_city" defaultValue="" >
               <option value="">Odkudkoli</option>
               {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -61,15 +66,16 @@ export default function SearchBox() {
           </label>
           <div className="z-sfield">
             <span className="z-sfield__label"><Icon name="kalendar" />Kdy</span>
-            <DateRangeField disabled={tab === 'cars'} />
+            <DateRangeField  />
             <span className="z-sfield__sub">odlet a návrat</span>
           </div>
-          <PersonsField disabled={tab === 'cars'} />
+          <PersonsField  />
           <div className="z-search__go">
             <button className="z-round" type="submit" aria-label="Hledat"><Icon name="hledat" /></button>
           </div>
         </div>
       </div>
     </form>
+    </div>
   )
 }

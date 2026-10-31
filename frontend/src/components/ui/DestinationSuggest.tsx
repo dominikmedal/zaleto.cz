@@ -10,7 +10,7 @@ interface Sug { kind: Kind; label: string; sub?: string; count?: number; slug?: 
 interface DestRow { country: string | null; destination: string | null; resort_town: string | null; hotel_count: number }
 
 const KIND: Record<Kind, { icon: IconName; label: string }> = {
-  country: { icon: 'globe', label: 'Země' },
+  country: { icon: 'zeme', label: 'Země' },
   region: { icon: 'poloha', label: 'Oblast' },
   town: { icon: 'mesto', label: 'Letovisko' },
   hotel: { icon: 'hotel', label: 'Hotel' },
