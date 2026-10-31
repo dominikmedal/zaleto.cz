@@ -688,8 +688,8 @@ def _invalidate_api_cache(final: bool = False):
 
 
 def _trigger_ai(endpoint: str, label: str) -> int:
-    """AI generování už neběží v backendu — spouští ho samostatný krok workflow (frontend/scripts/generate-content)."""
-    logger.info(f"{label}: generování zajišťuje samostatný krok workflow, přeskakuji")
+    """AI generování už neběží v backendu — zajišťuje ho ai_generate.py (workflow ai-content)."""
+    logger.info(f"{label}: generování zajišťuje ai_generate.py (workflow ai-content), přeskakuji")
     return 0
 
 
@@ -955,7 +955,7 @@ signal.signal(signal.SIGINT,  _handle_signal)
 # Hlavní smyčka
 # ---------------------------------------------------------------------------
 
-def run_cycle(cycle: int, skip_email: bool = False):
+def run_cycle(cycle: int, skip_email: bool = False, only: list[dict] | None = None):
     """Provede jeden úplný cyklus: všechny scrapery + post-processing + report."""
     started = datetime.now()
     logger.info(f"\n{'='*60}")
@@ -982,7 +982,7 @@ def run_cycle(cycle: int, skip_email: bool = False):
     results: list[dict] = []
 
     # Všechny scrapery vždy spustit — bez checkpoint přeskakování
-    to_run: list[dict] = list(SCRAPERS)
+    to_run: list[dict] = list(only) if only else list(SCRAPERS)
 
     # Paralelní spuštění scraperů — každý dostane vlastní DB connection (conn=None)
     max_workers = MAX_PARALLEL if MAX_PARALLEL > 0 else len(to_run)
@@ -1121,13 +1121,42 @@ def delete_all_data():
     logger.info("--delete: všechna data smazána")
 
 
+def _norm(name: str) -> str:
+    """Zjednodušení názvu agentury pro přepínač --only (bez diakritiky, mezer a pomlček)."""
+    import unicodedata
+    n = unicodedata.normalize("NFD", name.lower())
+    n = "".join(c for c in n if not unicodedata.combining(c))
+    return "".join(c for c in n if c.isalnum())
+
+
+ONLY_ALIASES = {"exim": "eximtours", "blue": "bluestyle"}
+
+
+def select_scrapers(names: list[str]) -> list[dict]:
+    """Vybere scrapery podle --only (např. cedok, tui, "blue style"); neznámý název ukončí běh s nápovědou."""
+    by_key = {_norm(s["agency"]): s for s in SCRAPERS}
+    chosen: list[dict] = []
+    for raw in names:
+        for part in raw.split(","):
+            if not part.strip():
+                continue
+            key = ONLY_ALIASES.get(_norm(part), _norm(part))
+            if key not in by_key:
+                sys.exit(f"Neznámá agentura '{part.strip()}'. Dostupné: {', '.join(s['agency'] for s in SCRAPERS)}")
+            if by_key[key] not in chosen:
+                chosen.append(by_key[key])
+    return chosen
+
+
 def main():
     parser = argparse.ArgumentParser(description="Zaleto scraper orchestrátor")
     parser.add_argument("--once",       action="store_true", help="Jednorázový běh a konec")
     parser.add_argument("--skip-email", action="store_true", help="Neodesílat report email")
     parser.add_argument("--purge-only", action="store_true", help="Jen úklid expirovaných termínů (bez scraperů) a konec")
+    parser.add_argument("--only",       action="append", metavar="AGENTURA", help="Spustí jen vybrané scrapery (Fischer, Exim, Blue Style, Cedok, TUI); lze opakovat nebo oddělit čárkou")
     parser.add_argument("--delete",     action="store_true", help="Smaže všechna data v DB a spustí scraping znovu")
     args = parser.parse_args()
+    only = select_scrapers(args.only) if args.only else None
 
     if args.purge_only:
         run_purge_cycle()
@@ -1143,13 +1172,13 @@ def main():
     logger.info(f"  Scrape interval: {INTERVAL_H:.0f} h (~{INTERVAL_H/24:.1f} dní)")
     logger.info(f"  Purge interval:  {PURGE_INTERVAL_H:.0f} h (~{PURGE_INTERVAL_H/24:.1f} dní)")
     logger.info(f"  Email:           {REPORT_TO if REPORT_TO else 'není nastaven'}")
-    logger.info(f"  Scrapery:        {[s['agency'] for s in SCRAPERS]}")
+    logger.info(f"  Scrapery:        {[s['agency'] for s in (only or SCRAPERS)]}")
 
     cycle = 0
     last_purge = datetime.now()
     while not _shutdown:
         cycle += 1
-        run_cycle(cycle, skip_email=args.skip_email)
+        run_cycle(cycle, skip_email=args.skip_email, only=only)
         last_purge = datetime.now()  # run_cycle už zahrnuje purge_expired_tours v post-processingu
 
         if args.once or _shutdown:

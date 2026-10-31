@@ -9,6 +9,10 @@ on:
         description: 'Neodesílat e-mailový report'
         type: boolean
         default: false
+      only:
+        description: 'Jen tyto agentury, oddělené čárkou (Fischer, Exim, Blue Style, Cedok, TUI); prázdné = všechny'
+        type: string
+        default: ''
 
 concurrency:
   group: scrape
@@ -39,4 +43,4 @@ jobs:
           REPORT_TO: ${{ secrets.REPORT_TO }}
           REPORT_FROM: ${{ secrets.REPORT_FROM }}
           SCRAPER_DELAY: '1.5'
-        run: python run_all.py --once ${{ inputs.skip_email && '--skip-email' || '' }}
+        run: python run_all.py --once ${{ inputs.skip_email && '--skip-email' || '' }} ${{ inputs.only && format('--only "{0}"', inputs.only) || '' }}
