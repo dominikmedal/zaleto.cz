@@ -121,12 +121,19 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
               </details>
             )}
             {tabs.length > 0 && (
-              <nav aria-label="Rychlá navigace" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginTop: 'var(--space-5)' }}>
-                {tabs.map(t => (
-                  t.href.startsWith('#')
-                    ? <a key={t.label} href={t.href} className="z-chip z-chip--sky" style={{ textDecoration: 'none' }}><Icon name={t.icon} size="sm" />{t.label}</a>
-                    : <Link key={t.label} href={t.href} className="z-chip z-chip--sky" style={{ textDecoration: 'none' }}><Icon name={t.icon} size="sm" />{t.label}</Link>
-                ))}
+              <nav aria-label="Rychlá navigace" className="z-navtabs">
+                {tabs.map(t => {
+                  const inner = (
+                    <>
+                      <span className="z-navtab__ic"><Icon name={t.icon} /></span>
+                      <span className="z-navtab__label">{t.label}</span>
+                      <Icon name="sipka" size="sm" className="z-navtab__go" />
+                    </>
+                  )
+                  return t.href.startsWith('#')
+                    ? <a key={t.label} href={t.href} className="z-navtab">{inner}</a>
+                    : <Link key={t.label} href={t.href} className="z-navtab">{inner}</Link>
+                })}
               </nav>
             )}
           </div>

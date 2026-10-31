@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { PiHeart, PiHeartFill } from '@/components/ui/icons'
+import Icon from '@/components/ui/Icon'
 import { useFavorites } from '@/hooks/useFavorites'
 
 interface Props {
@@ -18,47 +18,45 @@ export default function FavoriteButton({ slug, name, variant = 'card', className
   const handle = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setAnimKey(k => k + 1)   // re-trigger animation on each click
+    setAnimKey(k => k + 1)
     toggleFavorite(slug, name)
   }
+
+  const heart = (
+    <Icon
+      key={animKey}
+      name="srdce"
+      size="sm"
+      className={active ? 'animate-heart-pop' : undefined}
+      style={active ? { fill: 'currentColor', color: 'var(--accent-strong)' } : undefined}
+    />
+  )
 
   if (variant === 'detail') {
     return (
       <button
         type="button"
         onClick={handle}
+        aria-pressed={active}
         aria-label={active ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}
-        className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-sm font-medium transition-all ${
-          active
-            ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
-            : 'bg-white border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-400'
-        } ${className}`}
+        className={`z-btn z-btn--line z-btn--sm ${className}`}
+        style={{ justifyContent: 'center' }}
       >
-        {active
-          ? <PiHeartFill key={animKey} className="w-4 h-4 text-red-500 animate-heart-pop" />
-          : <PiHeart key={animKey} className="w-4 h-4" />
-        }
+        {heart}
         <span>{active ? 'Uloženo' : 'Uložit'}</span>
       </button>
     )
   }
 
-  // Card variant — circle button over image
   return (
     <button
       type="button"
       onClick={handle}
+      aria-pressed={active}
       aria-label={active ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}
-      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all group ${
-        active
-          ? 'bg-white shadow-md'
-          : 'bg-black/25 backdrop-blur-sm hover:bg-white/90'
-      } ${className}`}
+      className={`z-heart ${className}`}
     >
-      {active
-        ? <PiHeartFill key={animKey} className="w-4 h-4 text-red-500 animate-heart-pop" />
-        : <PiHeart key={animKey} className="w-4 h-4 text-white group-hover:text-red-400 transition-colors" />
-      }
+      {heart}
     </button>
   )
 }

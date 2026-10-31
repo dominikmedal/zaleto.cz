@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { PiShareNetwork, PiLink, PiCheck, PiEnvelope, PiWhatsappLogo, PiFacebookLogo } from '@/components/ui/icons'
+import Icon from '@/components/ui/Icon'
 interface Props {
   slug: string
   name: string
@@ -69,60 +69,30 @@ export default function ShareButton({ slug, name, className = '' }: Props) {
         type="button"
         onClick={handleClick}
         aria-label="Sdílet"
-        className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-sm font-medium transition-all ${
-          open
-            ? 'bg-blue-50 border-blue-200 text-blue-600'
-            : 'bg-white border-gray-200 text-gray-500 hover:border-blue-200 hover:text-blue-500'
-        }`}
+        aria-expanded={open}
+        className="z-btn z-btn--line z-btn--sm"
+        style={{ justifyContent: 'center' }}
       >
-        <PiShareNetwork className="w-4 h-4" />
+        <Icon name="sdilet" size="sm" />
         <span>Sdílet</span>
       </button>
 
       {open && typeof document !== 'undefined' && createPortal(
-        <div
-          ref={dropdownRef}
-          style={dropdownStyle}
-          className="fixed w-52 bg-white rounded-2xl border border-gray-100 shadow-xl shadow-gray-900/10 overflow-hidden z-[9999] py-1.5"
-        >
-          <button
-            type="button"
-            onClick={copyLink}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            {copied
-              ? <PiCheck className="w-4 h-4 flex-shrink-0 text-emerald-500" />
-              : <PiLink className="w-4 h-4 flex-shrink-0 text-gray-400" />
-            }
-            <span>{copied ? 'Zkopírováno!' : 'Kopírovat odkaz'}</span>
+        <div ref={dropdownRef} style={{ ...dropdownStyle, position: 'fixed', width: 220, zIndex: 9999 }} className="z-suggest">
+          <button type="button" onClick={copyLink}>
+            <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <Icon name={copied ? 'ok' : 'link'} size="sm" style={copied ? { color: 'var(--success)' } : undefined} />
+              <b style={{ font: '500 15px/22px var(--font-sans)' }}>{copied ? 'Zkopírováno' : 'Kopírovat odkaz'}</b>
+            </span>
           </button>
-          <a
-            href={`https://wa.me/?text=${enc(name + ' — ' + url)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <PiWhatsappLogo className="w-4 h-4 flex-shrink-0 text-green-500" />
-            <span>WhatsApp</span>
+          <a href={`https://wa.me/?text=${enc(name + ' — ' + url)}`} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className="z-suggest__item">
+            <Icon name="whatsapp" size="sm" />WhatsApp
           </a>
-          <a
-            href={`https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <PiFacebookLogo className="w-4 h-4 flex-shrink-0 text-blue-600" />
-            <span>Facebook</span>
+          <a href={`https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className="z-suggest__item">
+            <Icon name="facebook" size="sm" />Facebook
           </a>
-          <a
-            href={`mailto:?subject=${enc(name)}&body=${enc(url)}`}
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <PiEnvelope className="w-4 h-4 flex-shrink-0 text-gray-400" />
-            <span>E-mail</span>
+          <a href={`mailto:?subject=${enc(name)}&body=${enc(url)}`} onClick={() => setOpen(false)} className="z-suggest__item">
+            <Icon name="envelope" size="sm" />E-mail
           </a>
         </div>,
         document.body

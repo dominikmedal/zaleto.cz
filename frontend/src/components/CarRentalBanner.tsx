@@ -1,8 +1,8 @@
-import Image from 'next/image'
 import Link from 'next/link'
+import Icon from '@/components/ui/Icon'
 import { CAR_DESTINATIONS } from '@/lib/carRental'
 import { slugify } from '@/lib/slugify'
-import { LuCar as Car, LuChevronRight as ChevronRight, LuShield as Shield, LuClock as Clock } from '@/components/ui/icons'
+
 interface Props {
   place: string
   country: string
@@ -17,84 +17,37 @@ function findCarDest(place: string, country: string) {
 }
 
 const TAGLINES = [
-  'Vyrazte na vlastní pěst — bez autobusů, bez čekání.',
+  'Vyraz na vlastní pěst, bez autobusů a bez čekání.',
   'Skryté zátoky a horské vesničky dostupné jen autem.',
-  'Svoboda jít kam chcete, kdy chcete.',
+  'Svoboda jít kam chceš a kdy chceš.',
   'Auto z dovolené udělá úplně jiný zážitek.',
 ]
 
+/** Reklamní lístek půjčovny aut na detailu hotelu (vodorovná perforace, ústřižek s tlačítkem). */
 export default function CarRentalBanner({ place, country }: Props) {
-  const dest      = findCarDest(place, country)
-  const href      = dest ? `/pujcovna-aut/${dest.slug}` : '/pujcovna-aut'
-  const destLabel = dest?.name ?? place ?? country
-  const tagline   = TAGLINES[place.length % TAGLINES.length]
+  const dest = findCarDest(place, country)
+  const href = dest ? `/pujcovna-aut/${dest.slug}` : '/pujcovna-aut'
+  const tagline = TAGLINES[place.length % TAGLINES.length]
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden">
-      <div className="flex flex-col sm:flex-row min-h-[160px]">
-
-        {/* Photo strip */}
-        <div className="relative sm:w-52 h-36 sm:h-auto flex-shrink-0 overflow-hidden bg-gradient-to-br from-sky-100 to-blue-50">
-          <Image
-            src="/img/header-car.jpg"
-            alt="Půjčovna aut"
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 100vw, 208px"
-          />
-          {/* Right-side fade into card body (desktop) */}
-          <div
-            className="absolute inset-0 hidden sm:block"
-            style={{ background: 'linear-gradient(to right, transparent 50%, rgba(255,255,255,0.72) 100%)' }}
-          />
-          {/* Bottom fade (mobile) */}
-          <div
-            className="absolute inset-0 sm:hidden"
-            style={{ background: 'linear-gradient(to bottom, transparent 40%, rgba(255,255,255,0.85) 100%)' }}
-          />
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 px-5 py-4 sm:px-6 sm:py-5 flex flex-col justify-center gap-3">
-
-          {/* Header row */}
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="inline-flex items-center gap-1.5 glass-pill rounded-full px-2.5 py-1 text-[10px] font-bold text-[#0068CC] uppercase tracking-[0.1em] mb-2">
-                <Car className="w-3 h-3" />
-                Půjčovna aut
-              </div>
-              <h3
-                className="font-bold text-gray-900 leading-tight"
-                style={{ fontSize: 'clamp(16px, 2.5vw, 20px)' }}
-              >
-                Prozkoumejte destinaci na vlastní pěst
-              </h3>
-            </div>
-          </div>
-
-          {/* Tagline */}
-          <p className="text-[13px] text-gray-500 leading-relaxed -mt-1">
-            {tagline} Srovnejte přes <strong className="text-gray-700">500 půjčoven</strong> — garantovaná cena, bez skrytých poplatků.
+    <div className="z-tk z-tk--v z-carbanner" style={{ ['--stub' as string]: '210px' }}>
+      <div className="z-tk__in z-carbanner__in">
+        <div className="z-carbanner__photo" aria-hidden="true" />
+        <div className="z-carbanner__body">
+          <div className="z-kicker" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Icon name="auto" size="sm" />Půjčovna aut</div>
+          <h3 className="h3" style={{ margin: 'var(--space-2) 0' }}>prozkoumej destinaci na vlastní pěst<span className="z-dot">.</span></h3>
+          <p style={{ margin: 0, color: 'var(--ink-muted)' }}>
+            {tagline} Srovnáme přes <strong style={{ color: 'var(--ink)' }}>500 půjčoven</strong>, cena předem bez skrytých poplatků.
           </p>
-
-          {/* Trust pills + CTA */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-500 glass-pill px-2.5 py-1 rounded-full">
-              <Shield className="w-3 h-3 text-[#0093FF]" />
-              Pojištění v ceně
-            </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-500 glass-pill px-2.5 py-1 rounded-full">
-              <Clock className="w-3 h-3 text-[#0093FF]" />
-              Zdarma storno 48 h
-            </span>
-
-            <Link href={href} className="btn-cta ml-auto py-2 px-4 text-[12px]">
-              Srovnat ceny
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
+          <div className="z-meta" style={{ marginTop: 'var(--space-3)' }}>
+            <span><Icon name="shield" />Pojištění v ceně</span>
+            <span><Icon name="cas" />Storno zdarma 48 h</span>
           </div>
-
+        </div>
+        <div className="z-carbanner__stub">
+          <Link className="z-btn z-btn--offer z-btn--sm" href={href}>
+            Srovnat ceny<span className="z-btn__go"><Icon name="sipka" /></span>
+          </Link>
         </div>
       </div>
     </div>

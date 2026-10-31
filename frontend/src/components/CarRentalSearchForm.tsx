@@ -374,26 +374,32 @@ export function CarRentalForm({ className = '' }: { className?: string }) {
         </div>
       </div>
 
-      <div className="z-carsearch__foot">
-        <label className="z-check">
+      <div className="z-return">
+        <label className="z-switch">
           <input
             type="checkbox"
+            role="switch"
             checked={sameLocation}
             onChange={e => {
               setSameLocation(e.target.checked)
               if (e.target.checked) { setDropoffLocText(''); setDropoffLocSel(null) }
             }}
           />
-          Vrátit auto na stejném místě
+          <span className="z-switch__track" aria-hidden="true"><span className="z-switch__thumb" /></span>
+          <span className="z-switch__text">
+            <b>Vrátit auto na stejném místě</b>
+            <small>{sameLocation ? 'VYZVEDNUTÍ A VRÁCENÍ NA JEDNOM MÍSTĚ' : 'VRÁTÍM JINDE – VYPLŇ MÍSTO VRÁCENÍ'}</small>
+          </span>
         </label>
         {!sameLocation && (
-          <div className="z-carsearch__drop">
-            <span className="z-kicker"><Icon name="poloha" size="sm" /> Místo vrácení</span>
+          <div className="z-sfield z-return__field">
+            <span className="z-sfield__label"><Icon name="poloha" />Místo vrácení</span>
             <LocationInput
               value={dropoffLocText}
               onChange={setDropoffLocText}
               onSelect={s => setDropoffLocSel({ placeID: s.placeID, searchTerm: s.place || s.location, label: s.place || s.location })}
             />
+            <span className="z-sfield__sub">letiště, město</span>
           </div>
         )}
       </div>

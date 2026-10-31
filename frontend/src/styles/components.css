@@ -515,3 +515,51 @@ a.z-tk:hover { transform: translateY(-4px) rotate(-.4deg); filter: drop-shadow(0
 .z-modal__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); padding: var(--space-5) var(--space-5) var(--space-4); border-bottom: 2px dotted var(--line); }
 .z-modal__body { padding: var(--space-5); overflow-y: auto; }
 @media (max-width: 767px) { .z-modal { align-items: flex-end; padding: 0; } .z-modal__panel { border-radius: var(--radius-lg) var(--radius-lg) 0 0; max-height: 92dvh; } }
+
+/* ---------- Banner půjčovny aut (detail hotelu) ---------- */
+.z-carbanner__in { display: grid; grid-template-columns: 200px minmax(0, 1fr) var(--stub); padding: 10px; }
+.z-carbanner__photo { border-radius: 16px; background: var(--paper-deep) url('/img/header-car.jpg') center / cover no-repeat; min-height: 170px; }
+.z-carbanner__body { padding: var(--space-4) var(--space-5); }
+.z-carbanner__stub { display: flex; align-items: center; justify-content: center; padding: var(--space-3); }
+@media (max-width: 767px) {
+  .z-carbanner { --stub: 0px !important; }
+  .z-carbanner__in { grid-template-columns: 1fr; }
+  .z-carbanner.z-tk--v .z-tk__in { -webkit-mask: none; mask: none; }
+  .z-carbanner.z-tk--v .z-tk__in::after { display: none; }
+  .z-carbanner__photo { min-height: 120px; }
+  .z-carbanner__stub { justify-content: flex-start; padding: 0 var(--space-5) var(--space-4); }
+}
+
+/* ---------- Srdíčko na kartě, položky nabídky ---------- */
+.z-heart { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--raised); color: var(--ink); cursor: pointer; box-shadow: 0 2px 10px rgba(11, 27, 51, .18); transition: transform .2s; }
+.z-heart:hover { transform: scale(1.08); }
+.z-suggest__item { display: flex; align-items: center; gap: 10px; padding: var(--space-3) var(--space-4); border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; font: 500 15px/22px var(--font-sans); }
+.z-suggest__item:hover { background: var(--sky); }
+
+/* ---------- Místo vrácení: bílý pruh s přepínačem a polem ---------- */
+.z-return { margin-top: var(--space-3); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-5); padding: var(--space-3) var(--space-5); background: var(--raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-ticket); color: var(--ink); }
+.z-return__field { flex: 1 1 320px; min-width: 0; padding: var(--space-2) var(--space-4); border-left: 2px dotted var(--line); border-radius: 0; }
+.z-switch { display: inline-flex; align-items: center; gap: var(--space-3); cursor: pointer; user-select: none; }
+.z-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.z-switch__track { position: relative; width: 48px; height: 28px; border-radius: var(--radius-pill); background: var(--line); transition: background .2s; flex: none; }
+.z-switch__thumb { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--raised); box-shadow: 0 1px 3px rgba(11, 27, 51, .3); transition: transform .2s; }
+.z-switch input:checked + .z-switch__track { background: var(--brand-strong); }
+.z-switch input:checked + .z-switch__track .z-switch__thumb { transform: translateX(20px); }
+.z-switch input:focus-visible + .z-switch__track { outline: 2px solid var(--focus); outline-offset: 2px; }
+.z-switch__text b { display: block; font: 500 15px/22px var(--font-sans); color: var(--ink); }
+.z-switch__text small { display: block; font: 400 11px/14px var(--font-mono); letter-spacing: .06em; color: var(--ink-muted); }
+.z-return .z-sfield__label { color: var(--ink-muted); }
+.z-return .z-clear input { font: 600 20px/28px var(--font-serif); }
+@media (max-width: 767px) { .z-return__field { border-left: 0; border-top: 2px dotted var(--line); flex-basis: 100%; padding-left: 0; padding-right: 0; } }
+
+/* ---------- Rychlá navigace do sekcí (velké pilulky) ---------- */
+.z-navtabs { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-6); }
+.z-navtab { display: inline-flex; align-items: center; gap: var(--space-3); min-height: 60px; padding: 0 var(--space-5) 0 var(--space-2); border-radius: var(--radius-pill); background: var(--raised); color: var(--ink); text-decoration: none; box-shadow: var(--shadow-ticket), inset 0 0 0 1.5px var(--ink); font: 500 17px/24px var(--font-sans); transition: background .2s, color .2s, transform .2s; }
+.z-navtab__ic { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: var(--sky); color: var(--ink); flex: none; transition: background .2s; }
+.z-navtab__ic .zi { width: 24px; height: 24px; }
+.z-navtab__go { margin-left: var(--space-1); transition: transform .25s; }
+.z-navtab:hover { background: var(--ink); color: var(--paper); transform: translateY(-2px); }
+.z-navtab:hover .z-navtab__ic { background: var(--brand-strong); color: var(--on-brand); }
+.z-navtab:hover .zi-dot { fill: currentColor; }
+.z-navtab:hover .z-navtab__go { transform: translateX(3px); }
+@media (max-width: 767px) { .z-navtabs { gap: var(--space-2); } .z-navtab { flex: 1 1 100%; justify-content: space-between; } }
