@@ -115,3 +115,11 @@ a { color: var(--brand-strong); }
 ::-webkit-scrollbar-thumb:hover { background: var(--line-strong); }
 
 
+
+/* ── Jednotné fonty i v knihovnách (Leaflet, shluky na mapě): výchozí Helvetica/Arial nahrazeno fonty z designu ── */
+.leaflet-container,
+.leaflet-container .leaflet-popup-content,
+.leaflet-container .leaflet-control,
+.leaflet-container .marker-cluster div,
+.leaflet-container .leaflet-tooltip { font-family: var(--font-sans) !important; }
+.leaflet-container .marker-cluster div { font-weight: 700; }

@@ -108,7 +108,7 @@ export default function HotelMap({ hotel, nearby }: Props) {
           iconSize: [46, 46], iconAnchor: [23, 23], popupAnchor: [0, -26],
         }),
       }).addTo(hotelsLayer).bindPopup(`
-        <div style="font-family:system-ui,sans-serif;min-width:170px;padding:2px 0">
+        <div style="font-family:var(--font-sans);min-width:170px;padding:2px 0">
           <p style="font-weight:700;font-size:14px;margin:0 0 3px">${hotel.name}</p>
           <p style="color:#6b7280;font-size:12px;margin:0 0 5px">${hotel.resort_town || hotel.destination || ''}</p>
           ${hotel.min_price ? `<p style="color:#0093FF;font-weight:700;margin:0">od ${fmt(hotel.min_price)} Kč</p>` : ''}
@@ -124,7 +124,7 @@ export default function HotelMap({ hotel, nearby }: Props) {
             iconSize: [120, 26], iconAnchor: [60, 13], popupAnchor: [0, -15],
           }),
         }).addTo(hotelsLayer).bindPopup(`
-          <div style="font-family:system-ui,sans-serif;min-width:150px;padding:2px 0">
+          <div style="font-family:var(--font-sans);min-width:150px;padding:2px 0">
             <p style="font-weight:700;font-size:13px;margin:0 0 3px">${n.name}</p>
             <p style="color:#6b7280;font-size:11px;margin:0 0 5px">${'★'.repeat(n.stars || 0)}${n.distance_km != null ? ` · ${Number(n.distance_km).toFixed(1)} km` : ''}</p>
             <a href="/hotel/${n.slug}" style="color:#0093FF;font-size:12px;font-weight:600;text-decoration:none">Zobrazit →</a>
@@ -213,7 +213,7 @@ out body;`
               iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16],
             }),
           }).addTo(layerGroupsRef.current[cat]).bindPopup(`
-            <div style="font-family:system-ui,sans-serif;min-width:120px;padding:2px 0">
+            <div style="font-family:var(--font-sans);min-width:120px;padding:2px 0">
               <p style="font-weight:700;font-size:13px;margin:0 0 4px">${name}</p>
               <span style="display:inline-block;background:${layer.color}22;color:${layer.color};font-size:10px;font-weight:600;padding:1px 6px;border-radius:99px">${layer.label}</span>
             </div>

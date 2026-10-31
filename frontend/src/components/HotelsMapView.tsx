@@ -104,7 +104,7 @@ export default function HotelsMapView() {
                 popupAnchor: [0, -16],
               }),
             }).bindPopup(`
-              <div style="font-family:system-ui,sans-serif;min-width:170px;padding:2px 0">
+              <div style="font-family:var(--font-sans);min-width:170px;padding:2px 0">
                 ${stars ? `<p style="color:#f59e0b;font-size:11px;margin:0 0 2px;line-height:1">${stars}</p>` : ''}
                 <p style="font-weight:700;font-size:13px;margin:0 0 2px;line-height:1.3">${hotel.name}</p>
                 ${loc ? `<p style="color:#9ca3af;font-size:11px;margin:0 0 6px">${loc}</p>` : '<div style="height:6px"></div>'}
