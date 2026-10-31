@@ -1,3 +1,4 @@
+const { loadPrompt } = require('../prompts')
 const express = require('express')
 const router = express.Router()
 const db = require('../db')
@@ -53,7 +54,7 @@ async function generateAI(name) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return null
 
-  const prompt =
+  const defaultPrompt =
     `Jsi průvodce cestovního portálu zaleto.cz. Generuješ obsah v češtině pro turisty.\n\n` +
     `Vytvoř obsah pro destinaci "${name}" pro cestovní portál zaleto.cz.\n` +
     `Odpověz POUZE validním JSON objektem, bez markdown bloků, bez dalšího textu.\n` +
@@ -65,6 +66,7 @@ async function generateAI(name) {
     `5. "food": pole 6 objektů { "name": string, "description": string } — tradiční jídla a vyhlášené restaurace/pokrmy typické pro destinaci.\n` +
     `6. "trips": pole 6 objektů { "name": string, "description": string } — doporučené výlety z destinace (do okolí, jednodenní výlety).\n` +
     `Příklad: {"description":"...","excursions":[{"name":"Safari","description":"..."}],"best_time":"...","places":[{"name":"Akropolis","description":"..."}],"food":[{"name":"Moussaka","description":"..."}],"trips":[{"name":"Výlet na Santorini","description":"..."}]}`
+  const prompt = await loadPrompt('destination', { name }, defaultPrompt)
 
   // Try models in order — cheapest first, skip ones unavailable to new users
   const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash']

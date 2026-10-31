@@ -14,6 +14,7 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: '/admin/destinace', label: 'Destinace', icon: 'poloha' },
   { href: '/admin/fotky', label: 'Fotky destinací', icon: 'foto' },
   { href: '/admin/pujcovna-aut', label: 'Půjčovna aut', icon: 'auto' },
+  { href: '/admin/prompty', label: 'Prompty', icon: 'info' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

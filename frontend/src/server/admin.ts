@@ -1,3 +1,4 @@
+import { listPrompts, savePrompt, resetPrompt } from './prompts'
 import 'server-only'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { revalidatePath, revalidateTag } from 'next/cache'
@@ -201,6 +202,14 @@ export async function handleAdmin(
         ])
         return ok({ articles: rows.rows, total: parseInt(total.rows[0].n) })
       }
+      case 'GET prompts': return ok({ prompts: await listPrompts() })
+      case 'PUT prompts/:id': {
+        const template = typeof body?.template === 'string' ? body.template.trim() : ''
+        if (template.length < 20) return fail(400, 'Prompt je příliš krátký')
+        await savePrompt(id, template)
+        return ok()
+      }
+      case 'DELETE prompts/:id': { await resetPrompt(id); return ok() }
       case 'GET articles/:id': {
         const r = await query(`SELECT id, slug, topic, title, category, location, excerpt, content, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url, published_at, generated_at FROM articles WHERE id = ?`, [id])
         if (!r.rows[0]) return fail(404, 'Článek nenalezen')

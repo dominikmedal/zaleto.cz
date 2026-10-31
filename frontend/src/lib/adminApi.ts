@@ -195,3 +195,12 @@ export async function uploadImage(file: File): Promise<{ url: string; filename: 
   }
   return res.json()
 }
+
+// ── Prompty pro AI ────────────────────────────────────────────────────
+export interface AdminPrompt {
+  key: string; label: string; description: string; vars: string[]
+  template: string; default_template: string; customized: boolean; updated_at: string | null
+}
+export function fetchPrompts() { return api<{ prompts: AdminPrompt[] }>('/prompts') }
+export function savePrompt(key: string, template: string) { return api(`/prompts/${key}`, { method: 'PUT', body: JSON.stringify({ template }) }) }
+export function resetPrompt(key: string) { return api(`/prompts/${key}`, { method: 'DELETE' }) }

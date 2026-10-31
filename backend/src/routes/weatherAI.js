@@ -1,3 +1,4 @@
+const { loadPrompt } = require('../prompts')
 const express = require('express')
 const router = express.Router()
 const db = require('../db')
@@ -29,7 +30,7 @@ async function generateWeatherAI(name) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return null
 
-  const prompt =
+  const defaultPrompt =
     `Jsi meteorolog a průvodce cestovního portálu zaleto.cz. Generuješ obsah v češtině pro turisty.\n\n` +
     `Vytvoř detailní klimatické informace pro turistickou destinaci "${name}".\n` +
     `Odpověz POUZE validním JSON objektem, bez markdown bloků, bez dalšího textu.\n` +
@@ -47,6 +48,7 @@ async function generateWeatherAI(name) {
     `11. "wind_info": string — 2-3 věty o typickém větru, jak ovlivňuje turisty.\n` +
     `12. "sea_info": string NEBO null — 2-3 věty o teplotě moře a sezóně koupání. Null pokud není u moře.\n` +
     `Příklad: {"description":"...\\n\\n...","monthly_air":[15,16,18,22,26,30,33,33,29,24,20,16],"monthly_sea":[17,16,16,17,19,23,26,26,25,22,20,18],"monthly_rain_days":[7,6,5,3,2,1,0,0,1,4,7,8],"monthly_sun_hours":[4,5,7,9,11,13,14,13,10,7,5,4],"best_months":[5,6,7,8,9,10],"winter":"Zima je mírná...","spring":"Jaro přináší...","summer":"Léto je horké...","autumn":"Podzim je...","wind_info":"V létě fouká...","sea_info":"Moře dosahuje..."}`
+  const prompt = await loadPrompt('weather', { name }, defaultPrompt)
 
   const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash']
   let lastErr = null

@@ -1,3 +1,4 @@
+const { loadPrompt } = require('../prompts')
 const express = require('express')
 const router  = express.Router()
 const fs      = require('fs')
@@ -49,7 +50,7 @@ async function generateArticleAI(topic) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return null
 
-  const prompt =
+  const defaultPrompt =
     `Jsi redaktor cestovního portálu zaleto.cz. Generuješ obsah v češtině pro turisty.\n\n` +
     `Vytvoř cestovní článek na téma: "${topic}"\n` +
     `Odpověz POUZE validním JSON objektem, bez markdown bloků, bez dalšího textu.\n` +
@@ -62,6 +63,7 @@ async function generateArticleAI(topic) {
     `5. "content": string — celý článek 600–900 slov. Piš přirozeně, jako zkušený cestovatel. Nadpisy ## H2. Bohatý na klíčová slova pro SEO. Paragrafové odstavce odděluj \\n\\n.\n` +
     `6. "reading_time": number — odhadovaná doba čtení v minutách (1–10)\n` +
     `Příklad: {"title":"10 pláží na Maledivách","category":"Inspirace","location":"Maledivy","excerpt":"Krystalicky čistá voda...","content":"## Proč Maledivy\\n\\nMaledivy jsou...","reading_time":5}`
+  const prompt = await loadPrompt('article', { topic }, defaultPrompt)
 
   const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash']
   let lastErr = null

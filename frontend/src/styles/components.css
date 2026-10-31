@@ -1050,3 +1050,14 @@ body[data-admin] .z-offerbar, body[data-admin] .z-footer, body[data-admin] .z-ch
 .z-adm-img__btns { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .z-adm-img__panel { padding: var(--space-4); border-radius: var(--radius-md); background: var(--raised); box-shadow: var(--shadow-ticket); display: grid; gap: var(--space-3); }
 @media (max-width: 640px) { .z-adm-grid { grid-template-columns: 1fr; } .z-drawer__panel { border-radius: 0; } }
+
+/* Administrace – prompty */
+.z-prompt { padding: var(--space-5); display: grid; gap: var(--space-4); }
+.z-prompt__desc { margin: 0; font: 500 17px/26px var(--font-sans); }
+.z-prompt__vars { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.z-prompt__vars small { color: var(--ink-muted); font-size: 13px; }
+.z-prompt__text { width: 100%; padding: 16px 18px; border: 1.5px solid rgba(11, 27, 51, .18); border-radius: 18px; background: var(--paper); font: 400 14px/22px var(--font-mono); color: var(--ink); resize: vertical; outline: 0; min-height: 320px; }
+.z-prompt__text:focus { border-color: var(--brand-strong); box-shadow: 0 0 0 4px rgba(0, 147, 255, .12); }
+.z-prompt__hint { margin: 0; color: var(--ink-muted); font-size: 14px; line-height: 22px; }
+.z-prompt__actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.z-prompt-dot { display: inline-block; width: 8px; height: 8px; margin-left: 8px; border-radius: 50%; background: var(--accent-strong); }

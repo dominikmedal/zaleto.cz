@@ -1,3 +1,4 @@
+const { loadPrompt } = require('../prompts')
 const express = require('express')
 const router = express.Router()
 const db = require('../db')
@@ -29,7 +30,7 @@ async function generateCarRentalAI(name, country) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return null
 
-  const prompt =
+  const defaultPrompt =
     `Jsi expert na půjčování aut a průvodce cestovního portálu zaleto.cz. Generuješ obsah v češtině pro turisty.\n\n` +
     `Vytvoř komplexní průvodce půjčováním auta v destinaci "${name}" (${country}).\n` +
     `Odpověz POUZE validním JSON objektem, bez markdown bloků, bez dalšího textu.\n` +
@@ -46,6 +47,7 @@ async function generateCarRentalAI(name, country) {
     `10. "airport_info": objekt s informacemi o nejbližším letišti pro ${name}. Pole: "name" (string, celý název letiště), "iata" (string, IATA kód, např. "KLX"), "distance_km" (číslo — přibližná vzdálenost od centra ${name} v km), "description" (string — 2–3 věty: jak vyzvednou auto na letišti, kde jsou půjčovny, tipy pro příjezd).\n` +
     `11. "monthly_prices": pole 12 čísel (Jan–Pro) — relativní cenový index (100 = průměr roku). Čísla 50–200. Vycházej z turistické sezóny ${country} — hlavní sezóna bude 130–180, mimo sezónu 50–80.\n` +
     `Příklad (zkráceno): {"intro":"...\\n\\n...\\n\\n...","fuel_info":"...","driving_rules":"...","price_overview":"...","best_car_types":"...","trip_tips":[{"title":"Výlet","description":"...","distance_km":45,"duration_h":3}],"faq":[{"question":"Věk řidiče?","answer":"..."}],"practical_tips":["Rezervujte předem..."],"car_examples":[{"name":"Škoda Fabia","category":"Economy","price_from_eur":18,"seats":5,"bags":2,"transmission":"Manuál","description":"..."}],"airport_info":{"name":"Mezinárodní letiště Kalamata","iata":"KLX","distance_km":10,"description":"Půjčovny se nacházejí přímo v terminálu..."},"monthly_prices":[65,65,70,80,100,140,175,175,130,95,75,65]}`
+  const prompt = await loadPrompt('car_rental', { name, country }, defaultPrompt)
 
   const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash']
   let lastErr = null
