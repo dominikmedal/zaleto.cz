@@ -201,6 +201,11 @@ export async function handleAdmin(
         ])
         return ok({ articles: rows.rows, total: parseInt(total.rows[0].n) })
       }
+      case 'GET articles/:id': {
+        const r = await query(`SELECT id, slug, topic, title, category, location, excerpt, content, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url, published_at, generated_at FROM articles WHERE id = ?`, [id])
+        if (!r.rows[0]) return fail(404, 'Článek nenalezen')
+        return ok(r.rows[0])
+      }
       case 'POST articles': {
         const { title, topic, excerpt, content, category, location, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url } = body ?? {}
         if (!title) return fail(400, 'title je povinné')

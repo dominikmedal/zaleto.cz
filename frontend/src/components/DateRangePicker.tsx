@@ -20,6 +20,8 @@ interface Props {
   onFlexChange?: (v: boolean) => void
   noPrices?: boolean
   placeholder?: string
+  /** Půjčovna aut: popisky Vyzvednutí / Vrácení a počet dní místo nocí. */
+  mode?: 'tour' | 'car'
 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -106,8 +108,9 @@ function MonthGrid({ year, month, priceMap, allPrices, dateFrom, dateTo, hover, 
 /** Výběr termínu odletu a návratu: kalendář se dvěma měsíci, cenami po dnech a přehledem vybraných dat. */
 export default function DateRangePicker({
   dateFrom, dateTo, destination, onDateFromChange, onDateToChange, defaultOpen, inline, onComplete,
-  flex, onFlexChange, noPrices, placeholder = 'Vybrat termín',
+  flex, onFlexChange, noPrices, placeholder = 'Vybrat termín', mode = 'tour',
 }: Props) {
+  const car = mode === 'car'
   const today = toYMD(new Date())
   const init = dateFrom
     ? (() => { const [y, m] = dateFrom.split('-').map(Number); return { year: y, month: m - 1 } })()
@@ -190,20 +193,20 @@ export default function DateRangePicker({
     <div className="z-cal">
       <div className="z-cal__top">
         <button type="button" className="z-cal__step" data-active={picking === 'from'} onClick={() => setPicking('from')}>
-          <span className="z-kicker">Odlet</span>
+          <span className="z-kicker">{car ? 'Vyzvednutí' : 'Odlet'}</span>
           <b>{dateFrom ? fmtShort(dateFrom) : 'Vyber den'}</b>
         </button>
-        <span className="z-cal__arrow" aria-hidden="true"><Icon name="letadlo" /></span>
+        <span className="z-cal__arrow" aria-hidden="true"><Icon name={car ? 'auto' : 'letadlo'} /></span>
         <button type="button" className="z-cal__step" data-active={picking === 'to'} onClick={() => dateFrom && setPicking('to')} disabled={!dateFrom}>
-          <span className="z-kicker">Návrat</span>
+          <span className="z-kicker">{car ? 'Vrácení' : 'Návrat'}</span>
           <b>{dateTo ? fmtShort(dateTo) : 'Vyber den'}</b>
         </button>
-        {nights != null && <span className="z-chip z-chip--sky">{nights} {nights === 1 ? 'noc' : nights < 5 ? 'noci' : 'nocí'}</span>}
+        {nights != null && <span className="z-chip z-chip--sky">{car ? `${Math.max(nights, 1)} ${nights <= 1 ? 'den' : nights < 5 ? 'dny' : 'dní'}` : `${nights} ${nights === 1 ? 'noc' : nights < 5 ? 'noci' : 'nocí'}`}</span>}
       </div>
 
       <div className="z-cal__nav">
         <button type="button" className="z-iconbtn" onClick={prev} aria-label="Předchozí měsíce"><Icon name="caretLeft" /></button>
-        <span className="z-data">{loading ? 'NAČÍTÁM CENY…' : picking === 'from' ? 'KLIKNI NA DEN ODLETU' : 'KLIKNI NA DEN NÁVRATU'}</span>
+        <span className="z-data">{loading ? 'NAČÍTÁM CENY…' : picking === 'from' ? (car ? 'KLIKNI NA DEN VYZVEDNUTÍ' : 'KLIKNI NA DEN ODLETU') : (car ? 'KLIKNI NA DEN VRÁCENÍ' : 'KLIKNI NA DEN NÁVRATU')}</span>
         <button type="button" className="z-iconbtn" onClick={next} aria-label="Další měsíce"><Icon name="caretRight" /></button>
       </div>
 
@@ -219,6 +222,7 @@ export default function DateRangePicker({
             <span className="z-data">CENY OD OSOBY</span>
           </div>
         )}
+        {car && <span className="z-data">ČAS VYZVEDNUTÍ A VRÁCENÍ NASTAVÍŠ VEDLE</span>}
         {onFlexChange && (
           <div className="z-seg" role="group" aria-label="Pružnost termínu">
             {[{ v: false, l: 'Přesně' }, { v: true, l: '±3 dny' }].map(o => (

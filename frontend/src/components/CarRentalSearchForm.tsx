@@ -342,7 +342,7 @@ export function CarRentalForm({ className = '' }: { className?: string }) {
             <DateRangePicker
               dateFrom={pickupDate} dateTo={dropoffDate}
               onDateFromChange={setPickupDate} onDateToChange={setDropoffDate}
-              noLabel noPrices
+              noLabel noPrices mode="car"
             />
             <span className="z-sfield__sub">vyzvednutí → vrácení</span>
           </div>

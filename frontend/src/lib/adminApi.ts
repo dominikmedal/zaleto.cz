@@ -119,6 +119,7 @@ export function fetchAdminArticles(params: Record<string, string | number>) {
   const qs = new URLSearchParams(params as Record<string, string>).toString()
   return api<ArticleList>(`/articles?${qs}`)
 }
+export function fetchAdminArticle(id: number) { return api<AdminArticle>(`/articles/${id}`) }
 export async function createArticle(body: Partial<AdminArticle>) {
   const result = await api<{ ok: boolean; slug: string }>('/articles', { method: 'POST', body: JSON.stringify(body) })
   await revalidateFrontend('/clanky', 'articles').catch(() => {})

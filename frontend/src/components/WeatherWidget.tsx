@@ -76,103 +76,48 @@ export default function WeatherWidget({ lat, lon, location, noCard }: { lat: num
   if (error) return null
 
   if (!data) {
-    const skeleton = (
-      <div className="animate-pulse">
-        <div className="h-16 bg-gray-100 rounded-xl m-4 mb-3" />
-        <div className="grid grid-cols-6 gap-px px-4 pb-4">
-          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-20 bg-gray-100 rounded-xl" />)}
-        </div>
-      </div>
-    )
-    return noCard ? skeleton : <div className="z-chartcard">{skeleton}</div>
+    const skeleton = <div className="z-wx z-wx--load" aria-busy="true"><div className="z-wx__now" /><div className="z-wx__days" /></div>
+    return noCard ? skeleton : <div className="z-wxcard">{skeleton}</div>
   }
 
   const today = new Date()
-
-  // Displayed data — either live current (day 0) or selected day's forecast
   const isToday = selectedDay === 0
   const activeDay = data.days[selectedDay]
   const displayCode = isToday ? data.current.code : activeDay.code
   const displayTemp = isToday ? data.current.temp : activeDay.maxTemp
-  const displayLabel = isToday
-    ? wmo(data.current.code).label
-    : `${activeDay.maxTemp}° / ${activeDay.minTemp}°`
   const cur = wmo(displayCode)
+  const dayLabel = isToday ? 'Teď' : DAY[(today.getDay() + selectedDay) % 7]
 
   const inner = (
-    <>
-      {/* Header — updates on day click */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-        <cur.Icon className={'w-9 h-9 flex-shrink-0 ' + cur.color} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-0.5 leading-none">
-            <span className="z-wtemp">
-              {displayTemp}
-            </span>
-            <span className="z-data">°C</span>
-          </div>
-          <p className="text-xs text-gray-400 mt-0.5 truncate">{displayLabel}</p>
+    <div className="z-wx">
+      <div className="z-wx__now">
+        <span className={'z-wx__icon ' + cur.color}><cur.Icon className="w-9 h-9" /></span>
+        <div>
+          <div className="z-data">{dayLabel}</div>
+          <div className="z-wx__temp"><span className="z-wtemp">{displayTemp}</span><span className="z-wx__deg">°C</span></div>
+          <div className="z-wx__label">{isToday ? cur.label : `${cur.label} · ${activeDay.minTemp}° až ${activeDay.maxTemp}°`}</div>
         </div>
-        {isToday && (
-          <div className="flex flex-col gap-1.5 items-end flex-shrink-0">
-            <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-              <PiWind className="w-3.5 h-3.5 text-gray-400" />
-              {data.current.windSpeed} km/h
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-              <PiDrop className="w-3.5 h-3.5 text-blue-400" />
-              {data.current.humidity}%
-            </span>
-          </div>
-        )}
-        {!isToday && (
-          <div className="flex flex-col gap-1.5 items-end flex-shrink-0">
-            <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-              <PiDrop className="w-3.5 h-3.5 text-blue-400" />
-              {activeDay.precipProb}%
-            </span>
-          </div>
-        )}
+        <div className="z-wx__facts">
+          {isToday && <span><PiWind className="w-4 h-4" />{data.current.windSpeed} km/h</span>}
+          {isToday && <span><PiDrop className="w-4 h-4" />{data.current.humidity} %</span>}
+          {!isToday && <span><PiDrop className="w-4 h-4" />srážky {activeDay.precipProb} %</span>}
+        </div>
       </div>
-
-      {/* 6-day forecast — clickable */}
-      <div className="grid grid-cols-6 border-t border-gray-100">
+      <div className="z-wx__days" role="tablist" aria-label="Předpověď na další dny">
         {data.days.map((day, i) => {
-          const dayName = i === 0 ? 'Dnes' : DAY[(today.getDay() + i) % 7]
           const w = wmo(day.code)
-          const isSelected = selectedDay === i
           return (
-            <button
-              key={day.date}
-              type="button"
-              onClick={() => setSelectedDay(i)}
-              className={
-                'flex flex-col items-center gap-1.5 py-3 px-1 transition-colors' +
-                (i > 0 ? ' border-l border-gray-100' : '') +
-                (isSelected ? ' bg-[var(--sky)]' : ' hover:bg-[var(--paper-deep)]')
-              }
-            >
-              <span className={
-                'text-[11px] font-semibold leading-none transition-colors' +
-                (isSelected ? ' text-[var(--brand-strong)]' : ' text-[var(--ink-muted)]')
-              }>
-                {dayName}
-              </span>
-              <w.Icon className={'w-5 h-5 ' + w.color} />
-              <span className={'text-sm font-bold leading-none tabular-nums ' + tempColor(day.maxTemp)}>
-                {day.maxTemp}°
-              </span>
-              <span className="text-xs font-medium leading-none tabular-nums text-gray-400">
-                {day.minTemp}°
-              </span>
+            <button key={day.date} type="button" role="tab" aria-selected={selectedDay === i} className="z-wx__day" onClick={() => setSelectedDay(i)}>
+              <span className="z-wx__dn">{i === 0 ? 'Dnes' : DAY[(today.getDay() + i) % 7]}</span>
+              <w.Icon className={'w-6 h-6 ' + w.color} />
+              <b className={tempColor(day.maxTemp)}>{day.maxTemp}°</b>
+              <small>{day.minTemp}°</small>
             </button>
           )
         })}
       </div>
-    </>
+    </div>
   )
 
-  return noCard
-    ? inner
-    : <div className="z-chartcard" style={{ padding: 0 }}>{inner}</div>
+  return noCard ? inner : <div className="z-wxcard">{inner}</div>
 }

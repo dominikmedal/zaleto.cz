@@ -321,23 +321,62 @@ function Faq({ faq, destName, year, slug }: { faq: CarRentalFAQ[]; destName: str
 
 // ─── Postranní panel ───────────────────────────────────────────────────────
 
+const PRICE_CATS = [
+  { key: 'Economy', re: /economy/i, label: 'Economy', hint: 'malé městské auto' },
+  { key: 'Compact', re: /compact/i, label: 'Compact', hint: 'kompakt' },
+  { key: 'SUV', re: /\bSUV/i, label: 'SUV', hint: 'do terénu' },
+  { key: 'Minivan', re: /minivan/i, label: 'Minivan', hint: 'pro skupiny' },
+] as const
+
+/** Z textu vytáhne rozsah ceny za den u jednotlivých kategorií (např. „Economy … 20-30 € za den“). */
+function priceRows(text: string) {
+  return PRICE_CATS.flatMap(c => {
+    const m = c.re.exec(text)
+    if (!m) return []
+    const r = /(\d{1,3})\s*[-–]\s*(\d{1,3})\s*(?:€|eur)/i.exec(text.slice(m.index, m.index + 160))
+    return r ? [{ ...c, from: r[1], to: r[2] }] : []
+  })
+}
+
 function PriceBox({ aiData, destName }: { aiData: CarRentalAIData; destName: string }) {
   if (!aiData.price_overview && !aiData.best_car_types) return null
+  const rows = aiData.price_overview ? priceRows(aiData.price_overview) : []
+  const rec = paras(aiData.best_car_types)
+  const sentences = (rec[0] ?? '').split(/(?<=\.)\s+/)
+  const lead = sentences.slice(0, 2).join(' ')
+  const restRec = [sentences.slice(2).join(' '), ...rec.slice(1)].filter(Boolean)
   return (
-    <div className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)' }}>
+    <div className="z-tk"><div className="z-tk__in z-carinfo">
       {aiData.price_overview && (
-        <>
-          <div className="z-kicker">Ceny</div>
-          <h3 className="h4" style={{ margin: 'var(--space-2) 0 var(--space-3)' }}>Kolik stojí auto – {destName}?</h3>
-          {paras(aiData.price_overview).map((p, i) => <p key={i} style={{ margin: '0 0 var(--space-3)', color: 'var(--ink-muted)' }}>{p}</p>)}
-        </>
+        <section>
+          <h3 className="h4">Kolik stojí auto – {destName}<span className="z-dot">.</span></h3>
+          {rows.length > 0 && (
+            <ul className="z-pricerows">
+              {rows.map(r => (
+                <li key={r.key}>
+                  <span className="z-pricerows__cat"><Icon name="auto" />{r.label}<small>{r.hint}</small></span>
+                  <span className="z-pricerows__val"><b>{r.from}–{r.to} €</b><small>za den</small></span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <details className="z-more-text">
+            <summary>{rows.length ? 'Celý přehled cen' : 'Zobrazit přehled cen'}</summary>
+            {paras(aiData.price_overview).map((p, i) => <p key={i}>{p}</p>)}
+          </details>
+        </section>
       )}
       {aiData.best_car_types && (
-        <>
-          <div className="z-kicker" style={{ marginTop: 'var(--space-4)' }}>Doporučení</div>
-          <h3 className="h4" style={{ margin: 'var(--space-2) 0 var(--space-3)' }}>Jaké auto si vybrat?</h3>
-          {paras(aiData.best_car_types).map((p, i) => <p key={i} style={{ margin: '0 0 var(--space-3)', color: 'var(--ink-muted)' }}>{p}</p>)}
-        </>
+        <section>
+          <h3 className="h4">Jaké auto si vybrat<span className="z-dot">.</span></h3>
+          <p>{lead}</p>
+          {restRec.length > 0 && (
+            <details className="z-more-text">
+              <summary>Číst dál</summary>
+              {restRec.map((p, i) => <p key={i}>{p}</p>)}
+            </details>
+          )}
+        </section>
       )}
     </div></div>
   )
