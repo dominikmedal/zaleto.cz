@@ -3,7 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import Icon from '@/components/ui/Icon'
+import Icon, { type IconName } from '@/components/ui/Icon'
 import HeaderFavorites from './HeaderFavorites'
 import FavoritesToast from './FavoritesToast'
 import SiteSearch from './SiteSearch'
@@ -11,14 +11,14 @@ import SiteSearch from './SiteSearch'
 /** Stránky se širokým záhlavím (masthead), pod kterým je menu zpočátku průhledné. */
 const OVER_ROUTES = ['/', '/pujcovna-aut']
 
-const NAV: { href: string; label: string; type?: 'last_minute' | 'first_minute' }[] = [
-  { href: '/zajezdy', label: 'Zájezdy' },
-  { href: '/zajezdy?tour_type=last_minute', label: 'Last minute', type: 'last_minute' },
-  { href: '/zajezdy?tour_type=first_minute', label: 'First minute', type: 'first_minute' },
-  { href: '/destinace', label: 'Destinace' },
-  { href: '/pujcovna-aut', label: 'Půjčovna aut' },
-  { href: '/clanky', label: 'Články' },
-  { href: '/pocasi', label: 'Počasí' },
+const NAV: { href: string; label: string; icon: IconName; type?: 'last_minute' | 'first_minute' }[] = [
+  { href: '/zajezdy', label: 'Zájezdy', icon: 'letadlo' },
+  { href: '/zajezdy?tour_type=last_minute', label: 'Last minute', icon: 'timer', type: 'last_minute' },
+  { href: '/zajezdy?tour_type=first_minute', label: 'First minute', icon: 'kalendar', type: 'first_minute' },
+  { href: '/destinace', label: 'Destinace', icon: 'poloha' },
+  { href: '/pujcovna-aut', label: 'Půjčovna aut', icon: 'auto' },
+  { href: '/clanky', label: 'Články', icon: 'clanek' },
+  { href: '/pocasi', label: 'Počasí', icon: 'slunce' },
 ]
 
 export default function Header() {
@@ -34,6 +34,14 @@ export default function Header() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+  useEffect(() => { setOpen(false) }, [pathname])
+  useEffect(() => {
+    if (!open) return
+    document.body.style.overflow = 'hidden'
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    window.addEventListener('keydown', key)
+    return () => { document.body.style.overflow = ''; window.removeEventListener('keydown', key) }
+  }, [open])
   const over = OVER_ROUTES.includes(pathname) && !scrolled && !open
   const isActive = (item: (typeof NAV)[number]) => {
     if (item.type) return pathname === '/zajezdy' && tourType === item.type
@@ -76,24 +84,22 @@ export default function Header() {
       </header>
 
       {open && (
-        <nav
-          aria-label="Mobilní navigace"
-          style={{ position: 'fixed', inset: 'var(--header-height) 0 0 0', zIndex: 49, background: 'var(--paper)', padding: 'var(--space-6)' }}
-        >
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        <nav className="z-mnav" aria-label="Mobilní navigace">
+          <ul className="z-mnav__list">
             {NAV.map(item => (
               <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="h2"
-                  style={{ color: 'var(--ink)', textDecoration: 'none' }}
-                  onClick={() => setOpen(false)}
-                >
-                  {item.label}<span className="z-dot">.</span>
+                <Link href={item.href} className="z-mnav__link" aria-current={isActive(item) ? 'page' : undefined} onClick={() => setOpen(false)}>
+                  <span className="z-mnav__icon"><Icon name={item.icon} /></span>
+                  <span className="z-mnav__label">{item.label}</span>
+                  <Icon name="sipka" />
                 </Link>
               </li>
             ))}
           </ul>
+          <div className="z-mnav__foot">
+            <Link href="/kontakt" className="z-btn z-btn--line z-btn--sm" onClick={() => setOpen(false)}>Kontakt<span className="z-btn__go"><Icon name="envelope" /></span></Link>
+            <Link href="/faq" className="z-more" onClick={() => setOpen(false)}>Časté otázky</Link>
+          </div>
         </nav>
       )}
 

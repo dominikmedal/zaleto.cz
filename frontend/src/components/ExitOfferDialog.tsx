@@ -15,8 +15,7 @@ const MIN_TIME_MS = 6000 // dialog hned po příchodu nevyskakuje
 
 /**
  * Nabídka při pokusu o odchod. Webová stránka nemůže zachytit zavření tabu, proto se dialog ukáže, když kurzor
- * odjede nahoru k liště prohlížeče (počítač); na dotykových zařízeních při rychlém posunu zpět nahoru.
- * Za relaci se zobrazí nejvýš jednou.
+ * odjede nahoru k liště prohlížeče. Jen na počítačích (ne na telefonech a tabletech) a nejvýš jednou za relaci.
  */
 export default function ExitOfferDialog({ offer }: { offer: ExitOfferData }) {
   const pathname = usePathname()
@@ -40,25 +39,15 @@ export default function ExitOfferDialog({ offer }: { offer: ExitOfferData }) {
 
   useEffect(() => {
     if (!enabled) return
+    // na telefonech a tabletech (dotyk, úzký displej) se dialog nezobrazuje
+    if (window.matchMedia('(pointer: coarse), (max-width: 1023px)').matches) return
     try { if (sessionStorage.getItem(KEY)) { shown.current = true; return } } catch { /* ignore */ }
 
     // počítač: kurzor opouští okno nahoře
     const onLeave = (e: MouseEvent) => { if (e.clientY <= 0 && !e.relatedTarget) show() }
     document.addEventListener('mouseout', onLeave)
 
-    // mobil: rychlý posun zpět nahoru po delším čtení
-    let lastY = window.scrollY
-    let lastT = performance.now()
-    const onScroll = () => {
-      const y = window.scrollY
-      const t = performance.now()
-      const v = (lastY - y) / Math.max(1, t - lastT) // px/ms nahoru
-      if (v > 1.6 && lastY > 600) show()
-      lastY = y
-      lastT = t
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => { document.removeEventListener('mouseout', onLeave); window.removeEventListener('scroll', onScroll) }
+    return () => document.removeEventListener('mouseout', onLeave)
   }, [enabled, show])
 
   useEffect(() => {

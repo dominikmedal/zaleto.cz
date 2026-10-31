@@ -26,7 +26,24 @@ export type RedirectResult = { url: string } | { error: string; status: number }
 
 /** GET /api/redirect/:slug?date=&nights=&adults=&tour_url=&agency= */
 export async function resolveRedirect(slug: string, q: Q): Promise<RedirectResult> {
-  const { date, nights, adults = '2', tour_url, agency: agencyOverride } = q
+  let { date, nights, tour_url, agency: agencyOverride } = q
+  const { adults = '2' } = q
+
+  // `best=1` (reklamní bannery): vezmi nejlevnější budoucí termín hotelu a pošli rovnou k partnerovi s affiliate odkazem
+  if (!date && q.best) {
+    const r = await query(
+      `SELECT t.departure_date, t.duration, t.url, t.agency FROM tours t JOIN hotels h ON h.id = t.hotel_id
+       WHERE (h.slug = ? OR h.canonical_slug = (SELECT canonical_slug FROM hotels WHERE slug = ?))
+         AND t.price > 0 AND t.departure_date >= CURRENT_DATE::text
+       ORDER BY t.price ASC LIMIT 1`, [slug, slug])
+    const best = r.rows[0]
+    // bez platného termínu aspoň detail hotelu na Zaletu
+    if (!best) return { url: `https://zaleto.cz/hotel/${encodeURIComponent(slug)}` }
+    date = best.departure_date
+    nights = nights ?? (best.duration != null ? String(best.duration) : undefined)
+    tour_url = tour_url ?? best.url ?? undefined
+    agencyOverride = agencyOverride ?? best.agency ?? undefined
+  }
   if (!date) return { error: 'date required', status: 400 }
 
   const hotel = (await query('SELECT id, agency, api_config FROM hotels WHERE slug = ?', [slug])).rows[0]

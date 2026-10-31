@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import Icon from './Icon'
 import { formatDateRange, formatPrice } from './format'
 import type { Hotel } from '@/lib/types'
@@ -29,9 +28,15 @@ export default function TourAd({ hotel, sticky = false, kicker = 'Nabídka dne' 
         </ul>
         <div className="z-ad__stub">
           <div><span className="z-price__note">od · za osobu</span><span className="z-price z-price--offer">{formatPrice(hotel.min_price)}</span></div>
-          <Link className="z-btn z-btn--offer z-btn--block" href={`/hotel/${hotel.slug}`}>
+          {/* celý banner je klikací (rozšířená plocha tlačítka) a vede rovnou k partnerovi s affiliate odkazem */}
+          <a
+            className="z-btn z-btn--offer z-btn--block z-ad__go"
+            href={`/api/redirect/${encodeURIComponent(hotel.slug)}?best=1`}
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+          >
             Zobrazit nabídku<span className="z-btn__go"><Icon name="sipka" /></span>
-          </Link>
+          </a>
         </div>
       </div>
     </aside>

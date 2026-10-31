@@ -22,7 +22,12 @@ export function htmlToMarkdown(html: string, pageUrl: string): string {
   const title = decode((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '').trim())
   const main = html.match(/<main[\s\S]*?<\/main>/i)?.[0] ?? html.match(/<body[\s\S]*?<\/body>/i)?.[0] ?? html
 
-  let md = nhm.translate(main).trim()
+  // obrázky a ikony do Markdownu nepatří; mezi sousední inline prvky vložíme mezeru („Řecko“ + „332 hotelů“)
+  const cleaned = main
+    .replace(/<svg[\s\S]*?<\/svg>/gi, '')
+    .replace(/<img[^>]*>/gi, '')
+    .replace(/<\/(span|b|small|strong|em)>/gi, '</$1> ')
+  let md = nhm.translate(cleaned).trim()
   // odkazy: relativní → absolutní, bez „/_next“ a kotev
   md = md.replace(/\]\((\/[^)\s]*)\)/g, (_, p: string) => `](${origin}${p})`)
   md = md.replace(/\n{3,}/g, '\n\n')

@@ -4,14 +4,14 @@ import Icon from '@/components/ui/Icon'
 import { query } from '@/server/db'
 import { formatDateRange, formatPrice } from '@/components/ui/format'
 
-interface Offer { slug: string; place: string; price: number; departure: string; lastMinute: boolean }
+interface Offer { slug: string; place: string; price: number; departure: string; lastMinute: boolean; nights: number | null; url: string | null; agency: string | null }
 
 /** Skutečné nabídky přímo z platných termínů (budoucí odlet, kladná cena); jedna na místo. */
 const loadOffers = unstable_cache(
   async (): Promise<Offer[]> => {
     const pick = async (lastMinute: boolean) => {
       const r = await query(
-        `SELECT h.slug, COALESCE(h.resort_town, h.country) AS place, t.price, t.departure_date
+        `SELECT h.slug, COALESCE(h.resort_town, h.country) AS place, t.price, t.departure_date, t.duration, t.url, t.agency
          FROM tours t JOIN hotels h ON h.id = t.hotel_id
          WHERE t.price > 0
            AND t.departure_date >= CURRENT_DATE::text
@@ -27,7 +27,7 @@ const loadOffers = unstable_cache(
       for (const row of r.rows) {
         if (seen.has(row.place)) continue
         seen.add(row.place)
-        out.push({ slug: row.slug, place: row.place, price: Number(row.price), departure: row.departure_date, lastMinute })
+        out.push({ slug: row.slug, place: row.place, price: Number(row.price), departure: row.departure_date, lastMinute, nights: row.duration ?? null, url: row.url ?? null, agency: row.agency ?? null })
         if (out.length === 3) break
       }
       return out
@@ -35,9 +35,18 @@ const loadOffers = unstable_cache(
     const lm = await pick(true)
     return lm.length > 0 ? lm : pick(false)
   },
-  ['offer-bar'],
+  ['offer-bar-v2'],
   { revalidate: 3600, tags: ['api'] },
 )
+
+/** Odkaz rovnou k partnerovi (affiliate): přesně ten termín, který lišta zobrazuje. */
+function offerHref(o: Offer) {
+  const q = new URLSearchParams({ date: o.departure })
+  if (o.nights) q.set('nights', String(o.nights))
+  if (o.url) q.set('tour_url', o.url)
+  if (o.agency) q.set('agency', o.agency)
+  return `/api/redirect/${encodeURIComponent(o.slug)}?${q}`
+}
 
 /**
  * Úzký oranžový proužek s nabídkou nad menu (oranžová je v designu vyhrazená nabídkám).
@@ -55,9 +64,9 @@ export default async function OfferBar() {
         <ul className="z-offerbar__list">
           {offers.map(o => (
             <li key={o.slug}>
-              <Link href={`/hotel/${o.slug}`}>
+              <a href={offerHref(o)} target="_blank" rel="noopener noreferrer sponsored">
                 <b>{o.place}</b> {formatDateRange(o.departure)} od {formatPrice(o.price)}
-              </Link>
+              </a>
             </li>
           ))}
         </ul>
