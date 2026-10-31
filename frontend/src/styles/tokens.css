@@ -1,0 +1,71 @@
+/* zaleto. — design tokeny „Palubní deník“ (fonty se načítají přes next/font v layout.tsx) */
+:root, [data-theme="light"] {
+  --paper: #faf6ee;
+  --paper-deep: #f2ebdd;
+  --raised: #ffffff;
+  --ink: #0b1b33;
+  --ink-muted: #56627a;
+  --line: #e4dccb;
+  --line-strong: #857d6c;
+  --brand: #008cff;
+  --brand-strong: #0068c2;
+  --brand-deep: #0a4f99;
+  --sky: #dcefff;
+  --on-brand: #ffffff;
+  --night: #0a3a78;
+  --on-night: #ffffff;
+  --on-night-muted: #b9d6f5;
+  --accent: #ff7a1a;
+  --accent-strong: #a94407;
+  --accent-soft: #ffe9d6;
+  --success: #1f7a4d;
+  --danger: #c62828;
+  --focus: var(--ink);
+  --scrim: rgba(11, 27, 51, 0.6);
+  --shadow-ticket: 0 1px 0 rgba(11, 27, 51, 0.06), 0 18px 40px -22px rgba(11, 27, 51, 0.45);
+  --shadow-lift: 0 2px 0 rgba(11, 27, 51, 0.06), 0 28px 50px -24px rgba(11, 27, 51, 0.5);
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 72px;
+  --space-9: 120px;
+  --radius-sm: 6px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --radius-window: 40%;
+  --radius-pill: 999px;
+  --notch: 12px;
+  --container-max: 1240px;
+  --article-max: 700px;
+  --sidebar-width: 330px;
+  --header-height: 76px;
+  --font-serif: var(--next-fraunces), Fraunces, Georgia, "Times New Roman", serif;
+  --font-sans: var(--next-poppins), Poppins, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--next-space-mono), "Space Mono", ui-monospace, Menlo, monospace;
+}
+.display { font-family: var(--font-serif); font-size: 88px; line-height: 84px; font-weight: 600; letter-spacing: -0.035em; }
+.h1 { font-family: var(--font-serif); font-size: 54px; line-height: 56px; font-weight: 600; letter-spacing: -0.025em; }
+.h2 { font-family: var(--font-serif); font-size: 40px; line-height: 44px; font-weight: 600; letter-spacing: -0.02em; }
+.h3 { font-family: var(--font-serif); font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em; }
+.h4 { font-family: var(--font-serif); font-size: 21px; line-height: 26px; font-weight: 600; }
+.lead { font-family: var(--font-serif); font-size: 23px; line-height: 35px; font-weight: 400; }
+.body { font-family: var(--font-serif); font-size: 19px; line-height: 31px; font-weight: 400; }
+.quote { font-family: var(--font-serif); font-size: 30px; line-height: 38px; font-weight: 400; font-style: italic; }
+.ui { font-family: var(--font-sans); font-size: 15px; line-height: 24px; font-weight: 400; }
+.button { font-family: var(--font-sans); font-size: 15px; line-height: 24px; font-weight: 500; }
+.label { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 500; }
+.kicker { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0.14em; }
+.data { font-family: var(--font-mono); font-size: 13px; line-height: 20px; font-weight: 400; letter-spacing: 0.04em; }
+.code { font-family: var(--font-mono); font-size: 34px; line-height: 36px; font-weight: 700; letter-spacing: 0.02em; }
+
+@media (max-width: 767px) {
+  .display, .z-hero__title { font-size: 56px; line-height: 56px; }
+  .h1 { font-size: 36px; line-height: 40px; }
+  .h2, .z-shead h2 { font-size: 28px; line-height: 32px; }
+}

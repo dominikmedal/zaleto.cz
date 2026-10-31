@@ -1,0 +1,306 @@
+/* zaleto. — komponenty „Palubní deník“ (prefix z-) */
+
+/* ---------- Základ: ikony, tečka, logo ---------- */
+.zi { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.zi .zi-dot { fill: var(--brand); stroke: none; }
+.zi--sm { width: 18px; height: 18px; stroke-width: 1.75; }
+.zi--lg { width: 32px; height: 32px; }
+.z-dot { color: var(--brand); }
+.z-logo { display: block; height: 34px; width: auto; }
+.z-logo--ink { filter: brightness(0); opacity: .92; }
+.z-logo--light { filter: brightness(0) invert(1); }
+.z-kicker { font: 700 12px/16px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-muted); }
+.z-data { font: 400 13px/20px var(--font-mono); letter-spacing: .04em; color: var(--ink-muted); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.z-container { max-width: var(--container-max); margin: 0 auto; padding: 0 var(--space-6); }
+.z-section { padding: var(--space-9) 0 0; }
+.z-section--deep { background: var(--paper-deep); padding: var(--space-8) 0; margin-top: var(--space-9); }
+.z-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
+.z-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-7) var(--space-6); }
+.z-grid-3w { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-7) var(--space-6); }
+
+/* ---------- Button ---------- */
+.z-btn { display: inline-flex; align-items: center; gap: var(--space-3); height: 52px; padding: 0 var(--space-5); border: 1.5px solid transparent; border-radius: var(--radius-pill); font: 500 15px/24px var(--font-sans); text-decoration: none; cursor: pointer; white-space: nowrap; transition: background .2s, color .2s, border-color .2s; }
+.z-btn__go { display: grid; place-items: center; width: 38px; height: 38px; margin-right: -14px; border-radius: 50%; background: var(--ink); color: var(--paper); transition: transform .25s, background .2s; }
+.z-btn__go .zi { width: 20px; height: 20px; }
+.z-btn:hover .z-btn__go { transform: translateX(3px); }
+.z-btn--primary { background: var(--brand-strong); color: var(--on-brand); }
+.z-btn--primary .z-btn__go { background: var(--raised); color: var(--brand-strong); }
+.z-btn--primary:hover { background: var(--brand-deep); }
+.z-btn--light { background: var(--raised); color: var(--ink); }
+.z-btn--light:hover { background: var(--sky); }
+.z-btn--light .z-btn__go { background: var(--brand-strong); color: var(--on-brand); }
+.z-btn--offer { background: var(--accent); color: var(--ink); }
+.z-btn--offer:hover { background: var(--ink); color: var(--paper); }
+.z-btn--offer:hover .z-btn__go { background: var(--accent); color: var(--ink); }
+.z-btn--line { background: transparent; color: var(--ink); border-color: var(--ink); }
+.z-btn--line:hover { background: var(--ink); color: var(--paper); }
+.z-btn--sm { height: 42px; padding: 0 var(--space-4); font-size: 14px; }
+.z-btn--sm .z-btn__go { width: 30px; height: 30px; margin-right: -10px; }
+.z-btn--block { width: 100%; justify-content: space-between; }
+.z-btn[disabled] { opacity: .4; pointer-events: none; }
+.z-round { display: grid; place-items: center; width: 64px; height: 64px; border: 0; border-radius: 50%; background: var(--brand-strong); color: var(--on-brand); cursor: pointer; transition: background .2s, transform .2s; }
+.z-round:hover { background: var(--brand-deep); transform: scale(1.04); }
+.z-round .zi { width: 26px; height: 26px; }
+
+.z-more { display: inline-flex; align-items: center; gap: var(--space-2); font: 700 12px/16px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink); text-decoration: none; }
+.z-more::after { content: ""; width: 40px; height: 0; border-top: 2px dotted var(--ink); transition: width .25s; }
+.z-more::before { content: ""; order: 2; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
+.z-more:hover::after { width: 64px; }
+
+/* ---------- Stamp & Chip ---------- */
+.z-stamp { display: inline-flex; align-items: center; gap: var(--space-1); padding: 5px 10px; border: 2px solid currentColor; outline: 1px solid currentColor; outline-offset: 2px; border-radius: var(--radius-sm); font: 700 12px/14px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent-strong); background: rgba(250, 246, 238, .94); transform: rotate(-6deg); }
+.z-stamp--brand { color: var(--brand-strong); transform: rotate(4deg); }
+.z-stamp--fill { color: var(--ink); background: var(--accent); border-color: var(--ink); outline-color: var(--accent); }
+.z-stamp--round { flex-direction: column; justify-content: center; width: 92px; height: 92px; padding: 0; border-radius: 50%; text-align: center; font-size: 11px; line-height: 13px; transform: rotate(-12deg); }
+.z-stamp--round b { font: 600 22px/24px var(--font-serif); letter-spacing: 0; text-transform: none; }
+.z-chip { display: inline-flex; align-items: center; gap: var(--space-1); height: 30px; padding: 0 var(--space-3); border: 1px solid var(--line-strong); border-radius: var(--radius-pill); font: 700 11px/14px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink); background: transparent; }
+.z-chip .zi { width: 16px; height: 16px; }
+.z-chip--sky { background: var(--sky); border-color: transparent; }
+.z-chip--ok { border-color: transparent; color: var(--success); padding-left: 0; }
+
+/* ---------- Header ---------- */
+.z-header { position: sticky; top: 0; z-index: 50; height: var(--header-height); display: flex; align-items: center; gap: var(--space-7); padding: 0 var(--space-6); background: var(--paper); border-bottom: 1px solid var(--line); }
+.z-header__nav { display: flex; gap: var(--space-5); margin: 0; padding: 0; list-style: none; flex: 1; }
+.z-header__nav a { position: relative; display: block; padding: var(--space-2) 0; color: var(--ink); text-decoration: none; font-weight: 500; }
+.z-header__nav a::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: var(--brand); transform: scale(0); transition: transform .2s; }
+.z-header__nav a:hover::after, .z-header__nav a[aria-current="page"]::after { transform: scale(1); }
+.z-header__actions { display: flex; align-items: center; gap: var(--space-2); }
+.z-iconbtn { width: 44px; height: 44px; display: inline-grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--ink); cursor: pointer; }
+.z-iconbtn:hover { background: var(--paper-deep); }
+.z-header__burger { display: none; }
+
+/* ---------- Breadcrumbs (trasa) ---------- */
+.z-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; padding: 0; list-style: none; font: 700 11px/16px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-muted); }
+.z-crumbs a { color: var(--ink-muted); text-decoration: none; }
+.z-crumbs a:hover { color: var(--brand-strong); }
+.z-crumbs li + li::before { content: ""; display: inline-block; width: 22px; margin-right: var(--space-2); vertical-align: middle; border-top: 2px dotted var(--line-strong); }
+.z-crumbs [aria-current] { color: var(--ink); }
+.z-crumbs [aria-current]::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: var(--brand); vertical-align: 1px; }
+
+/* ---------- Section head ---------- */
+.z-shead { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-5); padding-bottom: var(--space-5); margin-bottom: var(--space-6); border-bottom: 1px solid var(--line); }
+.z-shead h2 { margin-top: var(--space-3); font-size: 40px; line-height: 44px; letter-spacing: -0.02em; }
+.z-shead__num { color: var(--brand-strong); }
+
+/* ---------- Lístek (ticket) – sdílený ---------- */
+.z-tk { position: relative; filter: drop-shadow(0 1px 0 rgba(11, 27, 51, .07)) drop-shadow(0 14px 18px rgba(11, 27, 51, .14)); transition: transform .25s, filter .25s; color: var(--ink); text-decoration: none; display: block; }
+a.z-tk:hover { transform: translateY(-4px) rotate(-.4deg); filter: drop-shadow(0 1px 0 rgba(11, 27, 51, .07)) drop-shadow(0 24px 24px rgba(11, 27, 51, .2)); }
+.z-tk__in { position: relative; background: var(--raised); border-radius: var(--radius-lg); }
+.z-tk--h .z-tk__in { -webkit-mask: radial-gradient(circle var(--notch) at 0 calc(100% - var(--cut, 110px)), #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle var(--notch) at 100% calc(100% - var(--cut, 110px)), #0000 97%, #000) right / 51% 100% no-repeat; mask: radial-gradient(circle var(--notch) at 0 calc(100% - var(--cut, 110px)), #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle var(--notch) at 100% calc(100% - var(--cut, 110px)), #0000 97%, #000) right / 51% 100% no-repeat; }
+.z-tk--h .z-tk__in::after { content: ""; position: absolute; left: calc(var(--notch) + 6px); right: calc(var(--notch) + 6px); bottom: var(--cut, 110px); border-top: 2px dashed var(--line); }
+.z-tk--v .z-tk__in { -webkit-mask: radial-gradient(circle var(--notch) at calc(100% - var(--stub, 180px)) 0, #0000 97%, #000) top / 100% 51% no-repeat, radial-gradient(circle var(--notch) at calc(100% - var(--stub, 180px)) 100%, #0000 97%, #000) bottom / 100% 51% no-repeat; mask: radial-gradient(circle var(--notch) at calc(100% - var(--stub, 180px)) 0, #0000 97%, #000) top / 100% 51% no-repeat, radial-gradient(circle var(--notch) at calc(100% - var(--stub, 180px)) 100%, #0000 97%, #000) bottom / 100% 51% no-repeat; }
+.z-tk--v .z-tk__in::after { content: ""; position: absolute; top: calc(var(--notch) + 6px); bottom: calc(var(--notch) + 6px); right: var(--stub, 180px); border-left: 2px dashed var(--line); }
+.z-route { display: flex; align-items: center; gap: var(--space-3); font: 700 18px/24px var(--font-mono); letter-spacing: .04em; }
+.z-route__line { flex: 1; display: flex; align-items: center; gap: var(--space-2); color: var(--brand); }
+.z-route__line::before, .z-route__line::after { content: ""; flex: 1; border-top: 2px dotted var(--line-strong); }
+.z-route__line .zi { width: 20px; height: 20px; color: var(--ink); }
+.z-route small { display: block; font: 400 11px/14px var(--font-mono); letter-spacing: .06em; color: var(--ink-muted); text-transform: uppercase; }
+.z-price { font: 600 30px/32px var(--font-serif); letter-spacing: -0.02em; color: var(--ink); }
+.z-price--offer { color: var(--accent-strong); }
+.z-price__note { display: block; font: 400 12px/16px var(--font-mono); letter-spacing: .04em; color: var(--ink-muted); }
+.z-price s, .z-tour__stub s { display: block; font: 400 13px/16px var(--font-mono); color: var(--ink-muted); margin: 2px 0 0; letter-spacing: 0; }
+.z-meta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
+.z-meta span { display: inline-flex; align-items: center; gap: 6px; }
+.z-meta .zi { width: 18px; height: 18px; color: var(--ink); }
+
+/* ---------- SearchBox ---------- */
+.z-search__tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-3); }
+.z-search__tab { display: inline-flex; align-items: center; gap: var(--space-2); height: 44px; padding: 0 var(--space-4); border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--ink); font: 500 15px/24px var(--font-sans); cursor: pointer; }
+.z-search__tab:hover { background: rgba(11, 27, 51, .06); }
+.z-search__tab[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+.z-search .z-tk__in { display: flex; align-items: stretch; padding: var(--space-2); --stub: 112px; }
+.z-sfield { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: var(--space-4) var(--space-5); border-radius: var(--radius-md); cursor: text; min-width: 0; }
+.z-sfield + .z-sfield { border-left: 2px dotted var(--line); }
+.z-sfield:hover { background: var(--paper); }
+.z-sfield__label { display: flex; align-items: center; gap: 6px; font: 700 11px/14px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-muted); }
+.z-sfield__label .zi { width: 16px; height: 16px; color: var(--ink); }
+.z-sfield input, .z-sfield select { border: 0; padding: 0; background: transparent; outline: none; width: 100%; font: 600 24px/32px var(--font-serif); letter-spacing: -0.01em; color: var(--ink); }
+.z-sfield input::placeholder { color: var(--line-strong); }
+.z-sfield__sub { font: 400 12px/16px var(--font-mono); color: var(--ink-muted); }
+.z-search__go { width: 112px; flex: none; display: grid; place-items: center; }
+
+/* ---------- Destinace – okénko ---------- */
+.z-window { display: block; color: var(--ink); text-decoration: none; }
+.z-window__frame { position: relative; aspect-ratio: 4 / 5; padding: 10px; border-radius: var(--radius-window); background: var(--raised); box-shadow: var(--shadow-ticket), inset 0 0 0 1px var(--line); }
+.z-window__glass { position: relative; height: 100%; border-radius: var(--radius-window); overflow: hidden; background: var(--paper-deep); }
+.z-window__glass img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s; }
+.z-window__glass::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 0; background: var(--raised); transition: height .35s; }
+.z-window:hover .z-window__glass img { transform: scale(1.05); }
+.z-window:hover .z-window__glass::after { height: 14%; }
+.z-window .z-stamp { position: absolute; right: -6px; top: 18%; z-index: 1; }
+.z-window__cap { padding: var(--space-4) var(--space-2) 0; text-align: center; }
+.z-window__name { font-size: 28px; line-height: 32px; letter-spacing: -0.01em; margin: 4px 0; }
+.z-window__count { display: inline-flex; align-items: center; gap: 6px; font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
+.z-window__count .zi { width: 18px; height: 18px; color: var(--ink); }
+
+/* ---------- Článek – karta ---------- */
+.z-story { display: flex; flex-direction: column; gap: var(--space-2); color: var(--ink); text-decoration: none; }
+.z-story__media { position: relative; aspect-ratio: 4 / 3; border-radius: var(--radius-lg); overflow: hidden; margin-bottom: var(--space-3); background: var(--paper-deep); }
+.z-story__media img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s; }
+.z-story:hover .z-story__media img { transform: scale(1.04); }
+.z-story__media .z-chip { position: absolute; left: var(--space-3); top: var(--space-3); background: var(--paper); border-color: transparent; }
+.z-story__title { font-size: 24px; line-height: 29px; letter-spacing: -0.01em; }
+.z-story__title span { background: linear-gradient(var(--brand), var(--brand)) 0 100% / 0 2px no-repeat; transition: background-size .3s; }
+.z-story:hover .z-story__title span { background-size: 100% 2px; }
+.z-story__text { margin: 0; font: 400 15px/24px var(--font-sans); color: var(--ink-muted); }
+.z-story--lead { display: grid; grid-template-columns: 1.3fr 1fr; gap: var(--space-6); align-items: center; }
+.z-story--lead .z-story__media { aspect-ratio: 5 / 4; margin: 0; }
+.z-story--lead .z-story__title { font-size: 40px; line-height: 44px; letter-spacing: -0.02em; }
+
+/* ---------- Zájezd – lístek ---------- */
+.z-tour { --cut: 104px; }
+.z-tour .z-tk__in { display: flex; flex-direction: column; padding: 10px; height: 100%; }
+.z-tour__media { position: relative; aspect-ratio: 16 / 11; border-radius: 16px; overflow: hidden; background: var(--paper-deep); }
+.z-tour__media img { width: 100%; height: 100%; object-fit: cover; }
+.z-tour > .z-stamp { position: absolute; top: 18px; right: 14px; z-index: 2; }
+.z-tour__body { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) var(--space-3) var(--space-5); flex: 1; }
+.z-tour__title { font-size: 21px; line-height: 26px; }
+.z-tour__stub { height: calc(var(--cut) - 10px); display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 0 var(--space-3); }
+
+/* ---------- Auto – lístek ---------- */
+.z-car { --stub: 230px; }
+.z-car .z-tk__in { display: grid; grid-template-columns: 240px 1fr var(--stub); align-items: stretch; padding: 10px; }
+.z-car__media { border-radius: 16px; overflow: hidden; background: var(--paper-deep); }
+.z-car__media img { width: 100%; height: 100%; object-fit: cover; }
+.z-car__body { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-5); }
+.z-car__title { font-size: 24px; line-height: 28px; }
+.z-car__stub { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) var(--space-4) var(--space-3) var(--space-5); }
+.z-car__stub .z-price__note { white-space: nowrap; }
+
+/* ---------- InfoBox – palubní karta ---------- */
+.z-info { position: relative; padding: var(--space-6); border-radius: var(--radius-lg); background-color: var(--sky); background-image: radial-gradient(rgba(0, 140, 255, .28) 1.5px, transparent 1.6px); background-size: 18px 18px; background-position: right -9px top -9px; }
+.z-info__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-5); }
+.z-info__title { font-size: 28px; line-height: 32px; }
+.z-info__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-3); margin: 0; }
+.z-info__item { display: flex; flex-direction: column; gap: 2px; padding: var(--space-4); border-radius: var(--radius-md); background: var(--raised); }
+.z-info__item .zi { margin-bottom: var(--space-2); }
+.z-info__item dt { font: 700 11px/14px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-muted); }
+.z-info__item dd { margin: 0; font: 600 20px/26px var(--font-serif); color: var(--ink); }
+
+/* ---------- Článek – sazba ---------- */
+.z-prose { max-width: var(--article-max); font: 400 19px/31px var(--font-serif); color: var(--ink); }
+.z-prose h1 { font-size: 54px; line-height: 56px; letter-spacing: -0.025em; margin: var(--space-4) 0 var(--space-4); }
+.z-prose h2 { font-size: 34px; line-height: 40px; letter-spacing: -0.02em; margin: var(--space-7) 0 var(--space-3); }
+.z-prose h3 { font-size: 24px; line-height: 30px; margin: var(--space-6) 0 var(--space-2); }
+.z-prose p { margin: 0 0 var(--space-5); }
+.z-prose .z-lead { font-size: 23px; line-height: 35px; }
+.z-prose .z-lead::first-letter { float: left; font: 600 96px/76px var(--font-serif); color: var(--brand-strong); margin: 6px 12px 0 -2px; }
+.z-prose a { color: var(--brand-strong); text-decoration-thickness: 1.5px; text-underline-offset: 4px; text-decoration-color: var(--brand); }
+.z-prose a:hover { color: var(--brand-deep); }
+.z-prose blockquote { position: relative; margin: var(--space-7) 0; padding: var(--space-6) 0 0; font: italic 400 30px/38px var(--font-serif); letter-spacing: -0.01em; }
+.z-prose blockquote::before { content: "“"; position: absolute; top: -28px; left: -4px; font: 600 120px/1 var(--font-serif); color: var(--brand); }
+.z-prose blockquote cite { display: block; margin-top: var(--space-3); font: 700 11px/16px var(--font-mono); font-style: normal; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-muted); }
+.z-prose ul { list-style: none; padding: 0; margin: 0 0 var(--space-5); }
+.z-prose ul > li { position: relative; padding-left: 28px; margin-bottom: var(--space-2); }
+.z-prose ul > li::before { content: ""; position: absolute; left: 4px; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
+.z-prose ol { padding-left: 24px; margin: 0 0 var(--space-5); }
+.z-prose figure { margin: var(--space-6) 0; }
+.z-prose figure img, .z-prose img { width: 100%; border-radius: var(--radius-lg); }
+.z-prose figcaption { margin-top: var(--space-2); font: 400 12px/18px var(--font-mono); letter-spacing: .04em; color: var(--ink-muted); }
+.z-byline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-5); margin-bottom: var(--space-6); font: 400 12px/16px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.z-byline span { display: inline-flex; align-items: center; gap: 6px; }
+.z-byline .zi { width: 16px; height: 16px; color: var(--ink); }
+.z-tip { position: relative; margin: var(--space-6) 0; padding: var(--space-5) var(--space-5) var(--space-5) 96px; border: 2px dashed var(--line-strong); border-radius: var(--radius-lg); font: 400 17px/27px var(--font-sans); }
+.z-tip .z-stamp { position: absolute; left: 16px; top: 22px; }
+
+/* ---------- TourAd – reklamní lístek ---------- */
+.z-ad { --cut: 150px; width: var(--sidebar-width); max-width: 100%; }
+.z-ad .z-tk__in { background: var(--accent-soft); padding: var(--space-5); }
+.z-ad--sticky { position: sticky; top: calc(var(--header-height) + var(--space-5)); }
+.z-ad__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
+.z-ad__top .z-kicker { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
+.z-ad__top .z-kicker::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--brand); }
+.z-ad__label { font: 400 11px/14px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-muted); }
+.z-ad .z-route { font-size: 30px; line-height: 34px; margin-bottom: var(--space-4); }
+.z-ad__media { position: relative; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; margin-bottom: var(--space-4); }
+.z-ad__media img { width: 100%; height: 100%; object-fit: cover; }
+.z-ad__media .z-stamp { position: absolute; right: 10px; bottom: 12px; }
+.z-ad__title { font-size: 24px; line-height: 28px; margin-bottom: var(--space-3); }
+.z-ad__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font: 400 14px/22px var(--font-sans); }
+.z-ad__list li { display: flex; align-items: center; gap: var(--space-2); }
+.z-ad__list .zi { width: 18px; height: 18px; color: var(--success); }
+.z-ad__list .zi .zi-dot { fill: var(--success); }
+.z-ad__stub { height: calc(var(--cut) - 24px); margin-top: calc(var(--space-5) + 24px); display: flex; flex-direction: column; justify-content: flex-end; gap: var(--space-3); }
+
+/* ---------- Hero ---------- */
+.z-hero { position: relative; display: grid; grid-template-columns: 1.15fr 1fr; gap: var(--space-6); align-items: center; padding: var(--space-8) var(--space-7) 140px; border-radius: var(--radius-lg); background: var(--night); color: var(--on-night); overflow: hidden; }
+.z-hero__sun { position: absolute; right: 120px; top: 56px; width: 420px; height: 420px; border-radius: 50%; background: var(--brand); }
+.z-hero__title { font-size: 88px; line-height: 84px; letter-spacing: -0.035em; margin: var(--space-4) 0 var(--space-5); }
+.z-hero__title .z-dot { color: var(--brand); }
+.z-hero__lead { max-width: 440px; margin: 0; font: 400 18px/29px var(--font-sans); color: var(--on-night-muted); }
+.z-hero > div { position: relative; }
+.z-hero .z-kicker { color: var(--on-night-muted); }
+.z-hero__route { position: absolute; inset: 0; pointer-events: none; }
+.z-hero__route path { fill: none; stroke: var(--on-night); stroke-width: 2; stroke-dasharray: 1 9; stroke-linecap: round; opacity: .5; }
+.z-hero__window { position: relative; width: 340px; justify-self: center; }
+.z-hero__window .z-window__frame { box-shadow: 0 30px 60px -30px rgba(11, 27, 51, .6); }
+.z-hero__search { position: relative; margin: -96px var(--space-6) 0; z-index: 2; }
+
+/* ---------- Footer ---------- */
+.z-footer { background: var(--night); color: var(--on-night); padding: var(--space-8) var(--space-7) var(--space-5); border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin-top: var(--space-9); }
+.z-footer__top { display: grid; grid-template-columns: 1.6fr repeat(3, 1fr); gap: var(--space-6); max-width: var(--container-max); margin: 0 auto; }
+.z-footer__big { font-size: 64px; line-height: 64px; letter-spacing: -0.03em; margin-bottom: var(--space-4); }
+.z-footer__big .z-dot { color: var(--brand); }
+.z-footer p { margin: 0 0 var(--space-5); max-width: 340px; color: var(--on-night-muted); }
+.z-footer h4 { font: 700 11px/16px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; margin-bottom: var(--space-4); color: var(--on-night-muted); }
+.z-footer ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.z-footer a { color: var(--on-night); text-decoration: none; font-weight: 500; }
+.z-footer a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.z-footer__bottom { display: flex; justify-content: space-between; align-items: center; max-width: var(--container-max); margin: var(--space-7) auto 0; padding-top: var(--space-4); border-top: 2px dotted rgba(255, 255, 255, .25); font: 400 12px/16px var(--font-mono); letter-spacing: .06em; color: var(--on-night-muted); }
+.z-hero :focus-visible, .z-footer :focus-visible { outline-color: var(--on-night); }
+
+/* ---------- Šablona článku ---------- */
+.z-page { display: grid; grid-template-columns: minmax(0, var(--article-max)) var(--sidebar-width); gap: var(--space-8); justify-content: center; max-width: var(--container-max); margin: 0 auto; padding: var(--space-6); align-items: start; }
+
+.z-btn--primary > .zi .zi-dot, .z-round .zi-dot { fill: currentColor; }
+.z-btn--offer .z-btn__go .zi .zi-dot { fill: var(--accent); }
+.z-prose .z-info__title { margin: 0; }
+.z-prose .z-crumbs { margin-bottom: var(--space-2); }
+
+.z-quiet .zi-dot, .z-meta .zi-dot, .z-byline .zi-dot, .z-sfield__label .zi-dot, .z-chip .zi-dot, .z-window__count .zi-dot { fill: currentColor; }
+.z-meta .zi, .z-byline .zi, .z-sfield__label .zi, .z-chip .zi, .z-window__count .zi { stroke-width: 1.75; }
+.z-info__item .zi { width: 28px; height: 28px; }
+.z-footer .z-btn--light, .z-hero .z-btn--light { color: var(--ink); }
+
+/* ---------- Responzivita (v návrhu není, doplněno) ---------- */
+@media (max-width: 1023px) {
+  .z-page { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+  .z-ad { width: 100%; }
+  .z-ad--sticky { position: static; }
+  .z-grid-3, .z-grid-3w { grid-template-columns: repeat(2, 1fr); }
+  .z-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .z-hero { grid-template-columns: 1fr; padding: var(--space-7) var(--space-5) 140px; }
+  .z-hero__window { display: none; }
+  .z-hero__sun { right: -80px; width: 300px; height: 300px; }
+  .z-footer__top { grid-template-columns: 1fr 1fr; }
+  .z-story--lead { grid-template-columns: 1fr; }
+  .z-header__nav { display: none; }
+  .z-header__burger { display: inline-grid; }
+  .z-header { gap: var(--space-4); padding: 0 var(--space-4); justify-content: space-between; }
+}
+@media (max-width: 767px) {
+  .z-container { padding: 0 var(--space-4); }
+  .z-section { padding-top: var(--space-8); }
+  .z-grid-3, .z-grid-3w, .z-grid-4 { grid-template-columns: 1fr; }
+  .z-search .z-tk__in { flex-direction: column; --stub: 0px; }
+  .z-search .z-tk--v .z-tk__in { -webkit-mask: none; mask: none; }
+  .z-search .z-tk--v .z-tk__in::after { display: none; }
+  .z-sfield + .z-sfield { border-left: 0; border-top: 2px dotted var(--line); }
+  .z-search__go { width: 100%; padding: var(--space-3); }
+  .z-hero__search { margin: -96px var(--space-3) 0; }
+  .z-hero__title { font-size: 56px; line-height: 56px; }
+  .z-car .z-tk__in { grid-template-columns: 1fr; }
+  .z-car { --stub: 0px; }
+  .z-car.z-tk--v .z-tk__in { -webkit-mask: none; mask: none; }
+  .z-car.z-tk--v .z-tk__in::after { display: none; }
+  .z-footer { padding: var(--space-7) var(--space-4) var(--space-4); }
+  .z-footer__top { grid-template-columns: 1fr; }
+  .z-footer__big { font-size: 44px; line-height: 44px; }
+  .z-prose h1 { font-size: 36px; line-height: 40px; }
+  .z-prose h2 { font-size: 26px; line-height: 32px; }
+  .z-prose blockquote { font-size: 24px; line-height: 32px; }
+  .z-shead { flex-direction: column; align-items: flex-start; }
+  .z-shead h2 { font-size: 28px; line-height: 32px; }
+  .z-story--lead .z-story__title { font-size: 28px; line-height: 32px; }
+}

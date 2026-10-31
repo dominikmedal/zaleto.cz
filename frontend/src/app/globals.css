@@ -5,6 +5,8 @@
 @import 'leaflet/dist/leaflet.css';
 @import 'leaflet.markercluster/dist/MarkerCluster.css';
 @import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+@import '../styles/tokens.css';
+@import '../styles/components.css';
 
 * {
   box-sizing: border-box;
@@ -15,11 +17,20 @@ html {
 }
 
 body {
-  font-family: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
-  background: #ffffff;
-  color: #111827;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 24px;
+  background: var(--paper);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+h1, h2, h3, h4 { font-family: var(--font-serif); font-weight: 600; }
+a { color: var(--brand-strong); }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
 }
 
 /* ── Location input ── */

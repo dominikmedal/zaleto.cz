@@ -1,12 +1,25 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
-import { DM_Sans } from 'next/font/google'
+import { Fraunces, Poppins, Space_Mono } from 'next/font/google'
 import './globals.css'
 
-const dmSans = DM_Sans({
+const fraunces = Fraunces({
   subsets: ['latin', 'latin-ext'],
-  weight: ['300', '400', '500', '600', '700', '800'],
-  variable: '--font-dm-sans',
+  weight: ['400', '600'],
+  style: ['normal', 'italic'],
+  variable: '--next-fraunces',
+  display: 'swap',
+})
+const poppins = Poppins({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['400', '500', '700'],
+  variable: '--next-poppins',
+  display: 'swap',
+})
+const spaceMono = Space_Mono({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['400', '700'],
+  variable: '--next-space-mono',
   display: 'swap',
 })
 import ScrollToTop from '@/components/ScrollToTop'
@@ -82,7 +95,7 @@ const orgSchema = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="cs" className={dmSans.variable}>
+    <html lang="cs" className={`${fraunces.variable} ${poppins.variable} ${spaceMono.variable}`}>
       <head>
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-HPE9HH5VG3" strategy="afterInteractive" />
         <Script id="ga-init" strategy="afterInteractive">{`
