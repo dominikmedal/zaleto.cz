@@ -234,7 +234,7 @@ const CarRentalCtx = createContext<CarRentalCtxValue>(null!)
 
 export function CarRentalProvider({ destination, children }: { destination?: CarDestination; children: React.ReactNode }) {
   const [pickupDate,  setPickupDate]  = useState(todayPlus(30))
-  const [dropoffDate, setDropoffDate] = useState(todayPlus(37))
+  const [dropoffDate, setDropoffDate] = useState(todayPlus(33))
   const [pickupTime,  setPickupTime]  = useState('12:00')
   const [dropoffTime, setDropoffTime] = useState('12:00')
   const [driverAge,   setDriverAge]   = useState(30)

@@ -1191,3 +1191,32 @@ body:has(.z-offerbar) .z-header { top: 40px; }
 .z-exit .z-modal__scrim { backdrop-filter: blur(3px); }
 @media (max-width: 480px) { .z-exit__title { font-size: 34px; line-height: 36px; } .z-exit__stub { padding-bottom: var(--space-3); } }
 @media (prefers-reduced-motion: reduce) { .z-exit__panel { animation: none; } }
+
+/* Bez velké mezery před zápatím */
+.z-footer { margin-top: 0; }
+main { padding-bottom: 0; }
+.z-sheet { padding-bottom: var(--space-7); }
+.z-footer { margin-top: var(--space-7); }
+.z-sheet { padding-bottom: 0; }
+body:has(.z-section--deep:last-child) .z-footer { margin-top: 0; }
+
+/* Bublinka oblíbených */
+.z-toasts { position: fixed; left: var(--space-5); bottom: var(--space-5); z-index: 200; display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-start; pointer-events: none; }
+.z-toast { position: relative; display: flex; align-items: center; gap: var(--space-3); min-width: 260px; max-width: 340px; padding: 10px 0 10px 12px; background: var(--raised); border-radius: 22px; box-shadow: var(--shadow-lift, var(--shadow-ticket)); animation: z-toast-in .3s cubic-bezier(.2, .8, .2, 1); }
+.z-toast[data-leaving] { animation: z-toast-out .25s ease-in forwards; }
+.z-toast__icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: rgba(11, 27, 51, .07); color: var(--ink-muted); }
+.z-toast[data-added] .z-toast__icon { background: var(--brand); color: var(--paper); }
+.z-toast[data-added] .z-toast__icon .zi { fill: currentColor; }
+.z-toast__text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.z-toast__text b { font: 600 17px/22px var(--font-serif); letter-spacing: -0.01em; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.z-toast__text small { font: 500 11px/14px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.z-toast__stub { position: relative; flex: none; align-self: stretch; display: grid; place-items: center; width: 34px; border-left: 2px dotted var(--line-strong); }
+.z-toast__stub i { width: 8px; height: 8px; border-radius: 50%; background: var(--brand-strong); }
+.z-toast:not([data-added]) .z-toast__stub i { background: var(--line-strong); }
+.z-toast::before, .z-toast::after { content: ""; position: absolute; right: 25px; width: 14px; height: 14px; border-radius: 50%; background: var(--paper); }
+.z-toast::before { top: -7px; }
+.z-toast::after { bottom: -7px; }
+@keyframes z-toast-in { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes z-toast-out { to { opacity: 0; transform: translateY(8px) scale(.97); } }
+@media (max-width: 767px) { .z-toasts { left: var(--space-3); right: var(--space-3); bottom: 84px; } .z-toast { min-width: 0; width: 100%; max-width: none; } }
+@media (prefers-reduced-motion: reduce) { .z-toast, .z-toast[data-leaving] { animation: none; } }

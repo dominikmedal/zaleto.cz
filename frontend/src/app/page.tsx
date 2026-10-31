@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://zaleto.cz' },
   openGraph: {
     title: 'Zaleto — kam letos',
-    description: 'Zajímavosti o místech, články z cest, zájezdy a auta. Přehledně, na jednom místě.',
+    description: 'Zájezdy od českých cestovních kanceláří a auta na dovolenou. Ceny porovnáme za tebe.',
     url: 'https://zaleto.cz',
     type: 'website',
   },
@@ -85,11 +85,11 @@ export default async function HomePage() {
           <div className="z-masthead__inner">
             <div className="z-masthead__head">
               <div>
-                <div className="z-kicker">Cestovní deník — {new Date().toLocaleDateString('cs-CZ', { month: 'long', year: 'numeric' })}</div>
+                <div className="z-kicker">Srovnání zájezdů a půjčoven aut</div>
                 <h1 className="z-masthead__title">kam letos<span className="z-dot">.</span></h1>
               </div>
               <p className="z-masthead__lead">
-                Zajímavosti o místech, články z cest, zájezdy a auta. Přehledně, na jednom místě.
+                Zájezdy od českých cestovních kanceláří a auta na dovolenou. Ceny porovnáme za tebe.
                 {heroHotel && (
                   <>
                     {' '}

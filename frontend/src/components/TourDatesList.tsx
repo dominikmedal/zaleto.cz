@@ -269,9 +269,9 @@ export default function TourDatesList({ slug }: { slug: string }) {
 
         {hasActiveFilters && <button type="button" onClick={resetFilters} className="z-more" style={{ background: 'none', border: 0, cursor: 'pointer' }}>Zrušit filtry</button>}
 
-        <span className="z-data" style={{ marginLeft: 'auto' }}>
-          {filtered.length === tours.length ? `${tours.length} TERMÍNŮ` : `${filtered.length} / ${tours.length}`}
-        </span>
+        {filtered.length !== tours.length && (
+          <span className="z-data" style={{ marginLeft: 'auto' }}>{filtered.length} / {tours.length}</span>
+        )}
       </div>
 
       {filtered.length === 0 && (
