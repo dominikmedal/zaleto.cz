@@ -40,7 +40,7 @@ export default function TourCard({ hotel, priority }: { hotel: H; priority?: boo
           <div className="z-meta">
             {dates && <span><Icon name="kalendar" />{dates}</span>}
             {hotel.stars ? <span><Icon name="hvezda" />{Math.min(5, hotel.stars)}</span> : null}
-            {hotel.agency && <span><Icon name="hotel" />{hotel.agency}</span>}
+            {hotel.agency && <span><Icon name="agentura" />{hotel.agency}</span>}
           </div>
         </div>
         <div className="z-tour__stub">

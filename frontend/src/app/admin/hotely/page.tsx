@@ -81,7 +81,7 @@ export default function HotelyPage() {
       />
       <SearchBar value={q} onChange={v => { setQ(v); setPage(1) }} placeholder="Hledat hotel, zemi…">
         <label className="z-adm-search" style={{ maxWidth: 220, flex: 'none' }}>
-          <Icon name="hotel" />
+          <Icon name="agentura" />
           <input type="text" value={agency} placeholder="Cestovní kancelář" onChange={e => { setAgency(e.target.value); setPage(1) }} />
         </label>
       </SearchBar>

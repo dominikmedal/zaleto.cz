@@ -5,7 +5,7 @@ import Icon, { type IconName } from '@/components/ui/Icon'
 import { formatPrice } from '@/components/ui/format'
 import type { SearchResults } from '@/server/search'
 
-type Item = { key: string; group: string; icon: IconName; title: string; sub?: string; href: string; aside?: string; photo?: string | null }
+type Item = { key: string; group: string; icon: IconName; title: string; sub?: string; stars?: number | null; href: string; aside?: string; photo?: string | null }
 
 const EMPTY: SearchResults = { q: '', destinations: [], hotels: [], articles: [], cars: [], pages: [] }
 
@@ -13,7 +13,7 @@ export function flatten(r: SearchResults): Item[] {
   const kind = { country: 'země', region: 'oblast', resort: 'letovisko' } as const
   return [
     ...r.destinations.map(d => ({ key: `d-${d.href}`, group: 'Destinace', icon: 'poloha' as IconName, title: d.name, sub: [kind[d.kind], d.country].filter(Boolean).join(' · '), href: d.href, aside: `${d.count} hotelů` })),
-    ...r.hotels.map(h => ({ key: `h-${h.slug}`, group: 'Zájezdy', icon: 'hotel' as IconName, title: h.name, sub: `${h.place}${h.stars ? ` · ${'★'.repeat(h.stars)}` : ''}`, href: h.href, aside: h.price ? `od ${formatPrice(h.price)}` : undefined, photo: h.photo })),
+    ...r.hotels.map(h => ({ key: `h-${h.slug}`, group: 'Zájezdy', icon: 'hotel' as IconName, title: h.name, sub: h.place, stars: h.stars, href: h.href, aside: h.price ? `od ${formatPrice(h.price)}` : undefined, photo: h.photo })),
     ...r.articles.map(a => ({ key: `a-${a.slug}`, group: 'Články', icon: 'clanek' as IconName, title: a.title, sub: a.location ?? undefined, href: a.href, photo: a.image })),
     ...r.cars.map(c => ({ key: `c-${c.href}`, group: 'Půjčovna aut', icon: 'auto' as IconName, title: `Půjčovna aut ${c.name}`, sub: c.country, href: c.href })),
     ...r.pages.map(p => ({ key: `p-${p.href}`, group: 'Stránky', icon: 'sipka' as IconName, title: p.title, sub: p.text, href: p.href })),
@@ -140,7 +140,12 @@ export default function SiteSearch() {
                         // eslint-disable-next-line @next/next/no-img-element
                         ? <img src={it.photo} alt="" loading="lazy" />
                         : <span className="z-sr-item__icon"><Icon name={it.icon} /></span>}
-                      <span className="z-sr-item__text"><b>{it.title}</b>{it.sub && <small>{it.sub}</small>}</span>
+                      <span className="z-sr-item__text"><b>{it.title}</b>{(it.sub || it.stars) && (
+                        <small>
+                          {it.sub}
+                          {it.stars ? <span className="z-sr-stars" aria-label={`${it.stars} hvězdy`}>{Array.from({ length: it.stars }).map((_, i) => <Icon key={i} name="hvezda" size="sm" />)}</span> : null}
+                        </small>
+                      )}</span>
                       {it.aside && <span className="z-sr-item__aside">{it.aside}</span>}
                     </button>
                   ))}
@@ -153,7 +158,7 @@ export default function SiteSearch() {
                 <button type="button" className="z-btn z-btn--primary z-btn--sm" onClick={() => go(`/hledat?q=${encodeURIComponent(q.trim())}`)}>
                   Všechny výsledky<span className="z-btn__go"><Icon name="sipka" /></span>
                 </button>
-                <span className="z-data">↑↓ VÝBĚR · ENTER OTEVŘE · ESC ZAVŘE</span>
+                <span className="z-search-overlay__keys z-data"><Icon name="arrowsUpDown" size="sm" />VÝBĚR · ENTER OTEVŘE · ESC ZAVŘE</span>
               </div>
             )}
           </div>

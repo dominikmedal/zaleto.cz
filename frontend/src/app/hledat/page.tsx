@@ -60,7 +60,7 @@ export default async function SearchPage({ searchParams }: Props) {
                   {h.photo ? <img src={h.photo} alt="" loading="lazy" /> : <span className="z-sr-card__ph" />}
                   <span className="z-sr-card__body">
                     <b>{h.name}</b>
-                    <small>{h.place}{h.stars ? ` · ${'★'.repeat(h.stars)}` : ''}</small>
+                    <small>{h.place}{h.stars ? <span className="z-sr-stars">{Array.from({ length: h.stars }).map((_, i) => <Icon key={i} name="hvezda" size="sm" />)}</span> : null}</small>
                     {h.price ? <span className="z-price" style={{ fontSize: 20 }}>od {formatPrice(h.price)}</span> : null}
                   </span>
                 </Link>

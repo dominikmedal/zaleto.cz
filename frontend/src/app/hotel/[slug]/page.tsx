@@ -155,7 +155,7 @@ export default async function HotelDetailPage({ params }: Props) {
           {place && <span><Icon name="poloha" />{place}</span>}
           {hotel.stars ? <span><Icon name="hvezda" />{hotel.stars} hvězdy</span> : null}
           {hotel.review_score ? <span><Icon name="info" />Hodnocení {hotel.review_score.toFixed(1)} / 10</span> : null}
-          <span><Icon name="hotel" />{hotel.agency}</span>
+          <span><Icon name="agentura" />{hotel.agency}</span>
         </div>
 
         <HotelGallery photos={photos} name={hotel.name} />
