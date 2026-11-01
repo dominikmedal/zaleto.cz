@@ -88,8 +88,7 @@ export default function FilterBar({ destinations, meta }: { destinations: Destin
   const [depCity,     setDepCity]     = useState<string[]>(sp.get('departure_city')?.split(',').filter(Boolean) ?? [])
   const [sort,        setSort]        = useState(sp.get('sort') || 'price_asc')
 
-  const hasAdvanced = !!(duration || minPrice || maxPrice || stars.length || mealPlan.length || transport || tourType || depCity.length)
-  const [showAdvanced, setShowAdvanced] = useState(hasAdvanced)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const stateKey = JSON.stringify({ destination, dateFrom, dateTo, adults, duration, minPrice, maxPrice, stars, mealPlan, transport, tourType, depCity, sort })
   const lastPushedKey = useRef<string>(stateKey)

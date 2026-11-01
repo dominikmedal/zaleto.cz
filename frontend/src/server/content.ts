@@ -367,3 +367,26 @@ export async function destinationGuide(name: string): Promise<import('@/lib/guid
     return null // tabulka ještě neexistuje (první generování proběhne v GitHub Actions)
   }
 }
+
+/** Adresy stránek průvodce (sekce a jednotlivé položky) do sitemapy. */
+export async function guideSitemapPaths(): Promise<{ path: string; at: string }[]> {
+  try {
+    const rows = (await query<{ name: string; data: Record<string, unknown> | string; generated_at: string }>('SELECT name, data, generated_at FROM destination_guide')).rows
+    const SECTIONS: [string, string][] = [['resorts', 'strediska'], ['beaches', 'plaze'], ['monasteries', 'klastery'], ['sights', 'pamatky'], ['nature', 'priroda'], ['villages', 'vesnicky'], ['transport', 'doprava']]
+    const out: { path: string; at: string }[] = []
+    for (const r of rows) {
+      const data = (typeof r.data === 'string' ? JSON.parse(r.data) : r.data) as Record<string, unknown>
+      const region = slugify(r.name)
+      for (const [field, key] of SECTIONS) {
+        const v = data[field]
+        const has = Array.isArray(v) ? v.length > 0 : v && typeof v === 'object' ? Object.values(v).some(Boolean) : false
+        if (!has) continue
+        out.push({ path: `/destinace/${region}/${key}`, at: r.generated_at })
+        if (Array.isArray(v) && field !== 'resorts') {
+          for (const it of v as { name?: string }[]) if (it?.name) out.push({ path: `/destinace/${region}/${key}/${slugify(it.name)}`, at: r.generated_at })
+        }
+      }
+    }
+    return out
+  } catch { return [] }
+}

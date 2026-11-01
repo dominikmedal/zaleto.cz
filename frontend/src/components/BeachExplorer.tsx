@@ -6,7 +6,7 @@ import Icon from '@/components/ui/Icon'
 import type { MapPin } from './GuideMap'
 import type { GuideBeach } from '@/lib/guide'
 import { PhotoCredit } from '@/components/ui/PhotoCredit'
-import DetailModal from '@/components/ui/DetailModal'
+import { slugify } from '@/lib/slugify'
 
 const GuideMap = dynamic(() => import('./GuideMap'), { ssr: false, loading: () => <div className="z-map z-map--loading" /> })
 
@@ -14,10 +14,9 @@ const CROWD: Record<string, string> = { 'klidná': 'klidná', 'střední': 'stř
 const OTHER = 'Další pláže'
 
 /** Pláže oblasti: mapa s značkami, filtr podle střediska a karty pláží seskupené podle středisek. */
-export default function BeachExplorer({ beaches, resortLinks = {}, regionName }: { beaches: GuideBeach[]; resortLinks?: Record<string, string>; regionName: string }) {
+export default function BeachExplorer({ beaches, resortLinks = {}, regionName, base }: { beaches: GuideBeach[]; resortLinks?: Record<string, string>; regionName: string; base: string }) {
   const [resort, setResort] = useState<string>('all')
   const [active, setActive] = useState<string | null>(null)
-  const [detail, setDetail] = useState<string | null>(null)
   const mapBox = useRef<HTMLDivElement>(null)
 
   const groups = useMemo(() => {
@@ -40,9 +39,6 @@ export default function BeachExplorer({ beaches, resortLinks = {}, regionName }:
       meta: [b.type ?? '', b.crowd ? CROWD[b.crowd] ?? b.crowd : ''],
     })), [shown])
 
-  const flat = shown.flatMap(([k, list]) => list.map(b => ({ b, k })))
-  const di = detail ? flat.findIndex(x => x.b.name === detail) : -1
-  const cur = di >= 0 ? flat[di] : null
   const onMap = (name: string) => {
     setActive(name)
     mapBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -79,7 +75,7 @@ export default function BeachExplorer({ beaches, resortLinks = {}, regionName }:
             </div>
             <div className="z-beach__body">
               {k !== OTHER && <div className="z-kicker">{resortLinks[k] ? <Link href={resortLinks[k]}>{k}</Link> : k}</div>}
-              <h4 className="z-beach__title"><button type="button" className="z-gcard__hit" onClick={() => setDetail(b.name)} aria-haspopup="dialog">{b.name}</button></h4>
+              <h4 className="z-beach__title"><Link className="z-gcard__hit" href={`${base}/${slugify(b.name)}`}>{b.name}</Link></h4>
               <p>{b.description}</p>
               {(b.facilities?.length || b.suitable_for?.length || b.crowd) ? (
                 <ul className="z-beach__chips">
@@ -96,25 +92,6 @@ export default function BeachExplorer({ beaches, resortLinks = {}, regionName }:
           </article>
         ))}
       </div>
-      {cur && (
-        <DetailModal title={cur.b.name} kicker={cur.k !== OTHER ? cur.k : undefined} badge={cur.b.type} image={cur.b.image}
-          onClose={() => setDetail(null)}
-          onPrev={di > 0 ? () => setDetail(flat[di - 1].b.name) : undefined}
-          onNext={di < flat.length - 1 ? () => setDetail(flat[di + 1].b.name) : undefined}>
-          <p className="z-detail__text">{cur.b.description}</p>
-          {(cur.b.facilities?.length || cur.b.suitable_for?.length || cur.b.crowd) ? (
-            <ul className="z-beach__chips">
-              {cur.b.crowd && <li data-k="crowd">{CROWD[cur.b.crowd] ?? cur.b.crowd}</li>}
-              {cur.b.suitable_for?.map(x => <li key={x} data-k="for">{x}</li>)}
-              {[...new Set(cur.b.facilities ?? [])].filter(x => !cur.b.suitable_for?.includes(x)).map(x => <li key={x}>{x}</li>)}
-            </ul>
-          ) : null}
-          {cur.b.tip && <p className="z-beach__tip"><Icon name="info" size="sm" /><span>{cur.b.tip}</span></p>}
-          {typeof cur.b.lat === 'number' && (
-            <button type="button" className="z-more" onClick={() => { const n = cur.b.name; setDetail(null); onMap(n) }}><Icon name="mapa" size="sm" />Ukázat na mapě</button>
-          )}
-        </DetailModal>
-      )}
     </div>
   )
 }

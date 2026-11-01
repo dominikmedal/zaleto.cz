@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { fetchAllHotelSlugs, fetchAllArticleSlugs, fetchDestinations, fetchDynamicCarDestinations } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
+import { guideSitemapPaths } from '@/server/content'
 import { CAR_DESTINATIONS, mergeDestinations } from '@/lib/carRental'
 
 // Sitemap se generuje on-demand (nikdy při buildu) a Vercel ji cachuje 24 hodin.
@@ -142,5 +143,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ])
 
-  return [...staticPages, ...destUrls, ...weatherUrls, ...hotelUrls, ...articleUrls, ...carRentalUrls]
+  const guideUrls: MetadataRoute.Sitemap = (await guideSitemapPaths()).map(g => ({ url: `${base}${g.path}`, lastModified: new Date(g.at), changeFrequency: 'monthly' as const, priority: 0.6 }))
+  return [...staticPages, ...destUrls, ...guideUrls, ...weatherUrls, ...hotelUrls, ...articleUrls, ...carRentalUrls]
 }

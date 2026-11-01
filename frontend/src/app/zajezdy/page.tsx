@@ -141,7 +141,7 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
             <PersonsField defaultValue={parseInt(one(searchParams.adults) ?? '2') || 2} />
           </div></div>
 
-          <details className="z-filter__more" open={!!(f.duration || f.meal_plan || f.stars || f.max_price || f.min_price || f.tour_type)}>
+          <details className="z-filter__more">
             <summary className="z-more">Další filtry</summary>
             <div className="z-filter__grid">
               <label className="z-sfield"><span className="z-sfield__label"><Icon name="cas" />Délka</span>
