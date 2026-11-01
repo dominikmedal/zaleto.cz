@@ -78,11 +78,6 @@ export default async function ArticlePage({ params }: Props) {
             </figure>
           )}
           {article.content && <ArticleBody content={article.content} />}
-          {article.source_url && (
-            <p className="z-data" style={{ marginTop: 'var(--space-5)', textTransform: 'none' }}>
-              Zdroj inspirace: <a href={article.source_url} target="_blank" rel="noopener noreferrer nofollow">{article.source_name ?? new URL(article.source_url).hostname}</a>. Text je napsaný vlastními slovy redakce Zaleto.
-            </p>
-          )}
 
           <div style={{ marginTop: 'var(--space-7)' }}>
             <Button href={article.location ? `/zajezdy?destination=${encodeURIComponent(article.location)}` : '/zajezdy'}>

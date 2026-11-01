@@ -82,7 +82,7 @@ export default function AutomatizacePage() {
               <input placeholder="Adresa RSS kanálu (https://…)" value={src.feed_url} onChange={e => setSrc({ ...src, feed_url: e.target.value })} aria-label="Adresa RSS kanálu" />
               <button type="submit" className="z-btn z-btn--line z-btn--sm" disabled={!src.name || !src.feed_url}>Přidat zdroj<span className="z-btn__go"><Icon name="plus" /></span></button>
             </form>
-            <p className="z-data" style={{ textTransform: 'none', margin: 'var(--space-3) 0 0' }}>Články se přepisují vlastními slovy a pod každým je uvedený zdroj. Před přidáním zdroje zkontroluj jeho podmínky použití.</p>
+            <p className="z-data" style={{ textTransform: 'none', margin: 'var(--space-3) 0 0' }}>Články se přepisují vlastními slovy. Zdroj se ukládá interně (vidíš ho v historii běhů), na webu se neuvádí. Přidávej jen zdroje, se kterými máš dohodu o použití obsahu.</p>
           </section>
 
           <section>
