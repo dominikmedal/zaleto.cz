@@ -111,7 +111,6 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
               </div>
             )}
             <div className="z-destmini__body">
-              <div className="z-kicker">O destinaci</div>
               <h2 className="h3">{destInfo.name}<span className="z-dot">.</span></h2>
               {destInfo.text && <p>{destInfo.text}</p>}
               <div className="z-meta">
