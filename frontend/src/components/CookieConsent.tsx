@@ -27,7 +27,7 @@ export default function CookieConsent() {
   return (
     <div className="z-consent" role="dialog" aria-label="Souhlas s cookies">
       <p className="z-consent__text">
-        Měříme návštěvnost přes Google Analytics. <Link href="/ochrana-osobnich-udaju">Víc</Link>
+        Používáme cookies pro lepší uživatelský zážitek. <Link href="/ochrana-osobnich-udaju">Více info</Link>
       </p>
       <div className="z-consent__btns">
         <button type="button" className="z-btn z-btn--line z-btn--sm" onClick={() => choose(false)}>Odmítnout</button>
