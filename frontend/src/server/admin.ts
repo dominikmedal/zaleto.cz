@@ -75,6 +75,35 @@ async function ensureCarDestinationsTable() {
  * Rozdělí /api/admin/<segments> na stejné endpointy jako původní Express router.
  * `file` je předaný jen u POST /upload (multipart).
  */
+/** Přehled „co se kdy naposledy aktualizovalo“: AI obsah, články, fotky a scrapery. Chybějící tabulka = prázdný řádek. */
+async function contentActivity() {
+  const kinds: { key: string; label: string; table: string; nameCol: string; atCol: string; href?: string }[] = [
+    { key: 'articles', label: 'Články', table: 'articles', nameCol: 'title', atCol: 'published_at', href: '/admin/clanky' },
+    { key: 'destination', label: 'Popisy destinací', table: 'destination_ai', nameCol: 'name', atCol: 'generated_at' },
+    { key: 'guide', label: 'Průvodci oblastí', table: 'destination_guide', nameCol: 'name', atCol: 'generated_at' },
+    { key: 'weather', label: 'Počasí', table: 'weather_ai', nameCol: 'name', atCol: 'generated_at' },
+    { key: 'car_rental', label: 'Půjčovny aut', table: 'car_rental_ai', nameCol: 'COALESCE(name, slug)', atCol: 'generated_at' },
+    { key: 'gallery', label: 'Fotogalerie destinací', table: 'destination_gallery', nameCol: 'name', atCol: 'updated_at' },
+    { key: 'photos', label: 'Fotky destinací', table: 'destination_photos', nameCol: 'name', atCol: 'updated_at', href: '/admin/destinace' },
+  ]
+  const content = await Promise.all(kinds.map(async k => {
+    try {
+      const [tot, recent] = await Promise.all([
+        query(`SELECT COUNT(*)::int AS n, MAX(${k.atCol}) AS last_at FROM ${k.table}`),
+        query(`SELECT ${k.nameCol} AS name, ${k.atCol} AS at FROM ${k.table} WHERE ${k.atCol} IS NOT NULL ORDER BY ${k.atCol} DESC LIMIT 4`),
+      ])
+      return { key: k.key, label: k.label, href: k.href ?? null, total: tot.rows[0].n as number, last_at: tot.rows[0].last_at as string | null, recent: recent.rows as { name: string; at: string }[] }
+    } catch {
+      return { key: k.key, label: k.label, href: k.href ?? null, total: 0, last_at: null, recent: [] }
+    }
+  }))
+  let agencies: { agency: string; hotels: number; last_at: string | null }[] = []
+  try {
+    agencies = (await query('SELECT agency, COUNT(*)::int AS hotels, MAX(updated_at) AS last_at FROM hotels GROUP BY agency ORDER BY MAX(updated_at) DESC')).rows as typeof agencies
+  } catch { /* bez hotelů */ }
+  return { content, agencies }
+}
+
 export async function handleAdmin(
   method: string, segments: string[], sp: URLSearchParams, body: any, authHeader: string | null, file?: File | null,
 ): Promise<AdminResult> {
@@ -104,6 +133,7 @@ export async function handleAdmin(
           destinations: parseInt(destinations.rows[0].n), customPhotos: parseInt(photos.rows[0].n),
           minPrice: parseFloat(minPrice.rows[0].v) || null,
           recentHotels: recentHotels.rows, recentArticles: recentArticles.rows,
+          activity: await contentActivity(),
         })
       }
 

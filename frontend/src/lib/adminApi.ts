@@ -51,6 +51,10 @@ export interface AdminStats {
   hotels: number; agencies: number; tours: number; articles: number
   destinations: number; customPhotos: number; minPrice: number | null
   recentHotels: RecentHotel[]; recentArticles: RecentArticle[]
+  activity: {
+    content: { key: string; label: string; href: string | null; total: number; last_at: string | null; recent: { name: string; at: string }[] }[]
+    agencies: { agency: string; hotels: number; last_at: string | null }[]
+  }
 }
 export interface RecentHotel { id: number; slug: string; name: string; agency: string; country: string; stars: number | null; updated_at: string }
 export interface RecentArticle { id: number; slug: string; title: string; category: string | null; location: string | null; published_at: string }

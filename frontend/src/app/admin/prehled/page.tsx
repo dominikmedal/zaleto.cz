@@ -10,6 +10,25 @@ function fmtKc(n: number | null): string {
 }
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' })
 
+const fmtDateTime = (s: string) => new Date(s).toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+
+/** „před 5 min“, „před 3 h“, „před 2 dny“… */
+function ago(s: string): string {
+  const min = Math.max(0, Math.round((Date.now() - new Date(s).getTime()) / 60000))
+  if (min < 1) return 'právě teď'
+  if (min < 60) return `před ${min} min`
+  const h = Math.round(min / 60)
+  if (h < 24) return `před ${h} h`
+  const d = Math.round(h / 24)
+  if (d < 60) return `před ${d} ${d === 1 ? 'dnem' : 'dny'}`
+  return `před ${Math.round(d / 30)} měs.`
+}
+/** čerstvé / starší / zastaralé podle stáří v hodinách (výchozí 7 dní) */
+function freshness(s: string, okHours = 24 * 7): 'ok' | 'warn' | 'old' {
+  const h = (Date.now() - new Date(s).getTime()) / 3600000
+  return h <= okHours ? 'ok' : h <= okHours * 4 ? 'warn' : 'old'
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [error, setError] = useState('')
@@ -46,6 +65,46 @@ export default function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      <section className="z-info" style={{ padding: 'var(--space-5)' }}>
+        <div className="z-info__head" style={{ marginBottom: 'var(--space-3)' }}>
+          <h2 className="z-info__title" style={{ fontSize: 24, lineHeight: '28px' }}>co se naposledy aktualizovalo<span className="z-dot">.</span></h2>
+        </div>
+        <div className="z-adminact">
+          {stats.activity.content.map(c => (
+            <div key={c.key} className="z-adminact__card" data-empty={c.total === 0 || undefined}>
+              <div className="z-adminact__top">
+                <b>{c.href ? <Link href={c.href}>{c.label}</Link> : c.label}</b>
+                <span className="z-data">{c.total.toLocaleString('cs-CZ')} ks</span>
+              </div>
+              <div className="z-adminact__last">
+                {c.last_at ? <><span className={`z-adminact__dot z-adminact__dot--${freshness(c.last_at)}`} />{ago(c.last_at)}<small>{fmtDateTime(c.last_at)}</small></> : <span className="z-data" style={{ textTransform: 'none' }}>zatím nic</span>}
+              </div>
+              {c.recent.length > 0 && (
+                <ul>
+                  {c.recent.map((r, i) => <li key={i}><span>{r.name}</span><time>{ago(r.at)}</time></li>)}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="z-info" style={{ padding: 'var(--space-5)' }}>
+        <div className="z-info__head" style={{ marginBottom: 'var(--space-3)' }}>
+          <h2 className="z-info__title" style={{ fontSize: 24, lineHeight: '28px' }}>data od cestovních kanceláří<span className="z-dot">.</span></h2>
+        </div>
+        <ul className="z-adminlist">
+          {stats.activity.agencies.map(a => (
+            <li key={a.agency}>
+              <div><b>{a.agency}</b><small>{a.hotels.toLocaleString('cs-CZ')} hotelů</small></div>
+              {a.last_at
+                ? <span className="z-data"><span className={`z-adminact__dot z-adminact__dot--${freshness(a.last_at, 36)}`} />{ago(a.last_at)} · {fmtDateTime(a.last_at)}</span>
+                : <span className="z-data">—</span>}
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <div className="z-grid-2">
         <section className="z-info" style={{ padding: 'var(--space-5)' }}>
