@@ -40,7 +40,6 @@ export default async function GuideSectionPage({ params }: Props) {
     ...GUIDE_SECTIONS.filter(s => sectionCount(guide, s.field) > 0).map(s => ({ href: `${base}/${s.key}`, label: s.label, icon: s.icon })),
     { href: `${base}/hotely`, label: 'Hotely', icon: 'hotel' as const },
   ]
-  const n = sectionCount(guide, sec.field)
 
   let body: React.ReactNode = null
   if (sec.key === 'strediska') body = <ResortCards items={guide.resorts} links={resortLinks} />
@@ -71,9 +70,6 @@ export default async function GuideSectionPage({ params }: Props) {
           Destinace{dest.country && dest.country !== dest.name ? ` · ${dest.country}` : ''}
         </div>
         <h1 className="h1" style={{ margin: 'var(--space-3) 0 0' }}>{sec.heading}: {dest.name}<span className="z-dot">.</span></h1>
-        {sec.field !== 'transport' && (
-          <p className="lead z-guidepage__lead">{n} {n === 1 ? 'položka' : n < 5 ? 'položky' : 'položek'}. Texty pro tebe připravila redakce Zaleta, fotky pocházejí z Wikimedia Commons a Unsplash (autor je u každé).</p>
-        )}
         <NavTabs items={tabs} />
         <section className="z-section" style={{ paddingTop: 'var(--space-7)' }}>{body}</section>
         <p style={{ margin: 'var(--space-8) 0', display: 'flex', gap: 'var(--space-5)', flexWrap: 'wrap' }}>
