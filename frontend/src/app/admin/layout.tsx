@@ -17,6 +17,7 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: '/admin/cestopisy', label: 'Cestopisy', icon: 'trasa' },
   { href: '/admin/automatizace', label: 'Automatizace', icon: 'timer' },
   { href: '/admin/akce', label: 'Logy akcí', icon: 'cas' },
+  { href: '/admin/gemini', label: 'Náklady AI', icon: 'mena' },
   { href: '/admin/prompty', label: 'Prompty', icon: 'info' },
 ]
 

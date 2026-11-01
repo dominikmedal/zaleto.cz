@@ -9,6 +9,7 @@ import { metaCache } from './cache'
 import { searchUnsplash, registerDownload } from './unsplash'
 import { ensureAutomationSchema } from './automationDb'
 import { listRuns, runJobs } from './githubActions'
+import { usageSummary } from './aiUsage'
 import { adminListTravelogues, adminSetTravelogue, adminDeleteTravelogue } from './travelogues'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -312,6 +313,8 @@ export async function handleAdmin(
         afterArticleChange(slug)
         return ok()
       }
+
+      case 'GET ai-usage': return ok(await usageSummary())
 
       // ── GitHub Actions (běhy a logy) ──
       case 'GET actions': {

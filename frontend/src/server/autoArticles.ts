@@ -103,7 +103,7 @@ export async function pickForToday(): Promise<{ runId?: number; picks: { url: st
 
   const month = new Date().toLocaleDateString('cs-CZ', { month: 'long', year: 'numeric', timeZone: 'Europe/Prague' })
   const prompt = await promptFor('auto_select', { existing, candidates: offer, max: remaining, month })
-  const verdicts = parseJson<{ index: number; score: number; reason: string }[]>(await geminiText(prompt, { temperature: 0.2, maxTokens: 6000 }))
+  const verdicts = parseJson<{ index: number; score: number; reason: string }[]>(await geminiText(prompt, { temperature: 0.2, maxTokens: 6000, kind: 'article_select' }))
   const byIndex = new Map(verdicts.map(v => [Number(v.index), v]))
 
   const chosen = verdicts
@@ -166,7 +166,7 @@ export async function processArticle(url: string, scheduledAt: Date, runId?: num
   const src = await scrapeArticle(url)
   const prompt = await promptFor('auto_rewrite', { sourceTitle: src.title, sourceName: src.siteName, text: src.text.slice(0, 14000) })
   const r = parseJson<{ title: string; category: string; location: string | null; excerpt: string; content: string; reading_time: number; image_query?: string }>(
-    await geminiText(prompt, { temperature: 0.7, maxTokens: 8192 }))
+    await geminiText(prompt, { temperature: 0.7, maxTokens: 8192, kind: 'article_rewrite' }))
   if (!r.title || !r.content || r.content.length < 800) throw new Error('Přepsaný článek je příliš krátký nebo neúplný.')
 
   const base = slugify(r.title).slice(0, 80) || 'clanek'

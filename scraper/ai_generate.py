@@ -73,6 +73,28 @@ def load_prompt(conn, key: str, **vars) -> str:
     return re.sub(r"\{\{(\w+)\}\}", lambda m: str(vars.get(m.group(1), m.group(0))), template)
 
 
+USAGE: list[tuple] = []  # (kind, model, vstupní tokeny, výstupní tokeny) čeká na uložení do ai_usage
+
+
+def flush_usage(conn):
+    """Uloží naměřenou spotřebu tokenů (pro přehled nákladů v administraci). Chyba evidence nesmí shodit generování."""
+    if not USAGE:
+        return
+    rows_ = USAGE[:]
+    USAGE.clear()
+    try:
+        cur = conn.cursor()
+        cur.execute("""CREATE TABLE IF NOT EXISTS ai_usage (
+            id SERIAL PRIMARY KEY, at TIMESTAMPTZ NOT NULL DEFAULT NOW(), source TEXT NOT NULL, kind TEXT NOT NULL,
+            model TEXT NOT NULL, input_tokens INT NOT NULL DEFAULT 0, output_tokens INT NOT NULL DEFAULT 0, images INT NOT NULL DEFAULT 0)""")
+        for k, m, i, o in rows_:
+            cur.execute("INSERT INTO ai_usage (source, kind, model, input_tokens, output_tokens) VALUES ('actions', %s, %s, %s, %s)", (k, m, i, o))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        log.warning("evidence spotřeby AI se nepodařila: %s", e)
+
+
 def gemini_json(kind: str, prompt: str) -> dict:
     api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
@@ -95,7 +117,12 @@ def gemini_json(kind: str, prompt: str) -> dict:
             if r.status_code == 429:
                 raise RateLimited()
             raise RuntimeError(f"Gemini HTTP {r.status_code}: {r.text[:300]}")
-        cand = (r.json().get("candidates") or [{}])[0]
+        body = r.json()
+        um = body.get("usageMetadata") or {}
+        # myšlenkové tokeny se účtují jako výstup; zkrácená odpověď (MAX_TOKENS) se platí taky
+        USAGE.append((kind, model, int(um.get("promptTokenCount") or 0),
+                      int(um.get("candidatesTokenCount") or 0) + int(um.get("thoughtsTokenCount") or 0)))
+        cand = (body.get("candidates") or [{}])[0]
         if cand.get("finishReason") == "MAX_TOKENS":
             last = RuntimeError("MAX_TOKENS")
             continue
@@ -782,8 +809,10 @@ def main() -> int:
             if skipped_429 >= 3:
                 log.error("3 neúspěchy po sobě (pravděpodobně vyčerpaný limit Gemini), končím; další běh naváže")
                 break
+        flush_usage(conn)
         time.sleep(PAUSE)
 
+    flush_usage(conn)
     log.info("hotovo: %d vygenerováno, %d neúspěšných", done, failed)
     if done or (args.only and "guide_images" in args.only and queue):
         revalidate()

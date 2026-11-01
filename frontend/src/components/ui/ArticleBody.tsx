@@ -7,7 +7,7 @@ function inline(text: string): ReactNode {
 }
 
 /** Sazba článku (`z-prose`): ## → h2, # → h2, * / - → odrážky s modrou tečkou, první odstavec s iniciálou. */
-export default function ArticleBody({ content }: { content: string }) {
+export default function ArticleBody({ content, insert }: { content: string; insert?: ReactNode }) {
   const lines = content.split('\n')
   const out: ReactNode[] = []
   let key = 0
@@ -31,6 +31,11 @@ export default function ArticleBody({ content }: { content: string }) {
       leadDone = true
       i++
     }
+  }
+  if (insert) {
+    // reklama doprostřed textu (po 3. až polovině bloků); u krátkého článku na konec
+    const at = out.length >= 6 ? Math.min(Math.max(3, Math.floor(out.length / 2)), out.length - 1) : out.length
+    out.splice(at, 0, <div key="insert" className="z-prose__ad">{insert}</div>)
   }
   return <div className="z-prose">{out}</div>
 }

@@ -3,7 +3,8 @@ import Header from '@/components/Header'
 import StoryCard from '@/components/ui/StoryCard'
 import SectionHead from '@/components/ui/SectionHead'
 import Crumbs from '@/components/ui/Crumbs'
-import { fetchArticles, fetchDestinationPhoto } from '@/lib/api'
+import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
+import { fetchArticles, fetchDestinationPhoto, fetchHotels } from '@/lib/api'
 
 export const revalidate = 300
 
@@ -14,7 +15,10 @@ export const metadata: Metadata = {
 }
 
 export default async function ClankyPage() {
-  const articles = await fetchArticles(50).catch(() => [])
+  const [articles, offers] = await Promise.all([
+    fetchArticles(50).catch(() => []),
+    fetchHotels({ limit: 24, sort: 'price_asc' }).catch(() => null),
+  ])
   const locations = [...new Set(articles.filter(a => !a.custom_image_url).map(a => a.location).filter(Boolean) as string[])]
   const photos = await Promise.all(locations.map(l => fetchDestinationPhoto(l).catch(() => null)))
   const imageMap = new Map(locations.map((l, i) => [l, photos[i]]))
@@ -28,6 +32,7 @@ export default async function ClankyPage() {
         <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Články' }]} />
         <div style={{ height: 'var(--space-6)' }} />
         <SectionHead as="h1" kicker="Cestovní deník" title="čerstvě z cest" />
+        <div style={{ marginBottom: 'var(--space-7)' }}><OfferStrip hotels={pickOffers(offers?.hotels ?? [])} /></div>
         {articles.length === 0 ? (
           <p className="body">Články se připravují.</p>
         ) : (

@@ -238,3 +238,11 @@ export interface ActionRun { id: number; name: string; status: string; conclusio
 export interface ActionJob { id: number; name: string; status: string; conclusion: string | null; steps: { name: string; status: string; conclusion: string | null }[]; log: string }
 export const fetchActionRuns = () => api<{ configured: boolean; runs: ActionRun[]; error?: string }>('/actions')
 export const fetchActionJobs = (run: number) => api<{ jobs: ActionJob[]; error?: string }>(`/actions?run=${run}`)
+
+export const fetchAiUsage = () => api<AiUsage>('/ai-usage')
+export interface AiUsage {
+  estimate: { kind: string; label: string; count: number; usd: number }[]; estimateUsd: number
+  tracked: { total_usd: number; since: string | null; calls: number }
+  byKind: { kind: string; source: string; calls: number; in: number; out: number; images: number; usd: number }[]
+  byDay: { day: string; usd: number }[]; month: number; last30: number
+}

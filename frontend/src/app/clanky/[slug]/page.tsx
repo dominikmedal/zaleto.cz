@@ -9,6 +9,7 @@ import ArticleBody from '@/components/ui/ArticleBody'
 import StoryCard from '@/components/ui/StoryCard'
 import TourAd from '@/components/ui/TourAd'
 import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
+import CarRentalBanner from '@/components/CarRentalBanner'
 import { formatLongDate, readingTime } from '@/components/ui/format'
 import { fetchArticle, fetchArticles, fetchAllArticleSlugs, fetchDestinationPhoto, fetchHotels } from '@/lib/api'
 
@@ -79,7 +80,7 @@ export default async function ArticlePage({ params }: Props) {
               )}
             </figure>
           )}
-          {article.content && <ArticleBody content={article.content} />}
+          {article.content && <ArticleBody content={article.content} insert={<CarRentalBanner place={article.location ?? ''} country="" />} />}
 
           <div style={{ marginTop: 'var(--space-7)' }}>
             <Button href={article.location ? `/zajezdy?destination=${encodeURIComponent(article.location)}` : '/zajezdy'}>
@@ -88,7 +89,7 @@ export default async function ArticlePage({ params }: Props) {
           </div>
         </main>
 
-        <aside>{adHotel && <TourAd hotel={adHotel} sticky />}</aside>
+        <aside className="z-page__side">{adHotel && <TourAd hotel={adHotel} sticky />}</aside>
       </div>
 
       {more.length > 0 && (

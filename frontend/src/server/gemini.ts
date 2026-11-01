@@ -1,3 +1,5 @@
+import { recordUsage } from './aiUsage'
+
 /** Tenký klient Google Gemini přes REST (text i obrázek), bez dalších závislostí. */
 
 const BASE = 'https://generativelanguage.googleapis.com'
@@ -21,11 +23,11 @@ async function call(version: 'v1' | 'v1beta', model: string, body: unknown, time
     e.status = res.status
     throw e
   }
-  return res.json() as Promise<{ candidates?: { finishReason?: string; content?: { parts?: { text?: string; inlineData?: { mimeType: string; data: string } }[] } }[] }>
+  return res.json() as Promise<{ usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number }; candidates?: { finishReason?: string; content?: { parts?: { text?: string; inlineData?: { mimeType: string; data: string } }[] } }[] }>
 }
 
 /** Text z modelu; zkouší modely postupně (nedostupný/příliš dlouhá odpověď → další). */
-export async function geminiText(prompt: string, opts: { temperature?: number; maxTokens?: number; timeoutMs?: number } = {}): Promise<string> {
+export async function geminiText(prompt: string, opts: { temperature?: number; maxTokens?: number; timeoutMs?: number; kind?: string } = {}): Promise<string> {
   const models = process.env.GEMINI_TEXT_MODEL ? [process.env.GEMINI_TEXT_MODEL] : ['gemini-2.5-flash', 'gemini-2.5-flash-lite']
   let last: Error | null = null
   for (const model of models) {
@@ -34,6 +36,7 @@ export async function geminiText(prompt: string, opts: { temperature?: number; m
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: opts.temperature ?? 0.6, maxOutputTokens: opts.maxTokens ?? 8192 },
       }, opts.timeoutMs ?? 50_000)
+      await recordUsage(opts.kind ?? 'text', model, data.usageMetadata)
       const cand = data.candidates?.[0]
       if (cand?.finishReason === 'MAX_TOKENS') { last = new Error('MAX_TOKENS'); continue }
       const text = cand?.content?.parts?.map(p => p.text ?? '').join('').trim()
@@ -59,12 +62,13 @@ export function parseJson<T>(text: string): T {
 }
 
 /** Obrázek z modelu (výchozí gemini-2.5-flash-image); vrací binární data a typ. */
-export async function geminiImage(prompt: string): Promise<{ buffer: Buffer; mimeType: string }> {
+export async function geminiImage(prompt: string, kind = 'cover'): Promise<{ buffer: Buffer; mimeType: string }> {
   const model = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image'
   const data = await call('v1beta', model, {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { responseModalities: ['IMAGE'] },
   }, 55_000)
+  await recordUsage(kind, model, data.usageMetadata, 1)
   const parts = data.candidates?.[0]?.content?.parts ?? []
   const img = parts.find(p => p.inlineData?.data)
   if (!img?.inlineData) {
