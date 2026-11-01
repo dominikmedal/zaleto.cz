@@ -719,13 +719,19 @@ def wiki_photo(name: str, region: str, used: set) -> dict | None:
 
 
 
-def pick_photo(results: list[dict], used: set) -> dict | None:
+def pick_photo(results: list[dict], used: set, words: list[str] | None = None) -> dict | None:
+    """Fotka z Unsplash. S `words` musí popis, alt text nebo štítky fotky obsahovat rozlišující slovo místa
+    (stejná kontrola jako u Commons); bez shody raději žádná fotka než špatná."""
     for h in results:
         url = (h.get("urls") or {}).get("regular", "")
         base = url.split("?")[0]
         w, hh = h.get("width") or 0, h.get("height") or 1
         if not url or base in used or w < 1600 or w / max(hh, 1) < 1.2:
             continue
+        if words:
+            text = _norm(" ".join([h.get("alt_description") or "", h.get("description") or "", " ".join(t.get("title", "") for t in (h.get("tags") or []))]))
+            if not any(x in text for x in words) or any(b in text.split() for b in PLACE_BAD):
+                continue
         user = h.get("user") or {}
         return {
             "url": url, "id": base,
@@ -775,7 +781,7 @@ def run_guide_images(conn, g):
                 if not photo and not quota:
                     try:
                         q = it.get("image_query") or f"{it['name']} {region}"
-                        photo = pick_photo(unsplash_search(q), used)
+                        photo = pick_photo(unsplash_search(q), used, _place_words(it["name"]))
                         if photo:
                             photo["source"] = "unsplash"
                     except QuotaExhausted:
