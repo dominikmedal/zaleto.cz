@@ -58,7 +58,9 @@
 .z-chip { display: inline-flex; align-items: center; gap: var(--space-1); height: 30px; padding: 0 var(--space-3); border: 1px solid var(--line-strong); border-radius: var(--radius-pill); font: 700 11px/14px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink); background: transparent; }
 .z-chip .zi { width: 16px; height: 16px; }
 .z-chip--sky { background: var(--sky); border-color: transparent; }
-.z-chip--ok { border-color: transparent; color: var(--success); padding-left: 0; }
+.z-chip--ok { background: var(--sky); border-color: transparent; color: var(--ink); }
+.z-chip--ok .zi { color: var(--brand-strong); }
+.z-chip--ok .zi .zi-dot { fill: var(--accent); }
 
 /* ---------- Header ---------- */
 .z-header { position: sticky; top: 0; z-index: 50; height: var(--header-height); display: flex; align-items: center; gap: var(--space-7); padding: 0 var(--space-6); background: var(--paper); border-bottom: 1px solid var(--line); }
@@ -2005,3 +2007,6 @@ button.z-chip { cursor: pointer; }
   .z-consent { left: var(--space-2); right: var(--space-2); bottom: var(--space-2); max-width: none; padding-left: var(--space-3); }
   .z-consent__text { font-size: 12px; line-height: 16px; }
 }
+.z-footer__linkbtn { padding: 0; border: 0; background: none; color: var(--on-night); font: 500 15px/22px var(--font-sans); cursor: pointer; }
+.z-footer__linkbtn:hover { text-decoration: underline; text-underline-offset: 4px; }
+@media (max-width: 767px) { .z-footer__linkbtn { min-height: 44px; } }

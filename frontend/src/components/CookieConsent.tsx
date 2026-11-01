@@ -12,6 +12,9 @@ export default function CookieConsent() {
 
   useEffect(() => {
     try { if (!localStorage.getItem(KEY)) setShow(true) } catch { /* privátní režim */ }
+    const reopen = () => setShow(true)
+    window.addEventListener('z-cookie-settings', reopen)
+    return () => window.removeEventListener('z-cookie-settings', reopen)
   }, [])
 
   function choose(granted: boolean) {
@@ -31,5 +34,14 @@ export default function CookieConsent() {
         <button type="button" className="z-btn z-btn--primary z-btn--sm" onClick={() => choose(true)}>Přijmout</button>
       </div>
     </div>
+  )
+}
+
+/** Odkaz do patičky: znovu otevře lištu se souhlasem. */
+export function CookieSettingsLink() {
+  return (
+    <button type="button" className="z-footer__linkbtn" onClick={() => window.dispatchEvent(new Event('z-cookie-settings'))}>
+      Nastavení cookies
+    </button>
   )
 }

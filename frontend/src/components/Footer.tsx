@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { fetchArticles } from '@/lib/api'
+import { CookieSettingsLink } from '@/components/CookieConsent'
 
 const year = new Date().getFullYear()
 
@@ -55,6 +56,7 @@ export default async function Footer() {
             <h4>{col.heading}</h4>
             <ul>
               {col.items.map(i => <li key={i.label}><Link href={i.href}>{i.label}</Link></li>)}
+              {col.heading === 'Zaleto' && <li><CookieSettingsLink /></li>}
             </ul>
           </div>
         ))}
