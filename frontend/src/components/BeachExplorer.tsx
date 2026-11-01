@@ -62,32 +62,37 @@ export default function BeachExplorer({ beaches, resortLinks = {}, regionName, b
         </div>
       )}
 
-      <div className="z-beaches__grid">
-        {shown.flatMap(([k, list]) => list.map(b => ({ b, k }))).map(({ b, k }) => (
-          <article key={b.name} className="z-beach" data-active={active === b.name || undefined}>
-            <div className="z-beach__media">
-              {b.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={b.image.url} alt={`${b.name} – pláž`} loading="lazy" />
-              ) : <span className="z-beach__ph" aria-hidden="true"><Icon name="plaz" size="lg" /></span>}
-              {b.type && <span className="z-beach__type">{b.type}</span>}
-              {b.image && <PhotoCredit photo={b.image} className="z-beach__credit" />}
-            </div>
-            <div className="z-beach__body">
-              {k !== OTHER && <div className="z-kicker">{resortLinks[k] ? <Link href={resortLinks[k]}>{k}</Link> : k}</div>}
-              <h4 className="z-beach__title"><Link className="z-gcard__hit" href={`${base}/${slugify(b.name)}`}>{b.name}</Link></h4>
-              <p>{b.description}</p>
-              {(b.facilities?.length || b.suitable_for?.length || b.crowd) ? (
-                <ul className="z-beach__chips">
-                  {b.crowd && <li data-k="crowd">{CROWD[b.crowd] ?? b.crowd}</li>}
-                  {b.suitable_for?.map(x => <li key={x} data-k="for">{x}</li>)}
-                  {[...new Set(b.facilities ?? [])].filter(x => !b.suitable_for?.includes(x)).map(x => <li key={x}>{x}</li>)}
-                </ul>
-              ) : null}
-              {b.tip && <p className="z-beach__tip"><Icon name="info" size="sm" /><span>{b.tip}</span></p>}
-              {typeof b.lat === 'number' && (
-                <button type="button" className="z-more z-beach__map" onClick={() => onMap(b.name)}><Icon name="mapa" size="sm" />Ukázat na mapě</button>
-              )}
+      <div className="z-beaches__grid z-places">
+        {shown.flatMap(([k, list]) => list.map(b => ({ b, k }))).map(({ b, k }, i) => (
+          <article key={b.name} className="z-tk z-tk--h z-place z-place--beach" data-active={active === b.name || undefined} style={{ ['--cut' as string]: '68px' }}>
+            <div className="z-tk__in">
+              <div className="z-place__media" data-tilt={i % 2}>
+                {b.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={b.image.url} alt={`${b.name} – pláž`} loading="lazy" />
+                ) : <span className="z-place__ph" aria-hidden="true"><Icon name="plaz" size="lg" /></span>}
+                {b.type && <span className="z-stamp z-place__stamp">{b.type}</span>}
+                {b.image && <PhotoCredit photo={b.image} className="z-place__credit" />}
+              </div>
+              <div className="z-place__body">
+                {k !== OTHER && <div className="z-kicker">{resortLinks[k] ? <Link href={resortLinks[k]}>{k}</Link> : k}</div>}
+                <h3 className="z-place__title"><Link className="z-gcard__hit" href={`${base}/${slugify(b.name)}`}>{b.name}</Link></h3>
+                <p>{b.description}</p>
+                {(b.facilities?.length || b.suitable_for?.length || b.crowd) ? (
+                  <ul className="z-beach__chips">
+                    {b.crowd && <li data-k="crowd">{CROWD[b.crowd] ?? b.crowd}</li>}
+                    {b.suitable_for?.map(x => <li key={x} data-k="for">{x}</li>)}
+                    {[...new Set(b.facilities ?? [])].filter(x => !b.suitable_for?.includes(x)).slice(0, 4).map(x => <li key={x}>{x}</li>)}
+                  </ul>
+                ) : null}
+                {typeof b.lat === 'number' && (
+                  <button type="button" className="z-more z-beach__map" onClick={() => onMap(b.name)}><Icon name="mapa" size="sm" />Ukázat na mapě</button>
+                )}
+              </div>
+              <div className="z-place__stub">
+                <span className="z-place__nr"><Icon name="plaz" size="sm" />Nº {String(i + 1).padStart(2, '0')}</span>
+                <span className="z-place__go" aria-hidden="true"><Icon name="sipka" /></span>
+              </div>
             </div>
           </article>
         ))}

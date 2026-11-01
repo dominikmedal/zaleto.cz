@@ -325,8 +325,9 @@ def run_article(conn, topic):
 # ── Průvodce oblastí (pláže, kláštery, památky, příroda, vesničky) ─────────
 
 IMAGE_CAPS = {"beaches": 16, "monasteries": 8, "sights": 8, "nature": 8, "villages": 8}
-IMG_VERSION = 3  # 2 = Wikimedia Commons první, Unsplash záloha; 3 = přesnější fotky pláží
+IMG_VERSION = 4  # 2 = Wikimedia Commons první, Unsplash záloha; 3 = přesnější fotky pláží; 4 = kontrola názvu souboru i u míst
 BEACH_V = 3
+PLACE_V = 4
 UNSPLASH_UTM = "utm_source=zaleto&utm_medium=referral"
 
 
@@ -605,10 +606,10 @@ def commons_search_photo(name: str, region: str, used: set) -> dict | None:
             "action": "query", "generator": "search", "gsrnamespace": 6, "gsrsearch": f"{name} {region}", "gsrlimit": 8,
             "prop": "imageinfo", "iiprop": "url|extmetadata|size", "iiurlwidth": 1280, "format": "json"},
             headers=WIKI_UA, timeout=15).json()
-        words = [w for w in _norm(name).split() if len(w) > 3] or _norm(name).split()
+        words = _place_words(name)
         pages = sorted((r.get("query") or {}).get("pages", {}).values(), key=lambda p: p.get("index", 99))
         for pg in pages:
-            if words and not any(w in _norm(pg.get("title", "")) for w in words):
+            if not _file_ok(pg.get("title", "").replace("File:", "", 1), words):
                 continue
             ii = (pg.get("imageinfo") or [None])[0]
             c = ii and _commons_candidate(ii, used)
@@ -657,9 +658,27 @@ def beach_photo(name: str, region: str, used: set) -> dict | None:
     return None
 
 
+PLACE_GENERIC = {"de", "del", "la", "las", "el", "los", "des", "sa", "es", "els", "d", "den", "the", "of", "san", "sant", "santa", "santuari", "playa", "platja", "beach",
+                 "cala", "castell", "castillo", "castle", "monestir", "monasterio", "monastery", "convent", "convento", "catedral", "cathedral", "iglesia", "esglesia",
+                 "church", "parque", "parc", "park", "natural", "nacional", "cuevas", "coves", "cueva", "cova", "museu", "museo", "museum", "pohori", "serra", "sierra",
+                 "sa", "mirador", "ermita", "palau", "palacio", "palace", "jeskyne", "klaster", "hrad", "mesto", "stare", "vesnice", "town"}
+PLACE_BAD = ("map", "mapa", "logo", "flag", "escut", "coat", "locator", "plan", "diagram", "poster", "stamp", "icon", "interior", "room", "menu", "poster")
+
+
+def _place_words(name: str) -> list[str]:
+    """Rozlišující slova názvu (bez obecných typu „castell“, „playa“): musí být v názvu souboru fotky."""
+    all_w = [w for w in _norm(name).split() if len(w) > 2]
+    return [w for w in all_w if w not in PLACE_GENERIC] or all_w
+
+
+def _file_ok(title: str, words: list[str]) -> bool:
+    t = _norm(title.rsplit(".", 1)[0].replace("_", " "))
+    return bool(words) and any(w in t for w in words) and not any(b in t.split() for b in PLACE_BAD)
+
+
 def wiki_photo(name: str, region: str, used: set) -> dict | None:
     """Hlavní obrázek článku na Wikipedii o daném místě + autor a licence z Commons."""
-    words = [w for w in _norm(name).split() if len(w) > 3 and w not in ("playa", "plaza", "beach", "cala", "parque", "santuari")] or _norm(name).split()
+    words = _place_words(name)
     if not words:
         return None
     for lang in ("cs", "en", "es", "el", "de"):
@@ -681,6 +700,8 @@ def wiki_photo(name: str, region: str, used: set) -> dict | None:
                 if not m:
                     continue  # soubor mimo Commons (nesvobodný)
                 fname = requests.utils.unquote(m.group(1))
+                if not _file_ok(fname, words):
+                    continue  # hlavní obrázek článku nesedí na místo (např. kaple místo hradu): zkusí se hledání na Commons
                 info = requests.get("https://commons.wikimedia.org/w/api.php", params={
                     "action": "query", "titles": f"File:{fname}", "prop": "imageinfo", "iiprop": "url|extmetadata|size",
                     "iiurlwidth": 1280, "format": "json"}, headers=WIKI_UA, timeout=15).json()
@@ -734,6 +755,10 @@ def run_guide_images(conn, g):
     data = g["data"] if isinstance(g["data"], dict) else json.loads(g["data"])
     region, country = g["name"], g["country"] or ""
     used = {it["image"]["id"] for sec in IMAGE_CAPS for it in data.get(sec, []) if it.get("image")}
+    for sec_ in ("monasteries", "sights", "nature", "villages"):
+        for it in data.get(sec_, []):
+            if it.get("place_v") != PLACE_V:  # fotky bez kontroly názvu souboru se hledají znovu
+                it.pop("image", None); it.pop("image_failed", None); it["place_v"] = PLACE_V
     for it in data.get("beaches", []):
         if it.get("beach_v") != BEACH_V:  # dřívější fotky pláží často ukazovaly město; hledá se znovu
             it.pop("image", None); it.pop("image_failed", None); it["beach_v"] = BEACH_V

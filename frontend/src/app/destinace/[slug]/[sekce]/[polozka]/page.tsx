@@ -135,15 +135,21 @@ export default async function GuideItemPage({ params }: Props) {
         )}
 
         <div className="z-item__ctas">
-          <Link href={`${base}/hotely`} className="z-ghub__tile z-item__cta"><span className="z-ghub__ic"><Icon name="hotel" /></span><h3>Hotely: {dest.name}</h3><span className="z-data">všechny hotely s termínem</span></Link>
-          <Link href={`${base}#zajezdy`} className="z-ghub__tile z-item__cta"><span className="z-ghub__ic"><Icon name="letadlo" /></span><h3>Zájezdy: {dest.name}</h3><span className="z-data">porovnání cen více CK</span></Link>
-          <Link href={sectionUrl} className="z-ghub__tile z-item__cta"><span className="z-ghub__ic"><Icon name={sec.icon} /></span><h3>Všechny: {sec.label.toLowerCase()}</h3><span className="z-data">zpět na přehled</span></Link>
-          {!beach && (
-            <a className="z-ghub__tile z-item__cta" target="_blank" rel="noopener noreferrer"
-              href={`https://www.openstreetmap.org/search?query=${encodeURIComponent([item.name, place?.location, dest.name].filter(Boolean).join(', '))}`}>
-              <span className="z-ghub__ic"><Icon name="mapa" /></span><h3>Najít na mapě</h3><span className="z-data">OpenStreetMap</span>
-            </a>
-          )}
+          <Link href={`${base}/hotely`} className="z-cta z-cta--main">
+            <span className="z-cta__ic"><Icon name="hotel" size="lg" /></span>
+            <span className="z-cta__txt"><b>Hotely: {dest.name}</b><small>všechny hotely s aktuálním termínem</small></span>
+            <span className="z-cta__go" aria-hidden="true"><Icon name="sipka" /></span>
+          </Link>
+          <Link href={`${base}#zajezdy`} className="z-cta">
+            <span className="z-cta__ic"><Icon name="letadlo" size="lg" /></span>
+            <span className="z-cta__txt"><b>Zájezdy: {dest.name}</b><small>porovnání cen více cestovních kanceláří</small></span>
+            <span className="z-cta__go" aria-hidden="true"><Icon name="sipka" /></span>
+          </Link>
+          <Link href={sectionUrl} className="z-cta">
+            <span className="z-cta__ic"><Icon name={sec.icon} size="lg" /></span>
+            <span className="z-cta__txt"><b>Všechny: {sec.label.toLowerCase()}</b><small>zpět na přehled sekce</small></span>
+            <span className="z-cta__go" aria-hidden="true"><Icon name="sipka" /></span>
+          </Link>
         </div>
 
         {others.length > 0 && (

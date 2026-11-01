@@ -1868,3 +1868,59 @@ button.z-chip { cursor: pointer; }
   .z-item__passmain { padding: var(--space-5); }
   .z-item__facts dl > div { grid-template-columns: 1fr; gap: 4px; }
 }
+
+/* stránka položky: akční karty */
+.z-item__ctas { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-4); }
+.z-cta { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-4) var(--space-4) var(--space-4); border-radius: var(--radius-lg); background: var(--raised); box-shadow: var(--shadow-ticket); color: var(--ink); text-decoration: none; transition: transform .25s, box-shadow .25s; position: relative; overflow: hidden; }
+.z-cta::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; background: var(--brand); }
+.z-cta:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+.z-cta__ic { flex: none; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 20px 20px 20px 5px; background: var(--paper-deep); color: var(--brand-strong); }
+.z-cta__txt { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.z-cta__txt b { font: 600 20px/26px var(--font-serif); }
+.z-cta__txt small { font: 400 12px/18px var(--font-mono); letter-spacing: .04em; color: var(--ink-muted); }
+.z-cta__go { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: var(--paper); transition: transform .25s; }
+.z-cta:hover .z-cta__go { transform: translateX(3px); }
+.z-cta--main { background: var(--accent); }
+.z-cta--main::before { background: var(--ink); }
+.z-cta--main .z-cta__ic { background: rgba(255, 255, 255, .55); color: var(--ink); }
+.z-cta--main .z-cta__txt small { color: rgba(11, 27, 51, .72); }
+
+/* místa a pláže průvodce: palubní lístky */
+.z-places, .z-beaches__grid.z-places { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: var(--space-6) var(--space-5); }
+.z-place { position: relative; color: var(--ink); }
+.z-place:hover { transform: translateY(-4px); }
+.z-place .z-tk__in { display: grid; grid-template-rows: auto 1fr var(--cut, 68px); height: 100%; }
+.z-place__media { position: relative; margin: 12px 12px 0; aspect-ratio: 4 / 3; border-radius: 22px 22px 22px 6px; overflow: hidden; background: linear-gradient(135deg, var(--sky), var(--paper-deep)); transform: rotate(-.7deg); transition: transform .35s; }
+.z-place__media[data-tilt="1"] { transform: rotate(.7deg); }
+.z-place:hover .z-place__media { transform: rotate(0); }
+.z-place__media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s; }
+.z-place:hover .z-place__media img { transform: scale(1.05); }
+.z-place__ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--brand-strong); opacity: .5; }
+.z-place__ph .zi { width: 56px; height: 56px; }
+.z-place__stamp { position: absolute; left: 12px; top: 12px; transform: rotate(-5deg); font-size: 10.5px; padding: 4px 9px; color: var(--brand-strong); }
+.z-place__credit { position: absolute; left: 10px; bottom: 10px; z-index: 2; max-width: calc(100% - 20px); padding: 3px 10px; border-radius: var(--radius-pill); background: rgba(11, 27, 51, .66); color: #fff; font: 400 10.5px/16px var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.z-place__credit a { color: inherit; text-decoration: none; }
+.z-place__body { padding: var(--space-4) var(--space-5) var(--space-4); display: grid; gap: 6px; align-content: start; }
+.z-place__body .z-kicker { color: var(--brand-strong); }
+.z-place__title { margin: 0; font: 600 24px/30px var(--font-serif); letter-spacing: -.01em; }
+.z-place:hover .z-place__title { text-decoration: underline; text-decoration-color: var(--brand); text-underline-offset: 5px; }
+.z-place__body p { margin: 0; color: var(--ink-muted); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.z-place__stub { display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-5); background: var(--accent-soft); border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+.z-place__nr { display: inline-flex; align-items: center; gap: 8px; font: 700 12px/16px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink); }
+.z-place__go { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--ink); color: var(--paper); transition: transform .25s; }
+.z-place:hover .z-place__go { transform: translateX(4px); }
+.z-place .z-beach__chips { margin-top: 4px; }
+.z-place .z-beach__tip { margin-top: 4px; position: relative; z-index: 2; }
+.z-place .z-beach__map { position: relative; z-index: 2; justify-self: start; }
+.z-place .z-kicker a { position: relative; z-index: 2; color: inherit; }
+/* první místo je větší: fotka vlevo, text vpravo */
+@media (min-width: 900px) {
+  .z-place[data-lead] { grid-column: span 2; }
+  .z-place[data-lead] .z-tk__in { grid-template-columns: 1.15fr 1fr; grid-template-rows: 1fr var(--cut, 68px); }
+  .z-place[data-lead] .z-place__media { aspect-ratio: auto; min-height: 320px; margin-bottom: 12px; }
+  .z-place[data-lead] .z-place__body { align-content: center; padding: var(--space-5) var(--space-6); }
+  .z-place[data-lead] .z-place__title { font-size: 34px; line-height: 40px; }
+  .z-place[data-lead] .z-place__body p { -webkit-line-clamp: 7; font-size: 18px; line-height: 29px; }
+  .z-place[data-lead] .z-place__stub { grid-column: 1 / -1; }
+}
+@media (max-width: 767px) { .z-places, .z-beaches__grid.z-places { grid-template-columns: 1fr; } .z-place__media, .z-place__media[data-tilt="1"] { transform: none; } }
