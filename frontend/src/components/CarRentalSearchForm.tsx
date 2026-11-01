@@ -174,11 +174,16 @@ function LocationInput({
       </div>
 
       {open && suggestions.length > 0 && dropPos && typeof document !== 'undefined' && createPortal(
-        <div className="z-suggest" style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: Math.max(dropPos.width, 280), zIndex: 9999 }}>
+        <div className="z-suggest z-dsuggest" role="listbox" style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: Math.max(dropPos.width, 320), zIndex: 9999 }}>
+          <div className="z-dsuggest__head"><Icon name="auto" size="sm" />Kde si auto vyzvedneš?</div>
           {suggestions.map((s, i) => (
-            <button key={i} type="button" onMouseDown={() => handleSelect(s)}>
-              <b>{s.place || s.location}</b>
-              <small>{s.city}{s.city !== s.country ? ` · ${s.country}` : ''}</small>
+            <button key={i} type="button" role="option" aria-selected="false" className="z-dsuggest__item" onMouseDown={() => handleSelect(s)}>
+              <span className="z-dsuggest__ic"><Icon name={/airport|letišt/i.test(`${s.place ?? ''} ${s.location ?? ''}`) ? 'letadlo' : 'poloha'} /></span>
+              <span className="z-dsuggest__txt">
+                <b>{s.place || s.location}</b>
+                <small>{s.city}{s.city !== s.country ? ` · ${s.country}` : ''}</small>
+              </span>
+              <span className="z-dsuggest__go" aria-hidden="true"><Icon name="sipka" size="sm" /></span>
             </button>
           ))}
         </div>,

@@ -16,6 +16,20 @@ const KIND: Record<Kind, { icon: IconName; label: string }> = {
   hotel: { icon: 'hotel', label: 'Hotel' },
 }
 
+const RANK: Record<Kind, number> = { country: 0, region: 1, town: 2, hotel: 3 }
+const GROUP: Record<Kind, string> = { country: 'Země', region: 'Oblasti', town: 'Letoviska', hotel: 'Hotely' }
+const byKind = (a: Sug, b: Sug) => RANK[a.kind] - RANK[b.kind]
+
+/** Zvýrazní shodu s hledaným textem (jen když normalizace nemění délku textu). */
+function hl(label: string, q: string) {
+  const n = norm(q)
+  const nl = norm(label)
+  if (!n || nl.length !== label.length) return label
+  const i = nl.indexOf(n)
+  if (i < 0) return label
+  return <>{label.slice(0, i)}<mark className="z-hl">{label.slice(i, i + n.length)}</mark>{label.slice(i + n.length)}</>
+}
+
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
 
 let indexPromise: Promise<Sug[]> | null = null
@@ -92,13 +106,14 @@ export default function DestinationSuggest({ name, defaultValue = '', placeholde
         const score = (s: Sug) => (norm(s.label).startsWith(n) ? 0 : 1) * 1000 - (s.count ?? 0)
         list = idx.filter(s => norm(s.label).includes(n)).sort((a, b) => score(a) - score(b)).slice(0, 7)
       }
+      list = [...list].sort(byKind)
       setItems(list); setHi(-1); setOpen(list.length > 0)
       if (n.length >= 2 && hotelLinks) {
         try {
           const r = await apiFetch(`/api/hotels/search?q=${encodeURIComponent(q.trim())}&limit=4`)
           const hotels: { slug: string; name: string; resort_town?: string | null; country?: string | null }[] = r.ok ? await r.json() : []
           const hs: Sug[] = hotels.map(h => ({ kind: 'hotel', label: h.name, sub: [h.resort_town, h.country].filter(Boolean).join(', '), slug: h.slug }))
-          setItems(prev => (prev.some(p => p.kind === 'hotel') ? prev : [...prev, ...hs]))
+          setItems(prev => (prev.some(p => p.kind === 'hotel') ? prev : [...prev, ...hs].sort(byKind)))
           if (hs.length) setOpen(true)
         } catch { /* ignoruj */ }
       }
@@ -143,26 +158,33 @@ export default function DestinationSuggest({ name, defaultValue = '', placeholde
 
       {open && pos && typeof document !== 'undefined' && createPortal(
         <div className="z-suggest z-dsuggest" role="listbox" style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}>
-          {value.trim() === '' && <div className="z-dsuggest__head">Oblíbené destinace</div>}
+          <div className="z-dsuggest__head">
+            <Icon name="letadlo" size="sm" />{value.trim() === '' ? 'Kam by to mělo být?' : 'Kam poletíme?'}
+          </div>
           {items.map((s, i) => (
-            <button
-              key={`${s.kind}-${s.label}-${i}`}
-              type="button"
-              role="option"
-              aria-selected={i === hi}
-              className="z-dsuggest__item"
-              data-active={i === hi}
-              onMouseEnter={() => setHi(i)}
-              onMouseDown={e => { e.preventDefault(); pick(s) }}
-            >
-              <span className="z-dsuggest__ic"><Icon name={KIND[s.kind].icon} /></span>
-              <span className="z-dsuggest__txt">
-                <b>{s.label}</b>
-                <small>{KIND[s.kind].label}{s.sub ? ` · ${s.sub}` : ''}</small>
-              </span>
-              {s.count ? <span className="z-dsuggest__count">{s.count}</span> : null}
-            </button>
+            <div key={`${s.kind}-${s.label}-${i}`} role="presentation">
+              {(i === 0 || items[i - 1].kind !== s.kind) && value.trim() !== '' && <div className="z-dsuggest__group">{GROUP[s.kind]}</div>}
+              <button
+                type="button"
+                role="option"
+                aria-selected={i === hi}
+                className="z-dsuggest__item"
+                data-active={i === hi}
+                data-kind={s.kind}
+                onMouseEnter={() => setHi(i)}
+                onMouseDown={e => { e.preventDefault(); pick(s) }}
+              >
+                <span className="z-dsuggest__ic"><Icon name={KIND[s.kind].icon} /></span>
+                <span className="z-dsuggest__txt">
+                  <b>{hl(s.label, value)}</b>
+                  <small>{KIND[s.kind].label}{s.sub ? ` · ${s.sub}` : ''}</small>
+                </span>
+                {s.count ? <span className="z-dsuggest__count"><b>{s.count}</b> hotelů</span> : null}
+                <span className="z-dsuggest__go" aria-hidden="true"><Icon name="sipka" size="sm" /></span>
+              </button>
+            </div>
           ))}
+          <div className="z-dsuggest__foot z-data"><Icon name="arrowsUpDown" size="sm" />↑↓ VÝBĚR · ENTER POTVRDÍ · ESC ZAVŘE</div>
         </div>,
         document.body,
       )}
