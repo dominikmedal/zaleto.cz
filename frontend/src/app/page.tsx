@@ -148,7 +148,7 @@ export default async function HomePage() {
         {tickets.length > 0 && (
           <section className="z-section--deep">
             <div className="z-container">
-              <SectionHead num="03" kicker="Zájezdy" title="zájezdy" moreHref="/zajezdy" moreLabel="Zobrazit vše" />
+              <SectionHead num="03" kicker="Zájezdy" title="naše tipy, kam vyrazit" moreHref="/zajezdy" moreLabel="Zobrazit vše" />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-5)', alignItems: 'stretch' }}>
                 {tickets.map((h, i) => <TourCard key={h.slug} hotel={h} priority={i === 0} />)}
                 {ad && <div style={{ display: 'flex' }}><div style={{ width: '100%' }}><TourAd hotel={ad} /></div></div>}

@@ -4,9 +4,12 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { put } from '@vercel/blob'
 import { query } from './db'
+import { slugify } from '@/lib/slugify'
 import { metaCache } from './cache'
 import { searchUnsplash, registerDownload } from './unsplash'
 import { ensureAutomationSchema } from './automationDb'
+import { listRuns, runJobs } from './githubActions'
+import { adminListTravelogues, adminSetTravelogue, adminDeleteTravelogue } from './travelogues'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -77,24 +80,26 @@ async function ensureCarDestinationsTable() {
  */
 /** Přehled „co se kdy naposledy aktualizovalo“: AI obsah, články, fotky a scrapery. Chybějící tabulka = prázdný řádek. */
 async function contentActivity() {
-  const kinds: { key: string; label: string; table: string; nameCol: string; atCol: string; href?: string }[] = [
-    { key: 'articles', label: 'Články', table: 'articles', nameCol: 'title', atCol: 'published_at', href: '/admin/clanky' },
-    { key: 'destination', label: 'Popisy destinací', table: 'destination_ai', nameCol: 'name', atCol: 'generated_at' },
-    { key: 'guide', label: 'Průvodci oblastí', table: 'destination_guide', nameCol: 'name', atCol: 'generated_at' },
-    { key: 'weather', label: 'Počasí', table: 'weather_ai', nameCol: 'name', atCol: 'generated_at' },
-    { key: 'car_rental', label: 'Půjčovny aut', table: 'car_rental_ai', nameCol: 'COALESCE(name, slug)', atCol: 'generated_at' },
-    { key: 'gallery', label: 'Fotogalerie destinací', table: 'destination_gallery', nameCol: 'name', atCol: 'updated_at' },
-    { key: 'photos', label: 'Fotky destinací', table: 'destination_photos', nameCol: 'name', atCol: 'updated_at', href: '/admin/destinace' },
+  const dest = (_s: string, n: string) => `/destinace/${slugify(n)}`
+  const kinds: { key: string; label: string; table: string; nameCol: string; slugCol?: string; atCol: string; href: string; link: (slug: string, name: string) => string }[] = [
+    { key: 'articles', label: 'Články', table: 'articles', nameCol: 'title', slugCol: 'slug', atCol: 'published_at', href: '/admin/clanky', link: s => `/clanky/${s}` },
+    { key: 'destination', label: 'Popisy destinací', table: 'destination_ai', nameCol: 'name', atCol: 'generated_at', href: '/admin/destinace', link: dest },
+    { key: 'guide', label: 'Průvodci oblastí', table: 'destination_guide', nameCol: 'name', atCol: 'generated_at', href: '/destinace', link: dest },
+    { key: 'weather', label: 'Počasí', table: 'weather_ai', nameCol: 'name', atCol: 'generated_at', href: '/pocasi', link: dest },
+    { key: 'car_rental', label: 'Půjčovny aut', table: 'car_rental_ai', nameCol: 'COALESCE(name, slug)', slugCol: 'slug', atCol: 'generated_at', href: '/admin/pujcovna-aut', link: s => `/pujcovna-aut/${s}` },
+    { key: 'gallery', label: 'Fotogalerie destinací', table: 'destination_gallery', nameCol: 'name', atCol: 'updated_at', href: '/admin/fotky', link: dest },
+    { key: 'photos', label: 'Fotky destinací', table: 'destination_photos', nameCol: 'name', atCol: 'updated_at', href: '/admin/fotky', link: dest },
   ]
   const content = await Promise.all(kinds.map(async k => {
     try {
       const [tot, recent] = await Promise.all([
         query(`SELECT COUNT(*)::int AS n, MAX(${k.atCol}) AS last_at FROM ${k.table}`),
-        query(`SELECT ${k.nameCol} AS name, ${k.atCol} AS at FROM ${k.table} WHERE ${k.atCol} IS NOT NULL ORDER BY ${k.atCol} DESC LIMIT 4`),
+        query(`SELECT ${k.nameCol} AS name, ${k.slugCol ?? "''"} AS slug, ${k.atCol} AS at FROM ${k.table} WHERE ${k.atCol} IS NOT NULL ORDER BY ${k.atCol} DESC LIMIT 4`),
       ])
-      return { key: k.key, label: k.label, href: k.href ?? null, total: tot.rows[0].n as number, last_at: tot.rows[0].last_at as string | null, recent: recent.rows as { name: string; at: string }[] }
+      return { key: k.key, label: k.label, href: k.href, total: tot.rows[0].n as number, last_at: tot.rows[0].last_at as string | null,
+        recent: (recent.rows as { name: string; slug: string; at: string }[]).map(r => ({ name: r.name, at: r.at, href: k.link(r.slug, r.name) })) }
     } catch {
-      return { key: k.key, label: k.label, href: k.href ?? null, total: 0, last_at: null, recent: [] }
+      return { key: k.key, label: k.label, href: k.href, total: 0, last_at: null, recent: [] as { name: string; at: string; href: string }[] }
     }
   }))
   let agencies: { agency: string; hotels: number; last_at: string | null }[] = []
@@ -305,6 +310,26 @@ export async function handleAdmin(
         const slug = (await query('SELECT slug FROM articles WHERE id = ?', [id])).rows[0]?.slug
         await query('DELETE FROM articles WHERE id = ?', [id])
         afterArticleChange(slug)
+        return ok()
+      }
+
+      // ── GitHub Actions (běhy a logy) ──
+      case 'GET actions': {
+        const run = Number(sp.get('run'))
+        if (run) return ok(await runJobs(run))
+        return ok(await listRuns())
+      }
+
+      // ── Cestopisy (schvalování) ──
+      case 'GET travelogues': return ok({ travelogues: await adminListTravelogues(sp.get('status') ?? undefined) })
+      case 'PUT travelogues/:id': {
+        await adminSetTravelogue(id, body ?? {})
+        revalidatePath('/cestopisy'); revalidatePath('/destinace/[slug]', 'page')
+        return ok()
+      }
+      case 'DELETE travelogues/:id': {
+        await adminDeleteTravelogue(id)
+        revalidatePath('/cestopisy'); revalidatePath('/destinace/[slug]', 'page')
         return ok()
       }
 

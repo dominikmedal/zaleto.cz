@@ -74,7 +74,7 @@ export default function DashboardPage() {
           {stats.activity.content.map(c => (
             <div key={c.key} className="z-adminact__card" data-empty={c.total === 0 || undefined}>
               <div className="z-adminact__top">
-                <b>{c.href ? <Link href={c.href}>{c.label}</Link> : c.label}</b>
+                <b><Link href={c.href}>{c.label}</Link></b>
                 <span className="z-data">{c.total.toLocaleString('cs-CZ')} ks</span>
               </div>
               <div className="z-adminact__last">
@@ -82,7 +82,7 @@ export default function DashboardPage() {
               </div>
               {c.recent.length > 0 && (
                 <ul>
-                  {c.recent.map((r, i) => <li key={i}><span>{r.name}</span><time>{ago(r.at)}</time></li>)}
+                  {c.recent.map((r, i) => <li key={i}><Link href={r.href}><span>{r.name}</span><time>{ago(r.at)}</time></Link></li>)}
                 </ul>
               )}
             </div>
@@ -97,7 +97,7 @@ export default function DashboardPage() {
         <ul className="z-adminlist">
           {stats.activity.agencies.map(a => (
             <li key={a.agency}>
-              <div><b>{a.agency}</b><small>{a.hotels.toLocaleString('cs-CZ')} hotelů</small></div>
+              <div><b><Link href="/admin/hotely">{a.agency}</Link></b><small>{a.hotels.toLocaleString('cs-CZ')} hotelů</small></div>
               {a.last_at
                 ? <span className="z-data"><span className={`z-adminact__dot z-adminact__dot--${freshness(a.last_at, 36)}`} />{ago(a.last_at)} · {fmtDateTime(a.last_at)}</span>
                 : <span className="z-data">—</span>}
@@ -115,7 +115,7 @@ export default function DashboardPage() {
           <ul className="z-adminlist">
             {stats.recentHotels.map(h => (
               <li key={h.id}>
-                <div><b>{h.name}</b><small>{[h.country, h.agency].filter(Boolean).join(' · ')}</small></div>
+                <div><b><Link href={`/hotel/${h.slug}`}>{h.name}</Link></b><small>{[h.country, h.agency].filter(Boolean).join(' · ')}</small></div>
                 {h.stars ? <span className="z-meta"><span><Icon name="hvezda" />{h.stars}</span></span> : null}
                 <span className="z-data">{fmtDate(h.updated_at)}</span>
               </li>
@@ -131,7 +131,7 @@ export default function DashboardPage() {
           <ul className="z-adminlist">
             {stats.recentArticles.map(a => (
               <li key={a.id}>
-                <div><b>{a.title}</b><small>{[a.category, a.location].filter(Boolean).join(' · ')}</small></div>
+                <div><b><Link href={`/clanky/${a.slug}`}>{a.title}</Link></b><small>{[a.category, a.location].filter(Boolean).join(' · ')}</small></div>
                 <span className="z-data">{fmtDate(a.published_at)}</span>
               </li>
             ))}

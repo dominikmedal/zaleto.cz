@@ -52,7 +52,7 @@ export interface AdminStats {
   destinations: number; customPhotos: number; minPrice: number | null
   recentHotels: RecentHotel[]; recentArticles: RecentArticle[]
   activity: {
-    content: { key: string; label: string; href: string | null; total: number; last_at: string | null; recent: { name: string; at: string }[] }[]
+    content: { key: string; label: string; href: string; total: number; last_at: string | null; recent: { name: string; at: string; href: string }[] }[]
     agencies: { agency: string; hotels: number; last_at: string | null }[]
   }
 }
@@ -226,3 +226,15 @@ export function saveAutomation(s: AutomationData['settings']) { return api('/aut
 export function addSource(name: string, feed_url: string) { return api('/sources', { method: 'POST', body: JSON.stringify({ name, feed_url }) }) }
 export function updateSource(id: number, patch: { name?: string; feed_url?: string; enabled?: boolean }) { return api(`/sources/${id}`, { method: 'PUT', body: JSON.stringify(patch) }) }
 export function deleteSource(id: number) { return api(`/sources/${id}`, { method: 'DELETE' }) }
+
+// ── Cestopisy ──
+export interface AdminTravelogue { id: number; slug: string; title: string; body: string; author_name: string; author_email: string; destination: string; status: 'pending' | 'approved' | 'rejected'; created_at: string; approved_at: string | null }
+export const fetchTravelogues = (status = '') => api<{ travelogues: AdminTravelogue[] }>(`/travelogues${status ? `?status=${status}` : ''}`)
+export const setTravelogue = (id: number, b: { status?: string; title?: string; body?: string }) => api(`/travelogues/${id}`, { method: 'PUT', body: JSON.stringify(b) })
+export const deleteTravelogue = (id: number) => api(`/travelogues/${id}`, { method: 'DELETE' })
+
+// ── GitHub Actions ──
+export interface ActionRun { id: number; name: string; status: string; conclusion: string | null; event: string; created_at: string; started_at: string | null; updated_at: string; url: string; branch: string }
+export interface ActionJob { id: number; name: string; status: string; conclusion: string | null; steps: { name: string; status: string; conclusion: string | null }[]; log: string }
+export const fetchActionRuns = () => api<{ configured: boolean; runs: ActionRun[]; error?: string }>('/actions')
+export const fetchActionJobs = (run: number) => api<{ jobs: ActionJob[]; error?: string }>(`/actions?run=${run}`)

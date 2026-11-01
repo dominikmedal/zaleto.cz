@@ -30,10 +30,10 @@ export const metadata: Metadata = {
 }
 
 const WHY: { icon: IconName; title: string; text: string }[] = [
-  { icon: 'ok', title: 'Cena předem', text: 'Cena při rezervaci je finální, bez skrytých poplatků na přepážce.' },
-  { icon: 'info', title: 'Pojištění v ceně', text: 'Základní pojištění CDW i TP bývá zahrnuté, bez doplatku.' },
-  { icon: 'cas', title: 'Zrušení zdarma', text: 'Většina nabídek se dá zdarma zrušit až 48 hodin před vyzvednutím.' },
-  { icon: 'auto', title: 'Přes 500 půjčoven', text: 'Srovnáváme velké značky i lokální půjčovny.' },
+  { icon: 'mena', title: 'Cena předem', text: 'Cena při rezervaci je finální, bez skrytých poplatků na přepážce.' },
+  { icon: 'shield', title: 'Pojištění v ceně', text: 'Základní pojištění CDW i TP bývá zahrnuté, bez doplatku.' },
+  { icon: 'kalendar', title: 'Zrušení zdarma', text: 'Většina nabídek se dá zdarma zrušit až 48 hodin před vyzvednutím.' },
+  { icon: 'agentura', title: 'Přes 500 půjčoven', text: 'Srovnáváme velké značky i lokální půjčovny.' },
 ]
 
 const STEPS: { icon: IconName; title: string; text: string }[] = [
@@ -149,7 +149,7 @@ export default async function PujcovnaAutPage() {
             <div className="z-perks">
               {WHY.map(w => (
                 <div key={w.title} className="z-perk">
-                  <span className="z-perk__icon"><Icon name={w.icon} /></span>
+                  <span className="z-perk__icon"><Icon name={w.icon} size="lg" /></span>
                   <h3>{w.title}</h3>
                   <p>{w.text}</p>
                 </div>

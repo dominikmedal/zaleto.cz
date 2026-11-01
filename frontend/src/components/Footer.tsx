@@ -11,6 +11,7 @@ const COLUMNS = [
     items: [
       { label: 'Destinace', href: '/destinace' },
       { label: 'Cestovní deník', href: '/clanky' },
+      { label: 'Cestopisy', href: '/cestopisy' },
       { label: 'Počasí a klima', href: '/pocasi' },
       { label: 'Časté otázky', href: '/faq' },
     ],

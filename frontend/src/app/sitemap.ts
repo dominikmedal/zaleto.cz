@@ -20,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/zajezdy?tour_type=last_minute`, lastModified: now,        changeFrequency: 'hourly',  priority: 0.9 },
     { url: `${base}/zajezdy?tour_type=first_minute`, lastModified: now,       changeFrequency: 'daily',   priority: 0.85 },
     { url: `${base}/destinace`,                     lastModified: now,        changeFrequency: 'daily',   priority: 0.85 },
+    { url: `${base}/cestopisy`,                     lastModified: now,        changeFrequency: 'weekly',  priority: 0.6 },
     { url: `${base}/clanky`,                        lastModified: now,        changeFrequency: 'daily',   priority: 0.8 },
     { url: `${base}/pujcovna-aut`,                  lastModified: now,        changeFrequency: 'weekly',  priority: 0.85 },
     { url: `${base}/faq`,                           lastModified: staticDate, changeFrequency: 'monthly', priority: 0.5 },

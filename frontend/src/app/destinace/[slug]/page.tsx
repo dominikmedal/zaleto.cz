@@ -15,6 +15,8 @@ import { slugify } from '@/lib/slugify'
 import { resolveDestination } from './resolve'
 import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
 import { destinationGallery, destinationGuide } from '@/server/content'
+import { approvedTravelogues } from '@/server/travelogues'
+import TravelogueCard from '@/components/ui/TravelogueCard'
 import BeachExplorer from '@/components/BeachExplorer'
 import HotelsAreaMap from '@/components/HotelsAreaMap'
 import { PlaceCards, ResortCards, FactsStrip, TransportCards } from '@/components/ui/GuideSections'
@@ -102,6 +104,9 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
     destinationGallery(dest.name, dest.country).catch(() => []),
   ])
 
+  const tripSlugs = [slugify(dest.name), ...(dest.type === 'town' && dest.breadcrumb.length >= 3 ? [slugify(dest.breadcrumb[1].label)] : [])]
+  const logs = await approvedTravelogues({ destSlugs: tripSlugs, limit: 6 })
+
   const regionCrumb = dest.type === 'town' && dest.breadcrumb.length >= 3 ? dest.breadcrumb[1].label : null
   const rawGuide = dest.type === 'region' ? await destinationGuide(dest.name)
     : regionCrumb ? await destinationGuide(regionCrumb) : null
@@ -176,6 +181,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
     ...(photos.length >= 3 ? [{ href: '#fotky', label: 'Fotky', icon: 'foto' as const }] : []),
     { href: '#zajezdy', label: 'Zájezdy', icon: 'letadlo' as const },
     ...((pg?.total ?? 0) > 0 ? [{ href: `/destinace/${params.slug}/hotely`, label: 'Hotely', icon: 'hotel' as const }] : []),
+    ...(logs.length ? [{ href: '#cestopisy', label: 'Cestopisy', icon: 'trasa' as const }] : []),
     ...(articles.length ? [{ href: '#clanky', label: 'Články', icon: 'clanek' as const }] : []),
     ...(weatherUrl ? [{ href: weatherUrl, label: 'Počasí', icon: 'slunce' as const }] : []),
     { href: carUrl, label: 'Půjčovna aut', icon: 'auto' as const },
@@ -336,6 +342,19 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
           ) : (
             <InfiniteHotels key={sort} initial={hotels} total={pg?.total ?? hotels.length} limit={LIMIT} query={{ destination: dest.name, sort }} />
           )}
+        </section>
+
+        <section id="cestopisy" data-rail="Cestopisy" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 56px)' }}>
+          <div className="z-shead">
+            <div>
+              <div className="z-kicker">Od čtenářů</div>
+              <h2>cestopisy: {dest.name}<span className="z-dot">.</span></h2>
+            </div>
+            <Link className="z-more" href="/cestopisy/napsat">Napsat cestopis</Link>
+          </div>
+          {logs.length > 0
+            ? <div className="z-grid-3w">{logs.map(t => <TravelogueCard key={t.slug} t={t} />)}</div>
+            : <p className="body">Byl jsi tu? <Link href="/cestopisy/napsat" className="z-more">Napiš první cestopis</Link></p>}
         </section>
 
         {articles.length > 0 && (
