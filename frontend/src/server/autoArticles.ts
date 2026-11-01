@@ -1,5 +1,4 @@
 import { revalidatePath, revalidateTag } from 'next/cache'
-import { JSDOM } from 'jsdom'
 import { Readability } from '@mozilla/readability'
 import { put } from '@vercel/blob'
 import { query } from './db'
@@ -139,6 +138,7 @@ async function promptFor(key: string, vars: Record<string, string | number>) {
 async function scrapeArticle(url: string) {
   const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ZaletoBot/1.0; +https://zaleto.cz)' }, signal: AbortSignal.timeout(20_000) })
   if (!res.ok) throw new Error(`Nepodařilo se stáhnout ${url}: HTTP ${res.status}`)
+  const { JSDOM } = await import('jsdom') // načítá se až při použití (těžká závislost)
   const dom = new JSDOM(await res.text(), { url })
   const art = new Readability(dom.window.document).parse()
   if (!art?.textContent || art.textContent.trim().length < 600) throw new Error('Ze stránky se nepodařilo získat dostatek čitelného textu.')
