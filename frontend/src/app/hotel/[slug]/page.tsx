@@ -207,7 +207,7 @@ export default async function HotelDetailPage({ params }: Props) {
 
             {hotel.latitude && hotel.longitude && (
               <CollapsibleSection title="počasí v destinaci" defaultOpen={false} lazy>
-                <WeatherWidget lat={hotel.latitude} lon={hotel.longitude} location={hotel.resort_town ?? hotel.country ?? ''} noCard />
+                <WeatherWidget lat={hotel.latitude} lon={hotel.longitude} location={hotel.resort_town ?? hotel.country ?? ''} noCard days={6} />
                 {weatherUrl && (
                   <p style={{ marginTop: 'var(--space-3)' }}>
                     <Link className="z-more" href={weatherUrl}>Podrobné klima</Link>

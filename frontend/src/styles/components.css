@@ -974,7 +974,7 @@ body[data-admin] .z-offerbar, body[data-admin] .z-footer, body[data-admin] .z-ch
 .z-wx__label { font: 500 15px/22px var(--font-sans); color: var(--ink-muted); }
 .z-wx__facts { display: grid; gap: var(--space-2); font: 500 13px/1 var(--font-mono); color: var(--ink-muted); }
 .z-wx__facts span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.z-wx__days { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; padding: var(--space-3) var(--space-3) var(--space-3); border-top: 2px dotted rgba(11, 27, 51, .15); }
+.z-wx__days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: var(--space-3) var(--space-3) var(--space-3); border-top: 2px dotted rgba(11, 27, 51, .15); }
 .z-wx__day { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 2px; border: 0; border-radius: 16px; background: transparent; cursor: pointer; font: 600 15px/1 var(--font-sans); color: var(--ink); }
 .z-wx__day:hover { background: rgba(11, 27, 51, .05); }
 .z-wx__day[aria-selected="true"] { background: var(--ink); color: var(--paper); }
@@ -1494,3 +1494,7 @@ body:has(.z-favs__panel) .z-chat { display: none; }
 .z-auto__run summary::-webkit-details-marker { display: none; }
 .z-auto__run[open] { padding-bottom: var(--space-3); }
 button.z-chip { cursor: pointer; }
+
+.z-wx__dd { font: 400 11px/1 var(--font-mono); opacity: .6; margin-top: -2px; }
+@media (max-width: 767px) { .z-wx__days { display: flex; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: var(--space-3); scrollbar-width: thin; } .z-wx__day { flex: 0 0 62px; scroll-snap-align: start; } }
+.z-wx__dd { white-space: nowrap; font-size: 10px; letter-spacing: -0.03em; }

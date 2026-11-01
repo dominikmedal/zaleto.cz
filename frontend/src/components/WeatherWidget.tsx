@@ -41,7 +41,7 @@ function tempColor(t: number) {
   return 'z-w-rain'
 }
 
-export default function WeatherWidget({ lat, lon, location, noCard }: { lat: number; lon: number; location: string; noCard?: boolean }) {
+export default function WeatherWidget({ lat, lon, location, noCard, days: dayCount = 14 }: { lat: number; lon: number; location: string; noCard?: boolean; days?: number }) {
   const [data, setData] = useState<WeatherData | null>(null)
   const [error, setError] = useState(false)
   const [selectedDay, setSelectedDay] = useState(0)
@@ -52,7 +52,7 @@ export default function WeatherWidget({ lat, lon, location, noCard }: { lat: num
       '&longitude=' + lon +
       '&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m' +
       '&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max' +
-      '&forecast_days=6&timezone=auto'
+      `&forecast_days=${dayCount}&timezone=auto`
     )
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(json => setData({
@@ -62,7 +62,7 @@ export default function WeatherWidget({ lat, lon, location, noCard }: { lat: num
           humidity: Math.round(json.current.relative_humidity_2m),
           windSpeed: Math.round(json.current.wind_speed_10m),
         },
-        days: json.daily.time.slice(0, 6).map((date: string, i: number) => ({
+        days: json.daily.time.slice(0, dayCount).map((date: string, i: number) => ({
           date,
           maxTemp: Math.round(json.daily.temperature_2m_max[i]),
           minTemp: Math.round(json.daily.temperature_2m_min[i]),
@@ -71,7 +71,7 @@ export default function WeatherWidget({ lat, lon, location, noCard }: { lat: num
         })),
       }))
       .catch(() => setError(true))
-  }, [lat, lon])
+  }, [lat, lon, dayCount])
 
   if (error) return null
 
@@ -86,7 +86,7 @@ export default function WeatherWidget({ lat, lon, location, noCard }: { lat: num
   const displayCode = isToday ? data.current.code : activeDay.code
   const displayTemp = isToday ? data.current.temp : activeDay.maxTemp
   const cur = wmo(displayCode)
-  const dayLabel = isToday ? 'Teď' : DAY[(today.getDay() + selectedDay) % 7]
+  const dayLabel = isToday ? 'Teď' : `${DAY[new Date(activeDay.date + 'T12:00:00').getDay()]} ${new Date(activeDay.date + 'T12:00:00').getDate()}. ${new Date(activeDay.date + 'T12:00:00').getMonth() + 1}.`
 
   const inner = (
     <div className="z-wx">
@@ -103,12 +103,13 @@ export default function WeatherWidget({ lat, lon, location, noCard }: { lat: num
           {!isToday && <span><PiDrop className="w-4 h-4" />srážky {activeDay.precipProb} %</span>}
         </div>
       </div>
-      <div className="z-wx__days" role="tablist" aria-label="Předpověď na další dny">
+      <div className="z-wx__days" role="tablist" aria-label={`Předpověď na ${dayCount} dní`}>
         {data.days.map((day, i) => {
           const w = wmo(day.code)
           return (
             <button key={day.date} type="button" role="tab" aria-selected={selectedDay === i} className="z-wx__day" onClick={() => setSelectedDay(i)}>
-              <span className="z-wx__dn">{i === 0 ? 'Dnes' : DAY[(today.getDay() + i) % 7]}</span>
+              <span className="z-wx__dn">{i === 0 ? 'Dnes' : DAY[new Date(day.date + 'T12:00:00').getDay()]}</span>
+              {i > 0 && <span className="z-wx__dd">{new Date(day.date + 'T12:00:00').getDate()}. {new Date(day.date + 'T12:00:00').getMonth() + 1}.</span>}
               <w.Icon className={'w-6 h-6 ' + w.color} />
               <b className={tempColor(day.maxTemp)}>{day.maxTemp}°</b>
               <small>{day.minTemp}°</small>
