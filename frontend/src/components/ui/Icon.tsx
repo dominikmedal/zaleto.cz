@@ -89,8 +89,9 @@ const ICONS = {
   ),
   kompas: (
     <>
-      <path d="M12 3l1.8 7.2L21 12l-7.2 1.8L12 21l-1.8-7.2L3 12l7.2-1.8z" />
-      <circle className="zi-dot" cx="12" cy="12" r="1.25" />
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="m15.6 8.4-2.1 5.1-5.1 2.1 2.1-5.1z" />
+      <circle className="zi-dot" cx="12" cy="12" r="1.3" />
     </>
   ),
   poloha: (

@@ -111,11 +111,9 @@ export default async function PujcovnaAutPage() {
 
         <div className="z-sheet">
         <main className="z-container">
-          <div style={{ marginTop: 'var(--space-6)' }}>
-            <CarRentalResults />
-          </div>
+          <CarRentalResults />
 
-          <section className="z-section">
+          <section className="z-section z-section--tight">
             <SectionHead title="kde si půjčit auto" />
             <div className="z-grid-3w" style={{ rowGap: 'var(--space-6)' }}>
               {active.map(country => (
