@@ -432,3 +432,23 @@ export async function resetStats() {
   const r = await query('SELECT COUNT(*) AS n FROM hotel_stats')
   statsPopulated = parseInt(r.rows[0].n) > 0
 }
+
+// GET /api/hotels/map: všechny hotely destinace se souřadnicemi (bez stránkování, jen pole pro mapu)
+export async function hotelsMap(q: Q) {
+  const destination = q.destination
+  if (!destination) throw new HttpError(400, 'destination required')
+  const key = `map_${destination}`
+  const cached = hotelsCache.get(key)
+  if (cached) return cached
+  const conds: string[] = ['h.latitude IS NOT NULL', 'h.longitude IS NOT NULL', 's.min_price IS NOT NULL']
+  const params: unknown[] = []
+  destClause(destination, conds, params)
+  const r = await query(`
+    SELECT h.slug, h.name, h.stars, h.resort_town, h.thumbnail_url, h.latitude, h.longitude, s.min_price
+    FROM hotels h INNER JOIN hotel_stats s ON s.hotel_id = h.id
+    WHERE ${conds.join(' AND ')}
+    ORDER BY s.min_price ASC`, params)
+  const out = { hotels: r.rows }
+  hotelsCache.set(key, out)
+  return out
+}

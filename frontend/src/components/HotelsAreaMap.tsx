@@ -36,13 +36,13 @@ export default function HotelsAreaMap({ destination, showPrice = false, collapsi
   useEffect(() => {
     if (!open || !visible || hotels) return
     let off = false
-    const p = new URLSearchParams({ destination, sort, page: '1', limit: '500' })
-    apiFetch(`/api/hotels?${p}`)
+    const p = new URLSearchParams({ destination })
+    apiFetch(`/api/hotels/map?${p}`)
       .then(r => (r.ok ? r.json() : Promise.reject(new Error('fetch'))))
-      .then((d: { hotels: MapHotel[] }) => { if (!off) setHotels((d.hotels ?? []).filter(h => h.latitude != null && h.longitude != null)) })
+      .then((d: { hotels: MapHotel[] }) => { if (!off) setHotels(d.hotels ?? []) })
       .catch(() => { if (!off) setError(true) })
     return () => { off = true }
-  }, [open, visible, hotels, destination, sort])
+  }, [open, visible, hotels, destination])
 
   const pins = useMemo<MapPin[]>(() => (hotels ?? []).map(h => ({
     id: h.slug, lat: h.latitude as number, lng: h.longitude as number,
