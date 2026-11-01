@@ -2010,3 +2010,17 @@ button.z-chip { cursor: pointer; }
 .z-footer__linkbtn { padding: 0; border: 0; background: none; color: var(--on-night); font: 500 15px/22px var(--font-sans); cursor: pointer; }
 .z-footer__linkbtn:hover { text-decoration: underline; text-underline-offset: 4px; }
 @media (max-width: 767px) { .z-footer__linkbtn { min-height: 44px; } }
+
+/* Mapa na detailu hotelu: stejný styl jako mapy průvodce (.z-map), přepínače vrstev jako pilulky */
+.z-hmap { position: relative; }
+.z-hmap .z-map { height: 440px; }
+.z-hmap__bar { position: absolute; left: 12px; bottom: 26px; right: 56px; z-index: 500; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+.z-hmap__chip { pointer-events: auto; height: 28px; background: var(--paper); border-color: var(--line-strong); cursor: pointer; box-shadow: 0 6px 12px -8px rgba(11, 27, 51, .55); }
+.z-hmap__chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.z-hmap__chip:disabled { opacity: .5; cursor: default; }
+.z-hmap[data-sat] .z-map .leaflet-tile-pane { filter: none; }
+.z-pin--dot { width: 20px; height: 20px; border-radius: 50%; border: 3px solid var(--paper); box-shadow: 0 4px 8px -3px rgba(11, 27, 51, .6); background: var(--brand); }
+.z-pin--dot[data-poi="beach"] { background: var(--accent); }
+.z-pin--dot[data-poi="food"] { background: var(--night); }
+.leaflet-marker-icon:hover .z-pin--dot { transform: scale(1.15); }
+@media (max-width: 767px) { .z-hmap .z-map { height: 360px; } .z-hmap__bar { right: 12px; } }

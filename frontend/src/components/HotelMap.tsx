@@ -12,9 +12,9 @@ interface Props { hotel: Hotel; nearby: NearbyHotel[] }
 interface PoiEl { id: number; lat: number; lon: number; tags: Record<string, string> }
 
 const POI_LAYERS = [
-  { id: 'beach',      label: 'Pláže',      emoji: '🏖️', color: '#0891b2', limit: 30 },
-  { id: 'attraction', label: 'Atrakce',    emoji: '🏛️', color: '#d97706', limit: 20 },
-  { id: 'food',       label: 'Restaurace', emoji: '🍽️', color: '#059669', limit: 25 },
+  { id: 'beach',      label: 'Pláže',      limit: 30 },
+  { id: 'attraction', label: 'Atrakce',    limit: 20 },
+  { id: 'food',       label: 'Restaurace', limit: 25 },
 ] as const
 type LayerId = 'hotels' | 'beach' | 'attraction' | 'food'
 
@@ -46,6 +46,7 @@ function categorizePoi(tags: Record<string, string>): 'beach' | 'attraction' | '
   return null
 }
 
+const esc = (t: string) => t.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
 const fmt = (n: number) => new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(n)
 
 const TILES = {
@@ -77,59 +78,54 @@ export default function HotelMap({ hotel, nearby }: Props) {
       if (el._leaflet_id) { try { el._leaflet?.remove() } catch { /* ignore */ } }
       delete el._leaflet_id
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (L.Icon.Default.prototype as any)._getIconUrl
-      L.Icon.Default.mergeOptions({
-        iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      })
-
       const map = L.map(containerRef.current!, {
         center: [hotel.latitude!, hotel.longitude!],
         zoom: 13,
-        scrollWheelZoom: true,
-        zoomControl: false,
-        dragging: true,
+        zoomControl: true,
+        scrollWheelZoom: false,
+        dragging: !L.Browser.mobile,
+        zoomSnap: 0.5,
       })
       if (cancelled) { map.remove(); return }
+      map.attributionControl.setPrefix(false)
+      // kolečko a tažení až po kliknutí do mapy, aby mapa nepřebírala posouvání stránky
+      map.once('click', () => { map.scrollWheelZoom.enable(); map.dragging.enable() })
       mapRef.current = map
 
       baseTileRef.current = L.tileLayer(TILES.map.url, { attribution: TILES.map.attr, maxZoom: 19 }).addTo(map)
 
-      // Hotels layer
       const hotelsLayer = L.layerGroup().addTo(map)
       layerGroupsRef.current['hotels'] = hotelsLayer
 
       L.marker([hotel.latitude!, hotel.longitude!], {
-        icon: L.divIcon({
-          className: '',
-          html: `<div style="width:46px;height:46px;border-radius:50%;background:#0093FF;border:3px solid white;box-shadow:0 3px 16px rgba(0,147,255,0.5);display:flex;align-items:center;justify-content:center;font-size:20px;">🏨</div>`,
-          iconSize: [46, 46], iconAnchor: [23, 23], popupAnchor: [0, -26],
-        }),
+        icon: L.divIcon({ className: '', html: '<span class="z-pin z-pin--hotel"><i></i></span>', iconSize: [34, 42], iconAnchor: [17, 40], popupAnchor: [0, -38] }),
+        zIndexOffset: 1000,
+        title: hotel.name,
       }).addTo(hotelsLayer).bindPopup(`
-        <div style="font-family:var(--font-sans);min-width:170px;padding:2px 0">
-          <p style="font-weight:700;font-size:14px;margin:0 0 3px">${hotel.name}</p>
-          <p style="color:#6b7280;font-size:12px;margin:0 0 5px">${hotel.resort_town || hotel.destination || ''}</p>
-          ${hotel.min_price ? `<p style="color:#0093FF;font-weight:700;margin:0">od ${fmt(hotel.min_price)} Kč</p>` : ''}
-        </div>
-      `).openPopup()
+        <div class="z-pop"><div class="z-pop__body">
+          ${hotel.stars ? `<span class="z-pop__stars">${'★'.repeat(Math.min(5, hotel.stars))}</span>` : ''}
+          <b class="z-pop__title">${esc(hotel.name)}</b>
+          <span class="z-pop__sub">${esc(hotel.resort_town || hotel.destination || '')}</span>
+          ${hotel.min_price ? `<div class="z-pop__meta"><span>od ${fmt(hotel.min_price)} Kč</span></div>` : ''}
+        </div></div>
+      `, { maxWidth: 260, minWidth: 190 }).openPopup()
 
       nearby.forEach(n => {
         if (!n.latitude || !n.longitude) return
         L.marker([n.latitude, n.longitude], {
-          icon: L.divIcon({
-            className: '',
-            html: `<div style="background:white;border:2px solid #d1d5db;border-radius:10px;padding:3px 8px;font-size:11px;font-weight:700;color:#374151;box-shadow:0 2px 8px rgba(0,0,0,0.12);white-space:nowrap;">🏨 ${fmt(n.min_price)} Kč</div>`,
-            iconSize: [120, 26], iconAnchor: [60, 13], popupAnchor: [0, -15],
-          }),
+          icon: L.divIcon({ className: '', html: `<span class="z-pin z-pin--price">${fmt(n.min_price)} Kč</span>`, iconSize: [84, 28], iconAnchor: [42, 14], popupAnchor: [0, -16] }),
+          title: n.name,
         }).addTo(hotelsLayer).bindPopup(`
-          <div style="font-family:var(--font-sans);min-width:150px;padding:2px 0">
-            <p style="font-weight:700;font-size:13px;margin:0 0 3px">${n.name}</p>
-            <p style="color:#6b7280;font-size:11px;margin:0 0 5px">${'★'.repeat(n.stars || 0)}${n.distance_km != null ? ` · ${Number(n.distance_km).toFixed(1)} km` : ''}</p>
-            <a href="/hotel/${n.slug}" style="color:#0093FF;font-size:12px;font-weight:600;text-decoration:none">Zobrazit →</a>
+          <div class="z-pop">
+            ${n.thumbnail_url ? `<img class="z-pop__img" src="${esc(n.thumbnail_url)}" alt="" loading="lazy">` : ''}
+            <div class="z-pop__body">
+              ${n.stars ? `<span class="z-pop__stars">${'★'.repeat(Math.min(5, n.stars))}</span>` : ''}
+              <b class="z-pop__title">${esc(n.name)}</b>
+              <span class="z-pop__sub">${esc(n.resort_town ?? '')}${n.distance_km != null ? ` · ${Number(n.distance_km).toFixed(1)} km` : ''}</span>
+              <a class="z-pop__go" href="/hotel/${esc(n.slug)}">Zobrazit</a>
+            </div>
           </div>
-        `)
+        `, { maxWidth: 260, minWidth: 190 })
       })
 
       const pts: [number, number][] = [
@@ -207,17 +203,14 @@ out body;`
           if (!layerGroupsRef.current[cat]) layerGroupsRef.current[cat] = L.layerGroup()
           const name = poiName(el.tags, layer.label)
           L.marker([el.lat, el.lon], {
-            icon: L.divIcon({
-              className: '',
-              html: `<div style="width:28px;height:28px;border-radius:50%;background:${layer.color};border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;font-size:12px;">${layer.emoji}</div>`,
-              iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16],
-            }),
+            icon: L.divIcon({ className: '', html: `<span class="z-pin z-pin--dot" data-poi="${cat}"></span>`, iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -12] }),
+            title: name,
           }).addTo(layerGroupsRef.current[cat]).bindPopup(`
-            <div style="font-family:var(--font-sans);min-width:120px;padding:2px 0">
-              <p style="font-weight:700;font-size:13px;margin:0 0 4px">${name}</p>
-              <span style="display:inline-block;background:${layer.color}22;color:${layer.color};font-size:10px;font-weight:600;padding:1px 6px;border-radius:99px">${layer.label}</span>
-            </div>
-          `)
+            <div class="z-pop"><div class="z-pop__body">
+              <b class="z-pop__title">${esc(name)}</b>
+              <div class="z-pop__meta"><span>${layer.label}</span></div>
+            </div></div>
+          `, { maxWidth: 240 })
         })
 
       const map = mapRef.current
@@ -243,72 +236,23 @@ out body;`
 
   if (!hotel.latitude || !hotel.longitude) return null
 
-  // Minimalist button base classes
-  const btn = 'cursor-pointer select-none transition-colors duration-150 text-[11px] font-semibold'
-  const btnOff = 'bg-white/95 text-gray-700 border border-gray-200 hover:bg-gray-50'
+  const chip = (on: boolean, label: React.ReactNode, onClick: () => void, disabled = false) => (
+    <button type="button" className="z-chip z-hmap__chip" aria-pressed={on} disabled={disabled} onClick={onClick}>{label}</button>
+  )
 
   return (
-    <div className="relative z-0 rounded-2xl border border-gray-100 overflow-hidden" style={{ height: 440 }}>
-      {/* Leaflet map fills entire container */}
-      <div ref={containerRef} className="absolute inset-0" />
-
-      {/* Controls overlay — pointer-events-none passes mouse events to map */}
-      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 500 }}>
-
-        {/* Top-right: zoom + satellite */}
-        <div className="absolute top-3 right-3 flex flex-col gap-px pointer-events-auto">
-          <button onClick={() => mapRef.current?.zoomIn()}
-            className={`${btn} ${btnOff} w-8 h-8 flex items-center justify-center rounded-t-lg text-base leading-none shadow-sm`}>
-            +
-          </button>
-          <button onClick={() => mapRef.current?.zoomOut()}
-            className={`${btn} ${btnOff} w-8 h-8 flex items-center justify-center rounded-b-lg text-base leading-none shadow-sm border-t-0`}>
-            −
-          </button>
-          <button onClick={() => setSatellite(s => !s)}
-            className={`${btn} w-8 h-8 flex items-center justify-center rounded-lg shadow-sm mt-1.5 ${
-              satellite ? 'bg-gray-800 text-white border border-gray-700' : btnOff
-            }`}>
-            {satellite ? 'M' : 'S'}
-          </button>
-        </div>
-
-        {/* Bottom-left: layer toggles */}
-        <div className="absolute bottom-5 left-3 flex flex-col gap-1 pointer-events-auto">
-          {/* Hotels */}
-          <button onClick={() => toggle('hotels')}
-            className={`${btn} flex items-center gap-2 h-7 px-3 rounded-lg shadow-sm ${
-              active.has('hotels') ? 'bg-[#0093FF] text-white border border-[#0093FF]' : btnOff
-            }`}>
-            Hotely
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${active.has('hotels') ? 'bg-white/25' : 'bg-gray-100 text-gray-500'}`}>
-              {nearby.length + 1}
-            </span>
-          </button>
-
-          {POI_LAYERS.map(layer => (
-            <button key={layer.id} onClick={() => toggle(layer.id)}
-              disabled={poiStatus === 'loading' && !active.has(layer.id)}
-              style={active.has(layer.id) ? { background: layer.color, borderColor: layer.color } : {}}
-              className={`${btn} flex items-center gap-1.5 h-7 px-3 rounded-lg shadow-sm disabled:opacity-50 ${
-                active.has(layer.id) ? 'text-white border' : btnOff
-              }`}>
-              {layer.label}
-              {poiStatus === 'loading' && active.has(layer.id) && (
-                <svg className="animate-spin w-2.5 h-2.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 70" />
-                </svg>
-              )}
-            </button>
-          ))}
-
-          {poiStatus === 'error' && (
-            <button onClick={() => { setPoiStatus('idle'); loadPois() }}
-              className={`${btn} flex items-center h-7 px-3 rounded-lg text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 shadow-sm`}>
-              ↺ Zkusit znovu
-            </button>
-          )}
-        </div>
+    <div className="z-hmap" data-sat={satellite || undefined}>
+      <div ref={containerRef} className="z-map" role="region" aria-label={`Mapa: ${hotel.name}`} />
+      <div className="z-hmap__bar">
+        {chip(active.has('hotels'), <>Hotely · {nearby.length + 1}</>, () => toggle('hotels'))}
+        {POI_LAYERS.map(layer => chip(
+          active.has(layer.id),
+          <>{layer.label}{poiStatus === 'loading' && active.has(layer.id) ? ' …' : ''}</>,
+          () => toggle(layer.id),
+          poiStatus === 'loading' && !active.has(layer.id),
+        ))}
+        {chip(satellite, 'Satelit', () => setSatellite(s => !s))}
+        {poiStatus === 'error' && chip(false, '↺ Zkusit znovu', () => { setPoiStatus('idle'); loadPois() })}
       </div>
     </div>
   )
