@@ -37,4 +37,9 @@ export const DEFAULT_SOURCES: [string, string, boolean][] = [
   ['Matador Network', 'https://matadornetwork.com/feed/', true],
   ['Novinky.cz – Cestování', 'https://www.novinky.cz/rss/cestovani', true],
   ['Skift (cestovní ruch)', 'https://skift.com/feed/', false],
+  ['The Guardian – Travel', 'https://www.theguardian.com/travel/rss', false],
+  ['Euronews – Travel', 'https://www.euronews.com/rss?level=vertical&name=travel', false],
+  ['Travel Lemming', 'https://travellemming.com/feed/', false],
+  ['Atlas Obscura', 'https://www.atlasobscura.com/feeds/latest', false],
+  ['BBC Travel', 'https://www.bbc.com/travel/feed.rss', false],
 ]

@@ -101,7 +101,8 @@ export async function pickForToday(): Promise<{ runId?: number; picks: { url: st
   const existing = existingRows.map(a => `- ${a.title}${a.location ? ` [${a.location}]` : ''}`).join('\n') || '(zatím žádné)'
   const offer = list.map((c, i) => `${i + 1}. [${c.sourceName}] ${c.title}`).join('\n')
 
-  const prompt = await promptFor('auto_select', { existing, candidates: offer, max: remaining })
+  const month = new Date().toLocaleDateString('cs-CZ', { month: 'long', year: 'numeric', timeZone: 'Europe/Prague' })
+  const prompt = await promptFor('auto_select', { existing, candidates: offer, max: remaining, month })
   const verdicts = parseJson<{ index: number; score: number; reason: string }[]>(await geminiText(prompt, { temperature: 0.2, maxTokens: 6000 }))
   const byIndex = new Map(verdicts.map(v => [Number(v.index), v]))
 
