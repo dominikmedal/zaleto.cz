@@ -766,6 +766,8 @@ def main() -> int:
         except QuotaExhausted:
             conn.rollback()
             log.info("limit Unsplash API na tuto hodinu vyčerpán, další hodinový běh naváže")
+            if kind == "guide_images":
+                continue  # fotky z Wikimedia Commons limit nemají, ostatní průvodci se zpracují
             break
         except Exception as e:
             conn.rollback()
