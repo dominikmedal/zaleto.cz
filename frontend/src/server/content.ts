@@ -1,5 +1,6 @@
 import { query } from './db'
 import { ensureAutomationSchema } from './automationDb'
+import { searchUnsplash, registerDownload } from './unsplash'
 import { metaCache } from './cache'
 import { HttpError, type Q } from './hotels'
 
@@ -282,5 +283,57 @@ export async function bestHotelPhotos(countries: string[]): Promise<Record<strin
   } catch (e) {
     console.error('bestHotelPhotos error:', (e as Error).message)
     return {}
+  }
+}
+
+// ─── Galerie fotek destinace (Unsplash) ─────────────────────────────────────
+
+export interface GalleryPhoto { url: string; credit: string; creditUrl: string; alt: string | null }
+
+let galleryReady: Promise<void> | null = null
+const galleryRetryAt = new Map<string, number>()
+
+/**
+ * Několik fotek destinace z Unsplash. Při prvním zobrazení se vyhledají, uloží do databáze (vč. autorů)
+ * a pak se už Unsplash nevolá (klíč v demo režimu má limit 50 dotazů za hodinu). Fotky se hotlinkují z CDN Unsplash,
+ * u každého je autor a odkaz; použití se hlásí přes download_location, jak vyžadují pravidla API.
+ */
+export async function destinationGallery(name: string, country?: string | null, exclude: (string | null | undefined)[] = [], count = 6): Promise<GalleryPhoto[]> {
+  const key = `gallery_${name}`
+  const cached = metaCache.get(key)
+  if (cached) return cached as GalleryPhoto[]
+  if (!process.env.UNSPLASH_ACCESS_KEY) return []
+  try {
+    galleryReady ??= query(`CREATE TABLE IF NOT EXISTS destination_gallery (
+      name TEXT PRIMARY KEY, photos JSONB NOT NULL DEFAULT '[]', updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`).then(() => undefined)
+    await galleryReady
+    const row = (await query<{ photos: GalleryPhoto[] }>('SELECT photos FROM destination_gallery WHERE name = ?', [name])).rows[0]
+    if (row) { metaCache.set(key, row.photos); return row.photos }
+    if ((galleryRetryAt.get(name) ?? 0) > Date.now()) return []
+
+    const base = DEST_EN[name] ?? (country && country !== name ? `${name} ${country}` : name)
+    const skip = new Set(exclude.filter((u): u is string => !!u).map(u => u.split('?')[0]))
+    const seen = new Set<string>()
+    const picked: (GalleryPhoto & { download: string })[] = []
+    for (const q of [`${base} travel`, base]) {
+      for (const h of await searchUnsplash(q)) {
+        const id = h.url.split('?')[0]
+        if (picked.length >= count) break
+        if (h.width < 2000 || h.width / h.height < 1.2 || skip.has(id) || seen.has(id)) continue
+        seen.add(id)
+        picked.push({ url: h.url, credit: h.credit, creditUrl: h.creditUrl, alt: h.alt, download: h.downloadLocation })
+      }
+      if (picked.length >= count) break
+    }
+    if (picked.length < 3) { galleryRetryAt.set(name, Date.now() + 30 * 60_000); return [] } // příliš málo vhodných fotek: zkusíme později
+    await Promise.all(picked.map(p => registerDownload(p.download)))
+    const photos: GalleryPhoto[] = picked.map(({ download: _d, ...p }) => p)
+    await query(`INSERT INTO destination_gallery (name, photos) VALUES (?, ?) ON CONFLICT (name) DO NOTHING`, [name, JSON.stringify(photos)])
+    metaCache.set(key, photos)
+    return photos
+  } catch (e) {
+    console.error('destination-gallery error:', (e as Error).message)
+    galleryRetryAt.set(name, Date.now() + 10 * 60_000) // např. vyčerpaný limit Unsplash
+    return []
   }
 }

@@ -12,6 +12,7 @@ import NavTabs, { type NavTabItem } from '@/components/ui/NavTabs'
 import { PlaceTickets, FoodMenu, TripRoute } from '@/components/ui/ItemCard'
 import { fetchDestinations, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationPhotoCredit, fetchDestinationAI, fetchHotels, fetchArticles } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
+import { destinationGallery } from '@/server/content'
 import { mergeDestinations } from '@/lib/carRental'
 import { fetchDynamicCarDestinations } from '@/lib/api'
 
@@ -126,11 +127,12 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
 
   const sort = SORTS.some(([v]) => v === searchParams.sort) ? (searchParams.sort as string) : 'price_asc'
 
-  const [destAI, heroPhoto, result, articles] = await Promise.all([
+  const [destAI, heroPhoto, result, articles, gallery] = await Promise.all([
     fetchDestinationAI(dest.name).catch(() => null),
     fetchDestinationPhotoCredit(dest.name).then(async r => (r.url ? r : dest.country && dest.country !== dest.name ? fetchDestinationPhotoCredit(dest.country) : r)),
     fetchHotels({ destination: dest.name, sort, page: 1, limit: LIMIT }).catch(() => null),
     fetchArticles(3, dest.name).catch(() => []),
+    destinationGallery(dest.name, dest.country).catch(() => []),
   ])
 
   const aiText = destAI?.description && destAI.description.length >= 20 ? destAI.description : null
@@ -161,12 +163,16 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
     : carDests.find(d => norm(d.name) === norm(dest.name)) ?? carDests.find(d => d.slug === norm(dest.name))
   const carUrl = carMatch ? `/pujcovna-aut/${carMatch.slug}` : '/pujcovna-aut'
 
+  const heroId = heroPhoto?.url?.split('?')[0]
+  const photos = gallery.filter(g => g.url.split("?")[0] !== heroId).slice(0, 5)
+
   const tabs: NavTabItem[] = [
     ...(paragraphs.length > 1 ? [{ href: '#o-destinaci', label: 'O destinaci', icon: 'kompas' as const }] : []),
     ...(bestTime ? [{ href: '#kdy-jet', label: 'Kdy jet', icon: 'kalendar' as const }] : []),
     ...(places.length ? [{ href: '#co-videt', label: 'Co vidět', icon: 'poloha' as const }] : []),
     ...(food.length ? [{ href: '#jidlo', label: 'Jídlo', icon: 'jidlo' as const }] : []),
     ...(trips.length ? [{ href: '#vylety', label: 'Výlety', icon: 'trasa' as const }] : []),
+    ...(photos.length >= 3 ? [{ href: '#fotky', label: 'Fotky', icon: 'foto' as const }] : []),
     { href: '#zajezdy', label: 'Zájezdy', icon: 'letadlo' as const },
     ...(articles.length ? [{ href: '#clanky', label: 'Články', icon: 'clanek' as const }] : []),
     ...(weatherUrl ? [{ href: weatherUrl, label: 'Počasí', icon: 'slunce' as const }] : []),
@@ -240,6 +246,22 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
               {adHotel && <TourAd hotel={adHotel} sticky kicker={`Nabídka — ${dest.name}`} />}
             </aside>
           </div>
+        )}
+
+        {photos.length >= 3 && (
+          <Block id="fotky" kicker="Fotky" title={`jak to vypadá: ${dest.name}`}>
+            <div className="z-gallery">
+              {photos.map((ph, i) => (
+                <figure key={ph.url} className="z-gallery__item" data-big={i === 0 || undefined}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={ph.url} alt={ph.alt ?? `${dest.name} – fotografie`} loading="lazy" />
+                  <figcaption>
+                    <a href={ph.creditUrl} target="_blank" rel="noopener noreferrer">{ph.credit}</a> / <a href="https://unsplash.com/?utm_source=zaleto&utm_medium=referral" target="_blank" rel="noopener noreferrer">Unsplash</a>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </Block>
         )}
 
         <section id="zajezdy" data-rail="Zájezdy" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 56px)' }}>
