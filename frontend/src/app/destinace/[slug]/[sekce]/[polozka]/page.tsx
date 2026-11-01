@@ -134,23 +134,11 @@ export default async function GuideItemPage({ params }: Props) {
           </div>
         )}
 
-        <div className="z-item__ctas">
-          <Link href={`${base}/hotely`} className="z-cta z-cta--main">
-            <span className="z-cta__ic"><Icon name="hotel" size="lg" /></span>
-            <span className="z-cta__txt"><b>Hotely: {dest.name}</b><small>všechny hotely s aktuálním termínem</small></span>
-            <span className="z-cta__go" aria-hidden="true"><Icon name="sipka" /></span>
-          </Link>
-          <Link href={`${base}#zajezdy`} className="z-cta">
-            <span className="z-cta__ic"><Icon name="letadlo" size="lg" /></span>
-            <span className="z-cta__txt"><b>Zájezdy: {dest.name}</b><small>porovnání cen více cestovních kanceláří</small></span>
-            <span className="z-cta__go" aria-hidden="true"><Icon name="sipka" /></span>
-          </Link>
-          <Link href={sectionUrl} className="z-cta">
-            <span className="z-cta__ic"><Icon name={sec.icon} size="lg" /></span>
-            <span className="z-cta__txt"><b>Všechny: {sec.label.toLowerCase()}</b><small>zpět na přehled sekce</small></span>
-            <span className="z-cta__go" aria-hidden="true"><Icon name="sipka" /></span>
-          </Link>
-        </div>
+        <nav className="z-item__links" aria-label="Související stránky">
+          <Link href={`${base}/hotely`}><Icon name="hotel" size="sm" />Hotely: {dest.name}<Icon name="sipka" size="sm" /></Link>
+          <Link href={`${base}#zajezdy`}><Icon name="letadlo" size="sm" />Zájezdy: {dest.name}<Icon name="sipka" size="sm" /></Link>
+          <Link href={sectionUrl}><Icon name={sec.icon} size="sm" />Všechny: {sec.label.toLowerCase()}<Icon name="sipka" size="sm" /></Link>
+        </nav>
 
         {others.length > 0 && (
           <section className="z-section" style={{ paddingTop: 'var(--space-7)' }}>

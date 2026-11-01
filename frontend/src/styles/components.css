@@ -1924,3 +1924,11 @@ button.z-chip { cursor: pointer; }
   .z-place[data-lead] .z-place__stub { grid-column: 1 / -1; }
 }
 @media (max-width: 767px) { .z-places, .z-beaches__grid.z-places { grid-template-columns: 1fr; } .z-place__media, .z-place__media[data-tilt="1"] { transform: none; } }
+
+/* stránka položky: decentní odkazy */
+.z-item__links { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-7); padding-top: var(--space-5); border-top: 2px dotted var(--line); }
+.z-item__links a { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--ink); text-decoration: none; font-weight: 500; font-size: 15px; transition: background .2s, border-color .2s; }
+.z-item__links a .zi:first-child { color: var(--brand-strong); }
+.z-item__links a .zi:last-child { opacity: .45; transition: transform .2s, opacity .2s; }
+.z-item__links a:hover { background: var(--raised); border-color: var(--ink); }
+.z-item__links a:hover .zi:last-child { transform: translateX(3px); opacity: 1; }
