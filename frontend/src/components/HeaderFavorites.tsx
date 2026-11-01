@@ -32,6 +32,7 @@ export default function HeaderFavorites() {
         {count > 0 && <span className="z-favs__count">{count > 99 ? '99+' : count}</span>}
       </button>
 
+      {open && <div className="z-favs__scrim" onClick={() => setOpen(false)} aria-hidden="true" />}
       {open && (
         <div className="z-tk z-tk--h z-favs__panel" style={{ ['--cut' as string]: '0px' }} role="dialog" aria-label="Oblíbené hotely">
           <div className="z-tk__in">

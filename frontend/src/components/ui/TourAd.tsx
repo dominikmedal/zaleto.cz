@@ -13,7 +13,7 @@ export default function TourAd({ hotel, sticky = false, kicker = 'Nabídka dne' 
     <aside className={`z-tk z-tk--h z-ad${sticky ? ' z-ad--sticky' : ''}`} aria-label="Nabídka">
       <div className="z-tk__in">
         <div className="z-ad__top"><span className="z-kicker">{kicker}</span></div>
-        {place && <div className="z-kicker" style={{ marginBottom: 12 }}>{place}</div>}
+        {place && <div className="z-kicker z-ad__place" style={{ marginBottom: 12 }}>{place}</div>}
         <div className="z-ad__media">
           {hotel.thumbnail_url && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -23,7 +23,7 @@ export default function TourAd({ hotel, sticky = false, kicker = 'Nabídka dne' 
         </div>
         <h3 className="z-ad__title">{hotel.name}</h3>
         <ul className="z-ad__list">
-          <li><Icon name="ok" />Porovnání cen od více CK</li>
+          <li className="z-ad__li-compare"><Icon name="ok" />Porovnání cen od více CK</li>
           {dates && <li><Icon name="ok" />Nejbližší odlet {dates}</li>}
         </ul>
         <div className="z-ad__stub">

@@ -2,13 +2,17 @@ name: purge-expired
 
 on:
   schedule:
-    - cron: '30 3 * * 1'   # každé pondělí 03:30 UTC
+    - cron: '15 0 * * *'   # každý den 00:15 UTC: smaže termíny s prošlým datem odletu a přepočítá ceny hotelů
   workflow_dispatch:
+
+concurrency:
+  group: purge-expired
+  cancel-in-progress: false
 
 jobs:
   purge:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
