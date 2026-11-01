@@ -1994,3 +1994,14 @@ button.z-chip { cursor: pointer; }
 .z-stripwrap .z-strip { margin-top: 0; }
 
 .z-strip__save { display: block; max-width: calc(100% - 50px); }
+
+/* Souhlas s cookies: nenápadná kompaktní lišta vlevo dole (vpravo dole je chat) */
+.z-consent { position: fixed; left: var(--space-4); bottom: var(--space-4); z-index: 90; display: flex; align-items: center; gap: var(--space-3); max-width: min(480px, calc(100vw - 32px)); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); background: var(--raised); border: 1px solid var(--line); border-radius: var(--radius-pill); box-shadow: var(--shadow-ticket); }
+.z-consent__text { margin: 0; font: 400 13px/18px var(--font-sans); color: var(--ink-muted); }
+.z-consent__text a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+.z-consent__btns { display: flex; gap: var(--space-2); flex: none; }
+.z-consent .z-btn--sm { height: 34px; padding: 0 var(--space-3); font-size: 13px; }
+@media (max-width: 560px) {
+  .z-consent { left: var(--space-2); right: var(--space-2); bottom: var(--space-2); max-width: none; padding-left: var(--space-3); }
+  .z-consent__text { font-size: 12px; line-height: 16px; }
+}

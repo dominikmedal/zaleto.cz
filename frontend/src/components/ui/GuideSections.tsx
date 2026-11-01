@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Icon, { type IconName } from './Icon'
+import { PhotoCredit } from './PhotoCredit'
 import type { GuidePhoto, GuideResort, DestinationGuide } from '@/lib/guide'
 import { GUIDE_SECTIONS, sectionCount } from '@/lib/guideSections'
 
@@ -36,26 +37,37 @@ export function GuideHub({ guide, base }: { guide: DestinationGuide; base: strin
   )
 }
 
-/** Střediska oblasti: odkaz na vlastní stránku střediska, pokud ji na Zaletu máme. */
-export function ResortCards({ items, links }: { items: GuideResort[]; links: Record<string, string> }) {
+/** Střediska oblasti jako lístky stejně jako památky: fotka, štítek s charakterem, odkaz na stránku střediska, pokud ji na Zaletu máme. */
+export function ResortCards({ items, links, photos = {} }: { items: GuideResort[]; links: Record<string, string>; photos?: Record<string, GuidePhoto> }) {
   return (
-    <div className="z-resorts">
-      {items.map(r => {
+    <div className="z-places">
+      {items.map((r, i) => {
         const href = links[r.name]
-        const inner = (
-          <>
-            <span className="z-resort__ic"><Icon name="poloha" /></span>
-            <div>
-              <h3 className="z-resort__title">{r.name}</h3>
-              {r.vibe && <span className="z-resort__vibe">{r.vibe}</span>}
-              <p>{r.description}</p>
+        const ph = photos[r.name]
+        return (
+          <article key={r.name} className="z-tk z-tk--h z-place" data-lead={(i === 0 && items.length > 2) || undefined} style={{ ['--cut' as string]: href ? '68px' : '0px' }}>
+            <div className="z-tk__in">
+              <div className="z-place__media" data-tilt={i % 2}>
+                {ph ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={ph.url} alt={r.name} loading="lazy" />
+                ) : <span className="z-place__ph" aria-hidden="true"><Icon name="poloha" size="lg" /></span>}
+                {r.vibe && <span className="z-stamp z-place__stamp">{r.vibe}</span>}
+                {ph?.credit && <PhotoCredit photo={ph} className="z-place__credit" />}
+              </div>
+              <div className="z-place__body">
+                <h3 className="z-place__title">{href ? <Link className="z-gcard__hit" href={href}>{r.name}</Link> : r.name}</h3>
+                <p>{r.description}</p>
+              </div>
+              {href && (
+                <div className="z-place__stub">
+                  <span className="z-place__nr">Zobrazit středisko</span>
+                  <span className="z-place__go" aria-hidden="true"><Icon name="sipka" /></span>
+                </div>
+              )}
             </div>
-            {href && <span className="z-resort__go" aria-hidden="true"><Icon name="sipka" size="sm" /></span>}
-          </>
+          </article>
         )
-        return href
-          ? <Link key={r.name} href={href} className="z-resort z-resort--link">{inner}</Link>
-          : <div key={r.name} className="z-resort">{inner}</div>
       })}
     </div>
   )

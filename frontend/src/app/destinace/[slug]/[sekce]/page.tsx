@@ -10,7 +10,7 @@ import { ResortCards, TransportCards } from '@/components/ui/GuideSections'
 import PlaceCards from '@/components/ui/PlaceCards'
 import { GUIDE_SECTIONS, sectionCount } from '@/lib/guideSections'
 import { resolveDestination } from '../resolve'
-import { loadGuide } from '../guideData'
+import { loadGuide, loadResortPhotos } from '../guideData'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -43,7 +43,7 @@ export default async function GuideSectionPage({ params }: Props) {
   ]
 
   let body: React.ReactNode = null
-  if (sec.key === 'strediska') body = <ResortCards items={guide.resorts} links={resortLinks} />
+  if (sec.key === 'strediska') body = <ResortCards items={guide.resorts} links={resortLinks} photos={await loadResortPhotos(guide)} />
   else if (sec.key === 'plaze') body = <BeachExplorer beaches={guide.beaches} resortLinks={resortLinks} regionName={dest.name} base={`${base}/plaze`} />
   else if (sec.key === 'klastery') body = <PlaceCards items={guide.monasteries} icon="mesto" base={`${base}/klastery`} />
   else if (sec.key === 'pamatky') body = <PlaceCards items={guide.sights} icon="kompas" base={`${base}/pamatky`} />

@@ -32,6 +32,7 @@ import FieldClicks from '@/components/ui/FieldClicks'
 import ServiceWorkerSetup from '@/components/ServiceWorkerSetup'
 import JsonLd from '@/components/JsonLd'
 import ChatWidget from '@/components/ChatWidget'
+import CookieConsent from '@/components/CookieConsent'
 
 export const metadata: Metadata = {
   title: {
@@ -118,6 +119,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="ga-init" strategy="afterInteractive">{`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
+          gtag('consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+          try { if (localStorage.getItem('z-consent') === 'granted') gtag('consent', 'update', { analytics_storage: 'granted' }); } catch (e) {}
           gtag('js', new Date());
           gtag('config', 'G-HPE9HH5VG3');
         `}</Script>
@@ -132,6 +135,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <ScrollToTop />
         <ChatWidget />
+        <CookieConsent />
         <ExitOffer />
         <SectionRail />
       </body>
