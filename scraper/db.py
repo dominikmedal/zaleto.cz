@@ -159,8 +159,13 @@ class ZaletoDB:
 
     # ── Checkpointy ──────────────────────────────────────────────────────
 
+    @staticmethod
+    def _cycle() -> str:
+        """Klíč cyklu checkpointů: dnešní datum, nebo SCRAPER_CYCLE (např. 2026-W44), aby se dlouhý scrape mohl navázat další den."""
+        return os.environ.get("SCRAPER_CYCLE") or datetime.now().strftime("%Y-%m-%d")
+
     def get_done_keys(self, agency: str) -> set:
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = self._cycle()
         cur = self._cur()
         cur.execute(
             "SELECT key FROM hotel_checkpoints WHERE agency = %s AND cycle_date = %s",
@@ -169,7 +174,7 @@ class ZaletoDB:
         return {r["key"] for r in cur.fetchall()}
 
     def mark_done(self, agency: str, key: str):
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = self._cycle()
         cur = self._cur()
         cur.execute(
             "INSERT INTO hotel_checkpoints (agency, key, cycle_date) VALUES (%s, %s, %s) "
