@@ -11,6 +11,7 @@ import { slugify } from '@/lib/slugify'
 const GuideMap = dynamic(() => import('./GuideMap'), { ssr: false, loading: () => <div className="z-map z-map--loading" /> })
 
 const CROWD: Record<string, string> = { 'klidná': 'klidná', 'střední': 'středně rušná', 'rušná': 'rušná' }
+const CROWDLVL: Record<string, number> = { 'klidná': 1, 'střední': 2, 'rušná': 3 }
 const OTHER = 'Další pláže'
 
 /** Pláže oblasti: mapa s značkami, filtr podle střediska a karty pláží seskupené podle středisek. */
@@ -90,7 +91,12 @@ export default function BeachExplorer({ beaches, resortLinks = {}, regionName, b
                 )}
               </div>
               <div className="z-place__stub">
-                <span className="z-place__nr"><Icon name="plaz" size="sm" />Nº {String(i + 1).padStart(2, '0')}</span>
+                {b.crowd && CROWDLVL[b.crowd] ? (
+                  <span className="z-place__nr" title={`Rušnost: ${CROWD[b.crowd] ?? b.crowd}`}>
+                    <span className="z-place__crowd" data-lvl={CROWDLVL[b.crowd]} aria-hidden="true"><i /><i /><i /></span>
+                    {CROWD[b.crowd] ?? b.crowd}
+                  </span>
+                ) : <span className="z-place__nr">Podrobnosti</span>}
                 <span className="z-place__go" aria-hidden="true"><Icon name="sipka" /></span>
               </div>
             </div>

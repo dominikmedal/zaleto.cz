@@ -1932,3 +1932,9 @@ button.z-chip { cursor: pointer; }
 .z-item__links a .zi:last-child { opacity: .45; transition: transform .2s, opacity .2s; }
 .z-item__links a:hover { background: var(--raised); border-color: var(--ink); }
 .z-item__links a:hover .zi:last-child { transform: translateX(3px); opacity: 1; }
+
+/* ústřižek karty: rušnost pláže jako tři tečky */
+.z-place__crowd { display: inline-flex; gap: 4px; }
+.z-place__crowd i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--ink); }
+.z-place__crowd[data-lvl="1"] i:nth-child(-n+1), .z-place__crowd[data-lvl="2"] i:nth-child(-n+2), .z-place__crowd[data-lvl="3"] i { background: var(--ink); }
+.z-place__nr { gap: 10px; }

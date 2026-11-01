@@ -4,10 +4,8 @@ import { PhotoCredit } from './PhotoCredit'
 import { slugify } from '@/lib/slugify'
 import type { GuidePlace } from '@/lib/guide'
 
-const nr = (i: number) => String(i + 1).padStart(2, '0')
-
 /**
- * Místa průvodce jako palubní lístky: fotka v okénku, razítko s typem, ústřižek s pořadovým číslem.
+ * Místa průvodce jako palubní lístky: fotka v okénku, razítko s typem, ústřižek s tlačítkem.
  * První položka je větší. Klik vede na vlastní stránku položky; bez fotky vznikne ikonová dlaždice.
  */
 export default function PlaceCards({ items, icon, base }: { items: GuidePlace[]; icon: IconName; base: string }) {
@@ -30,7 +28,7 @@ export default function PlaceCards({ items, icon, base }: { items: GuidePlace[];
               <p>{it.description}</p>
             </div>
             <div className="z-place__stub">
-              <span className="z-place__nr"><Icon name={icon} size="sm" />Nº {nr(i)}</span>
+              <span className="z-place__nr">Podrobnosti</span>
               <span className="z-place__go" aria-hidden="true"><Icon name="sipka" /></span>
             </div>
           </div>
