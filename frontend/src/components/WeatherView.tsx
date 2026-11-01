@@ -3,6 +3,8 @@ import Icon, { type IconName } from '@/components/ui/Icon'
 import Crumbs from '@/components/ui/Crumbs'
 import TourCard from '@/components/ui/TourCard'
 import TourAd from '@/components/ui/TourAd'
+import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
+import CarRentalBanner from '@/components/CarRentalBanner'
 import WeatherWidget from '@/components/WeatherWidget'
 import ClimateChart from '@/components/ClimateChart'
 import WeatherBarsChart from '@/components/WeatherBarsChart'
@@ -27,6 +29,8 @@ interface Props {
   location: { lat: number | null; lon: number | null }
   heroPhoto: string | null
   hotels: Hotel[]
+  /** Země pro odkaz na půjčovnu aut (jinak se použije název). */
+  country?: string
   /** Odkaz „Všechny zájezdy“ pod nabídkou. */
   toursHref: string
   subDestinations?: { name: string; slug: string; hotelCount: number }[]
@@ -34,7 +38,7 @@ interface Props {
   subBase?: string
 }
 
-export default function WeatherView({ name, crumbs, weather, location, heroPhoto, hotels, toursHref, subDestinations = [], subBase }: Props) {
+export default function WeatherView({ name, crumbs, weather, location, heroPhoto, hotels, toursHref, subDestinations = [], subBase, country }: Props) {
   const hasCharts = !!(weather.monthly_air && weather.monthly_air.length === 12)
   const peakSea = weather.monthly_sea ? Math.max(...weather.monthly_sea) : null
   const bestNames = weather.best_months.map(m => MONTH_SHORT[m - 1])
@@ -44,6 +48,9 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
   const hasWind = !!(weather.wind_info || weather.sea_info)
   const intro = weather.description?.split(/\n\n+/) ?? []
   const withPhoto = hotels.filter(h => h.thumbnail_url)
+  const offers = pickOffers(hotels)
+  const adHotel = withPhoto.find(h => !offers.includes(h)) ?? withPhoto[0] ?? null
+  const carAd = <div style={{ margin: '0' }}><CarRentalBanner place={name} country={country ?? name} /></div>
 
   const nav = [
     hasWeather || weather.best_months.length > 0 ? { id: 'pocasi', label: 'Počasí' } : null,
@@ -79,9 +86,12 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
         )}
       </div>
 
+      <OfferStrip hotels={offers} />
+
       <WeatherPageNav items={nav} />
 
-      <div className="z-cardest__main" style={{ marginTop: 'var(--space-8)', gap: 'var(--space-9)' }}>
+      <div className="z-cardest__grid">
+      <div className="z-cardest__main" style={{ gap: 'var(--space-9)' }}>
         {(hasWeather || weather.best_months.length > 0) && (
           <Section id="pocasi" kicker="Předpověď" title="počasí teď">
             <div className="z-weathergrid">
@@ -118,6 +128,8 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
             </div>
           </Section>
         )}
+
+        {carAd}
 
         {hasSeasons && (
           <Section id="obdobi" kicker="Roční období" title="počasí během roku">
@@ -171,11 +183,15 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
             <p className="body">Teď tu nemáme žádný volný termín.</p>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-5)', alignItems: 'stretch' }}>
-              {hotels.slice(0, 5).map((h, i) => <TourCard key={h.slug} hotel={h} priority={i < 3} />)}
-              {withPhoto[5] && <div style={{ display: 'flex' }}><div style={{ width: '100%' }}><TourAd hotel={withPhoto[5]} /></div></div>}
+              {hotels.slice(0, 6).map((h, i) => <TourCard key={h.slug} hotel={h} priority={i < 3} />)}
             </div>
           )}
         </Section>
+      </div>
+
+      <aside className="z-cardest__side">
+        {adHotel && <TourAd hotel={adHotel} sticky kicker="Dnešní tip pro Tebe" />}
+      </aside>
       </div>
     </main>
   )

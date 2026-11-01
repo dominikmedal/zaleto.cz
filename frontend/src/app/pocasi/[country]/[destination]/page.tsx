@@ -107,6 +107,7 @@ export default async function DestinationWeatherPage({ params }: Props) {
         location={location}
         heroPhoto={heroPhoto}
         hotels={hotels}
+        country={info.country}
         toursHref={`/destinace/${params.destination}`}
       />
     </>
