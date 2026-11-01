@@ -90,7 +90,7 @@ export default async function CountryWeatherPage({ params }: Props) {
     fetchWeatherAI(info.name),
     fetchWeatherLocation(info.name),
     fetchDestinationPhoto(info.name).catch(() => null),
-    fetchHotels({ destination: info.name, limit: 6, sort: 'stars_desc' }).then(r => r.hotels).catch(() => []),
+    fetchHotels({ destination: info.name, limit: 24, sort: 'stars_desc' }).then(r => r.hotels).catch(() => []),
   ])
 
   const breadcrumbSchema = {

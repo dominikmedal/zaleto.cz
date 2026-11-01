@@ -86,9 +86,9 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
         )}
       </div>
 
-      <OfferStrip hotels={offers} />
-
       <WeatherPageNav items={nav} />
+
+      <div className="z-stripwrap"><OfferStrip hotels={offers} /></div>
 
       <div className="z-cardest__grid">
       <div className="z-cardest__main" style={{ gap: 'var(--space-9)' }}>

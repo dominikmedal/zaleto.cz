@@ -87,7 +87,7 @@ export async function listHotels(q: Q) {
         SELECT h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
                h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
                ${extraFields},
-               s.min_price, s.available_dates, s.next_departure, s.next_return_date,
+               s.min_price, s.max_price, s.available_dates, s.next_departure, s.next_return_date,
                s.has_last_minute, s.has_first_minute
         FROM hotels h INNER JOIN hotel_stats s ON s.hotel_id = h.id
         ${where} ORDER BY ${fastOrderBy} LIMIT ? OFFSET ?`
@@ -116,6 +116,7 @@ export async function listHotels(q: Q) {
                h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
                ${extraFields},
                COALESCE(s.min_price, sub.min_price) AS min_price,
+               s.max_price AS max_price,
                COALESCE(s.available_dates, sub.available_dates) AS available_dates,
                COALESCE(s.next_departure, sub.next_departure) AS next_departure,
                s.next_return_date AS next_return_date,
@@ -200,7 +201,7 @@ export async function listHotels(q: Q) {
     const cteCore = `
       WITH agg AS MATERIALIZED (
         SELECT COALESCE(h2.canonical_slug, h2.slug) AS cslug,
-               MIN(t.price) AS min_price, COUNT(*)::integer AS available_dates,
+               MIN(t.price) AS min_price, MAX(t.price) AS max_price, COUNT(*)::integer AS available_dates,
                MIN(t.departure_date) AS next_departure, MIN(t.return_date) AS next_return_date,
                MAX(t.is_last_minute) AS has_last_minute, MAX(t.is_first_minute) AS has_first_minute
         FROM tours t INNER JOIN hotels h2 ON h2.id = t.hotel_id
@@ -212,7 +213,7 @@ export async function listHotels(q: Q) {
       h.id, h.slug, h.agency, h.name, h.country, h.destination, h.resort_town,
       h.stars, h.review_score, h.thumbnail_url, h.photos, h.latitude, h.longitude
       ${extraFields},
-      agg.min_price, agg.available_dates, agg.next_departure, agg.next_return_date,
+      agg.min_price, agg.max_price, agg.available_dates, agg.next_departure, agg.next_return_date,
       agg.has_last_minute, agg.has_first_minute`
     const fromJoin = `FROM hotels h INNER JOIN agg ON agg.cslug = h.slug WHERE 1=1 ${hotelWhereClause}`
 

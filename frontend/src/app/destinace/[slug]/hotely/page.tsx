@@ -69,8 +69,8 @@ export default async function DestinaceHotelyPage({ params, searchParams }: Prop
         </div>
         <h1 className="h1" style={{ margin: 'var(--space-3) 0 0' }}>hotely: {dest.name}<span className="z-dot">.</span></h1>
 
-        <OfferStrip hotels={pickOffers(hotels)} />
         <NavTabs items={tabs} />
+        <div className="z-stripwrap"><OfferStrip hotels={pickOffers(hotels)} /></div>
 
         <section className="z-section" style={{ paddingTop: 'var(--space-7)' }}>
           <div className="z-hotelspage__bar">

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
 import SectionHead from '@/components/ui/SectionHead'
+import Icon from '@/components/ui/Icon'
 import SearchBox from '@/components/ui/SearchBox'
 import { CarRentalProvider, CarRentalResults } from '@/components/CarRentalSearchForm'
 import TourCard from '@/components/ui/TourCard'
@@ -156,6 +157,28 @@ export default async function HomePage() {
             </div>
           </section>
         )}
+
+        <section className="z-section">
+          <div className="z-container">
+          <div className="z-carpromo">
+            <div className="z-tk z-carpromo__card"><div className="z-tk__in">
+              <div className="z-kicker" style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Icon name="auto" size="sm" />Půjčovna aut</div>
+              <h2 className="z-carpromo__title">auto na dovolenou, cena předem<span className="z-dot">.</span></h2>
+              <p>Skryté zátoky, horské vesničky a místní trhy dostupné jen autem. Srovnáme přes 500 půjčoven a cena při rezervaci je finální.</p>
+              <div className="z-meta">
+                <span><Icon name="shield" />Pojištění v ceně</span>
+                <span><Icon name="kalendar" />Storno zdarma 48 h</span>
+              </div>
+              <Link className="z-btn z-btn--primary" href="/pujcovna-aut">Srovnat půjčovny<span className="z-btn__go"><Icon name="sipka" /></span></Link>
+            </div></div>
+            <div className="z-carpromo__photo">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/img/1509.jpg" alt="Žena sedí v kufru auta u moře" width={1500} height={1000} loading="lazy" />
+              <span className="z-stamp z-carpromo__stamp">Svoboda na kolech</span>
+            </div>
+          </div>
+          </div>
+        </section>
         </div>
         </CarRentalProvider>
       </main>

@@ -222,9 +222,9 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
           )}
         </div>
 
-        <OfferStrip hotels={pickOffers(hotels)} />
-
         <NavTabs items={tabs} />
+
+        <div className="z-stripwrap"><OfferStrip hotels={pickOffers(hotels)} /></div>
 
         {hasLong && (
           <div className="z-cardest__grid">

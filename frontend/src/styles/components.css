@@ -1975,3 +1975,22 @@ button.z-chip { cursor: pointer; }
 
 .z-sr-stars { color: var(--accent); }
 .z-sr-stars .zi, .z-sr-stars .zi path { fill: var(--accent); stroke: var(--accent); }
+
+/* homepage: promo půjčovny aut */
+.z-carpromo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: var(--space-8); align-items: center; }
+.z-carpromo__card .z-tk__in { padding: var(--space-7) var(--space-7); display: grid; gap: var(--space-4); justify-items: start; }
+.z-carpromo__title { margin: 0; font: 600 clamp(32px, 4vw, 48px)/1.1 var(--font-serif); letter-spacing: -.02em; }
+.z-carpromo__card p { margin: 0; color: var(--ink-muted); max-width: 46ch; }
+.z-carpromo__photo { position: relative; border-radius: var(--radius-window); overflow: hidden; border: 10px solid var(--raised); box-shadow: var(--shadow-ticket); aspect-ratio: 3 / 2; background: var(--paper-deep); }
+.z-carpromo__photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.z-carpromo__stamp { position: absolute; left: 18px; bottom: 18px; transform: rotate(-4deg); color: var(--brand-strong); }
+@media (max-width: 1023px) { .z-carpromo { grid-template-columns: 1fr; gap: var(--space-5); } .z-carpromo__photo { order: -1; } .z-carpromo__card .z-tk__in { padding: var(--space-5); } }
+
+/* banner zájezdů: úspora místo termínu */
+.z-strip__save { font: 400 10.5px/14px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: rgba(255, 255, 255, .75); }
+
+/* banner zájezdů pod záložkami: jednotný odstup nad i pod */
+.z-stripwrap { margin: var(--space-6) 0 var(--space-8); }
+.z-stripwrap .z-strip { margin-top: 0; }
+
+.z-strip__save { display: block; max-width: calc(100% - 50px); }
