@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache'
 import { query } from '@/server/db'
+import { hotelSavings } from '@/server/offerSavings'
 import ExitOfferDialog, { type ExitOfferData } from './ExitOfferDialog'
 
 /** Nejlevnější last minute zájezd s fotkou (jinak nejlevnější termín v příštích 4 měsících). */
@@ -25,6 +26,7 @@ const loadOffer = unstable_cache(
     return {
       slug: row.slug, name: row.name, stars: row.stars ?? null, photo: row.thumbnail_url, place: row.place ?? row.country ?? '',
       price: Number(row.price), departure: row.departure_date, nights: row.duration ?? null, meal: row.meal_plan ?? null,
+      save: (await hotelSavings([row.slug])).get(row.slug) ?? null,
     }
   },
   ['exit-offer'],

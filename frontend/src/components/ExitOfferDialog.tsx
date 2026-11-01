@@ -1,6 +1,5 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
 import { formatDateRange, formatPrice } from '@/components/ui/format'
@@ -8,6 +7,8 @@ import { formatDateRange, formatPrice } from '@/components/ui/format'
 export interface ExitOfferData {
   slug: string; name: string; stars: number | null; photo: string; place: string
   price: number; departure: string; nights: number | null; meal: string | null
+  /** skutečná úspora nejlevnějšího termínu vs. průměr srovnatelných termínů (%), nebo null */
+  save?: number | null
 }
 
 const KEY = 'zaleto-exit-offer'
@@ -73,6 +74,7 @@ export default function ExitOfferDialog({ offer }: { offer: ExitOfferData }) {
           <div className="z-exit__media">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={offer.photo} alt={offer.name} />
+            {offer.save ? <span className="z-exit__save">Až −{offer.save} %</span> : null}
           </div>
           <div className="z-exit__body">
             <div className="z-kicker">Než odejdeš</div>
@@ -88,9 +90,10 @@ export default function ExitOfferDialog({ offer }: { offer: ExitOfferData }) {
               <span className="z-price__note">od · za osobu</span>
               <span className="z-price">{formatPrice(offer.price)}</span>
             </div>
-            <Link href={`/hotel/${offer.slug}`} className="z-btn z-btn--offer" onClick={() => setOpen(false)}>
+            {/* rovnou k partnerovi přes affiliate odkaz (nejlevnější termín hotelu) */}
+            <a href={`/api/redirect/${encodeURIComponent(offer.slug)}?best=1`} target="_blank" rel="noopener noreferrer sponsored" className="z-btn z-btn--offer" onClick={() => setOpen(false)}>
               Zobrazit nabídku<span className="z-btn__go"><Icon name="sipka" /></span>
-            </Link>
+            </a>
           </div>
         </div>
         <button type="button" className="z-more z-exit__skip" onClick={() => setOpen(false)}>Ne, děkuji</button>
