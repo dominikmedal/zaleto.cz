@@ -785,7 +785,7 @@ def main() -> int:
         time.sleep(PAUSE)
 
     log.info("hotovo: %d vygenerováno, %d neúspěšných", done, failed)
-    if done:
+    if done or (args.only and "guide_images" in args.only and queue):
         revalidate()
     if failed and not done:
         log.error("nic se nevygenerovalo – zkontroluj GEMINI_API_KEY a kredit u Googlu")
