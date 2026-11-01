@@ -8,6 +8,7 @@ import Crumbs from '@/components/ui/Crumbs'
 import ArticleBody from '@/components/ui/ArticleBody'
 import StoryCard from '@/components/ui/StoryCard'
 import TourAd from '@/components/ui/TourAd'
+import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
 import { formatLongDate, readingTime } from '@/components/ui/format'
 import { fetchArticle, fetchArticles, fetchAllArticleSlugs, fetchDestinationPhoto, fetchHotels } from '@/lib/api'
 
@@ -37,8 +38,8 @@ export default async function ArticlePage({ params }: Props) {
 
   const [photo, byDest, cheapest, others] = await Promise.all([
     article.location && !article.custom_image_url ? fetchDestinationPhoto(article.location).catch(() => null) : Promise.resolve(null),
-    article.location ? fetchHotels({ destination: article.location, limit: 6, sort: 'price_asc' }).catch(() => null) : Promise.resolve(null),
-    fetchHotels({ limit: 6, sort: 'price_asc' }).catch(() => null),
+    article.location ? fetchHotels({ destination: article.location, limit: 24, sort: 'price_asc' }).catch(() => null) : Promise.resolve(null),
+    fetchHotels({ limit: 24, sort: 'price_asc' }).catch(() => null),
     fetchArticles(5).catch(() => []),
   ])
   const hero = article.custom_image_url ?? photo
@@ -63,6 +64,7 @@ export default async function ArticlePage({ params }: Props) {
             <span><Icon name="cas" />{readingTime(article.reading_time)}</span>
             <span><Icon name="kalendar" />{formatLongDate(article.published_at)}</span>
           </div>
+          <div style={{ marginBottom: 'var(--space-6)' }}><OfferStrip hotels={pickOffers(pool)} /></div>
           {hero && (
             <figure style={{ margin: '0 0 var(--space-6)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
