@@ -6,7 +6,7 @@ type H = Pick<Hotel, 'slug' | 'name' | 'thumbnail_url' | 'min_price'> &
   Partial<Pick<Hotel, 'country' | 'resort_town' | 'stars' | 'next_departure' | 'next_return_date' | 'has_last_minute'>>
 
 /** Reklamní lístek – oranžový, s označením „Reklama“. Na stránce je vždy jen jeden. */
-export default function TourAd({ hotel, sticky = false, kicker = 'Nabídka dne' }: { hotel: H; sticky?: boolean; kicker?: string }) {
+export default function TourAd({ hotel, sticky = false, kicker = 'Dnešní tip pro Tebe' }: { hotel: H; sticky?: boolean; kicker?: string }) {
   const dates = formatDateRange(hotel.next_departure, hotel.next_return_date)
   const place = [hotel.resort_town, hotel.country].filter(Boolean).join(' · ')
   return (
