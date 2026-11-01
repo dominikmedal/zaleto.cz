@@ -1746,3 +1746,48 @@ button.z-chip { cursor: pointer; }
 .z-ghub__go { position: absolute; right: var(--space-5); bottom: var(--space-5); }
 .z-beach__credit, .z-gcard__credit { opacity: 1 !important; }
 .z-guidepage__lead { margin: var(--space-3) 0 0; max-width: 62ch; }
+
+/* klikací položky průvodce + detail v okně */
+.z-gcard, .z-beach { position: relative; }
+.z-gcard__hit { all: unset; cursor: pointer; }
+.z-gcard__hit::after { content: ''; position: absolute; inset: 0; z-index: 1; }
+.z-gcard__hit:focus-visible::after { outline: 3px solid var(--brand); outline-offset: -3px; border-radius: var(--radius-lg); }
+.z-gcard__credit, .z-beach__credit { z-index: 2; }
+.z-beach__map, .z-beach__body a { position: relative; z-index: 2; }
+.z-gcard:hover .z-gcard__title, .z-beach:hover .z-beach__title { text-decoration: underline; text-decoration-color: var(--brand); text-underline-offset: 4px; }
+.z-gcard__more { margin-top: auto; padding-top: var(--space-3); }
+.z-detail { max-width: 760px; }
+.z-detail__close { position: absolute; top: 12px; right: 12px; z-index: 3; background: var(--paper); box-shadow: var(--shadow-ticket); }
+.z-detail__scroll { overflow-y: auto; }
+.z-detail__media { position: relative; aspect-ratio: 16 / 9; background: linear-gradient(135deg, var(--sky), var(--paper-deep)); }
+.z-detail__media:not(:has(img)) { aspect-ratio: 16 / 4; }
+.z-detail__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.z-detail__badge { position: absolute; left: 14px; top: 14px; padding: 4px 12px; border-radius: var(--radius-pill); background: var(--paper); font: 700 11px/14px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.z-detail__credit { position: absolute; left: 12px; bottom: 12px; max-width: calc(100% - 24px); padding: 3px 10px; border-radius: var(--radius-pill); background: rgba(11, 27, 51, .66); color: #fff; font: 400 11px/16px var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.z-detail__credit a { color: inherit; text-decoration: none; }
+.z-detail__body { padding: var(--space-5) var(--space-6) var(--space-6); display: grid; gap: var(--space-3); }
+.z-detail__title { margin: 0; font: 600 34px/40px var(--font-serif); letter-spacing: -.01em; }
+.z-detail__text { margin: 0; }
+.z-detail__nav { display: flex; justify-content: space-between; padding: var(--space-3) var(--space-6); border-top: 2px dotted var(--line); }
+.z-detail__nav button:disabled { opacity: .35; cursor: default; }
+@media (max-width: 767px) { .z-detail__body { padding: var(--space-4); } .z-detail__title { font-size: 28px; line-height: 34px; } .z-detail__nav { padding: var(--space-3) var(--space-4); } }
+
+.z-htile__stars .zi, .z-htile__stars .zi path { fill: var(--accent); stroke: var(--accent); }
+.z-strip__stars .zi, .z-strip__stars .zi path { fill: currentColor; }
+
+/* galerie: lightbox */
+.z-gallery__open { all: unset; display: block; width: 100%; height: 100%; cursor: zoom-in; }
+.z-gallery__open:focus-visible { outline: 3px solid var(--brand); outline-offset: -3px; border-radius: 22px; }
+.z-gallery__item figcaption { z-index: 1; }
+.z-lightbox { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; }
+.z-lightbox__scrim { position: absolute; inset: 0; background: rgba(6, 14, 28, .92); }
+.z-lightbox__fig { position: relative; margin: 0; max-width: min(1200px, 92vw); max-height: 92dvh; display: grid; gap: 10px; }
+.z-lightbox__fig img { max-width: 100%; max-height: calc(92dvh - 44px); object-fit: contain; border-radius: 14px; box-shadow: 0 20px 60px rgba(0, 0, 0, .5); }
+.z-lightbox__fig figcaption { display: flex; justify-content: space-between; gap: var(--space-4); color: #d7e4f5; font: 400 12px/18px var(--font-mono); }
+.z-lightbox__fig figcaption a { color: inherit; }
+.z-lightbox__btn { position: absolute; z-index: 2; display: grid; place-items: center; width: 48px; height: 48px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .14); color: #fff; cursor: pointer; backdrop-filter: blur(6px); }
+.z-lightbox__btn:hover { background: rgba(255, 255, 255, .28); }
+.z-lightbox__close { top: 16px; right: 16px; }
+.z-lightbox__prev { left: 16px; top: 50%; transform: translateY(-50%) rotate(180deg); }
+.z-lightbox__next { right: 16px; top: 50%; transform: translateY(-50%); }
+@media (max-width: 767px) { .z-lightbox__prev, .z-lightbox__next { top: auto; bottom: 16px; transform: none; } .z-lightbox__prev { transform: rotate(180deg); } .z-lightbox__fig { max-width: 100vw; } .z-lightbox__fig img { border-radius: 0; } }

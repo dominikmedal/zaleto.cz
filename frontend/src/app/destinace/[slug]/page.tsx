@@ -20,6 +20,7 @@ import { GUIDE_SECTIONS, sectionCount } from '@/lib/guideSections'
 import { approvedTravelogues } from '@/server/travelogues'
 import TravelogueCard from '@/components/ui/TravelogueCard'
 import HotelsAreaMap from '@/components/HotelsAreaMap'
+import PhotoGallery from '@/components/PhotoGallery'
 import { FactsStrip, GuideHub } from '@/components/ui/GuideSections'
 import { mergeDestinations } from '@/lib/carRental'
 import { fetchDynamicCarDestinations } from '@/lib/api'
@@ -261,17 +262,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
 
         {photos.length >= 3 && (
           <Block id="fotky" kicker="Fotky" title="pár fotek z destinace" className="z-cardest__block--gallery">
-            <div className="z-gallery">
-              {photos.map((ph, i) => (
-                <figure key={ph.url} className="z-gallery__item" data-big={i === 0 || undefined}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={ph.url} alt={ph.alt ?? `${dest.name} – fotografie`} loading="lazy" />
-                  <figcaption>
-                    <a href={ph.creditUrl} target="_blank" rel="noopener noreferrer">{ph.credit}</a> / <a href="https://unsplash.com/?utm_source=zaleto&utm_medium=referral" target="_blank" rel="noopener noreferrer">Unsplash</a>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
+            <PhotoGallery photos={photos} name={dest.name} />
           </Block>
         )}
 

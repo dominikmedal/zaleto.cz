@@ -68,9 +68,6 @@ export default async function DestinaceHotelyPage({ params, searchParams }: Prop
           Destinace{dest.country && dest.country !== dest.name ? ` · ${dest.country}` : ''}
         </div>
         <h1 className="h1" style={{ margin: 'var(--space-3) 0 0' }}>hotely: {dest.name}<span className="z-dot">.</span></h1>
-        <p className="lead z-hotelspage__intro">
-          {total > 0 ? `${total} hotelů s aktuálním termínem. U každého porovnáš nabídky více cestovních kanceláří.` : 'Pro tuto destinaci teď nemáme žádný hotel s volným termínem.'}
-        </p>
 
         <OfferStrip hotels={pickOffers(hotels)} />
         <NavTabs items={tabs} />

@@ -1,22 +1,7 @@
 import Link from 'next/link'
 import Icon, { type IconName } from './Icon'
-import type { GuidePhoto, GuidePlace, GuideResort, DestinationGuide } from '@/lib/guide'
+import type { GuidePhoto, GuideResort, DestinationGuide } from '@/lib/guide'
 import { GUIDE_SECTIONS, sectionCount } from '@/lib/guideSections'
-
-const UNSPLASH = 'https://unsplash.com/?utm_source=zaleto&utm_medium=referral'
-
-/** Zdroj fotky: autor + Wikimedia Commons (s licencí) nebo Unsplash. */
-export function PhotoCredit({ photo, className }: { photo: GuidePhoto; className?: string }) {
-  const wiki = photo.source === 'wikimedia'
-  return (
-    <span className={className}>
-      <a href={photo.creditUrl} target="_blank" rel="noopener noreferrer">{photo.credit}</a>{' / '}
-      {wiki
-        ? <a href="https://commons.wikimedia.org" target="_blank" rel="noopener noreferrer">Wikimedia Commons{photo.license ? `, ${photo.license}` : ''}</a>
-        : <a href={UNSPLASH} target="_blank" rel="noopener noreferrer">Unsplash</a>}
-    </span>
-  )
-}
 
 /** Rozcestník průvodce na stránce destinace: dlaždice sekcí, každá vede na vlastní podstránku. */
 export function GuideHub({ guide, base }: { guide: DestinationGuide; base: string }) {
@@ -47,31 +32,6 @@ export function GuideHub({ guide, base }: { guide: DestinationGuide; base: strin
           </Link>
         )
       })}
-    </div>
-  )
-}
-
-/** Karta místa s fotkou z Unsplash (kláštery, památky, příroda, vesničky). Bez fotky vznikne stylová ikonová dlaždice. */
-export function PlaceCards({ items, icon }: { items: GuidePlace[]; icon: IconName }) {
-  return (
-    <div className="z-gcards">
-      {items.map(it => (
-        <article key={it.name} className="z-gcard">
-          <div className="z-gcard__media">
-            {it.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={it.image.url} alt={it.name} loading="lazy" />
-            ) : <span className="z-gcard__ph" aria-hidden="true"><Icon name={icon} size="lg" /></span>}
-            {it.kind && <span className="z-gcard__kind">{it.kind}</span>}
-            {it.image && <PhotoCredit photo={it.image} className="z-gcard__credit" />}
-          </div>
-          <div className="z-gcard__body">
-            {it.location && <div className="z-kicker">{it.location}</div>}
-            <h3 className="z-gcard__title">{it.name}</h3>
-            <p>{it.description}</p>
-          </div>
-        </article>
-      ))}
     </div>
   )
 }

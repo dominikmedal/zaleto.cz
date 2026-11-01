@@ -6,7 +6,8 @@ import JsonLd from '@/components/JsonLd'
 import Crumbs from '@/components/ui/Crumbs'
 import NavTabs, { type NavTabItem } from '@/components/ui/NavTabs'
 import BeachExplorer from '@/components/BeachExplorer'
-import { PlaceCards, ResortCards, TransportCards } from '@/components/ui/GuideSections'
+import { ResortCards, TransportCards } from '@/components/ui/GuideSections'
+import PlaceCards from '@/components/ui/PlaceCards'
 import { GUIDE_SECTIONS, sectionCount } from '@/lib/guideSections'
 import { resolveDestination } from '../resolve'
 import { loadGuide } from '../guideData'
@@ -44,10 +45,10 @@ export default async function GuideSectionPage({ params }: Props) {
   let body: React.ReactNode = null
   if (sec.key === 'strediska') body = <ResortCards items={guide.resorts} links={resortLinks} />
   else if (sec.key === 'plaze') body = <BeachExplorer beaches={guide.beaches} resortLinks={resortLinks} regionName={dest.name} />
-  else if (sec.key === 'klastery') body = <PlaceCards items={guide.monasteries} icon="mesto" />
-  else if (sec.key === 'pamatky') body = <PlaceCards items={guide.sights} icon="kompas" />
-  else if (sec.key === 'priroda') body = <PlaceCards items={guide.nature} icon="hory" />
-  else if (sec.key === 'vesnicky') body = <PlaceCards items={guide.villages} icon="srdce" />
+  else if (sec.key === 'klastery') body = <PlaceCards items={guide.monasteries} icon="mesto" regionName={dest.name} />
+  else if (sec.key === 'pamatky') body = <PlaceCards items={guide.sights} icon="kompas" regionName={dest.name} />
+  else if (sec.key === 'priroda') body = <PlaceCards items={guide.nature} icon="hory" regionName={dest.name} />
+  else if (sec.key === 'vesnicky') body = <PlaceCards items={guide.villages} icon="srdce" regionName={dest.name} />
   else if (sec.key === 'doprava') body = <TransportCards transport={guide.transport} />
 
   const schema = {
