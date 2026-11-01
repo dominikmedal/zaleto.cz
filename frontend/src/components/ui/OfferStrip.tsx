@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import Icon from './Icon'
 import CardPhotos from './CardPhotos'
 import type { Hotel } from '@/lib/types'
@@ -41,7 +40,13 @@ export default async function OfferStrip({ hotels, label = 'Vybrané zájezdy' }
         const badge = save ? `Až −${save} %` : h.has_last_minute ? 'Last minute' : h.has_first_minute ? 'First minute' : null
         const stars = Math.min(5, Math.round(h.stars ?? 0))
         return (
-          <Link key={h.slug} href={`/hotel/${h.slug}`} className="z-tk z-strip__card">
+          <a
+            key={h.slug}
+            href={`/api/redirect/${encodeURIComponent(h.slug)}?best=1`}
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+            className="z-tk z-strip__card"
+          >
             <div className="z-strip__media">
               <CardPhotos photos={photosOf(h)} alt={h.name} priority={i === 0} />
               {badge && <span className="z-strip__badge" data-hot={save || h.has_last_minute || h.has_first_minute ? '' : undefined}>{badge}</span>}
@@ -53,7 +58,7 @@ export default async function OfferStrip({ hotels, label = 'Vybrané zájezdy' }
               {save && <span className="z-strip__save">levnější než průměr termínů</span>}
               <span className="z-strip__go" aria-hidden="true"><Icon name="sipka" /></span>
             </div>
-          </Link>
+          </a>
         )
       })}
     </section>
