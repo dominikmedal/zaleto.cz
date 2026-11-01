@@ -1,0 +1,33 @@
+name: guide-images
+
+on:
+  schedule:
+    - cron: '20 * * * *'   # každou hodinu: doplní fotky z Unsplash do průvodců oblastí (limit API 50 dotazů/hod)
+  workflow_dispatch:
+
+concurrency:
+  group: guide-images
+  cancel-in-progress: false
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: scraper/requirements.txt
+      - run: pip install -r scraper/requirements.txt
+      - name: Fotky k průvodcům oblastí (Unsplash)
+        working-directory: scraper
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          GEMINI_API_KEY: unused
+          SITE_URL: ${{ vars.SITE_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+          AI_PAUSE: '0'
+        run: python ai_generate.py --only guide_images --max-minutes 15

@@ -1509,3 +1509,156 @@ button.z-chip { cursor: pointer; }
 .z-gallery__item figcaption a { color: inherit; text-decoration: none; }
 .z-gallery__item:hover figcaption, .z-gallery__item:focus-within figcaption { opacity: 1; }
 @media (max-width: 767px) { .z-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 130px; gap: var(--space-2); } .z-gallery__item[data-big] { grid-column: span 2; grid-row: span 2; } .z-gallery__item { border-radius: 16px; } .z-gallery__item img { transition: none; } .z-gallery__item figcaption { opacity: 1; font-size: 10px; } }
+
+/* ===== Destinace: minináhledy fotek v záhlaví ===== */
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+.z-cardest__media { position: relative; }
+.z-cardest__media[data-thumbs] { padding-bottom: 44px; }
+.z-herothumbs { position: absolute; left: 18px; right: 18px; bottom: 0; display: flex; align-items: flex-end; gap: 0; text-decoration: none; color: var(--ink); }
+.z-herothumbs__item { position: relative; display: block; width: 84px; height: 84px; margin-right: -10px; border: 4px solid var(--raised); border-radius: 16px; overflow: hidden; background: var(--paper-deep); box-shadow: var(--shadow-ticket); transition: transform .25s var(--ease, ease), margin .25s; }
+.z-herothumbs__item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.z-herothumbs:hover .z-herothumbs__item { margin-right: 2px; }
+.z-herothumbs__more { position: relative; z-index: 9; margin-left: auto; align-self: center; display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: var(--radius-pill); background: var(--ink); color: var(--paper); font: 500 12px/16px var(--font-mono); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; transition: background .2s; }
+.z-herothumbs__more .z-icon, .z-herothumbs__more svg { width: 16px; height: 16px; }
+.z-herothumbs:hover .z-herothumbs__more { background: var(--brand-strong); }
+@media (max-width: 1199px) { .z-cardest__media { max-width: 420px; } }
+@media (max-width: 767px) { .z-herothumbs { left: 8px; right: 8px; } .z-herothumbs__item { width: 60px; height: 60px; border-width: 3px; border-radius: 12px; margin-right: -8px; } .z-herothumbs__item:nth-child(n+4) { display: none; } .z-herothumbs__more { padding: 8px 12px; font-size: 11px; } .z-cardest__media[data-thumbs] { padding-bottom: 36px; } }
+.z-cardest__block--gallery { margin-top: var(--space-8); }
+
+/* ===== Pás tří zájezdů pod nadpisem (bez cen) ===== */
+.z-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-7); }
+.z-strip__card { position: relative; display: grid; grid-template-columns: 1.15fr 1fr; min-height: 150px; border-radius: var(--radius-lg); overflow: hidden; background: var(--night); color: var(--on-night); text-decoration: none; box-shadow: var(--shadow-ticket); transition: transform .25s, box-shadow .25s; }
+.z-strip__card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+.z-strip__media { position: relative; min-height: 150px; }
+.z-strip__media .z-cardphotos { position: absolute; inset: 0; aspect-ratio: auto; height: 100%; border-radius: 0; }
+.z-strip__media .z-cardphotos img { width: 100%; height: 100%; object-fit: cover; }
+.z-strip__badge { position: absolute; left: 12px; top: 12px; z-index: 3; padding: 5px 12px; border-radius: var(--radius-pill); background: var(--paper); color: var(--ink); font: 700 11px/14px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; box-shadow: 0 6px 14px -8px rgba(11, 27, 51, .6); }
+.z-strip__badge[data-hot] { background: var(--accent); }
+.z-strip__body { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: var(--space-4) var(--space-5) var(--space-4) var(--space-4); }
+.z-strip__body::before { content: ""; position: absolute; left: -36px; top: 0; bottom: 0; width: 36px; background: linear-gradient(90deg, transparent, var(--night)); pointer-events: none; }
+.z-strip__stars { display: inline-flex; gap: 2px; color: var(--accent); }
+.z-strip__stars svg, .z-strip__stars .z-icon { width: 16px; height: 16px; }
+.z-strip__title { margin: 0; font: 600 19px/23px var(--font-serif); letter-spacing: -.01em; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.z-strip__place { font: 400 11px/15px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--on-night-muted); }
+.z-strip__go { position: absolute; right: 12px; bottom: 12px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--paper); color: var(--ink); transition: transform .25s; }
+.z-strip__card:hover .z-strip__go { transform: translateX(3px); }
+.z-strip__go svg { width: 16px; height: 16px; }
+@media (max-width: 1099px) { .z-strip { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: min(82%, 340px); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; margin-inline: calc(var(--space-4) * -1); padding-inline: var(--space-4); scrollbar-width: none; } .z-strip::-webkit-scrollbar { display: none; } .z-strip__card { scroll-snap-align: start; } }
+@media (max-width: 767px) { .z-strip { margin-top: var(--space-6); } .z-strip__card { min-height: 128px; } .z-strip__media { min-height: 128px; } .z-strip__title { font-size: 17px; line-height: 21px; } }
+
+/* ===== Destinace: stránka Hotely ===== */
+.z-hotelspage__intro { margin: var(--space-3) 0 0; max-width: 62ch; }
+.z-hotelspage__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-5); }
+/* minináhledy leží celé pod fotkou (nezakrývají fotku ani popisek autora) */
+.z-cardest__media[data-thumbs] { padding-bottom: 108px; }
+.z-herothumbs { left: 8px; right: 8px; }
+@media (max-width: 767px) { .z-cardest__media[data-thumbs] { padding-bottom: 80px; } }
+
+/* ===== Dlaždice hotelu (bez ceny a termínu) ===== */
+.z-htile { display: flex; flex-direction: column; border-radius: var(--radius-lg); overflow: hidden; background: var(--raised); color: var(--ink); text-decoration: none; box-shadow: var(--shadow-ticket); transition: transform .25s, box-shadow .25s; }
+.z-htile:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+.z-htile__media { position: relative; aspect-ratio: 4 / 3; background: var(--paper-deep); }
+.z-htile__media .z-cardphotos { position: absolute; inset: 0; height: 100%; aspect-ratio: auto; border-radius: 0; }
+.z-htile__media .z-cardphotos img { width: 100%; height: 100%; object-fit: cover; }
+.z-htile__body { display: flex; flex-direction: column; gap: 8px; padding: var(--space-4); flex: 1; }
+.z-htile__title { margin: 0; font: 600 19px/24px var(--font-serif); letter-spacing: -.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.z-htile__stars { display: inline-flex; gap: 2px; color: var(--accent); }
+.z-htile .z-meta { margin-top: auto; font-size: 13px; }
+
+/* ===== Mapa Leaflet v stylu Palubní deník ===== */
+.z-map { position: relative; z-index: 0; width: 100%; height: 480px; border-radius: var(--radius-lg); overflow: hidden; background: var(--paper-deep); }
+.z-map--loading { display: block; animation: z-pulse 1.4s ease-in-out infinite; }
+@keyframes z-pulse { 50% { opacity: .55; } }
+.z-map .leaflet-tile-pane { filter: sepia(.22) saturate(.78) hue-rotate(-8deg) contrast(.97) brightness(1.02); }
+.z-map .leaflet-control-zoom { border: 0; box-shadow: var(--shadow-ticket); border-radius: var(--radius-md); overflow: hidden; }
+.z-map .leaflet-control-zoom a { width: 38px; height: 38px; line-height: 36px; background: var(--paper); color: var(--ink); border-color: var(--line); font-weight: 400; }
+.z-map .leaflet-control-zoom a:hover { background: var(--ink); color: var(--paper); }
+.z-map .leaflet-control-attribution { background: rgba(250, 246, 238, .85); font: 400 10px/14px var(--font-mono); color: var(--ink-muted); }
+.z-map .leaflet-control-attribution a { color: inherit; }
+.z-map .leaflet-popup-content-wrapper { padding: 0; overflow: hidden; border-radius: var(--radius-md); background: var(--paper); color: var(--ink); box-shadow: var(--shadow-lift); }
+.z-map .leaflet-popup-content { margin: 0; width: auto !important; }
+.z-map .leaflet-popup-tip { background: var(--paper); }
+.z-map .leaflet-popup-close-button { top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; background: rgba(250, 246, 238, .9); color: var(--ink); font: 400 16px/22px var(--font-sans); padding: 0; }
+.z-pop__img { display: block; width: 100%; height: 110px; object-fit: cover; }
+.z-pop__body { display: flex; flex-direction: column; gap: 4px; padding: var(--space-3) var(--space-4) var(--space-4); }
+.z-pop__stars { color: var(--accent); font-size: 12px; letter-spacing: 2px; line-height: 1; }
+.z-pop__title { font: 600 16px/20px var(--font-serif); letter-spacing: -.01em; }
+.z-pop__sub { font: 400 11px/15px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); }
+.z-pop__meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.z-pop__meta span { padding: 2px 8px; border-radius: var(--radius-pill); background: var(--sky); font: 400 11px/16px var(--font-mono); }
+.z-pop__go { align-self: flex-start; margin-top: 6px; padding: 6px 14px; border-radius: var(--radius-pill); background: var(--ink); color: var(--paper) !important; font: 700 11px/14px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; text-decoration: none; }
+.z-pin { display: block; position: relative; }
+.z-pin--beach, .z-pin--hotel { width: 34px; height: 34px; margin-top: 3px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid var(--paper); box-shadow: 0 8px 14px -6px rgba(11, 27, 51, .6); transition: transform .2s; }
+.z-pin--beach { background: var(--accent); }
+.z-pin--hotel { background: var(--night); }
+.z-pin--beach i, .z-pin--hotel i { position: absolute; inset: 0; margin: auto; width: 10px; height: 10px; border-radius: 50%; background: var(--paper); }
+.leaflet-marker-icon:hover .z-pin--beach, .leaflet-marker-icon:hover .z-pin--hotel { transform: rotate(-45deg) scale(1.12); }
+.z-pin--price { width: 84px; height: 28px; display: grid; place-items: center; border-radius: var(--radius-pill); background: var(--paper); border: 2px solid var(--ink); color: var(--ink); font: 700 11px/14px var(--font-mono); white-space: nowrap; box-shadow: 0 6px 12px -6px rgba(11, 27, 51, .55); }
+.leaflet-marker-icon:hover .z-pin--price { background: var(--ink); color: var(--paper); }
+.z-pin--cluster { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--brand); color: var(--on-brand); border: 3px solid var(--paper); font: 700 13px/1 var(--font-mono); box-shadow: 0 8px 14px -6px rgba(0, 104, 194, .6); }
+.marker-cluster, .marker-cluster div { background: transparent !important; }
+.z-beaches__map { position: relative; border: 6px solid var(--raised); border-radius: calc(var(--radius-lg) + 6px); box-shadow: var(--shadow-ticket); overflow: hidden; margin-bottom: var(--space-5); }
+.z-beaches__map .z-map { border-radius: var(--radius-lg); }
+.z-beaches__count { position: absolute; left: 14px; bottom: 14px; z-index: 500; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-pill); background: var(--paper); font: 700 11px/14px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; box-shadow: 0 6px 14px -8px rgba(11, 27, 51, .6); pointer-events: none; }
+.z-areamap { margin-bottom: var(--space-5); }
+.z-areamap__box { margin-top: var(--space-4); }
+.z-areamap .z-btn { gap: 8px; }
+@media (max-width: 767px) { .z-map { height: 340px; } .z-beaches__map { border-width: 4px; } }
+
+/* ===== Pláže ===== */
+.z-beaches__chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-6); }
+.z-beaches__chips .z-chip { cursor: pointer; height: 34px; }
+.z-chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.z-beaches__group + .z-beaches__group { margin-top: var(--space-7); }
+.z-beaches__ghead { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); padding-bottom: var(--space-3); border-bottom: 2px dashed var(--line); }
+.z-beaches__ghead h3 { margin: 0; }
+.z-beaches__ghead h3 a { color: inherit; text-underline-offset: 4px; }
+.z-beaches__ghead .z-data { margin-left: auto; }
+.z-beaches__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-5); }
+.z-beach { display: flex; flex-direction: column; border-radius: var(--radius-lg); overflow: hidden; background: var(--raised); box-shadow: var(--shadow-ticket); transition: box-shadow .25s; }
+.z-beach[data-active] { box-shadow: 0 0 0 3px var(--accent), var(--shadow-lift); }
+.z-beach__media { position: relative; aspect-ratio: 16 / 10; background: linear-gradient(135deg, var(--sky), var(--paper-deep)); overflow: hidden; }
+.z-beach__media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .5s; }
+.z-beach:hover .z-beach__media img { transform: scale(1.04); }
+.z-beach__ph, .z-gcard__ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--brand-strong); opacity: .55; }
+.z-beach__ph .zi, .z-gcard__ph .zi { width: 56px; height: 56px; }
+.z-beach__type, .z-gcard__kind { position: absolute; left: 12px; top: 12px; padding: 4px 12px; border-radius: var(--radius-pill); background: var(--paper); font: 700 11px/14px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.z-beach__credit, .z-gcard__credit { position: absolute; left: 10px; bottom: 10px; max-width: calc(100% - 20px); padding: 3px 10px; border-radius: var(--radius-pill); background: rgba(11, 27, 51, .62); color: #fff; font: 400 11px/16px var(--font-mono); backdrop-filter: blur(4px); opacity: 0; transition: opacity .2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.z-beach__credit a, .z-gcard__credit a { color: inherit; text-decoration: none; }
+.z-beach:hover .z-beach__credit, .z-gcard:hover .z-gcard__credit, .z-beach:focus-within .z-beach__credit, .z-gcard:focus-within .z-gcard__credit { opacity: 1; }
+.z-beach__body { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) var(--space-5) var(--space-5); flex: 1; }
+.z-beach__title { margin: 0; font: 600 22px/27px var(--font-serif); letter-spacing: -.01em; }
+.z-beach__body p { margin: 0; font: 400 15px/24px var(--font-sans); color: var(--ink); }
+.z-beach__chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.z-beach__chips li { padding: 3px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-pill); font: 400 11px/16px var(--font-mono); letter-spacing: .03em; }
+.z-beach__chips li[data-k="for"] { background: var(--sky); border-color: transparent; }
+.z-beach__chips li[data-k="crowd"] { background: var(--accent-soft); border-color: transparent; color: var(--accent-strong); }
+.z-beach .z-beach__tip { display: flex; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--paper-deep); font-size: 13px; line-height: 20px; }
+.z-beach__tip .zi { flex: none; margin-top: 2px; color: var(--brand-strong); }
+.z-beach__map { margin-top: auto; background: none; border: 0; padding: 0; cursor: pointer; align-self: flex-start; }
+@media (max-width: 767px) { .z-beaches__grid { grid-template-columns: 1fr; } .z-beach__body { padding: var(--space-4); } .z-beach__credit, .z-gcard__credit { opacity: 1; font-size: 10px; } }
+
+/* ===== Průvodce: karty míst, střediska, základní údaje ===== */
+.z-gcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-5); }
+.z-gcard { display: flex; flex-direction: column; border-radius: var(--radius-lg); overflow: hidden; background: var(--raised); box-shadow: var(--shadow-ticket); }
+.z-gcard__media { position: relative; aspect-ratio: 4 / 3; background: linear-gradient(135deg, var(--sky), var(--paper-deep)); overflow: hidden; }
+.z-gcard__media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .5s; }
+.z-gcard:hover .z-gcard__media img { transform: scale(1.04); }
+.z-gcard__body { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) var(--space-5) var(--space-5); }
+.z-gcard__title { margin: 0; font: 600 20px/25px var(--font-serif); letter-spacing: -.01em; }
+.z-gcard__body p { margin: 0; font: 400 15px/24px var(--font-sans); }
+.z-resorts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4); }
+.z-resort { position: relative; display: grid; grid-template-columns: auto 1fr; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--raised); color: var(--ink); text-decoration: none; transition: border-color .2s, transform .2s; }
+.z-resort--link:hover { border-color: var(--ink); transform: translateY(-2px); }
+.z-resort__ic { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--sky); color: var(--brand-strong); }
+.z-resort__title { margin: 0; font: 600 20px/25px var(--font-serif); }
+.z-resort__vibe { display: inline-block; margin: 4px 0 6px; font: 700 11px/14px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent-strong); }
+.z-resort p { margin: 0; font: 400 14px/22px var(--font-sans); }
+.z-resort__go { position: absolute; right: var(--space-4); top: var(--space-4); }
+.z-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0; margin: var(--space-7) 0 0; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--raised); overflow: hidden; }
+.z-facts > div { padding: var(--space-4) var(--space-5); border-right: 1px dashed var(--line); }
+.z-facts > div:last-child { border-right: 0; }
+.z-facts dd { margin: 4px 0 0; font: 600 18px/23px var(--font-serif); }
+@media (max-width: 767px) { .z-gcards, .z-resorts { grid-template-columns: 1fr; } .z-facts > div { border-right: 0; border-bottom: 1px dashed var(--line); } }
+
+.z-strip__stars .zi *, .z-htile__stars .zi * { fill: currentColor; }

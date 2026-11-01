@@ -337,3 +337,26 @@ export async function destinationGallery(name: string, country?: string | null, 
     return []
   }
 }
+
+// ─── Průvodce oblastí (pláže, kláštery, památky, příroda, vesničky) ──────────
+
+/** Hotový průvodce z tabulky destination_guide (plní ho ai_generate.py); chybí-li, vrací null. */
+export async function destinationGuide(name: string): Promise<import('@/lib/guide').DestinationGuide | null> {
+  const key = `guide_${name}`
+  const cached = metaCache.get(key)
+  if (cached !== undefined && cached !== null) return cached as import('@/lib/guide').DestinationGuide
+  try {
+    const row = (await query<{ data: Record<string, unknown> | string }>('SELECT data FROM destination_guide WHERE name = ?', [name])).rows[0]
+    if (!row) return null
+    const raw = (typeof row.data === 'string' ? JSON.parse(row.data) : row.data) as Partial<import('@/lib/guide').DestinationGuide>
+    const guide: import('@/lib/guide').DestinationGuide = {
+      facts: raw.facts ?? [], resorts: raw.resorts ?? [], beaches: raw.beaches ?? [],
+      monasteries: raw.monasteries ?? [], sights: raw.sights ?? [], nature: raw.nature ?? [], villages: raw.villages ?? [],
+      transport: raw.transport ?? {},
+    }
+    metaCache.set(key, guide)
+    return guide
+  } catch {
+    return null // tabulka ještě neexistuje (první generování proběhne v GitHub Actions)
+  }
+}

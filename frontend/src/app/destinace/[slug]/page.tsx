@@ -12,7 +12,12 @@ import NavTabs, { type NavTabItem } from '@/components/ui/NavTabs'
 import { PlaceTickets, FoodMenu, TripRoute } from '@/components/ui/ItemCard'
 import { fetchDestinations, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationPhotoCredit, fetchDestinationAI, fetchHotels, fetchArticles } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
-import { destinationGallery } from '@/server/content'
+import { resolveDestination } from './resolve'
+import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
+import { destinationGallery, destinationGuide } from '@/server/content'
+import BeachExplorer from '@/components/BeachExplorer'
+import HotelsAreaMap from '@/components/HotelsAreaMap'
+import { PlaceCards, ResortCards, FactsStrip, TransportCards } from '@/components/ui/GuideSections'
 import { mergeDestinations } from '@/lib/carRental'
 import { fetchDynamicCarDestinations } from '@/lib/api'
 
@@ -38,44 +43,6 @@ export async function generateStaticParams() {
   } catch {
     return []
   }
-}
-
-interface DestInfo {
-  name: string
-  country: string | null
-  type: 'country' | 'region' | 'town'
-  breadcrumb: { label: string; href: string }[]
-}
-
-async function resolveDestination(slug: string): Promise<DestInfo | null> {
-  let destinations
-  try { destinations = await fetchDestinations() } catch { return null }
-
-  for (const d of destinations) {
-    if (d.country && slugify(d.country) === slug) {
-      return { name: d.country, country: d.country, type: 'country', breadcrumb: [{ label: d.country, href: `/destinace/${slugify(d.country)}` }] }
-    }
-  }
-  for (const d of destinations) {
-    const region = d.destination?.split('/')[1]?.trim() ?? d.destination?.split('/')[0]?.trim()
-    if (region && slugify(region) === slug) {
-      const crumbs: { label: string; href: string }[] = []
-      if (d.country) crumbs.push({ label: d.country, href: `/destinace/${slugify(d.country)}` })
-      crumbs.push({ label: region, href: `/destinace/${slugify(region)}` })
-      return { name: region, country: d.country, type: 'region', breadcrumb: crumbs }
-    }
-  }
-  for (const d of destinations) {
-    if (d.resort_town && slugify(d.resort_town) === slug) {
-      const region = d.destination?.split('/')[1]?.trim() ?? d.destination?.split('/')[0]?.trim()
-      const crumbs: { label: string; href: string }[] = []
-      if (d.country) crumbs.push({ label: d.country, href: `/destinace/${slugify(d.country)}` })
-      if (region && region !== d.resort_town) crumbs.push({ label: region, href: `/destinace/${slugify(region)}` })
-      crumbs.push({ label: d.resort_town, href: `/destinace/${slugify(d.resort_town)}` })
-      return { name: d.resort_town, country: d.country, type: 'town', breadcrumb: crumbs }
-    }
-  }
-  return null
 }
 
 interface Props { params: { slug: string } }
@@ -107,9 +74,9 @@ const SORTS: [string, string][] = [['price_asc', 'Nejlevnější'], ['date_asc',
 
 type Item = { name: string; description: string }
 
-function Block({ id, kicker, title, children }: { id: string; kicker: string; title: string; children: React.ReactNode }) {
+function Block({ id, kicker, title, className, children }: { id: string; kicker: string; title: string; className?: string; children: React.ReactNode }) {
   return (
-    <section id={id} data-rail={kicker} className="z-cardest__block">
+    <section id={id} data-rail={kicker} className={`z-cardest__block${className ? " " + className : ""}`}>
       <div className="z-shead" style={{ marginBottom: 'var(--space-5)' }}>
         <div>
           <div className="z-kicker">{kicker}</div>
@@ -134,6 +101,26 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
     fetchArticles(3, dest.name).catch(() => []),
     destinationGallery(dest.name, dest.country).catch(() => []),
   ])
+
+  const regionCrumb = dest.type === 'town' && dest.breadcrumb.length >= 3 ? dest.breadcrumb[1].label : null
+  const rawGuide = dest.type === 'region' ? await destinationGuide(dest.name)
+    : regionCrumb ? await destinationGuide(regionCrumb) : null
+  // u letoviska jen pláže, které k němu patří
+  const guide = rawGuide && dest.type === 'town'
+    ? { ...rawGuide, facts: [], resorts: [], monasteries: [], sights: [], nature: [], villages: [], transport: {},
+        beaches: rawGuide.beaches.filter(b => b.resort && slugify(b.resort) === slugify(dest.name)) }
+    : rawGuide
+  // střediska, která mají na Zaletu vlastní stránku
+  const knownSlugs = new Set<string>()
+  if (guide) {
+    for (const d of await fetchDestinations().catch(() => [])) {
+      if (d.resort_town) knownSlugs.add(slugify(d.resort_town))
+    }
+  }
+  const resortLinks: Record<string, string> = {}
+  for (const n of [...(guide?.resorts.map(r => r.name) ?? []), ...(guide?.beaches.map(b => b.resort ?? '') ?? [])]) {
+    if (n && knownSlugs.has(slugify(n)) && slugify(n) !== slugify(dest.name)) resortLinks[n] = `/destinace/${slugify(n)}`
+  }
 
   const aiText = destAI?.description && destAI.description.length >= 20 ? destAI.description : null
   const wiki = aiText ? null : await fetchWikiSummary(dest.name).catch(() => null)
@@ -166,14 +153,29 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
   const heroId = heroPhoto?.url?.split('?')[0]
   const photos = gallery.filter(g => g.url.split("?")[0] !== heroId).slice(0, 5)
 
+  // minináhledy v záhlaví: pár fotek z galerie, rozházené (stabilně podle slugu, ať se mezi načteními nemění)
+  let seed = 0
+  for (const ch of params.slug) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296 }
+  const thumbs = photos.length >= 3
+    ? photos.slice(0, 4).map(p => ({ url: p.url, rot: Math.round((rnd() * 14 - 7) * 10) / 10, dy: Math.round(rnd() * 14 - 7) }))
+    : []
+
   const tabs: NavTabItem[] = [
     ...(paragraphs.length > 1 ? [{ href: '#o-destinaci', label: 'O destinaci', icon: 'kompas' as const }] : []),
     ...(bestTime ? [{ href: '#kdy-jet', label: 'Kdy jet', icon: 'kalendar' as const }] : []),
     ...(places.length ? [{ href: '#co-videt', label: 'Co vidět', icon: 'poloha' as const }] : []),
     ...(food.length ? [{ href: '#jidlo', label: 'Jídlo', icon: 'jidlo' as const }] : []),
     ...(trips.length ? [{ href: '#vylety', label: 'Výlety', icon: 'trasa' as const }] : []),
+    ...(guide?.resorts.length ? [{ href: '#strediska', label: 'Střediska', icon: 'poloha' as const }] : []),
+    ...(guide?.beaches.length ? [{ href: '#plaze', label: 'Pláže', icon: 'plaz' as const }] : []),
+    ...(guide?.monasteries.length ? [{ href: '#klastery', label: 'Kláštery', icon: 'mesto' as const }] : []),
+    ...(guide?.sights.length ? [{ href: '#pamatky', label: 'Památky a muzea', icon: 'kompas' as const }] : []),
+    ...(guide?.nature.length ? [{ href: '#priroda', label: 'Příroda', icon: 'hory' as const }] : []),
+    ...(guide?.villages.length ? [{ href: '#vesnicky', label: 'Vesničky', icon: 'srdce' as const }] : []),
     ...(photos.length >= 3 ? [{ href: '#fotky', label: 'Fotky', icon: 'foto' as const }] : []),
     { href: '#zajezdy', label: 'Zájezdy', icon: 'letadlo' as const },
+    ...((pg?.total ?? 0) > 0 ? [{ href: `/destinace/${params.slug}/hotely`, label: 'Hotely', icon: 'hotel' as const }] : []),
     ...(articles.length ? [{ href: '#clanky', label: 'Články', icon: 'clanek' as const }] : []),
     ...(weatherUrl ? [{ href: weatherUrl, label: 'Počasí', icon: 'slunce' as const }] : []),
     { href: carUrl, label: 'Půjčovna aut', icon: 'auto' as const },
@@ -211,15 +213,30 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
             </div>
           </div>
           {heroPhoto?.url && (
-            <div className="z-cardest__photo">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={heroPhoto.url} alt={dest.name} />
-              {heroPhoto.credit && (
-                <span className="z-photocredit">Foto: <a href={heroPhoto.creditUrl ?? 'https://unsplash.com'} target="_blank" rel="noopener noreferrer">{heroPhoto.credit}</a> / <a href="https://unsplash.com/?utm_source=zaleto&utm_medium=referral" target="_blank" rel="noopener noreferrer">Unsplash</a></span>
+            <div className="z-cardest__media" data-thumbs={thumbs.length > 0 || undefined}>
+              <div className="z-cardest__photo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={heroPhoto.url} alt={dest.name} />
+                {heroPhoto.credit && (
+                  <span className="z-photocredit">Foto: <a href={heroPhoto.creditUrl ?? 'https://unsplash.com'} target="_blank" rel="noopener noreferrer">{heroPhoto.credit}</a> / <a href="https://unsplash.com/?utm_source=zaleto&utm_medium=referral" target="_blank" rel="noopener noreferrer">Unsplash</a></span>
+                )}
+              </div>
+              {thumbs.length > 0 && (
+                <a href="#fotky" className="z-herothumbs" aria-label={`Zobrazit všech ${photos.length + 1} fotografií`}>
+                  {thumbs.map((t, i) => (
+                    <span key={t.url} className="z-herothumbs__item" style={{ transform: `rotate(${t.rot}deg) translateY(${t.dy}px)`, zIndex: i + 1 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={t.url} alt="" loading="lazy" />
+                    </span>
+                  ))}
+                  <span className="z-herothumbs__more"><Icon name="foto" />+{photos.length} fotek</span>
+                </a>
               )}
             </div>
           )}
         </div>
+
+        <OfferStrip hotels={pickOffers(hotels)} />
 
         <NavTabs items={tabs} />
 
@@ -248,8 +265,39 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
           </div>
         )}
 
+        {guide && (
+          <>
+            {guide.facts.length > 0 && <FactsStrip facts={guide.facts} />}
+            {guide.resorts.length > 0 && (
+              <Block id="strediska" kicker="Střediska" title="střediska a letoviska" className="z-cardest__block--gallery">
+                <ResortCards items={guide.resorts} links={resortLinks} />
+              </Block>
+            )}
+            {guide.beaches.length > 0 && (
+              <Block id="plaze" kicker="Pláže" title={dest.type === 'town' ? `pláže v letovisku ${dest.name}` : `pláže: ${dest.name}`} className="z-cardest__block--gallery">
+                <BeachExplorer beaches={guide.beaches} resortLinks={resortLinks} regionName={dest.name} />
+              </Block>
+            )}
+            {guide.monasteries.length > 0 && (
+              <Block id="klastery" kicker="Kláštery" title="kláštery a poutní místa" className="z-cardest__block--gallery"><PlaceCards items={guide.monasteries} icon="mesto" /></Block>
+            )}
+            {guide.sights.length > 0 && (
+              <Block id="pamatky" kicker="Památky a muzea" title="památky a muzea" className="z-cardest__block--gallery"><PlaceCards items={guide.sights} icon="kompas" /></Block>
+            )}
+            {guide.nature.length > 0 && (
+              <Block id="priroda" kicker="Příroda" title="přírodní zajímavosti" className="z-cardest__block--gallery"><PlaceCards items={guide.nature} icon="hory" /></Block>
+            )}
+            {guide.villages.length > 0 && (
+              <Block id="vesnicky" kicker="Vesničky" title="vesničky a městečka" className="z-cardest__block--gallery"><PlaceCards items={guide.villages} icon="srdce" /></Block>
+            )}
+            {(guide.transport.to || guide.transport.around) && (
+              <Block id="doprava" kicker="Doprava" title="jak se tam dostat a jak se pohybovat" className="z-cardest__block--gallery"><TransportCards transport={guide.transport} /></Block>
+            )}
+          </>
+        )}
+
         {photos.length >= 3 && (
-          <Block id="fotky" kicker="Fotky" title={`jak to vypadá: ${dest.name}`}>
+          <Block id="fotky" kicker="Fotky" title="pár fotek z destinace" className="z-cardest__block--gallery">
             <div className="z-gallery">
               {photos.map((ph, i) => (
                 <figure key={ph.url} className="z-gallery__item" data-big={i === 0 || undefined}>
@@ -282,6 +330,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
               ))}
             </nav>
           </div>
+          {hotels.length > 0 && <HotelsAreaMap destination={dest.name} sort={sort} showPrice collapsible />}
           {hotels.length === 0 ? (
             <p className="body">Pro tuto destinaci teď nemáme žádný volný termín.</p>
           ) : (

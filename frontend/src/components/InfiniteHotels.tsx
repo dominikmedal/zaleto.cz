@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import TourCard from '@/components/ui/TourCard'
+import HotelTile from '@/components/ui/HotelTile'
 import TourAd from '@/components/ui/TourAd'
 import Icon from '@/components/ui/Icon'
 import { apiFetch } from '@/lib/api'
@@ -14,10 +15,12 @@ interface Props {
   query: Record<string, string | undefined>
   /** Za kolikátou kartu vložit reklamní lístek (jen jednou). */
   adAfter?: number
+  /** `tile` = dlaždice bez ceny a termínu (stránka Hotely). */
+  variant?: 'ticket' | 'tile'
 }
 
 /** Mřížka hotelů s nekonečným scrollem: další stránky se dočítají při dojetí na konec. */
-export default function InfiniteHotels({ initial, total, limit, query, adAfter = 6 }: Props) {
+export default function InfiniteHotels({ initial, total, limit, query, adAfter = 6, variant = 'ticket' }: Props) {
   const [hotels, setHotels] = useState<Hotel[]>(initial)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -60,10 +63,10 @@ export default function InfiniteHotels({ initial, total, limit, query, adAfter =
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-5)', alignItems: 'stretch' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${variant === 'tile' ? 250 : 280}px, 1fr))`, gap: 'var(--space-5)', alignItems: 'stretch' }}>
         {hotels.map((h, i) => (
-          <FragmentWithAd key={h.slug} showAd={i === adAfter - 1 && !!ad} ad={ad}>
-            <TourCard hotel={h} priority={i < 3} />
+          <FragmentWithAd key={h.slug} showAd={variant === 'ticket' && i === adAfter - 1 && !!ad} ad={ad}>
+            {variant === 'tile' ? <HotelTile hotel={h} priority={i < 3} /> : <TourCard hotel={h} priority={i < 3} />}
           </FragmentWithAd>
         ))}
       </div>

@@ -155,7 +155,7 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
         )}
 
         {subDestinations.length > 0 && subBase && (
-          <Section id="oblasti" kicker="Oblasti" title="oblasti a letoviště">
+          <Section id="oblasti" kicker="Oblasti" title="oblasti a letoviska">
             <div className="z-chips">
               {subDestinations.map(d => (
                 <Link key={d.slug} href={`${subBase}/${d.slug}`} className="z-chip" style={{ textDecoration: 'none', height: 40, padding: '0 var(--space-4)' }}>

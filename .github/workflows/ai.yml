@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: 'Jen tento druh (article | destination | weather | car_rental), prázdné = vše'
+        description: 'Jen tento druh (article | destination | weather | car_rental | guide | guide_images), prázdné = vše (bez guide_images)'
         type: string
         default: ''
       limit:

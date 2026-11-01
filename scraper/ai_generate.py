@@ -3,7 +3,7 @@ Generování AI obsahu (Google Gemini) – náhrada za fronty ve starém Express
 
 Spouští se z GitHub Actions (.github/workflows/ai.yml) nebo ručně:
     python ai_generate.py                      # všechno, co chybí
-    python ai_generate.py --only destination   # article | destination | weather | car_rental
+    python ai_generate.py --only destination   # article | destination | weather | car_rental | guide | guide_images
     python ai_generate.py --limit 10           # nejvýše 10 položek za běh
 
 Prompty se berou z tabulky ai_prompts (úpravy v administraci, sekce Prompty);
@@ -45,11 +45,16 @@ GEN = {
     "destination": {"max_tokens": 4096, "temperature": 0.7, "timeout": 25},
     "weather": {"max_tokens": 2048, "temperature": 0.4, "timeout": 25},
     "car_rental": {"max_tokens": 8192, "temperature": 0.5, "timeout": 45},
+    "guide": {"max_tokens": 24000, "temperature": 0.4, "timeout": 120},
 }
 
 
 class RateLimited(Exception):
     pass
+
+
+class QuotaExhausted(Exception):
+    """Vyčerpaný hodinový limit Unsplash API: běh skončí, další hodinový běh naváže."""
 
 
 # ── Gemini ──────────────────────────────────────────────────────────────────
@@ -289,11 +294,309 @@ def run_article(conn, topic):
     return True
 
 
+
+# ── Průvodce oblastí (pláže, kláštery, památky, příroda, vesničky) ─────────
+
+IMAGE_CAPS = {"beaches": 10, "monasteries": 5, "sights": 6, "nature": 6, "villages": 6}
+UNSPLASH_UTM = "utm_source=zaleto&utm_medium=referral"
+
+
+def ensure_guide_table(conn):
+    conn.cursor().execute(
+        """CREATE TABLE IF NOT EXISTS destination_guide (
+             name TEXT PRIMARY KEY,
+             country TEXT,
+             data JSONB NOT NULL DEFAULT '{}',
+             images_done BOOLEAN NOT NULL DEFAULT FALSE,
+             generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+    conn.commit()
+
+
+def region_info(conn) -> dict[str, dict]:
+    """Oblasti (druhá část pole destination) s jejich zemí, středisky a souřadnicemi hotelů."""
+    out: dict[str, dict] = {}
+    for r in rows(conn, "SELECT country, destination, resort_town, latitude, longitude FROM hotels "
+                        "WHERE destination IS NOT NULL AND destination <> ''"):
+        parts = [x.strip() for x in r["destination"].split("/")]
+        if len(parts) < 2:
+            continue
+        region = parts[1]
+        if not region or NON_GEO.search(region):
+            continue
+        info = out.setdefault(region, {"country": r["country"], "resorts": {}, "coords": []})
+        if r["resort_town"]:
+            rt = r["resort_town"].strip()
+            info["resorts"][rt] = info["resorts"].get(rt, 0) + 1
+        if r["latitude"] is not None and r["longitude"] is not None:
+            info["coords"].append((float(r["latitude"]), float(r["longitude"])))
+    return out
+
+
+def todo_guide(conn):
+    ensure_guide_table(conn)
+    have = {r["name"] for r in rows(conn, "SELECT name FROM destination_guide")}
+    info = region_info(conn)
+    names = sorted(info, key=lambda n: -sum(info[n]["resorts"].values()))  # nejdřív oblasti s nejvíce hotely
+    return [{"name": n, **info[n]} for n in names if n not in have]
+
+
+def _clean_text(v, limit=600):
+    if not isinstance(v, str):
+        return None
+    v = re.sub(r"\s+", " ", v).strip()
+    return v[:limit] or None
+
+
+def _clean_items(lst, keys, limit):
+    out = []
+    for it in (lst if isinstance(lst, list) else [])[:limit]:
+        if not isinstance(it, dict) or not _clean_text(it.get("name"), 120):
+            continue
+        row = {"name": _clean_text(it["name"], 120)}
+        for k in keys:
+            t = _clean_text(it.get(k), 700 if k == "description" else 160)
+            if t:
+                row[k] = t
+        q = _clean_text(it.get("image_query"), 80)
+        if q:
+            row["image_query"] = q
+        if row.get("description") and len(row["description"]) >= 20:
+            out.append(row)
+    return out
+
+
+def sanitize_guide(p: dict, d: dict) -> dict:
+    coords = d.get("coords") or []
+    box = None
+    if len(coords) >= 3:
+        lats = [c[0] for c in coords]
+        lngs = [c[1] for c in coords]
+        pad = 0.45
+        box = (min(lats) - pad, max(lats) + pad, min(lngs) - pad, max(lngs) + pad)
+
+    beaches = []
+    seen = set()
+    for it in (p.get("beaches") if isinstance(p.get("beaches"), list) else [])[:16]:
+        if not isinstance(it, dict):
+            continue
+        name = _clean_text(it.get("name"), 120)
+        desc = _clean_text(it.get("description"), 700)
+        if not name or not desc or len(desc) < 20 or name.lower() in seen:
+            continue
+        seen.add(name.lower())
+        b = {"name": name, "description": desc}
+        res = _clean_text(it.get("resort"), 80)
+        if res:
+            b["resort"] = res
+        for k in ("type", "tip", "crowd", "image_query"):
+            t = _clean_text(it.get(k), 240)
+            if t:
+                b[k] = t
+        for k in ("facilities", "suitable_for"):
+            if isinstance(it.get(k), list):
+                vals = [x.strip() for x in it[k] if isinstance(x, str) and x.strip()][:6]
+                if vals:
+                    b[k] = vals
+        lat, lng = it.get("lat"), it.get("lng")
+        # souřadnice jen v rozumném okolí hotelů oblasti (ochrana proti vymyšleným souřadnicím)
+        if isinstance(lat, (int, float)) and isinstance(lng, (int, float)) and box \
+                and box[0] <= lat <= box[1] and box[2] <= lng <= box[3]:
+            b["lat"], b["lng"] = round(float(lat), 5), round(float(lng), 5)
+        beaches.append(b)
+
+    facts = []
+    for f in (p.get("facts") if isinstance(p.get("facts"), list) else [])[:6]:
+        if isinstance(f, dict) and _clean_text(f.get("label"), 40) and _clean_text(f.get("value"), 80):
+            facts.append({"label": _clean_text(f["label"], 40), "value": _clean_text(f["value"], 80)})
+
+    resorts = []
+    for it in (p.get("resorts") if isinstance(p.get("resorts"), list) else [])[:16]:
+        if isinstance(it, dict) and _clean_text(it.get("name"), 80) and _clean_text(it.get("description"), 400):
+            r = {"name": _clean_text(it["name"], 80), "description": _clean_text(it["description"], 400)}
+            v = _clean_text(it.get("vibe"), 40)
+            if v:
+                r["vibe"] = v
+            resorts.append(r)
+
+    tr = p.get("transport") if isinstance(p.get("transport"), dict) else {}
+    transport = {k: _clean_text(tr.get(k), 700) for k in ("to", "around") if _clean_text(tr.get(k), 700)}
+
+    return {
+        "facts": facts,
+        "resorts": resorts,
+        "beaches": beaches,
+        "monasteries": _clean_items(p.get("monasteries"), ("location", "description"), 8),
+        "sights": _clean_items(p.get("sights"), ("kind", "location", "description"), 10),
+        "nature": _clean_items(p.get("nature"), ("location", "description"), 10),
+        "villages": _clean_items(p.get("villages"), ("description",), 10),
+        "transport": transport,
+    }
+
+
+
+def hotel_box(coords, pad=0.45):
+    if len(coords) < 3:
+        return None
+    lats, lngs = [c[0] for c in coords], [c[1] for c in coords]
+    return (min(lats) - pad, max(lats) + pad, min(lngs) - pad, max(lngs) + pad)
+
+
+_last_geocode = 0.0
+
+
+def geocode_beach(name: str, region: str, country: str, box) -> tuple[float, float] | None:
+    """Přesná poloha pláže z OpenStreetMap (Nominatim, max. 1 dotaz/s podle podmínek služby).
+    Hledá se jen uvnitř oblasti kolem hotelů; AI souřadnice jsou jen přibližné, proto se opravují."""
+    global _last_geocode
+    if not box:
+        return None
+    wait = 1.1 - (time.time() - _last_geocode)
+    if wait > 0:
+        time.sleep(wait)
+    _last_geocode = time.time()
+    clean = re.sub(r"\s*\(.*?\)", "", name).strip()
+    try:
+        r = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={"q": f"{clean}, {region}, {country}", "format": "jsonv2", "limit": 5,
+                    "viewbox": f"{box[2]},{box[1]},{box[3]},{box[0]}", "bounded": 1},
+            headers={"User-Agent": "zaleto.cz content generator (https://zaleto.cz)"},
+            timeout=20,
+        )
+        if not r.ok:
+            return None
+        for h in r.json():
+            if h.get("category") in ("natural", "tourism", "leisure", "place", "waterway", "amenity") or h.get("type") in ("beach", "bay", "cape"):
+                lat, lng = float(h["lat"]), float(h["lon"])
+                if box[0] <= lat <= box[1] and box[2] <= lng <= box[3]:
+                    return round(lat, 5), round(lng, 5)
+    except Exception as e:
+        log.warning("geokódování %s: %s", name, e)
+    return None
+
+
+def run_guide(conn, d):
+    resorts = ", ".join(sorted(d["resorts"], key=lambda r: -d["resorts"][r])[:25]) or "neuvedena"
+    p = generate("guide", load_prompt(conn, "destination_guide", name=d["name"], country=d["country"] or "", resorts=resorts))
+    if not p:
+        return False
+    data = sanitize_guide(p, d)
+    box = hotel_box(d.get("coords") or [])
+    for b in data["beaches"]:
+        pos = geocode_beach(b["name"], d["name"], d["country"] or "", box)
+        if pos:
+            b["lat"], b["lng"] = pos
+            b["geo"] = "osm"
+    if not any(data[k] for k in ("beaches", "resorts", "monasteries", "sights", "nature", "villages")):
+        log.warning("průvodce %s: AI nevrátila použitelný obsah", d["name"])
+        return False
+    conn.cursor().execute(
+        """INSERT INTO destination_guide (name, country, data, images_done, generated_at)
+           VALUES (%s, %s, %s, FALSE, NOW())
+           ON CONFLICT (name) DO NOTHING""",
+        (d["name"], d["country"], js(data)),
+    )
+    conn.commit()
+    return True
+
+
+# Unsplash fotky k položkám průvodce: samostatný druh, hlídá hodinový limit API a běží každou hodinu
+
+_unsplash_remaining = None
+
+
+def unsplash_search(query: str) -> list[dict]:
+    global _unsplash_remaining
+    key = os.environ.get("UNSPLASH_ACCESS_KEY", "")
+    if not key:
+        raise RuntimeError("UNSPLASH_ACCESS_KEY není nastaven")
+    if _unsplash_remaining is not None and _unsplash_remaining <= 2:
+        raise QuotaExhausted()
+    r = requests.get(
+        "https://api.unsplash.com/search/photos",
+        params={"query": query, "orientation": "landscape", "content_filter": "high", "per_page": 10},
+        headers={"Authorization": f"Client-ID {key}", "Accept-Version": "v1"},
+        timeout=20,
+    )
+    rem = r.headers.get("X-Ratelimit-Remaining")
+    if rem is not None:
+        _unsplash_remaining = int(rem)
+    if r.status_code in (403, 429):
+        raise QuotaExhausted()
+    r.raise_for_status()
+    return r.json().get("results") or []
+
+
+def pick_photo(results: list[dict], used: set) -> dict | None:
+    for h in results:
+        url = (h.get("urls") or {}).get("regular", "")
+        base = url.split("?")[0]
+        w, hh = h.get("width") or 0, h.get("height") or 1
+        if not url or base in used or w < 1600 or w / max(hh, 1) < 1.2:
+            continue
+        user = h.get("user") or {}
+        return {
+            "url": url, "id": base,
+            "credit": user.get("name") or "Unsplash",
+            "creditUrl": f"{(user.get('links') or {}).get('html', 'https://unsplash.com')}?{UNSPLASH_UTM}",
+            "download": (h.get("links") or {}).get("download_location"),
+        }
+    return None
+
+
+def register_download(url):
+    key = os.environ.get("UNSPLASH_ACCESS_KEY", "")
+    if url and url.startswith("https://api.unsplash.com/") and key:
+        try:
+            requests.get(url, headers={"Authorization": f"Client-ID {key}"}, timeout=10)
+        except Exception:
+            pass
+
+
+def todo_guide_images(conn):
+    ensure_guide_table(conn)
+    return rows(conn, "SELECT name, country, data FROM destination_guide WHERE images_done = FALSE ORDER BY generated_at")
+
+
+def run_guide_images(conn, g):
+    data = g["data"] if isinstance(g["data"], dict) else json.loads(g["data"])
+    region, country = g["name"], g["country"] or ""
+    used = {it["image"]["id"] for sec in IMAGE_CAPS for it in data.get(sec, []) if it.get("image")}
+    complete, changed = True, False
+    try:
+        for sec, cap in IMAGE_CAPS.items():
+            for it in data.get(sec, [])[:cap]:
+                if it.get("image") or it.get("image_failed"):
+                    continue
+                q = it.get("image_query") or f"{it['name']} {region}"
+                photo = pick_photo(unsplash_search(q), used)
+                if not photo:
+                    photo = pick_photo(unsplash_search(f"{it['name']} {region} {country}".strip()), used)
+                if photo:
+                    used.add(photo["id"])
+                    register_download(photo.pop("download", None))
+                    it["image"] = photo
+                else:
+                    it["image_failed"] = True
+                changed = True
+    except QuotaExhausted:
+        complete = False
+        raise
+    finally:
+        if changed or complete:
+            conn.cursor().execute("UPDATE destination_guide SET data = %s, images_done = %s WHERE name = %s",
+                                  (js(data), complete, region))
+            conn.commit()
+    return True
+
+
 KINDS = {
     "article": (todo_article, run_article, lambda x: x),
     "destination": (todo_destination, run_destination, lambda x: x),
     "weather": (todo_weather, run_weather, lambda x: x),
     "car_rental": (todo_car_rental, run_car_rental, lambda d: f"{d['name']} ({d['country']})"),
+    "guide": (todo_guide, run_guide, lambda d: f"{d['name']} ({d['country']})"),
+    "guide_images": (todo_guide_images, run_guide_images, lambda g: g["name"]),
 }
 
 
@@ -322,7 +625,7 @@ def main() -> int:
 
     started = time.time()
     conn = db._connect()
-    kinds = args.only or list(KINDS)
+    kinds = args.only or [k for k in KINDS if k != "guide_images"]  # fotky běží samostatně (hodinový limit Unsplash)
     queue = []
     for k in kinds:
         todo, run, label = KINDS[k]
@@ -341,6 +644,10 @@ def main() -> int:
         log.info("[%d/%d] %s → %s", n, len(queue), kind, label)
         try:
             ok = run(conn, item)
+        except QuotaExhausted:
+            conn.rollback()
+            log.info("limit Unsplash API na tuto hodinu vyčerpán, další hodinový běh naváže")
+            break
         except Exception as e:
             conn.rollback()
             log.error("chyba: %s", e)
