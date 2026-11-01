@@ -10,6 +10,7 @@ export function ensureAutomationSchema(): Promise<void> {
     await query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS auto_published BOOLEAN NOT NULL DEFAULT FALSE`)
     await query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_url TEXT`)
     await query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_name TEXT`)
+    await query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS image_query TEXT`)
     await query(`CREATE TABLE IF NOT EXISTS scrape_sources (
       id SERIAL PRIMARY KEY, name TEXT NOT NULL, feed_url TEXT NOT NULL UNIQUE,
       enabled BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)

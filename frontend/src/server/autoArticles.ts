@@ -6,6 +6,7 @@ import { metaCache } from './cache'
 import { ensureAutomationSchema } from './automationDb'
 import { geminiText, geminiImage, parseJson } from './gemini'
 import { renderPrompt } from './prompts'
+import { searchUnsplash, registerDownload } from './unsplash'
 import { slugify } from '@/lib/slugify'
 import { parseFeed, type FeedItem } from '@/lib/feed'
 
@@ -14,7 +15,7 @@ import { parseFeed, type FeedItem } from '@/lib/feed'
  * aby každé volání vyhovělo časovému limitu funkcí na Vercelu (kroky řídí .github/workflows/auto-publish.yml):
  *   1. pickForToday()    – projde RSS zdroje, Gemini ohodnotí čerstvé články, vybere až N s dostatečným skóre
  *   2. processArticle()  – stáhne zdroj, přepíše ho vlastními slovy (prompt z administrace) a uloží jako „naplánovaný“
- *   3. generateCover()   – vytvoří titulní obrázek (prompt z administrace) a uloží ho do Vercel Blob
+ *   3. generateCover()   – titulní obrázek: fotka z Unsplash (s autorem), jinak obrázek z Gemini (prompt z administrace)
  * publishScheduled() (každých 10 minut) pak zveřejní články, kterým nadešel čas.
  */
 
@@ -163,7 +164,7 @@ export async function processArticle(url: string, scheduledAt: Date, runId?: num
 
   const src = await scrapeArticle(url)
   const prompt = await promptFor('auto_rewrite', { sourceTitle: src.title, sourceName: src.siteName, text: src.text.slice(0, 14000) })
-  const r = parseJson<{ title: string; category: string; location: string | null; excerpt: string; content: string; reading_time: number }>(
+  const r = parseJson<{ title: string; category: string; location: string | null; excerpt: string; content: string; reading_time: number; image_query?: string }>(
     await geminiText(prompt, { temperature: 0.7, maxTokens: 8192 }))
   if (!r.title || !r.content || r.content.length < 800) throw new Error('Přepsaný článek je příliš krátký nebo neúplný.')
 
@@ -174,26 +175,59 @@ export async function processArticle(url: string, scheduledAt: Date, runId?: num
   const words = r.content.split(/\s+/).length
   const ins = await query<{ id: number }>(
     `INSERT INTO articles (topic, slug, title, category, location, excerpt, content, reading_time, published_at, generated_at,
-                           status, scheduled_at, auto_published, source_url, source_name)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'scheduled', ?, TRUE, ?, ?) RETURNING id`,
+                           status, scheduled_at, auto_published, source_url, source_name, image_query)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'scheduled', ?, TRUE, ?, ?, ?) RETURNING id`,
     [`auto:${url}`, slug, r.title, CATEGORIES.includes(r.category) ? r.category : 'Inspirace', r.location || null, r.excerpt || null, r.content,
-      Math.min(10, Math.max(2, Number(r.reading_time) || Math.round(words / 200))), scheduledAt.toISOString(), scheduledAt.toISOString(), url, src.siteName])
+      Math.min(10, Math.max(2, Number(r.reading_time) || Math.round(words / 200))), scheduledAt.toISOString(), scheduledAt.toISOString(), url, src.siteName, (r.image_query || '').slice(0, 80) || null])
   const id = ins.rows[0].id
   await updateDecision(runId, url, { articleId: id })
   return { articleId: id }
 }
 
-/** Titulní obrázek článku (prompt z administrace) → Vercel Blob → sloupec custom_image_url. */
-export async function generateCover(articleId: number): Promise<{ imageUrl: string }> {
-  const a = (await query<{ id: number; title: string; excerpt: string | null; location: string | null; content: string | null }>(
-    'SELECT id, title, excerpt, location, content FROM articles WHERE id = ?', [articleId])).rows[0]
+/** Fotka z Unsplash k článku (landscape, dost velká, ještě nepoužitá u jiného článku); null, když nic nevyhovuje. */
+async function unsplashCover(a: { id: number; location: string | null; image_query: string | null }) {
+  if (!process.env.UNSPLASH_ACCESS_KEY) return null
+  const queries = [a.image_query, a.location ? `${a.location} travel` : null].filter((q): q is string => !!q)
+  for (const q of queries) {
+    let hits
+    try { hits = await searchUnsplash(q) } catch { continue }
+    for (const h of hits) {
+      if (h.width < 2000 || h.width / h.height < 1.3) continue
+      const dup = await query('SELECT 1 FROM articles WHERE custom_image_url = ? AND id <> ? LIMIT 1', [h.url, a.id])
+      if (dup.rows.length) continue
+      await registerDownload(h.downloadLocation) // povinné hlášení použití podle pravidel Unsplash API
+      return h
+    }
+  }
+  return null
+}
+
+/** Po změně obrázku obnoví cache, aby se nový obrázek hned projevil u už zveřejněného článku. */
+async function refreshAfterCover(id: number) {
+  const slug = (await query<{ slug: string }>('SELECT slug FROM articles WHERE id = ?', [id])).rows[0]?.slug
+  afterArticleChange(slug)
+}
+
+/** Titulní obrázek článku: nejdřív fotka z Unsplash (s uvedením autora), když žádná nevyhovuje, obrázek z Gemini (prompt z administrace). */
+export async function generateCover(articleId: number): Promise<{ imageUrl: string; source: 'unsplash' | 'gemini' }> {
+  const a = (await query<{ id: number; title: string; excerpt: string | null; location: string | null; content: string | null; image_query: string | null }>(
+    'SELECT id, title, excerpt, location, content, image_query FROM articles WHERE id = ?', [articleId])).rows[0]
   if (!a) throw new Error('Článek neexistuje.')
+
+  const photo = await unsplashCover(a)
+  if (photo) {
+    await query('UPDATE articles SET custom_image_url = ?, custom_image_credit = ?, custom_image_credit_url = ? WHERE id = ?', [photo.url, photo.credit, photo.creditUrl, a.id])
+    await refreshAfterCover(a.id)
+    return { imageUrl: photo.url, source: 'unsplash' }
+  }
+
   const prompt = await promptFor('auto_cover', { title: a.title, summary: a.excerpt || (a.content ?? '').slice(0, 400), location: a.location ?? '' })
   const { buffer, mimeType } = await geminiImage(prompt)
   const ext = mimeType.split('/')[1]?.split('+')[0] || 'png'
   const blob = await put(`articles/${a.id}-${Date.now()}.${ext}`, buffer, { access: 'public', contentType: mimeType, addRandomSuffix: true })
   await query(`UPDATE articles SET custom_image_url = ?, custom_image_credit = 'AI', custom_image_credit_url = NULL WHERE id = ?`, [blob.url, a.id])
-  return { imageUrl: blob.url }
+  await refreshAfterCover(a.id)
+  return { imageUrl: blob.url, source: 'gemini' }
 }
 
 /** Při chybě generování obrázku se článek vrátí do konceptů, ať se nezveřejní bez titulky. */
