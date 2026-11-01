@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import type { MapPin } from './GuideMap'
 import type { GuideBeach } from '@/lib/guide'
+import { PhotoCredit } from '@/components/ui/GuideSections'
 
 const GuideMap = dynamic(() => import('./GuideMap'), { ssr: false, loading: () => <div className="z-map z-map--loading" /> })
 
@@ -60,44 +61,36 @@ export default function BeachExplorer({ beaches, resortLinks = {}, regionName }:
         </div>
       )}
 
-      {shown.map(([k, list]) => (
-        <div key={k} className="z-beaches__group">
-          <div className="z-beaches__ghead">
-            <Icon name="poloha" />
-            <h3 className="h4">{k === OTHER ? k : resortLinks[k] ? <Link href={resortLinks[k]}>{k}</Link> : k}</h3>
-            <span className="z-data">{list.length} {list.length === 1 ? 'pláž' : list.length < 5 ? 'pláže' : 'pláží'}</span>
-          </div>
-          <div className="z-beaches__grid">
-            {list.map(b => (
-              <article key={b.name} className="z-beach" data-active={active === b.name || undefined}>
-                <div className="z-beach__media">
-                  {b.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={b.image.url} alt={`${b.name} – pláž`} loading="lazy" />
-                  ) : <span className="z-beach__ph" aria-hidden="true"><Icon name="plaz" size="lg" /></span>}
-                  {b.type && <span className="z-beach__type">{b.type}</span>}
-                  {b.image && <span className="z-beach__credit"><a href={b.image.creditUrl} target="_blank" rel="noopener noreferrer">{b.image.credit}</a> / <a href="https://unsplash.com/?utm_source=zaleto&utm_medium=referral" target="_blank" rel="noopener noreferrer">Unsplash</a></span>}
-                </div>
-                <div className="z-beach__body">
-                  <h4 className="z-beach__title">{b.name}</h4>
-                  <p>{b.description}</p>
-                  {(b.facilities?.length || b.suitable_for?.length || b.crowd) ? (
-                    <ul className="z-beach__chips">
-                      {b.crowd && <li data-k="crowd">{CROWD[b.crowd] ?? b.crowd}</li>}
-                      {b.suitable_for?.map(x => <li key={x} data-k="for">{x}</li>)}
-                      {b.facilities?.map(x => <li key={x}>{x}</li>)}
-                    </ul>
-                  ) : null}
-                  {b.tip && <p className="z-beach__tip"><Icon name="info" size="sm" /><span>{b.tip}</span></p>}
-                  {typeof b.lat === 'number' && (
-                    <button type="button" className="z-more z-beach__map" onClick={() => onMap(b.name)}><Icon name="mapa" size="sm" />Ukázat na mapě</button>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      ))}
+      <div className="z-beaches__grid">
+        {shown.flatMap(([k, list]) => list.map(b => ({ b, k }))).map(({ b, k }) => (
+          <article key={b.name} className="z-beach" data-active={active === b.name || undefined}>
+            <div className="z-beach__media">
+              {b.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={b.image.url} alt={`${b.name} – pláž`} loading="lazy" />
+              ) : <span className="z-beach__ph" aria-hidden="true"><Icon name="plaz" size="lg" /></span>}
+              {b.type && <span className="z-beach__type">{b.type}</span>}
+              {b.image && <PhotoCredit photo={b.image} className="z-beach__credit" />}
+            </div>
+            <div className="z-beach__body">
+              {k !== OTHER && <div className="z-kicker">{resortLinks[k] ? <Link href={resortLinks[k]}>{k}</Link> : k}</div>}
+              <h4 className="z-beach__title">{b.name}</h4>
+              <p>{b.description}</p>
+              {(b.facilities?.length || b.suitable_for?.length || b.crowd) ? (
+                <ul className="z-beach__chips">
+                  {b.crowd && <li data-k="crowd">{CROWD[b.crowd] ?? b.crowd}</li>}
+                  {b.suitable_for?.map(x => <li key={x} data-k="for">{x}</li>)}
+                  {[...new Set(b.facilities ?? [])].filter(x => !b.suitable_for?.includes(x)).map(x => <li key={x}>{x}</li>)}
+                </ul>
+              ) : null}
+              {b.tip && <p className="z-beach__tip"><Icon name="info" size="sm" /><span>{b.tip}</span></p>}
+              {typeof b.lat === 'number' && (
+                <button type="button" className="z-more z-beach__map" onClick={() => onMap(b.name)}><Icon name="mapa" size="sm" />Ukázat na mapě</button>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   )
 }

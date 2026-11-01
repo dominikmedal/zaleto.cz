@@ -14,12 +14,13 @@ import { fetchDestinations, fetchWikiSummary, fetchDestinationPhoto, fetchDestin
 import { slugify } from '@/lib/slugify'
 import { resolveDestination } from './resolve'
 import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
-import { destinationGallery, destinationGuide } from '@/server/content'
+import { destinationGallery } from '@/server/content'
+import { loadGuide } from './guideData'
+import { GUIDE_SECTIONS, sectionCount } from '@/lib/guideSections'
 import { approvedTravelogues } from '@/server/travelogues'
 import TravelogueCard from '@/components/ui/TravelogueCard'
-import BeachExplorer from '@/components/BeachExplorer'
 import HotelsAreaMap from '@/components/HotelsAreaMap'
-import { PlaceCards, ResortCards, FactsStrip, TransportCards } from '@/components/ui/GuideSections'
+import { FactsStrip, GuideHub } from '@/components/ui/GuideSections'
 import { mergeDestinations } from '@/lib/carRental'
 import { fetchDynamicCarDestinations } from '@/lib/api'
 
@@ -107,25 +108,8 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
   const tripSlugs = [slugify(dest.name), ...(dest.type === 'town' && dest.breadcrumb.length >= 3 ? [slugify(dest.breadcrumb[1].label)] : [])]
   const logs = await approvedTravelogues({ destSlugs: tripSlugs, limit: 6 })
 
-  const regionCrumb = dest.type === 'town' && dest.breadcrumb.length >= 3 ? dest.breadcrumb[1].label : null
-  const rawGuide = dest.type === 'region' ? await destinationGuide(dest.name)
-    : regionCrumb ? await destinationGuide(regionCrumb) : null
-  // u letoviska jen pláže, které k němu patří
-  const guide = rawGuide && dest.type === 'town'
-    ? { ...rawGuide, facts: [], resorts: [], monasteries: [], sights: [], nature: [], villages: [], transport: {},
-        beaches: rawGuide.beaches.filter(b => b.resort && slugify(b.resort) === slugify(dest.name)) }
-    : rawGuide
-  // střediska, která mají na Zaletu vlastní stránku
-  const knownSlugs = new Set<string>()
-  if (guide) {
-    for (const d of await fetchDestinations().catch(() => [])) {
-      if (d.resort_town) knownSlugs.add(slugify(d.resort_town))
-    }
-  }
-  const resortLinks: Record<string, string> = {}
-  for (const n of [...(guide?.resorts.map(r => r.name) ?? []), ...(guide?.beaches.map(b => b.resort ?? '') ?? [])]) {
-    if (n && knownSlugs.has(slugify(n)) && slugify(n) !== slugify(dest.name)) resortLinks[n] = `/destinace/${slugify(n)}`
-  }
+  const { guide } = await loadGuide(dest)
+  const hubCount = guide ? GUIDE_SECTIONS.filter(x => sectionCount(guide, x.field) > 0).length : 0
 
   const aiText = destAI?.description && destAI.description.length >= 20 ? destAI.description : null
   const wiki = aiText ? null : await fetchWikiSummary(dest.name).catch(() => null)
@@ -172,12 +156,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
     ...(places.length ? [{ href: '#co-videt', label: 'Co vidět', icon: 'poloha' as const }] : []),
     ...(food.length ? [{ href: '#jidlo', label: 'Jídlo', icon: 'jidlo' as const }] : []),
     ...(trips.length ? [{ href: '#vylety', label: 'Výlety', icon: 'trasa' as const }] : []),
-    ...(guide?.resorts.length ? [{ href: '#strediska', label: 'Střediska', icon: 'poloha' as const }] : []),
-    ...(guide?.beaches.length ? [{ href: '#plaze', label: 'Pláže', icon: 'plaz' as const }] : []),
-    ...(guide?.monasteries.length ? [{ href: '#klastery', label: 'Kláštery', icon: 'mesto' as const }] : []),
-    ...(guide?.sights.length ? [{ href: '#pamatky', label: 'Památky a muzea', icon: 'kompas' as const }] : []),
-    ...(guide?.nature.length ? [{ href: '#priroda', label: 'Příroda', icon: 'hory' as const }] : []),
-    ...(guide?.villages.length ? [{ href: '#vesnicky', label: 'Vesničky', icon: 'srdce' as const }] : []),
+    ...(hubCount ? [{ href: '#pruvodce', label: 'Průvodce', icon: 'mapa' as const }] : []),
     ...(photos.length >= 3 ? [{ href: '#fotky', label: 'Fotky', icon: 'foto' as const }] : []),
     { href: '#zajezdy', label: 'Zájezdy', icon: 'letadlo' as const },
     ...((pg?.total ?? 0) > 0 ? [{ href: `/destinace/${params.slug}/hotely`, label: 'Hotely', icon: 'hotel' as const }] : []),
@@ -271,34 +250,12 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
           </div>
         )}
 
-        {guide && (
+        {guide && hubCount > 0 && (
           <>
             {guide.facts.length > 0 && <FactsStrip facts={guide.facts} />}
-            {guide.resorts.length > 0 && (
-              <Block id="strediska" kicker="Střediska" title="střediska a letoviska" className="z-cardest__block--gallery">
-                <ResortCards items={guide.resorts} links={resortLinks} />
-              </Block>
-            )}
-            {guide.beaches.length > 0 && (
-              <Block id="plaze" kicker="Pláže" title={dest.type === 'town' ? `pláže v letovisku ${dest.name}` : `pláže: ${dest.name}`} className="z-cardest__block--gallery">
-                <BeachExplorer beaches={guide.beaches} resortLinks={resortLinks} regionName={dest.name} />
-              </Block>
-            )}
-            {guide.monasteries.length > 0 && (
-              <Block id="klastery" kicker="Kláštery" title="kláštery a poutní místa" className="z-cardest__block--gallery"><PlaceCards items={guide.monasteries} icon="mesto" /></Block>
-            )}
-            {guide.sights.length > 0 && (
-              <Block id="pamatky" kicker="Památky a muzea" title="památky a muzea" className="z-cardest__block--gallery"><PlaceCards items={guide.sights} icon="kompas" /></Block>
-            )}
-            {guide.nature.length > 0 && (
-              <Block id="priroda" kicker="Příroda" title="přírodní zajímavosti" className="z-cardest__block--gallery"><PlaceCards items={guide.nature} icon="hory" /></Block>
-            )}
-            {guide.villages.length > 0 && (
-              <Block id="vesnicky" kicker="Vesničky" title="vesničky a městečka" className="z-cardest__block--gallery"><PlaceCards items={guide.villages} icon="srdce" /></Block>
-            )}
-            {(guide.transport.to || guide.transport.around) && (
-              <Block id="doprava" kicker="Doprava" title="jak se tam dostat a jak se pohybovat" className="z-cardest__block--gallery"><TransportCards transport={guide.transport} /></Block>
-            )}
+            <Block id="pruvodce" kicker="Průvodce" title={`průvodce: ${dest.name}`} className="z-cardest__block--gallery">
+              <GuideHub guide={guide} base={`/destinace/${params.slug}`} />
+            </Block>
           </>
         )}
 

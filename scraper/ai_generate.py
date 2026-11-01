@@ -297,7 +297,8 @@ def run_article(conn, topic):
 
 # ── Průvodce oblastí (pláže, kláštery, památky, příroda, vesničky) ─────────
 
-IMAGE_CAPS = {"beaches": 10, "monasteries": 5, "sights": 6, "nature": 6, "villages": 6}
+IMAGE_CAPS = {"beaches": 16, "monasteries": 8, "sights": 8, "nature": 8, "villages": 8}
+IMG_VERSION = 2  # 2 = Wikimedia Commons první, Unsplash záloha
 UNSPLASH_UTM = "utm_source=zaleto&utm_medium=referral"
 
 
@@ -536,6 +537,101 @@ def unsplash_search(query: str) -> list[dict]:
     return r.json().get("results") or []
 
 
+# Wikimedia Commons: fotky konkrétních míst bez klíče a limitu; u každé se uvádí autor a licence
+
+WIKI_UA = {"User-Agent": "zaleto.cz/1.0 (https://zaleto.cz; info@zaleto.cz) guide-images"}
+FREE_LICENSE = re.compile(r"^(CC BY|CC0|Public domain|PD|Attribution)", re.I)
+
+
+def _strip_html(t: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", t or "")).strip()
+
+
+def _norm(t: str) -> str:
+    return re.sub(r"[^a-z0-9 ]", "", unicodedata.normalize("NFD", t).encode("ascii", "ignore").decode().lower())
+
+
+def _commons_candidate(ii: dict, used: set) -> dict | None:
+    """Z údajů o souboru na Commons vyrobí fotku, jen pokud je svobodně licencovaná a dost velká na šířku."""
+    meta = ii.get("extmetadata") or {}
+    lic = _strip_html((meta.get("LicenseShortName") or {}).get("value", ""))
+    if not FREE_LICENSE.match(lic):
+        return None
+    w, h = ii.get("width") or 0, ii.get("height") or 1
+    if w < 900 or w < h * 1.15:
+        return None
+    url = (ii.get("thumburl") or ii.get("url") or "").split("?")[0]
+    if not url or url in used:
+        return None
+    artist = _strip_html((meta.get("Artist") or {}).get("value", ""))
+    if len(artist) < 3 or artist.lower().startswith("no machine"):
+        artist = "Wikimedia Commons"
+    return {"url": url, "id": url, "source": "wikimedia", "license": lic,
+            "credit": artist[:80], "creditUrl": ii.get("descriptionurl") or "https://commons.wikimedia.org"}
+
+
+def commons_search_photo(name: str, region: str, used: set) -> dict | None:
+    """Záloha: fulltext hledání souborů přímo na Commons."""
+    try:
+        r = requests.get("https://commons.wikimedia.org/w/api.php", params={
+            "action": "query", "generator": "search", "gsrnamespace": 6, "gsrsearch": f"{name} {region}", "gsrlimit": 8,
+            "prop": "imageinfo", "iiprop": "url|extmetadata|size", "iiurlwidth": 1280, "format": "json"},
+            headers=WIKI_UA, timeout=15).json()
+        words = [w for w in _norm(name).split() if len(w) > 3] or _norm(name).split()
+        pages = sorted((r.get("query") or {}).get("pages", {}).values(), key=lambda p: p.get("index", 99))
+        for pg in pages:
+            if words and not any(w in _norm(pg.get("title", "")) for w in words):
+                continue
+            ii = (pg.get("imageinfo") or [None])[0]
+            c = ii and _commons_candidate(ii, used)
+            if c:
+                return c
+    except Exception as e:
+        log.debug("commons_search %s: %s", name, e)
+    return None
+
+
+def wiki_photo(name: str, region: str, used: set) -> dict | None:
+    """Hlavní obrázek článku na Wikipedii o daném místě + autor a licence z Commons."""
+    words = [w for w in _norm(name).split() if len(w) > 3 and w not in ("playa", "plaza", "beach", "cala", "parque", "santuari")] or _norm(name).split()
+    if not words:
+        return None
+    for lang in ("cs", "en", "es", "el", "de"):
+        try:
+            r = requests.get(f"https://{lang}.wikipedia.org/w/rest.php/v1/search/page",
+                             params={"q": f"{name} {region}", "limit": 3}, headers=WIKI_UA, timeout=15)
+            if r.status_code != 200:
+                continue
+            for page in (r.json().get("pages") or []):
+                title = _norm(page.get("title", ""))
+                if not any(w in title for w in words):
+                    continue
+                sm = requests.get(f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/" + requests.utils.quote(page["key"], safe=""),
+                                  headers=WIKI_UA, timeout=15)
+                if sm.status_code != 200:
+                    continue
+                orig = ((sm.json().get("originalimage") or {}).get("source", "") or "").split("?")[0]
+                m = re.match(r"https://upload\.wikimedia\.org/wikipedia/commons/(?:thumb/)?[0-9a-f]/[0-9a-f]{2}/([^/]+)", orig)
+                if not m:
+                    continue  # soubor mimo Commons (nesvobodný)
+                fname = requests.utils.unquote(m.group(1))
+                info = requests.get("https://commons.wikimedia.org/w/api.php", params={
+                    "action": "query", "titles": f"File:{fname}", "prop": "imageinfo", "iiprop": "url|extmetadata|size",
+                    "iiurlwidth": 1280, "format": "json"}, headers=WIKI_UA, timeout=15).json()
+                pg = next(iter((info.get("query") or {}).get("pages", {}).values()), {})
+                ii = (pg.get("imageinfo") or [None])[0]
+                if not ii:
+                    continue
+                c = _commons_candidate(ii, used)
+                if c:
+                    return c
+        except Exception as e:  # síť, neočekávaný tvar odpovědi: zkusíme další jazyk / zálohu
+            log.debug("wiki_photo %s: %s", name, e)
+        time.sleep(0.2)
+    return commons_search_photo(name, region, used)
+
+
+
 def pick_photo(results: list[dict], used: set) -> dict | None:
     for h in results:
         url = (h.get("urls") or {}).get("regular", "")
@@ -564,38 +660,52 @@ def register_download(url):
 
 def todo_guide_images(conn):
     ensure_guide_table(conn)
-    return rows(conn, "SELECT name, country, data FROM destination_guide WHERE images_done = FALSE ORDER BY generated_at")
+    return rows(conn, "SELECT name, country, data FROM destination_guide "
+                      "WHERE images_done = FALSE OR (data->>'_img_v') IS DISTINCT FROM %s ORDER BY generated_at", (str(IMG_VERSION),))
 
 
 def run_guide_images(conn, g):
     data = g["data"] if isinstance(g["data"], dict) else json.loads(g["data"])
     region, country = g["name"], g["country"] or ""
     used = {it["image"]["id"] for sec in IMAGE_CAPS for it in data.get(sec, []) if it.get("image")}
-    complete, changed = True, False
+    complete, changed, quota = True, False, False
     try:
         for sec, cap in IMAGE_CAPS.items():
             for it in data.get(sec, [])[:cap]:
-                if it.get("image") or it.get("image_failed"):
+                if it.get("image"):
                     continue
-                q = it.get("image_query") or f"{it['name']} {region}"
-                photo = pick_photo(unsplash_search(q), used)
-                if not photo:
-                    photo = pick_photo(unsplash_search(f"{it['name']} {region} {country}".strip()), used)
+                if it.get("image_failed") and it.get("img_v") == IMG_VERSION:
+                    continue
+                photo = wiki_photo(it["name"], region, used)
+                if not photo and not quota:
+                    try:
+                        q = it.get("image_query") or f"{it['name']} {region}"
+                        photo = pick_photo(unsplash_search(q), used)
+                        if photo:
+                            photo["source"] = "unsplash"
+                    except QuotaExhausted:
+                        quota = True
+                if not photo and quota:
+                    complete = False  # počká na další hodinu (Unsplash limit)
+                    continue
                 if photo:
                     used.add(photo["id"])
                     register_download(photo.pop("download", None))
                     it["image"] = photo
+                    it.pop("image_failed", None)
                 else:
                     it["image_failed"] = True
+                it["img_v"] = IMG_VERSION
                 changed = True
-    except QuotaExhausted:
-        complete = False
-        raise
     finally:
         if changed or complete:
+            if complete:
+                data["_img_v"] = IMG_VERSION
             conn.cursor().execute("UPDATE destination_guide SET data = %s, images_done = %s WHERE name = %s",
                                   (js(data), complete, region))
             conn.commit()
+    if quota:
+        raise QuotaExhausted()
     return True
 
 

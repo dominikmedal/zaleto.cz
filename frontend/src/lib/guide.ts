@@ -1,5 +1,5 @@
 /** Průvodce oblastí (generuje ho AI v GitHub Actions, fotky doplňuje hodinový běh z Unsplash). */
-export interface GuidePhoto { url: string; credit: string; creditUrl: string }
+export interface GuidePhoto { url: string; credit: string; creditUrl: string; source?: 'unsplash' | 'wikimedia'; license?: string }
 
 interface GuideBase { name: string; description: string; image?: GuidePhoto | null }
 

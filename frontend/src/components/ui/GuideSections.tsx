@@ -1,8 +1,55 @@
 import Link from 'next/link'
 import Icon, { type IconName } from './Icon'
-import type { GuidePlace, GuideResort } from '@/lib/guide'
+import type { GuidePhoto, GuidePlace, GuideResort, DestinationGuide } from '@/lib/guide'
+import { GUIDE_SECTIONS, sectionCount } from '@/lib/guideSections'
 
 const UNSPLASH = 'https://unsplash.com/?utm_source=zaleto&utm_medium=referral'
+
+/** Zdroj fotky: autor + Wikimedia Commons (s licencí) nebo Unsplash. */
+export function PhotoCredit({ photo, className }: { photo: GuidePhoto; className?: string }) {
+  const wiki = photo.source === 'wikimedia'
+  return (
+    <span className={className}>
+      <a href={photo.creditUrl} target="_blank" rel="noopener noreferrer">{photo.credit}</a>{' / '}
+      {wiki
+        ? <a href="https://commons.wikimedia.org" target="_blank" rel="noopener noreferrer">Wikimedia Commons{photo.license ? `, ${photo.license}` : ''}</a>
+        : <a href={UNSPLASH} target="_blank" rel="noopener noreferrer">Unsplash</a>}
+    </span>
+  )
+}
+
+/** Rozcestník průvodce na stránce destinace: dlaždice sekcí, každá vede na vlastní podstránku. */
+export function GuideHub({ guide, base }: { guide: DestinationGuide; base: string }) {
+  const tiles = GUIDE_SECTIONS.map(sec => ({ sec, n: sectionCount(guide, sec.field) })).filter(t => t.n > 0)
+  if (!tiles.length) return null
+  const photo = (field: string): GuidePhoto | null => {
+    const v = guide[field as keyof DestinationGuide]
+    return Array.isArray(v) ? ((v as { image?: GuidePhoto | null }[]).find(x => x.image)?.image ?? null) : null
+  }
+  return (
+    <div className="z-ghub">
+      {tiles.map(({ sec, n }) => {
+        const ph = photo(sec.field)
+        return (
+          <Link key={sec.key} href={`${base}/${sec.key}`} className="z-ghub__tile">
+            <div className="z-ghub__media">
+              {ph ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={ph.url} alt="" loading="lazy" />
+              ) : <span aria-hidden="true"><Icon name={sec.icon} size="lg" /></span>}
+            </div>
+            <div className="z-ghub__body">
+              <span className="z-ghub__ic"><Icon name={sec.icon} /></span>
+              <h3>{sec.label}</h3>
+              <span className="z-data">{sec.field === 'transport' ? 'letiště, doprava na místě' : `${n} ${n === 1 ? 'položka' : n < 5 ? 'položky' : 'položek'}`}</span>
+              <span className="z-ghub__go" aria-hidden="true"><Icon name="sipka" size="sm" /></span>
+            </div>
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
 
 /** Karta místa s fotkou z Unsplash (kláštery, památky, příroda, vesničky). Bez fotky vznikne stylová ikonová dlaždice. */
 export function PlaceCards({ items, icon }: { items: GuidePlace[]; icon: IconName }) {
@@ -16,11 +63,7 @@ export function PlaceCards({ items, icon }: { items: GuidePlace[]; icon: IconNam
               <img src={it.image.url} alt={it.name} loading="lazy" />
             ) : <span className="z-gcard__ph" aria-hidden="true"><Icon name={icon} size="lg" /></span>}
             {it.kind && <span className="z-gcard__kind">{it.kind}</span>}
-            {it.image && (
-              <span className="z-gcard__credit">
-                <a href={it.image.creditUrl} target="_blank" rel="noopener noreferrer">{it.image.credit}</a> / <a href={UNSPLASH} target="_blank" rel="noopener noreferrer">Unsplash</a>
-              </span>
-            )}
+            {it.image && <PhotoCredit photo={it.image} className="z-gcard__credit" />}
           </div>
           <div className="z-gcard__body">
             {it.location && <div className="z-kicker">{it.location}</div>}

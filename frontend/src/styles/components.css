@@ -1727,3 +1727,22 @@ button.z-chip { cursor: pointer; }
 .z-admlog pre, .z-admtrips__body pre { margin: 0; max-height: 460px; overflow: auto; background: #0b1b33; color: #d7e4f5; padding: 14px 16px; border-radius: 10px; font: 400 12.5px/1.55 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
 .z-admtrips__body pre { background: var(--paper-deep, #f6efe3); color: var(--ink); font-family: var(--font-sans); font-size: 15px; line-height: 24px; max-height: 520px; }
 .z-adm-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* sticky reklama: pozdější .z-ad { position: relative } ji nesmí přebít (posouvala box dolů mimo sloupec) */
+.z-ad.z-ad--sticky { position: sticky; top: calc(var(--header-height) + var(--space-5)); }
+.z-cardest__side .z-ad.z-ad--sticky { position: relative; top: auto; }
+@media (max-width: 1023px) { .z-ad.z-ad--sticky { position: static; } }
+
+/* průvodce: rozcestník sekcí, zdroj fotek vždy vidět */
+.z-ghub { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--space-4); }
+.z-ghub__tile { display: flex; flex-direction: column; border-radius: var(--radius-lg); overflow: hidden; background: var(--raised); box-shadow: var(--shadow-ticket); text-decoration: none; color: inherit; transition: box-shadow .25s, transform .25s; }
+.z-ghub__tile:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+.z-ghub__media { aspect-ratio: 16 / 9; background: var(--paper-deep); display: grid; place-items: center; color: var(--brand-strong); overflow: hidden; }
+.z-ghub__media img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s; }
+.z-ghub__tile:hover .z-ghub__media img { transform: scale(1.05); }
+.z-ghub__body { position: relative; padding: var(--space-4) var(--space-5) var(--space-5); display: grid; gap: 4px; }
+.z-ghub__ic { position: absolute; top: -22px; left: var(--space-5); display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px 14px 14px 4px; background: var(--raised); box-shadow: var(--shadow-ticket); color: var(--brand-strong); }
+.z-ghub__body h3 { margin: 18px 0 0; font: 600 22px/28px var(--font-serif); }
+.z-ghub__go { position: absolute; right: var(--space-5); bottom: var(--space-5); }
+.z-beach__credit, .z-gcard__credit { opacity: 1 !important; }
+.z-guidepage__lead { margin: var(--space-3) 0 0; max-width: 62ch; }
