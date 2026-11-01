@@ -1972,3 +1972,6 @@ button.z-chip { cursor: pointer; }
 .z-sr-item[data-active]::before { transform: scaleY(1); }
 .z-sr-item__icon { border-radius: 14px 14px 14px 4px; color: var(--brand-strong); }
 .z-sr-item img { border-radius: 14px 14px 14px 4px; }
+
+.z-sr-stars { color: var(--accent); }
+.z-sr-stars .zi, .z-sr-stars .zi path { fill: var(--accent); stroke: var(--accent); }

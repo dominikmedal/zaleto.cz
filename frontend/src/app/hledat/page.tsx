@@ -14,7 +14,7 @@ interface Props { searchParams: { q?: string | string[] } }
 export default async function SearchPage({ searchParams }: Props) {
   const q = (Array.isArray(searchParams.q) ? searchParams.q[0] : searchParams.q)?.trim() ?? ''
   const r = await siteSearch({ q, limit: '12' }).catch(() => null)
-  const total = r ? r.destinations.length + r.hotels.length + r.articles.length + r.cars.length + r.pages.length : 0
+  const total = r ? r.destinations.length + r.hotels.length + r.articles.length + r.cars.length + r.places.length + r.trips.length + r.pages.length : 0
 
   return (
     <>
@@ -67,6 +67,35 @@ export default async function SearchPage({ searchParams }: Props) {
               ))}
             </div>
             <p style={{ margin: 'var(--space-4) 0 0' }}><Link className="z-more" href={`/zajezdy?destination=${encodeURIComponent(q)}`}>Zobrazit zájezdy pro „{q}“</Link></p>
+          </section>
+        )}
+
+        {r && r.places.length > 0 && (
+          <section className="z-section" style={{ paddingTop: 'var(--space-7)' }}>
+            <h2 className="h3">pláže a místa<span className="z-dot">.</span></h2>
+            <div className="z-searchpage__list">
+              {r.places.map(p => (
+                <Link key={p.href} href={p.href} className="z-sr-item" style={{ textDecoration: 'none' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {p.photo ? <img src={p.photo} alt="" loading="lazy" /> : <span className="z-sr-item__icon"><Icon name={({ plaze: 'plaz', klastery: 'mesto', pamatky: 'kompas', priroda: 'hory', vesnicky: 'srdce' } as const)[p.section as 'plaze'] ?? 'poloha'} /></span>}
+                  <span className="z-sr-item__text"><b>{p.name}</b><small>{p.kind} · {p.sub}</small></span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {r && r.trips.length > 0 && (
+          <section className="z-section" style={{ paddingTop: 'var(--space-7)' }}>
+            <h2 className="h3">cestopisy<span className="z-dot">.</span></h2>
+            <div className="z-searchpage__list">
+              {r.trips.map(t => (
+                <Link key={t.href} href={t.href} className="z-sr-item" style={{ textDecoration: 'none' }}>
+                  <span className="z-sr-item__icon"><Icon name="trasa" /></span>
+                  <span className="z-sr-item__text"><b>{t.title}</b><small>{t.destination} · {t.author}</small></span>
+                </Link>
+              ))}
+            </div>
           </section>
         )}
 

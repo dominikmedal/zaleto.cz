@@ -4,16 +4,20 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Icon, { type IconName } from '@/components/ui/Icon'
 import { formatPrice } from '@/components/ui/format'
-import type { SearchResults } from '@/server/search'
+import type { SearchResults } from '@/lib/searchTypes'
 
 type Item = { key: string; group: string; icon: IconName; title: string; sub?: string; stars?: number | null; href: string; aside?: string; photo?: string | null }
 
-const EMPTY: SearchResults = { q: '', destinations: [], hotels: [], articles: [], cars: [], pages: [] }
+const EMPTY: SearchResults = { q: '', destinations: [], hotels: [], articles: [], cars: [], places: [], trips: [], pages: [] }
+
+const PLACE_ICON: Record<string, IconName> = { plaze: 'plaz', klastery: 'mesto', pamatky: 'kompas', priroda: 'hory', vesnicky: 'srdce' }
 
 export function flatten(r: SearchResults): Item[] {
   const kind = { country: 'země', region: 'oblast', resort: 'letovisko' } as const
   return [
     ...r.destinations.map(d => ({ key: `d-${d.href}`, group: 'Destinace', icon: ({ country: 'zeme', region: 'poloha', resort: 'mesto' } as const)[d.kind] as IconName, title: d.name, sub: [kind[d.kind], d.country].filter(Boolean).join(' · '), href: d.href, aside: `${d.count} hotelů` })),
+    ...r.places.map(p => ({ key: `g-${p.href}`, group: 'Pláže a místa', icon: PLACE_ICON[p.section] ?? 'poloha', title: p.name, sub: `${p.kind} · ${p.sub}`, href: p.href, photo: p.photo })),
+    ...r.trips.map(t => ({ key: `t-${t.href}`, group: 'Cestopisy', icon: 'trasa' as IconName, title: t.title, sub: `${t.destination} · ${t.author}`, href: t.href })),
     ...r.hotels.map(h => ({ key: `h-${h.slug}`, group: 'Zájezdy', icon: 'hotel' as IconName, title: h.name, sub: h.place, stars: h.stars, href: h.href, aside: h.price ? `od ${formatPrice(h.price)}` : undefined, photo: h.photo })),
     ...r.articles.map(a => ({ key: `a-${a.slug}`, group: 'Články', icon: 'clanek' as IconName, title: a.title, sub: a.location ?? undefined, href: a.href, photo: a.image })),
     ...r.cars.map(c => ({ key: `c-${c.href}`, group: 'Půjčovna aut', icon: 'auto' as IconName, title: `Půjčovna aut ${c.name}`, sub: c.country, href: c.href })),

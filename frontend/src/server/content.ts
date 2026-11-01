@@ -390,3 +390,30 @@ export async function guideSitemapPaths(): Promise<{ path: string; at: string }[
     return out
   } catch { return [] }
 }
+
+export interface GuideSearchItem { name: string; section: string; label: string; location: string; region: string; href: string; image: string | null }
+
+/** Položky průvodců (pláže, kláštery, památky, příroda, vesničky) pro hledání na webu. Drží se 10 minut v paměti. */
+export async function guideSearchIndex(): Promise<GuideSearchItem[]> {
+  const cached = metaCache.get('guide_search_index')
+  if (cached) return cached as GuideSearchItem[]
+  try {
+    const rows = (await query<{ name: string; data: Record<string, unknown> | string }>('SELECT name, data FROM destination_guide')).rows
+    const SECTIONS: [string, string, string][] = [['beaches', 'plaze', 'pláž'], ['monasteries', 'klastery', 'klášter'], ['sights', 'pamatky', 'památka'], ['nature', 'priroda', 'příroda'], ['villages', 'vesnicky', 'vesnička']]
+    const out: GuideSearchItem[] = []
+    for (const r of rows) {
+      const data = (typeof r.data === 'string' ? JSON.parse(r.data) : r.data) as Record<string, unknown>
+      const region = slugify(r.name)
+      for (const [field, key, label] of SECTIONS) {
+        const list = data[field]
+        if (!Array.isArray(list)) continue
+        for (const it of list as { name?: string; location?: string; resort?: string; image?: { url?: string } | null }[]) {
+          if (!it?.name) continue
+          out.push({ name: it.name, section: key, label, location: it.resort ?? it.location ?? '', region: r.name, href: `/destinace/${region}/${key}/${slugify(it.name)}`, image: it.image?.url ?? null })
+        }
+      }
+    }
+    metaCache.set('guide_search_index', out)
+    return out
+  } catch { return [] }
+}

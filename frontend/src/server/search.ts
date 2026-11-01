@@ -2,15 +2,11 @@ import { query } from './db'
 import { listDestinations } from './tours'
 import { ensureAutomationSchema } from './automationDb'
 import type { Q } from './hotels'
+import { guideSearchIndex } from './content'
+import { searchTravelogues } from './travelogueSearch'
 
-export interface SearchResults {
-  q: string
-  destinations: { name: string; kind: 'country' | 'region' | 'resort'; country: string | null; count: number; href: string }[]
-  hotels: { slug: string; name: string; place: string; stars: number | null; price: number | null; photo: string | null; href: string }[]
-  articles: { slug: string; title: string; location: string | null; excerpt: string | null; image: string | null; href: string }[]
-  cars: { name: string; country: string; href: string }[]
-  pages: { title: string; text: string; href: string }[]
-}
+import type { SearchResults } from '@/lib/searchTypes'
+export type { SearchResults }
 
 const PAGES = [
   { title: 'Všechny zájezdy', text: 'Hledání zájezdů podle destinace, termínu a ceny', href: '/zajezdy', kw: 'zajezdy dovolena zajezd' },
@@ -40,13 +36,13 @@ const rank = (name: string, t: string) => {
 export async function siteSearch(q: Q): Promise<SearchResults> {
   const raw = (q.q ?? '').trim().slice(0, 80)
   const limit = Math.min(12, Math.max(1, parseInt(q.limit ?? '') || 6))
-  const empty: SearchResults = { q: raw, destinations: [], hotels: [], articles: [], cars: [], pages: [] }
+  const empty: SearchResults = { q: raw, destinations: [], hotels: [], articles: [], cars: [], places: [], trips: [], pages: [] }
   const t = norm(raw)
   if (t.length < 2) return empty
   const like = `%${t.replace(/[%_\\]/g, m => `\\${m}`)}%`
 
   await ensureAutomationSchema().catch(() => {})
-  const [destRows, hotelRows, articleRows, carRows] = await Promise.all([
+  const [destRows, hotelRows, articleRows, carRows, guideItems, tripRows] = await Promise.all([
     listDestinations().catch(() => []) as Promise<{ country: string; destination: string; resort_town: string | null; hotel_count: number }[]>,
     query(
       `SELECT h.slug, h.name, h.country, h.resort_town, h.stars, h.thumbnail_url, s.min_price
@@ -65,7 +61,15 @@ export async function siteSearch(q: Q): Promise<SearchResults> {
     ).then(r => r.rows).catch(() => []),
     query(`SELECT slug, name, country FROM car_rental_ai WHERE intro IS NOT NULL AND (${SQL_NORM('name')} LIKE ? OR ${SQL_NORM('country')} LIKE ?) ORDER BY name LIMIT ?`, [like, like, limit])
       .then(r => r.rows).catch(() => []),
+    guideSearchIndex(),
+    searchTravelogues(t, limit),
   ])
+
+  const places = guideItems
+    .filter(g => norm(g.name).includes(t))
+    .sort((a, b) => rank(a.name, t) - rank(b.name, t) || a.name.localeCompare(b.name, 'cs'))
+    .slice(0, limit)
+    .map(g => ({ name: g.name, kind: g.label, section: g.section, sub: [g.location, g.region].filter(Boolean).join(' · '), photo: g.image, href: g.href }))
 
   // destinace: země, oblasti a letoviska z nabídky zájezdů
   const map = new Map<string, SearchResults['destinations'][number]>()
@@ -98,6 +102,8 @@ export async function siteSearch(q: Q): Promise<SearchResults> {
       slug: a.slug, title: a.title, location: a.location ?? null, excerpt: a.excerpt ?? null,
       image: a.custom_image_url && !String(a.custom_image_url).startsWith('/uploads/') ? a.custom_image_url : null, href: `/clanky/${a.slug}`,
     })),
+    places,
+    trips: tripRows,
     cars: carRows.map((c: any) => ({ name: c.name, country: c.country, href: `/pujcovna-aut/${c.slug}` })),
     pages: PAGES.filter(p => norm(`${p.title} ${p.kw}`).includes(t)).slice(0, 4).map(({ title, text, href }) => ({ title, text, href })),
   }
