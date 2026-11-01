@@ -86,45 +86,52 @@ export default async function GuideItemPage({ params }: Props) {
       <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
         <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Destinace', href: '/destinace' }, ...dest.breadcrumb, { label: sec.label, href: sectionUrl }, { label: item.name }]} />
 
-        <div className="z-item">
+        <div className="z-item__hero">
           <div>
-            {kicker && <div className="z-kicker" style={{ marginTop: 'var(--space-5)' }}>{kicker} · {dest.name}</div>}
+            {kicker && <div className="z-kicker">{kicker} · {dest.name}</div>}
             <h1 className="h1" style={{ margin: 'var(--space-3) 0 var(--space-4)' }}>{item.name}<span className="z-dot">.</span></h1>
-            {badge && <span className="z-chip" style={{ marginBottom: 'var(--space-4)' }}><Icon name={sec.icon} />{badge}</span>}
-            <div className="z-prose"><p>{item.description}</p></div>
-
-            {beach && (beach.facilities?.length || beach.suitable_for?.length || beach.crowd) ? (
-              <ul className="z-beach__chips" style={{ marginTop: 'var(--space-4)' }}>
-                {beach.crowd && <li data-k="crowd">{CROWD[beach.crowd] ?? beach.crowd}</li>}
-                {beach.suitable_for?.map(x => <li key={x} data-k="for">{x}</li>)}
-                {[...new Set(beach.facilities ?? [])].filter(x => !beach.suitable_for?.includes(x)).map(x => <li key={x}>{x}</li>)}
-              </ul>
-            ) : null}
-            {beach?.tip && <p className="z-beach__tip" style={{ marginTop: 'var(--space-4)' }}><Icon name="info" size="sm" /><span>{beach.tip}</span></p>}
-
-            <p style={{ marginTop: 'var(--space-6)', display: 'flex', gap: 'var(--space-5)', flexWrap: 'wrap' }}>
-              <Link className="z-more" href={`${base}/hotely`}>Hotely: {dest.name}</Link>
-              <Link className="z-more" href={`${base}#zajezdy`}>Zájezdy: {dest.name}</Link>
-              <Link className="z-more" href={sectionUrl}>Všechny: {sec.label.toLowerCase()}</Link>
-            </p>
+            {badge && <span className="z-chip"><Icon name={sec.icon} />{badge}</span>}
+            <p className="lead z-item__lead">{item.description}</p>
           </div>
+          {item.image ? (
+            <figure className="z-item__photo">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={item.image.url} alt={item.name} />
+              <figcaption><PhotoCredit photo={item.image} /></figcaption>
+            </figure>
+          ) : (
+            <div className="z-item__photo z-item__photo--ph" aria-hidden="true"><Icon name={sec.icon} size="lg" /></div>
+          )}
+        </div>
 
-          <div className="z-item__side">
-            {item.image && (
-              <figure className="z-item__photo">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.image.url} alt={item.name} />
-                <figcaption><PhotoCredit photo={item.image} /></figcaption>
-              </figure>
-            )}
-            {hasGeo && <ItemMap lat={beach!.lat as number} lng={beach!.lng as number} title={item.name} sub={beach!.resort} />}
-            {!hasGeo && (
-              <a className="z-more" target="_blank" rel="noopener noreferrer"
-                href={`https://www.openstreetmap.org/search?query=${encodeURIComponent([item.name, place?.location, dest.name].filter(Boolean).join(', '))}`}>
-                <Icon name="mapa" size="sm" />Najít na mapě
-              </a>
-            )}
+        {beach && (
+          <div className="z-item__detail">
+            <div className="z-tk"><div className="z-tk__in z-item__facts">
+              <h2 className="h3">o pláži<span className="z-dot">.</span></h2>
+              <dl>
+                {beach.crowd && <div><dt>Rušnost</dt><dd><ul className="z-beach__chips"><li data-k="crowd">{CROWD[beach.crowd] ?? beach.crowd}</li></ul></dd></div>}
+                {beach.suitable_for?.length ? <div><dt>Hodí se pro</dt><dd><ul className="z-beach__chips">{beach.suitable_for.map(x => <li key={x} data-k="for">{x}</li>)}</ul></dd></div> : null}
+                {beach.facilities?.length ? <div><dt>Vybavení</dt><dd><ul className="z-beach__chips">{[...new Set(beach.facilities)].filter(x => !beach.suitable_for?.includes(x)).map(x => <li key={x}>{x}</li>)}</ul></dd></div> : null}
+                {beach.type ? <div><dt>Povrch</dt><dd>{beach.type}</dd></div> : null}
+              </dl>
+              {beach.tip && <p className="z-beach__tip"><Icon name="info" size="sm" /><span>{beach.tip}</span></p>}
+            </div></div>
+            {hasGeo
+              ? <ItemMap lat={beach.lat as number} lng={beach.lng as number} title={item.name} sub={beach.resort} />
+              : <a className="z-more" target="_blank" rel="noopener noreferrer" href={`https://www.openstreetmap.org/search?query=${encodeURIComponent([item.name, beach.resort, dest.name].filter(Boolean).join(', '))}`}><Icon name="mapa" size="sm" />Najít na mapě</a>}
           </div>
+        )}
+
+        <div className="z-item__ctas">
+          <Link href={`${base}/hotely`} className="z-ghub__tile z-item__cta"><span className="z-ghub__ic"><Icon name="hotel" /></span><h3>Hotely: {dest.name}</h3><span className="z-data">všechny hotely s termínem</span></Link>
+          <Link href={`${base}#zajezdy`} className="z-ghub__tile z-item__cta"><span className="z-ghub__ic"><Icon name="letadlo" /></span><h3>Zájezdy: {dest.name}</h3><span className="z-data">porovnání cen více CK</span></Link>
+          <Link href={sectionUrl} className="z-ghub__tile z-item__cta"><span className="z-ghub__ic"><Icon name={sec.icon} /></span><h3>Všechny: {sec.label.toLowerCase()}</h3><span className="z-data">zpět na přehled</span></Link>
+          {!beach && (
+            <a className="z-ghub__tile z-item__cta" target="_blank" rel="noopener noreferrer"
+              href={`https://www.openstreetmap.org/search?query=${encodeURIComponent([item.name, place?.location, dest.name].filter(Boolean).join(', '))}`}>
+              <span className="z-ghub__ic"><Icon name="mapa" /></span><h3>Najít na mapě</h3><span className="z-data">OpenStreetMap</span>
+            </a>
+          )}
         </div>
 
         {others.length > 0 && (

@@ -1824,3 +1824,24 @@ button.z-chip { cursor: pointer; }
 .z-itemlinks a { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: var(--radius-pill); background: var(--raised); box-shadow: var(--shadow-ticket); color: var(--ink); text-decoration: none; font-weight: 600; }
 .z-itemlinks a:hover { box-shadow: var(--shadow-lift); }
 @media (max-width: 1023px) { .z-item { grid-template-columns: 1fr; gap: var(--space-5); } .z-item__side { position: static; order: -1; margin-top: var(--space-4); } }
+
+/* stránka položky: hero + detaily + odkazy */
+.z-item__hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 480px); gap: var(--space-8); align-items: center; margin-top: var(--space-5); }
+.z-item__lead { margin: var(--space-4) 0 0; max-width: 56ch; }
+.z-item__hero .z-item__photo { margin: 0; }
+.z-item__photo--ph { aspect-ratio: 4 / 3; display: grid; place-items: center; color: var(--brand-strong); opacity: .6; }
+.z-item__detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-6); margin-top: var(--space-8); align-items: stretch; }
+.z-item__detail .z-itemmap { height: 100%; min-height: 320px; }
+.z-item__facts { padding: var(--space-5); display: grid; gap: var(--space-4); align-content: start; }
+.z-item__facts h2 { margin: 0; }
+.z-item__facts dl { margin: 0; display: grid; gap: var(--space-4); }
+.z-item__facts dt { font: 700 11px/14px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 6px; }
+.z-item__facts dd { margin: 0; }
+.z-item__ctas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); margin-top: var(--space-8); }
+.z-item__cta { position: relative; padding: var(--space-6) var(--space-5) var(--space-5); gap: 4px; display: grid; }
+.z-item__cta .z-ghub__ic { top: -22px; }
+.z-item__cta h3 { margin: 10px 0 0; font: 600 20px/26px var(--font-serif); }
+@media (max-width: 1023px) { .z-item__hero, .z-item__detail { grid-template-columns: 1fr; gap: var(--space-5); } .z-item__hero .z-item__photo { order: -1; } }
+.z-item__cta .z-ghub__ic { position: static; margin-bottom: var(--space-2); }
+.z-item__cta { padding: var(--space-5); }
+.z-item__photo figcaption { white-space: normal; text-overflow: clip; max-width: calc(100% - 20px); overflow-wrap: anywhere; border-radius: 12px; right: auto; }
