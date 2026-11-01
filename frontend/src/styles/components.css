@@ -1845,3 +1845,26 @@ button.z-chip { cursor: pointer; }
 .z-item__cta .z-ghub__ic { position: static; margin-bottom: var(--space-2); }
 .z-item__cta { padding: var(--space-5); }
 .z-item__photo figcaption { white-space: normal; text-overflow: clip; max-width: calc(100% - 20px); overflow-wrap: anywhere; border-radius: 12px; right: auto; }
+
+/* stránka položky: palubní lístek */
+.z-item__hero { align-items: center; }
+.z-item__pass { --stub: 210px; }
+.z-item__passin { display: grid; grid-template-columns: minmax(0, 1fr) var(--stub); }
+.z-item__passmain { padding: var(--space-6) var(--space-6) var(--space-6) var(--space-6); }
+.z-item__passmain .z-kicker { color: var(--brand-strong); }
+.z-item__stub { padding: var(--space-5) var(--space-4); display: grid; align-content: center; justify-items: start; gap: var(--space-5); background: var(--accent-soft); border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }
+.z-item__stub dl { margin: 0; display: grid; gap: var(--space-3); width: 100%; }
+.z-item__stub dl > div { border-top: 2px dotted var(--line); padding-top: 6px; }
+.z-item__stub dt { font: 700 10px/12px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-muted); }
+.z-item__stub dd { margin: 2px 0 0; font: 600 16px/20px var(--font-serif); overflow-wrap: anywhere; }
+.z-item__facts dl > div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--space-3); padding-top: var(--space-3); border-top: 2px dotted var(--line); align-items: baseline; }
+.z-item__facts dt { margin: 0; }
+.z-item__facts .z-kicker { color: var(--brand-strong); }
+@media (max-width: 1023px) {
+  .z-item__passin { grid-template-columns: 1fr; }
+  .z-tk--v.z-item__pass .z-tk__in { -webkit-mask: none; mask: none; }
+  .z-tk--v.z-item__pass .z-tk__in::after { display: none; }
+  .z-item__stub { border-radius: 0 0 var(--radius-lg) var(--radius-lg); border-top: 2px dashed var(--line); }
+  .z-item__passmain { padding: var(--space-5); }
+  .z-item__facts dl > div { grid-template-columns: 1fr; gap: 4px; }
+}

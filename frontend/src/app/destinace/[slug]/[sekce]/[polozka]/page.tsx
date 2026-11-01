@@ -87,11 +87,22 @@ export default async function GuideItemPage({ params }: Props) {
         <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Destinace', href: '/destinace' }, ...dest.breadcrumb, { label: sec.label, href: sectionUrl }, { label: item.name }]} />
 
         <div className="z-item__hero">
-          <div>
-            {kicker && <div className="z-kicker">{kicker} · {dest.name}</div>}
-            <h1 className="h1" style={{ margin: 'var(--space-3) 0 var(--space-4)' }}>{item.name}<span className="z-dot">.</span></h1>
-            {badge && <span className="z-chip"><Icon name={sec.icon} />{badge}</span>}
-            <p className="lead z-item__lead">{item.description}</p>
+          <div className="z-tk z-tk--v z-item__pass" style={{ ['--stub' as string]: '210px' }}>
+            <div className="z-tk__in z-item__passin">
+              <div className="z-item__passmain">
+                {kicker && <div className="z-kicker">{kicker} · {dest.name}</div>}
+                <h1 className="h1" style={{ margin: 'var(--space-3) 0 var(--space-4)' }}>{item.name}<span className="z-dot">.</span></h1>
+                <p className="lead z-item__lead">{item.description}</p>
+              </div>
+              <div className="z-item__stub">
+                {badge && <span className="z-stamp z-stamp--brand"><Icon name={sec.icon} size="sm" />{badge}</span>}
+                <dl>
+                  <div><dt>Destinace</dt><dd>{dest.name}</dd></div>
+                  {kicker && <div><dt>{beach ? 'Středisko' : 'Lokalita'}</dt><dd>{kicker}</dd></div>}
+                  <div><dt>Sekce</dt><dd>{sec.label}</dd></div>
+                </dl>
+              </div>
+            </div>
           </div>
           {item.image ? (
             <figure className="z-item__photo">
@@ -107,6 +118,7 @@ export default async function GuideItemPage({ params }: Props) {
         {beach && (
           <div className="z-item__detail">
             <div className="z-tk"><div className="z-tk__in z-item__facts">
+              <div className="z-kicker">Palubní údaje</div>
               <h2 className="h3">o pláži<span className="z-dot">.</span></h2>
               <dl>
                 {beach.crowd && <div><dt>Rušnost</dt><dd><ul className="z-beach__chips"><li data-k="crowd">{CROWD[beach.crowd] ?? beach.crowd}</li></ul></dd></div>}

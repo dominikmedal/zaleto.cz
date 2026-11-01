@@ -325,7 +325,8 @@ def run_article(conn, topic):
 # ── Průvodce oblastí (pláže, kláštery, památky, příroda, vesničky) ─────────
 
 IMAGE_CAPS = {"beaches": 16, "monasteries": 8, "sights": 8, "nature": 8, "villages": 8}
-IMG_VERSION = 2  # 2 = Wikimedia Commons první, Unsplash záloha
+IMG_VERSION = 3  # 2 = Wikimedia Commons první, Unsplash záloha; 3 = přesnější fotky pláží
+BEACH_V = 3
 UNSPLASH_UTM = "utm_source=zaleto&utm_medium=referral"
 
 
@@ -590,7 +591,7 @@ def _commons_candidate(ii: dict, used: set) -> dict | None:
     url = (ii.get("thumburl") or ii.get("url") or "").split("?")[0]
     if not url or url in used:
         return None
-    artist = _strip_html((meta.get("Artist") or {}).get("value", ""))
+    artist = re.split(r"\s\d{1,2}:\d\d|\(UTC\)", _strip_html((meta.get("Artist") or {}).get("value", "")))[0].strip()
     if len(artist) < 3 or artist.lower().startswith("no machine"):
         artist = "Wikimedia Commons"
     return {"url": url, "id": url, "source": "wikimedia", "license": lic,
@@ -615,6 +616,44 @@ def commons_search_photo(name: str, region: str, used: set) -> dict | None:
                 return c
     except Exception as e:
         log.debug("commons_search %s: %s", name, e)
+    return None
+
+
+BEACH_WORDS = ("playa", "platja", "beach", "strand", "plage", "praia", "spiaggia", "cala", "cove", "bay", "paralia", "plaz")
+BAD_WORDS = ("castle", "castell", "castillo", "porta", "gate", "puerta", "church", "iglesia", "glesia", "muralla", "wall", "map", "mapa",
+              "logo", "flag", "escut", "coat", "hotel", "exterior", "interior", "room", "restaurant", "resort", "apartment", "torre", "tower", "plaza", "street", "calle", "carrer", "museum", "museo", "statue", "monument")
+
+
+def beach_photo(name: str, region: str, used: set) -> dict | None:
+    """Pláže: jen fulltext na Commons s kontrolou názvu souboru (článek na Wikipedii bývá o městě, ne o pláži)."""
+    words = [w for w in _norm(name).split() if len(w) > 2 and w not in ("playa", "platja", "plaza", "beach", "cala", "de", "del", "des", "sa", "es", "els", "los", "las", "la", "el", "d", "den")]
+    if not words:
+        return None
+    for q in (f"{name} {region} beach", f"{name} {region}", f"{name} beach"):
+        try:
+            r = requests.get("https://commons.wikimedia.org/w/api.php", params={
+                "action": "query", "generator": "search", "gsrnamespace": 6, "gsrsearch": q, "gsrlimit": 12,
+                "prop": "imageinfo", "iiprop": "url|extmetadata|size", "iiurlwidth": 1280, "format": "json"},
+                headers=WIKI_UA, timeout=15).json()
+        except Exception as e:
+            log.debug("beach_photo %s: %s", name, e)
+            continue
+        pages = sorted((r.get("query") or {}).get("pages", {}).values(), key=lambda p: p.get("index", 99))
+        good, ok = None, None
+        for pg in pages:
+            t = _norm(pg.get("title", ""))
+            if not any(w in t for w in words) or any(b in t.split() for b in BAD_WORDS):
+                continue
+            ii = (pg.get("imageinfo") or [None])[0]
+            c = ii and _commons_candidate(ii, used)
+            if not c:
+                continue
+            if any(b in t for b in BEACH_WORDS):
+                good = good or c
+            ok = ok or c
+        if good or ok:
+            return good or ok
+        time.sleep(0.2)
     return None
 
 
@@ -695,7 +734,11 @@ def run_guide_images(conn, g):
     data = g["data"] if isinstance(g["data"], dict) else json.loads(g["data"])
     region, country = g["name"], g["country"] or ""
     used = {it["image"]["id"] for sec in IMAGE_CAPS for it in data.get(sec, []) if it.get("image")}
-    complete, changed, quota = True, False, False
+    for it in data.get("beaches", []):
+        if it.get("beach_v") != BEACH_V:  # dřívější fotky pláží často ukazovaly město; hledá se znovu
+            it.pop("image", None); it.pop("image_failed", None); it["beach_v"] = BEACH_V
+    used = {it["image"]["id"] for sec in IMAGE_CAPS for it in data.get(sec, []) if it.get("image")}
+    complete, changed, quota = True, True, False
     try:
         for sec, cap in IMAGE_CAPS.items():
             for it in data.get(sec, [])[:cap]:
@@ -703,7 +746,7 @@ def run_guide_images(conn, g):
                     continue
                 if it.get("image_failed") and it.get("img_v") == IMG_VERSION:
                     continue
-                photo = wiki_photo(it["name"], region, used)
+                photo = beach_photo(it["name"], region, used) if sec == "beaches" else wiki_photo(it["name"], region, used)
                 if not photo and not quota:
                     try:
                         q = it.get("image_query") or f"{it['name']} {region}"

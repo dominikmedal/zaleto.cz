@@ -7,7 +7,7 @@ export function PhotoCredit({ photo, className }: { photo: GuidePhoto; className
   const wiki = photo.source === 'wikimedia'
   return (
     <span className={className}>
-      <a href={photo.creditUrl} target="_blank" rel="noopener noreferrer">{photo.credit}</a>{' / '}
+      <a href={photo.creditUrl} target="_blank" rel="noopener noreferrer">{photo.credit.replace(/\s+\d{1,2}:\d\d.*$/, '').slice(0, 48)}</a>{' / '}
       {wiki
         ? <a href="https://commons.wikimedia.org" target="_blank" rel="noopener noreferrer">Wikimedia Commons{photo.license ? `, ${photo.license}` : ''}</a>
         : <a href={UNSPLASH} target="_blank" rel="noopener noreferrer">Unsplash</a>}
