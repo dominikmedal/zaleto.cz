@@ -246,7 +246,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
             </div>
 
             <aside className="z-cardest__side">
-              {adHotel && <TourAd hotel={adHotel} sticky kicker={`Nabídka — ${dest.name}`} />}
+              {adHotel && <TourAd hotel={adHotel} sticky kicker="Dnešní tip pro Tebe" />}
             </aside>
           </div>
         )}
