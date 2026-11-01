@@ -27,7 +27,7 @@ function hl(label: string, q: string) {
   if (!n || nl.length !== label.length) return label
   const i = nl.indexOf(n)
   if (i < 0) return label
-  return <>{label.slice(0, i)}<mark className="z-hl">{label.slice(i, i + n.length)}</mark>{label.slice(i + n.length)}</>
+  return <>{label.slice(0, i)}<mark className="z-suggest-mark">{label.slice(i, i + n.length)}</mark>{label.slice(i + n.length)}</>
 }
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()

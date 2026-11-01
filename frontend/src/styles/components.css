@@ -1954,7 +1954,7 @@ button.z-chip { cursor: pointer; }
 .z-dsuggest__item[data-active="true"] .z-dsuggest__ic { background: var(--raised); transform: rotate(-4deg); }
 .z-dsuggest__item[data-kind="country"] .z-dsuggest__ic { background: var(--accent-soft); }
 .z-dsuggest__txt b { font: 600 19px/24px var(--font-serif); letter-spacing: -.005em; }
-.z-hl { background: linear-gradient(transparent 62%, rgba(255, 122, 26, .38) 62%); color: inherit; -webkit-text-fill-color: currentColor; padding: 0; }
+.z-suggest-mark { background: linear-gradient(transparent 62%, rgba(255, 122, 26, .38) 62%); color: inherit; -webkit-text-fill-color: currentColor; padding: 0; }
 .z-dsuggest__count { font: 400 11px/16px var(--font-mono); letter-spacing: .04em; color: var(--ink-muted); text-transform: uppercase; white-space: nowrap; }
 .z-dsuggest__count b { font: 700 12px/16px var(--font-mono); color: var(--ink); }
 .z-dsuggest__go { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--paper); opacity: 0; transform: translateX(-6px); transition: opacity .18s, transform .18s; flex: none; }

@@ -19,6 +19,7 @@ const NAV: { href: string; label: string; icon: IconName; type?: 'last_minute' |
   { href: '/pujcovna-aut', label: 'Půjčovna aut', icon: 'auto' },
   { href: '/clanky', label: 'Články', icon: 'clanek' },
   { href: '/pocasi', label: 'Počasí', icon: 'slunce' },
+  { href: '/cestopisy', label: 'Cestopisy', icon: 'trasa' },
 ]
 
 export default function Header() {
