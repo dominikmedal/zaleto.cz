@@ -1,0 +1,23 @@
+name: publish-scheduled-articles
+
+# Zveřejní naplánované články, kterým nadešel čas. Vercel Hobby umí cron jen jednou denně,
+# GitHub Actions toto omezení nemá, proto stejný endpoint volá každých 10 minut.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Zavolat publish-scheduled
+        env:
+          SITE: ${{ vars.SITE_URL || 'https://zaleto.cz' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          status=$(curl -sS --max-time 60 -o /tmp/response.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CRON_SECRET" "$SITE/api/cron/publish-scheduled")
+          echo "HTTP $status"; cat /tmp/response.json; echo
+          [ "$status" -lt 300 ] || { echo "::error::Endpoint vrátil $status"; exit 1; }

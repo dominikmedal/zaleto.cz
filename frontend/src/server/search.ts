@@ -1,5 +1,6 @@
 import { query } from './db'
 import { listDestinations } from './tours'
+import { ensureAutomationSchema } from './automationDb'
 import type { Q } from './hotels'
 
 export interface SearchResults {
@@ -44,6 +45,7 @@ export async function siteSearch(q: Q): Promise<SearchResults> {
   if (t.length < 2) return empty
   const like = `%${t.replace(/[%_\\]/g, m => `\\${m}`)}%`
 
+  await ensureAutomationSchema().catch(() => {})
   const [destRows, hotelRows, articleRows, carRows] = await Promise.all([
     listDestinations().catch(() => []) as Promise<{ country: string; destination: string; resort_town: string | null; hotel_count: number }[]>,
     query(
@@ -57,7 +59,7 @@ export async function siteSearch(q: Q): Promise<SearchResults> {
     ).then(r => r.rows).catch(() => []),
     query(
       `SELECT slug, title, location, excerpt, custom_image_url FROM articles
-       WHERE ${SQL_NORM('title')} LIKE ? OR ${SQL_NORM('location')} LIKE ? OR ${SQL_NORM('excerpt')} LIKE ?
+       WHERE status = 'published' AND (${SQL_NORM('title')} LIKE ? OR ${SQL_NORM('location')} LIKE ? OR ${SQL_NORM('excerpt')} LIKE ?)
        ORDER BY (${SQL_NORM('title')} LIKE ?) DESC, published_at DESC LIMIT ?`,
       [like, like, like, like, limit],
     ).then(r => r.rows).catch(() => []),

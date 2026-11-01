@@ -6,6 +6,7 @@ import { put } from '@vercel/blob'
 import { query } from './db'
 import { metaCache } from './cache'
 import { searchUnsplash, registerDownload } from './unsplash'
+import { ensureAutomationSchema } from './automationDb'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -190,18 +191,50 @@ export async function handleAdmin(
 
       // ── Articles ──
       case 'GET articles': {
+        await ensureAutomationSchema()
         const { limit, offset } = paging(sp)
         const q = sp.get('q') ?? ''
         const params: unknown[] = []
         let where = ''
         if (q) { where = 'WHERE (title ILIKE ? OR topic ILIKE ? OR location ILIKE ?)'; const l = `%${q}%`; params.push(l, l, l) }
         const [rows, total] = await Promise.all([
-          query(`SELECT id, slug, topic, title, category, location, excerpt, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url, published_at, generated_at
-                 FROM articles ${where} ORDER BY published_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]),
+          query(`SELECT id, slug, topic, title, category, location, excerpt, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url, published_at, generated_at, status, scheduled_at, auto_published, source_name
+                 FROM articles ${where} ORDER BY COALESCE(scheduled_at, published_at) DESC LIMIT ? OFFSET ?`, [...params, limit, offset]),
           query(`SELECT COUNT(*) AS n FROM articles ${where}`, params),
         ])
         return ok({ articles: rows.rows, total: parseInt(total.rows[0].n) })
       }
+      case 'GET automation': {
+        await ensureAutomationSchema()
+        const [settings, sources, runs, queue] = await Promise.all([
+          query('SELECT enabled, max_per_day, min_score FROM automation_settings WHERE id = 1'),
+          query('SELECT id, name, feed_url, enabled FROM scrape_sources ORDER BY id'),
+          query('SELECT id, created_at, candidates, decisions, note FROM auto_publish_runs ORDER BY id DESC LIMIT 15'),
+          query(`SELECT id, slug, title, status, scheduled_at, source_name FROM articles WHERE auto_published = TRUE AND status <> 'published' ORDER BY scheduled_at DESC LIMIT 20`),
+        ])
+        return ok({ settings: settings.rows[0], sources: sources.rows, runs: runs.rows, queue: queue.rows })
+      }
+      case 'PUT automation': {
+        await ensureAutomationSchema()
+        const b = body ?? {}
+        const max = Math.min(10, Math.max(1, parseInt(b.max_per_day) || 3))
+        const min = Math.min(10, Math.max(1, parseInt(b.min_score) || 7))
+        await query('UPDATE automation_settings SET enabled = ?, max_per_day = ?, min_score = ? WHERE id = 1', [!!b.enabled, max, min])
+        return ok()
+      }
+      case 'POST sources': {
+        await ensureAutomationSchema()
+        const { name, feed_url } = body ?? {}
+        if (!name || !/^https?:\/\//.test(feed_url ?? '')) return fail(400, 'Zadej název a adresu RSS kanálu (https://…)')
+        await query('INSERT INTO scrape_sources (name, feed_url, enabled) VALUES (?, ?, TRUE) ON CONFLICT (feed_url) DO NOTHING', [name, feed_url])
+        return ok()
+      }
+      case 'PUT sources/:id': {
+        const { name, feed_url, enabled } = body ?? {}
+        await query('UPDATE scrape_sources SET name = COALESCE(?, name), feed_url = COALESCE(?, feed_url), enabled = COALESCE(?, enabled) WHERE id = ?', [n(name), n(feed_url), enabled === undefined ? null : !!enabled, id])
+        return ok()
+      }
+      case 'DELETE sources/:id': { await query('DELETE FROM scrape_sources WHERE id = ?', [id]); return ok() }
       case 'GET prompts': return ok({ prompts: await listPrompts() })
       case 'PUT prompts/:id': {
         const template = typeof body?.template === 'string' ? body.template.trim() : ''
@@ -211,7 +244,7 @@ export async function handleAdmin(
       }
       case 'DELETE prompts/:id': { await resetPrompt(id); return ok() }
       case 'GET articles/:id': {
-        const r = await query(`SELECT id, slug, topic, title, category, location, excerpt, content, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url, published_at, generated_at FROM articles WHERE id = ?`, [id])
+        const r = await query(`SELECT id, slug, topic, title, category, location, excerpt, content, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url, published_at, generated_at, status, scheduled_at, source_url, source_name FROM articles WHERE id = ?`, [id])
         if (!r.rows[0]) return fail(404, 'Článek nenalezen')
         return ok(r.rows[0])
       }
@@ -219,9 +252,11 @@ export async function handleAdmin(
         const { title, topic, excerpt, content, category, location, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url } = body ?? {}
         if (!title) return fail(400, 'title je povinné')
         const slug = slugOf(title)
-        await query(`INSERT INTO articles (topic, slug, title, category, location, excerpt, content, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url, published_at, generated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-          [topic || title, slug, title, n(category), n(location), n(excerpt), n(content), reading_time ?? 5, n(custom_image_url), n(custom_image_credit), n(custom_image_credit_url)])
+        await ensureAutomationSchema()
+        const status = ['draft', 'scheduled', 'published'].includes(body?.status) ? body.status : 'published'
+        await query(`INSERT INTO articles (topic, slug, title, category, location, excerpt, content, reading_time, custom_image_url, custom_image_credit, custom_image_credit_url, published_at, generated_at, status)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?)`,
+          [topic || title, slug, title, n(category), n(location), n(excerpt), n(content), reading_time ?? 5, n(custom_image_url), n(custom_image_credit), n(custom_image_credit_url), status])
         afterArticleChange(slug)
         return ok({ ok: true, slug })
       }
@@ -229,8 +264,9 @@ export async function handleAdmin(
         const b = body ?? {}
         await query(`UPDATE articles SET title = COALESCE(?, title), excerpt = COALESCE(?, excerpt), content = COALESCE(?, content),
                        category = COALESCE(?, category), location = COALESCE(?, location), reading_time = COALESCE(?, reading_time),
-                       custom_image_url = ?, custom_image_credit = ?, custom_image_credit_url = ? WHERE id = ?`,
-          [n(b.title), n(b.excerpt), n(b.content), n(b.category), n(b.location), n(b.reading_time), n(b.custom_image_url), n(b.custom_image_url ? b.custom_image_credit : null), n(b.custom_image_url ? b.custom_image_credit_url : null), id])
+                       custom_image_url = ?, custom_image_credit = ?, custom_image_credit_url = ?,
+                       status = COALESCE(?, status), published_at = CASE WHEN ? = 'published' AND status <> 'published' THEN NOW() ELSE published_at END WHERE id = ?`,
+          [n(b.title), n(b.excerpt), n(b.content), n(b.category), n(b.location), n(b.reading_time), n(b.custom_image_url), n(b.custom_image_url ? b.custom_image_credit : null), n(b.custom_image_url ? b.custom_image_credit_url : null), ['draft','scheduled','published'].includes(b.status) ? b.status : null, ['draft','scheduled','published'].includes(b.status) ? b.status : null, id])
         const slug = (await query('SELECT slug FROM articles WHERE id = ?', [id])).rows[0]?.slug
         afterArticleChange(slug)
         return ok()

@@ -8,13 +8,13 @@ const LIMIT = 50
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' })
 
 type EditState = {
-  id: number | null; slug: string; title: string; excerpt: string; content: string
+  id: number | null; status: 'published' | 'scheduled' | 'draft'; slug: string; title: string; excerpt: string; content: string
   category: string; location: string; reading_time: string
   custom_image_url: string; custom_image_credit: string; custom_image_credit_url: string
 }
 
 const EMPTY: EditState = {
-  id: null, slug: '', title: '', excerpt: '', content: '', category: '', location: '', reading_time: '5',
+  id: null, status: 'published', slug: '', title: '', excerpt: '', content: '', category: '', location: '', reading_time: '5',
   custom_image_url: '', custom_image_credit: '', custom_image_credit_url: '',
 }
 
@@ -47,7 +47,7 @@ export default function ClankyPage() {
       // seznam nevrací obsah, doplníme ho, aby se při uložení nic nepřepsalo
       const full = await fetchAdminArticle(a.id)
       setEdit({
-        id: full.id, slug: full.slug, title: full.title, excerpt: full.excerpt ?? '', content: full.content ?? '',
+        id: full.id, status: full.status ?? 'published', slug: full.slug, title: full.title, excerpt: full.excerpt ?? '', content: full.content ?? '',
         category: full.category ?? '', location: full.location ?? '', reading_time: String(full.reading_time ?? '5'),
         custom_image_url: full.custom_image_url ?? '', custom_image_credit: full.custom_image_credit ?? '',
         custom_image_credit_url: full.custom_image_credit_url ?? '',
@@ -69,6 +69,7 @@ export default function ClankyPage() {
         location: edit.location || undefined,
         reading_time: edit.reading_time ? parseInt(edit.reading_time) : undefined,
         custom_image_url: edit.custom_image_url || null,
+        status: edit.status,
         custom_image_credit: edit.custom_image_url ? edit.custom_image_credit || null : null,
         custom_image_credit_url: edit.custom_image_url ? edit.custom_image_credit_url || null : null,
       }
@@ -101,7 +102,7 @@ export default function ClankyPage() {
         <div className="z-adm-tablewrap">
           <table className="z-adm-table">
             <thead>
-              <tr><th>Článek</th><th>Kategorie</th><th>Foto</th><th>Datum</th><th /></tr>
+              <tr><th>Článek</th><th>Stav</th><th>Foto</th><th>Datum</th><th /></tr>
             </thead>
             <tbody>
               {data.articles.map(a => (
@@ -110,14 +111,17 @@ export default function ClankyPage() {
                     <b>{a.title}</b>
                     {a.location && <small>{a.location}</small>}
                   </td>
-                  <td>{a.category && <span className="z-chip">{a.category}</span>}</td>
+                  <td>
+                    <span className={`z-chip ${a.status === 'draft' ? 'z-chip--warn' : a.status === 'scheduled' ? 'z-chip--sky' : ''}`}>{a.status === 'draft' ? 'Koncept' : a.status === 'scheduled' ? 'Naplánováno' : 'Zveřejněno'}</span>
+                    {a.auto_published && <small> automaticky</small>}
+                  </td>
                   <td>
                     {a.custom_image_url
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img className="z-adm-thumb" src={a.custom_image_url} alt="" />
                       : <span className="z-data">—</span>}
                   </td>
-                  <td className="z-data" style={{ whiteSpace: 'nowrap' }}>{fmtDate(a.published_at)}</td>
+                  <td className="z-data" style={{ whiteSpace: 'nowrap' }}>{fmtDate(a.status === 'scheduled' && a.scheduled_at ? a.scheduled_at : a.published_at)}</td>
                   <td><RowActions onEdit={() => openEdit(a)} onDelete={() => handleDelete(a.id)} /></td>
                 </tr>
               ))}
@@ -137,6 +141,11 @@ export default function ClankyPage() {
           <div className="z-adm-grid">
             <Field label="Nadpis" required wide><TextInput value={edit.title} onChange={v => set({ title: v })} /></Field>
             <Field label="Perex" wide><TextInput value={edit.excerpt} onChange={v => set({ excerpt: v })} /></Field>
+            <Field label="Stav">
+              <select value={edit.status} onChange={e => set({ status: e.target.value as EditState['status'] })}>
+                <option value="published">Zveřejněno</option><option value="scheduled">Naplánováno</option><option value="draft">Koncept (skryté)</option>
+              </select>
+            </Field>
             <Field label="Kategorie"><TextInput value={edit.category} onChange={v => set({ category: v })} /></Field>
             <Field label="Lokalita"><TextInput value={edit.location} onChange={v => set({ location: v })} /></Field>
             <Field label="Čas čtení (min)"><TextInput type="number" value={edit.reading_time} onChange={v => set({ reading_time: v })} /></Field>

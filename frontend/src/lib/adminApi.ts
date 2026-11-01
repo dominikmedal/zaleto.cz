@@ -112,6 +112,7 @@ export interface AdminArticle {
   content?: string | null; reading_time: number | null; custom_image_url: string | null
   custom_image_credit?: string | null; custom_image_credit_url?: string | null
   published_at: string; generated_at: string
+  status?: 'published' | 'scheduled' | 'draft'; scheduled_at?: string | null; auto_published?: boolean; source_name?: string | null; source_url?: string | null
 }
 export interface ArticleList { articles: AdminArticle[]; total: number }
 
@@ -204,3 +205,20 @@ export interface AdminPrompt {
 export function fetchPrompts() { return api<{ prompts: AdminPrompt[] }>('/prompts') }
 export function savePrompt(key: string, template: string) { return api(`/prompts/${key}`, { method: 'PUT', body: JSON.stringify({ template }) }) }
 export function resetPrompt(key: string) { return api(`/prompts/${key}`, { method: 'DELETE' }) }
+
+// ── Automatizace článků ───────────────────────────────────────────────
+export interface AutoDecision {
+  title: string; url: string; sourceName: string; score: number | null; reason: string; picked: boolean
+  scheduledAt?: string; articleId?: number; error?: string
+}
+export interface AutomationData {
+  settings: { enabled: boolean; max_per_day: number; min_score: number }
+  sources: { id: number; name: string; feed_url: string; enabled: boolean }[]
+  runs: { id: number; created_at: string; candidates: number; decisions: AutoDecision[]; note: string | null }[]
+  queue: { id: number; slug: string; title: string; status: string; scheduled_at: string | null; source_name: string | null }[]
+}
+export function fetchAutomation() { return api<AutomationData>('/automation') }
+export function saveAutomation(s: AutomationData['settings']) { return api('/automation', { method: 'PUT', body: JSON.stringify(s) }) }
+export function addSource(name: string, feed_url: string) { return api('/sources', { method: 'POST', body: JSON.stringify({ name, feed_url }) }) }
+export function updateSource(id: number, patch: { name?: string; feed_url?: string; enabled?: boolean }) { return api(`/sources/${id}`, { method: 'PUT', body: JSON.stringify(patch) }) }
+export function deleteSource(id: number) { return api(`/sources/${id}`, { method: 'DELETE' }) }

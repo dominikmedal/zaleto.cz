@@ -1,4 +1,5 @@
 import { query } from './db'
+import { ensureAutomationSchema } from './automationDb'
 import { metaCache } from './cache'
 import { HttpError, type Q } from './hotels'
 
@@ -19,9 +20,10 @@ export async function listArticles(q: Q) {
   const cached = metaCache.get(key)
   if (cached) return cached
   try {
+    await ensureAutomationSchema()
     const r = location
-      ? await query(`SELECT ${ARTICLE_LIST_COLS} FROM articles WHERE LOWER(location) = LOWER(?) ORDER BY published_at DESC LIMIT ? OFFSET ?`, [location, limit, offset])
-      : await query(`SELECT ${ARTICLE_LIST_COLS} FROM articles ORDER BY published_at DESC LIMIT ? OFFSET ?`, [limit, offset])
+      ? await query(`SELECT ${ARTICLE_LIST_COLS} FROM articles WHERE status = 'published' AND LOWER(location) = LOWER(?) ORDER BY published_at DESC LIMIT ? OFFSET ?`, [location, limit, offset])
+      : await query(`SELECT ${ARTICLE_LIST_COLS} FROM articles WHERE status = 'published' ORDER BY published_at DESC LIMIT ? OFFSET ?`, [limit, offset])
     const rows = r.rows.map(fixUpload)
     metaCache.set(key, rows)
     return rows
@@ -35,7 +37,8 @@ export async function getArticle(slug: string) {
   const key = `article_${slug}`
   const cached = metaCache.get(key)
   if (cached) return cached
-  const r = await query('SELECT * FROM articles WHERE slug = ?', [slug])
+  await ensureAutomationSchema()
+  const r = await query(`SELECT * FROM articles WHERE slug = ? AND status = 'published'`, [slug])
   if (!r.rows[0]) throw new HttpError(404, 'Not found')
   const row = fixUpload(r.rows[0])
   metaCache.set(key, row)
@@ -45,7 +48,8 @@ export async function getArticle(slug: string) {
 export async function articleSlugs() {
   const cached = metaCache.get('article_slugs')
   if (cached) return cached
-  const r = await query('SELECT slug, published_at FROM articles ORDER BY published_at DESC')
+  await ensureAutomationSchema()
+  const r = await query(`SELECT slug, published_at FROM articles WHERE status = 'published' ORDER BY published_at DESC`)
   metaCache.set('article_slugs', r.rows)
   return r.rows
 }

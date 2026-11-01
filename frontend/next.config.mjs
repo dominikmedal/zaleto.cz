@@ -2,6 +2,8 @@ import path from 'node:path'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // jsdom/Readability (automatizace článků) se nesmí bundlovat, čte vlastní soubory za běhu
+  experimental: { serverComponentsExternalPackages: ['jsdom'] },
   // Umožní spustit druhý dev server s oddělenou build složkou (NEXT_DIST_DIR=.next-dev).
   distDir: process.env.NEXT_DIST_DIR || '.next',
   webpack: (config, { dev, isServer }) => {

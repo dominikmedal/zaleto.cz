@@ -1,0 +1,54 @@
+name: auto-publish-articles
+
+# Denně vybere nejlepší čerstvé články ze zdrojů (RSS), přepíše je, vytvoří titulní obrázky a naplánuje je
+# (workflow publish-scheduled.yml je pak ve správný čas zveřejní). Práce je rozdělená na malé kroky
+# (pick -> process -> image), aby každé volání vyhovělo časovému limitu funkcí na Vercelu.
+# Vypíná se v administraci (Automatizace), do workflow není třeba sahat.
+on:
+  schedule:
+    - cron: '0 6 * * *' # 06:00 UTC = 07:00 / 08:00 v Praze; články vyjdou během dopoledne a odpoledne
+  workflow_dispatch: {} # ruční spuštění ze záložky Actions
+
+concurrency:
+  group: auto-publish
+  cancel-in-progress: false
+
+jobs:
+  auto-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Výběr, přepsání a naplánování článků
+        env:
+          SITE: ${{ vars.SITE_URL || 'https://zaleto.cz' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          call() { # call <krok> <json tělo>; vypíše odpověď, vrací nenulu při HTTP >= 300
+            local status
+            status=$(curl -sS --max-time 120 -o /tmp/response.json -w '%{http_code}' -X POST \
+              -H "Authorization: Bearer $CRON_SECRET" -H 'Content-Type: application/json' \
+              -d "$2" "$SITE/api/cron/auto-publish/$1")
+            cat /tmp/response.json; echo
+            [ "$status" -lt 300 ]
+          }
+
+          call pick '{}' || { echo "::error::pick selhal"; exit 1; }
+          run_id=$(jq -r '.runId // empty' /tmp/response.json)
+          picks=$(jq -c '.picks[]?' /tmp/response.json)
+          [ -z "$picks" ] && { echo "Dnes není co publikovat."; exit 0; }
+
+          failed=0
+          while IFS= read -r pick; do
+            title=$(jq -r '.title' <<< "$pick")
+            echo "== $title"
+            body=$(jq -c --argjson run "${run_id:-null}" '{url, scheduledAt, runId: $run}' <<< "$pick")
+            if ! call process "$body"; then
+              echo "::warning::process selhal: $title"; failed=1; continue
+            fi
+            article_id=$(jq -r '.articleId // empty' /tmp/response.json)
+            [ -z "$article_id" ] && continue # přeskočeno (už existuje / vypnuto)
+            if ! call image "{\"articleId\": $article_id, \"runId\": ${run_id:-null}}"; then
+              echo "::warning::obrázek selhal, článek je v konceptech: $title"; failed=1
+            fi
+          done <<< "$picks"
+          exit $failed

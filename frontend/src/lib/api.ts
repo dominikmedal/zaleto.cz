@@ -250,7 +250,7 @@ export type Article = {
   custom_image_credit_url?: string | null
 }
 
-export type ArticleFull = Article & { content: string | null; topic: string; custom_image_url: string | null }
+export type ArticleFull = Article & { content: string | null; topic: string; custom_image_url: string | null; source_url?: string | null; source_name?: string | null }
 
 export async function fetchAllArticleSlugs(): Promise<{ slug: string; published_at: string }[]> {
   try {
