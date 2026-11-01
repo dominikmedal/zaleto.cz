@@ -2,6 +2,7 @@ import { query } from './db'
 import { ensureAutomationSchema } from './automationDb'
 import { searchUnsplash, registerDownload } from './unsplash'
 import { metaCache } from './cache'
+import { slugify } from '@/lib/slugify'
 import { HttpError, type Q } from './hotels'
 
 // ─── Články ────────────────────────────────────────────────────────────────
@@ -346,7 +347,13 @@ export async function destinationGuide(name: string): Promise<import('@/lib/guid
   const cached = metaCache.get(key)
   if (cached !== undefined && cached !== null) return cached as import('@/lib/guide').DestinationGuide
   try {
-    const row = (await query<{ data: Record<string, unknown> | string }>('SELECT data FROM destination_guide WHERE name = ?', [name])).rows[0]
+    type Row = { data: Record<string, unknown> | string }
+    let row = (await query<Row>('SELECT data FROM destination_guide WHERE name = ?', [name])).rows[0]
+    if (!row) {
+      // různé CK píší oblast různě (Kréta / Kreta): zkusit shodu podle slugu
+      const all = (await query<Row & { name: string }>('SELECT name, data FROM destination_guide')).rows
+      row = all.find(r => slugify(r.name) === slugify(name)) as Row
+    }
     if (!row) return null
     const raw = (typeof row.data === 'string' ? JSON.parse(row.data) : row.data) as Partial<import('@/lib/guide').DestinationGuide>
     const guide: import('@/lib/guide').DestinationGuide = {

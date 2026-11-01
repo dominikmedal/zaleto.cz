@@ -337,7 +337,16 @@ def todo_guide(conn):
     have = {r["name"] for r in rows(conn, "SELECT name FROM destination_guide")}
     info = region_info(conn)
     names = sorted(info, key=lambda n: -sum(info[n]["resorts"].values()))  # nejdřív oblasti s nejvíce hotely
-    return [{"name": n, **info[n]} for n in names if n not in have]
+    def key(n):  # Kréta / Kreta = jedna oblast
+        return re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFD", n).encode("ascii", "ignore").decode().lower()).strip("-")
+    seen = {key(n) for n in have}
+    out = []
+    for n in names:
+        if n in have or key(n) in seen:
+            continue
+        seen.add(key(n))
+        out.append({"name": n, **info[n]})
+    return out
 
 
 def _clean_text(v, limit=600):
