@@ -168,7 +168,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
   const tabs: NavTabItem[] = [
     ...(paragraphs.length > 1 ? [{ href: '#o-destinaci', label: 'O destinaci', icon: 'kompas' as const }] : []),
     ...(bestTime ? [{ href: '#kdy-jet', label: 'Kdy jet', icon: 'kalendar' as const }] : []),
-    ...(seo ? [{ href: '#mesice', label: 'Po měsících', icon: 'slunce' as const }] : []),
+    ...(seo ? [{ href: '#mesice', label: 'Počasí a ceny', icon: 'slunce' as const }] : []),
     ...(seo?.budget ? [{ href: '#rozpocet', label: 'Kolik stojí', icon: 'mena' as const }] : []),
     ...(places.length ? [{ href: '#co-videt', label: 'Co vidět', icon: 'poloha' as const }] : []),
     ...(food.length ? [{ href: '#jidlo', label: 'Jídlo', icon: 'jidlo' as const }] : []),
@@ -289,7 +289,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
                 </Block>
               )}
               {seo && (
-                <Block id="mesice" kicker="Po měsících" title={`${dest.name} měsíc po měsíci`}>
+                <Block id="mesice" kicker="Kdy se vyplatí jet" title={`počasí a ceny zájezdů po měsících: ${dest.name}`}>
                   <MonthsGrid seo={seo} />
                   {seo.stats.cheapest_month && seo.stats.monthly?.[String(seo.stats.cheapest_month)] ? (
                     <p className="z-note">
