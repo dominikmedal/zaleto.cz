@@ -11,6 +11,7 @@ import PlaceCards from '@/components/ui/PlaceCards'
 import { GUIDE_SECTIONS, sectionCount } from '@/lib/guideSections'
 import { resolveDestination } from '../resolve'
 import PlaceLinks from '@/components/PlaceLinks'
+import { fetchLinkTargets } from '@/lib/api'
 import { loadGuide, loadResortPhotos } from '../guideData'
 
 export const revalidate = 3600
@@ -43,14 +44,17 @@ export default async function GuideSectionPage({ params }: Props) {
     { href: `${base}/hotely`, label: 'Hotely', icon: 'hotel' as const },
   ]
 
+  // odkazy v textech: střediska a oblasti → průvodci (kromě této stránky)
+  const textLinks = await fetchLinkTargets()
+  const selfHref = [base]
   let body: React.ReactNode = null
-  if (sec.key === 'strediska') body = <ResortCards items={guide.resorts} links={resortLinks} photos={await loadResortPhotos(guide)} />
+  if (sec.key === 'strediska') body = <ResortCards items={guide.resorts} links={resortLinks} photos={await loadResortPhotos(guide)} textLinks={textLinks} exclude={selfHref} />
   else if (sec.key === 'plaze') body = <BeachExplorer beaches={guide.beaches} resortLinks={resortLinks} regionName={dest.name} base={`${base}/plaze`} />
-  else if (sec.key === 'klastery') body = <PlaceCards items={guide.monasteries} icon="mesto" base={`${base}/klastery`} />
-  else if (sec.key === 'pamatky') body = <PlaceCards items={guide.sights} icon="kompas" base={`${base}/pamatky`} />
-  else if (sec.key === 'priroda') body = <PlaceCards items={guide.nature} icon="hory" base={`${base}/priroda`} />
-  else if (sec.key === 'vesnicky') body = <PlaceCards items={guide.villages} icon="srdce" base={`${base}/vesnicky`} />
-  else if (sec.key === 'doprava') body = <TransportCards transport={guide.transport} />
+  else if (sec.key === 'klastery') body = <PlaceCards items={guide.monasteries} icon="mesto" base={`${base}/klastery`} textLinks={textLinks} exclude={selfHref} />
+  else if (sec.key === 'pamatky') body = <PlaceCards items={guide.sights} icon="kompas" base={`${base}/pamatky`} textLinks={textLinks} exclude={selfHref} />
+  else if (sec.key === 'priroda') body = <PlaceCards items={guide.nature} icon="hory" base={`${base}/priroda`} textLinks={textLinks} exclude={selfHref} />
+  else if (sec.key === 'vesnicky') body = <PlaceCards items={guide.villages} icon="srdce" base={`${base}/vesnicky`} textLinks={textLinks} exclude={selfHref} />
+  else if (sec.key === 'doprava') body = <TransportCards transport={guide.transport} textLinks={textLinks} exclude={selfHref} />
 
   const schema = {
     '@context': 'https://schema.org',

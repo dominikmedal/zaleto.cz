@@ -5,6 +5,7 @@ import SectionHead from '@/components/ui/SectionHead'
 import Crumbs from '@/components/ui/Crumbs'
 import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
 import { fetchArticles, fetchDestinationPhoto, fetchHotels } from '@/lib/api'
+import LandingOverviews from '@/components/LandingOverviews'
 
 export const revalidate = 300
 
@@ -45,6 +46,7 @@ export default async function ClankyPage() {
             )}
           </>
         )}
+        <LandingOverviews />
       </main>
     </>
   )

@@ -13,6 +13,7 @@ import WindowCard from '@/components/ui/WindowCard'
 import { formatPrice } from '@/components/ui/format'
 import { fetchArticles, fetchDestinationPhoto, fetchDestinations, fetchHotels } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
+import LandingOverviews from '@/components/LandingOverviews'
 
 export const revalidate = 3600
 
@@ -182,6 +183,7 @@ export default async function HomePage() {
         </section>
         </div>
         </CarRentalProvider>
+        <LandingOverviews container />
       </main>
     </>
   )

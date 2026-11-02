@@ -1,5 +1,6 @@
 import Photo from '@/components/ui/Photo'
 import Link from 'next/link'
+import { Linked, type AutoLink } from '@/lib/autolink'
 import Icon, { type IconName } from './Icon'
 import { PhotoCredit } from './PhotoCredit'
 import type { GuidePhoto, GuideResort, DestinationGuide } from '@/lib/guide'
@@ -39,7 +40,7 @@ export function GuideHub({ guide, base }: { guide: DestinationGuide; base: strin
 }
 
 /** Střediska oblasti jako lístky stejně jako památky: fotka, štítek s charakterem, odkaz na stránku střediska, pokud ji na Zaletu máme. */
-export function ResortCards({ items, links, photos = {} }: { items: GuideResort[]; links: Record<string, string>; photos?: Record<string, GuidePhoto> }) {
+export function ResortCards({ items, links, photos = {}, textLinks, exclude }: { items: GuideResort[]; links: Record<string, string>; photos?: Record<string, GuidePhoto>; textLinks?: AutoLink[]; exclude?: string[] }) {
   return (
     <div className="z-places">
       {items.map((r, i) => {
@@ -58,7 +59,7 @@ export function ResortCards({ items, links, photos = {} }: { items: GuideResort[
               </div>
               <div className="z-place__body">
                 <h3 className="z-place__title">{href ? <Link className="z-gcard__hit" href={href}>{r.name}</Link> : r.name}</h3>
-                <p>{r.description}</p>
+                <p><Linked text={r.description} links={textLinks} exclude={exclude} /></p>
               </div>
               {href && (
                 <div className="z-place__stub">
@@ -86,7 +87,7 @@ export function FactsStrip({ facts }: { facts: { label: string; value: string }[
 }
 
 /** Doprava do oblasti a po oblasti (dva lístky vedle sebe). */
-export function TransportCards({ transport }: { transport: { to?: string; around?: string } }) {
+export function TransportCards({ transport, textLinks, exclude }: { transport: { to?: string; around?: string }; textLinks?: AutoLink[]; exclude?: string[] }) {
   const rows: { icon: IconName; title: string; text?: string }[] = [
     { icon: 'letadlo', title: 'Jak se tam dostat', text: transport.to },
     { icon: 'auto', title: 'Jak se pohybovat po oblasti', text: transport.around },
@@ -96,7 +97,7 @@ export function TransportCards({ transport }: { transport: { to?: string; around
       {rows.filter(r => r.text).map(r => (
         <article key={r.title} className="z-tk z-tk--v z-itemcard" style={{ ['--stub' as string]: '96px' }}>
           <div className="z-tk__in z-itemcard__in">
-            <div className="z-itemcard__body"><h3 className="h4">{r.title}</h3><p>{r.text}</p></div>
+            <div className="z-itemcard__body"><h3 className="h4">{r.title}</h3><p><Linked text={r.text ?? ''} links={textLinks} exclude={exclude} /></p></div>
             <div className="z-itemcard__stub" aria-hidden="true">
               <span className="z-itemcard__ic"><Icon name={r.icon} /></span><span className="z-itemcard__route" /><span className="z-itemcard__dot" />
             </div>

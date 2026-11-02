@@ -9,6 +9,7 @@ import ArticleBody from '@/components/ui/ArticleBody'
 import { formatLongDate } from '@/components/ui/format'
 import { approvedTravelogue } from '@/server/travelogues'
 import PlaceLinks from '@/components/PlaceLinks'
+import { fetchLinkTargets } from '@/lib/api'
 
 export const revalidate = 300
 export const dynamicParams = true
@@ -44,7 +45,7 @@ export default async function CestopisPage({ params }: Props) {
             <Icon name="ucet" size="sm" />{t.author_name}{t.approved_at ? ` · ${formatLongDate(t.approved_at)}` : ''}
           </div>
           <div className="z-prose" style={{ marginTop: 'var(--space-6)', maxWidth: 'var(--article-max)' }}>
-            <ArticleBody content={t.body} />
+            <ArticleBody content={t.body} links={await fetchLinkTargets()} />
           </div>
           <p style={{ marginTop: 'var(--space-7)', display: 'flex', gap: 'var(--space-5)', flexWrap: 'wrap' }}>
             <Link href={`/destinace/${t.dest_slug}`} className="z-more">Zájezdy a tipy: {t.destination}</Link>

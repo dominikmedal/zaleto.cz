@@ -12,7 +12,7 @@ function inline(text: string, ctx: AutoLinkCtx, key: string): ReactNode {
 export default function ArticleBody({ content, insert, links }: { content: string; insert?: ReactNode; links?: AutoLink[] }) {
   const lines = content.split('\n')
   const out: ReactNode[] = []
-  const ctx = makeAutoLinkCtx(links)
+  const ctx = makeAutoLinkCtx(links, 8)
   let key = 0
   let leadDone = false
 

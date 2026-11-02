@@ -14,7 +14,7 @@ import CarRentalBanner from '@/components/CarRentalBanner'
 import { formatLongDate, readingTime } from '@/components/ui/format'
 import { fetchArticle, fetchArticles, fetchAllArticleSlugs, fetchDestinationPhoto, fetchHotels, fetchDestinations, fetchLandingList, fetchLinkTargets } from '@/lib/api'
 import { LinkList } from '@/components/ui/SeoBlocks'
-import { GENERIC_PLACE } from '@/lib/autolink'
+import { GENERIC_PLACE, weatherAutoLinks } from '@/lib/autolink'
 import { slugify } from '@/lib/slugify'
 
 export const revalidate = 300
@@ -64,8 +64,16 @@ export default async function ArticlePage({ params }: Props) {
     for (const n of [d.country, region]) if (n && !GENERIC.test(n) && !names.has(n)) names.set(n, `/destinace/${slugify(n)}`)
   }
   // odkazy v textu: země, oblasti i střediska (první výskyt každého názvu); lokalita článku má přednost při omezení počtu odkazů
-  const autoLinks = (await fetchLinkTargets())
-    .sort((a, b) => Number(b.name === article.location) - Number(a.name === article.location))
+  // stránka počasí lokality článku (země nebo oblast): na ni vedou slova jako „počasí“ nebo „teploty moře“
+  const loc = article.location
+  const countryRow = loc ? destinations.find(d => d.country === loc) : undefined
+  const regionRow = loc && !countryRow ? destinations.find(d => d.destination?.split('/')[1]?.trim() === loc) : undefined
+  const weatherHref = loc && countryRow ? `/pocasi/${slugify(loc)}`
+    : loc && regionRow?.country ? `/pocasi/${slugify(regionRow.country)}/${slugify(loc)}` : null
+  const autoLinks = [
+    ...(await fetchLinkTargets()).sort((a, b) => Number(b.name === article.location) - Number(a.name === article.location)),
+    ...weatherAutoLinks(weatherHref),
+  ]
 
   // odkazy pod článkem: průvodce a přehledy zájezdů pro lokalitu článku
   const locSlug = article.location ? slugify(article.location) : ''

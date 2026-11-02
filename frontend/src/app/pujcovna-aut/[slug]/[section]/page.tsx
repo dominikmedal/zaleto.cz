@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import PlaceLinks from '@/components/PlaceLinks'
+import AutoLinked from '@/components/AutoLinked'
 import { slugify } from '@/lib/slugify'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -230,14 +231,14 @@ function DrivingRulesFullPage({ aiData, country }: { aiData: CarRentalAIData; co
         <section>
           <div className="z-kicker">Pohonné hmoty</div>
           <h2 className="h2" style={{ margin: 'var(--space-2) 0 var(--space-4)' }}>pohonné hmoty v {country}<span className="z-dot">.</span></h2>
-          <div className="z-prose">{paras(aiData.fuel_info).map((t, i) => <p key={i}>{t}</p>)}</div>
+          <div className="z-prose">{paras(aiData.fuel_info).map((t, i) => <p key={i}><AutoLinked text={t} /></p>)}</div>
         </section>
       )}
       {aiData.driving_rules && (
         <section>
           <div className="z-kicker">Dopravní předpisy</div>
           <h2 className="h2" style={{ margin: 'var(--space-2) 0 var(--space-4)' }}>silniční pravidla v {country}<span className="z-dot">.</span></h2>
-          <div className="z-prose">{paras(aiData.driving_rules).map((t, i) => <p key={i}>{t}</p>)}</div>
+          <div className="z-prose">{paras(aiData.driving_rules).map((t, i) => <p key={i}><AutoLinked text={t} /></p>)}</div>
         </section>
       )}
       {aiData.practical_tips?.length > 0 && (
@@ -260,7 +261,7 @@ function FAQFullPage({ faq, destName }: { faq: CarRentalFAQ[]; destName: string 
       {faq.map((item, i) => (
         <details key={i} className="z-faq">
           <summary><span className="h4">{item.question}</span></summary>
-          <p>{item.answer}</p>
+          <p><AutoLinked text={item.answer} /></p>
         </details>
       ))}
     </div>

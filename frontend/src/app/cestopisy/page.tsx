@@ -5,6 +5,7 @@ import Crumbs from '@/components/ui/Crumbs'
 import Button from '@/components/ui/Button'
 import TravelogueCard from '@/components/ui/TravelogueCard'
 import { approvedTravelogues } from '@/server/travelogues'
+import LandingOverviews from '@/components/LandingOverviews'
 
 export const revalidate = 300
 
@@ -31,6 +32,7 @@ export default async function CestopisyPage() {
         ) : (
           <div className="z-grid-3w">{trips.map(t => <TravelogueCard key={t.slug} t={t} />)}</div>
         )}
+        <LandingOverviews />
       </main>
     </>
   )

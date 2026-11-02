@@ -1,5 +1,6 @@
 import Photo from '@/components/ui/Photo'
 import PlaceLinks from '@/components/PlaceLinks'
+import AutoLinked from '@/components/AutoLinked'
 import { slugify } from '@/lib/slugify'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
@@ -117,11 +118,11 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
           <div>
             <div className="z-kicker" style={{ marginTop: 'var(--space-5)' }}>Půjčovna aut · {dest.country}</div>
             <h1 className="h1" style={{ margin: 'var(--space-3) 0 var(--space-4)' }}>{dest.name}<span className="z-dot">.</span></h1>
-            {intro[0] && <p className="lead" style={{ margin: 0 }}>{intro[0]}</p>}
+            {intro[0] && <p className="lead" style={{ margin: 0 }}><AutoLinked text={intro[0]} /></p>}
             {intro.length > 1 && (
               <details className="z-more-text">
                 <summary className="z-more">Číst dále</summary>
-                <div className="z-prose">{intro.slice(1).map((p, i) => <p key={i}>{p}</p>)}</div>
+                <div className="z-prose">{intro.slice(1).map((p, i) => <p key={i}><AutoLinked text={p} /></p>)}</div>
               </details>
             )}
             {tabs.length > 0 && (
@@ -260,7 +261,7 @@ function TextCard({ icon, title, text }: { icon: IconName; title: string; text: 
     <div className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)', height: '100%' }}>
       <Icon name={icon} size="lg" />
       <h3 className="h4" style={{ margin: 'var(--space-3) 0' }}>{title}</h3>
-      {paras(text).map((p, i) => <p key={i} style={{ margin: '0 0 var(--space-3)', color: 'var(--ink-muted)' }}>{p}</p>)}
+      {paras(text).map((p, i) => <p key={i} style={{ margin: '0 0 var(--space-3)', color: 'var(--ink-muted)' }}><AutoLinked text={p} /></p>)}
     </div></div>
   )
 }
@@ -315,7 +316,7 @@ function Faq({ faq, destName, year, slug }: { faq: CarRentalFAQ[]; destName: str
         {faq.slice(0, 5).map((f, i) => (
           <details key={i} className="z-faq">
             <summary><span className="h4">{f.question}</span></summary>
-            <p>{f.answer}</p>
+            <p><AutoLinked text={f.answer} /></p>
           </details>
         ))}
       </div>
@@ -366,7 +367,7 @@ function PriceBox({ aiData, destName }: { aiData: CarRentalAIData; destName: str
           )}
           <details className="z-more-text">
             <summary>{rows.length ? 'Celý přehled cen' : 'Zobrazit přehled cen'}</summary>
-            {paras(aiData.price_overview).map((p, i) => <p key={i}>{p}</p>)}
+            {paras(aiData.price_overview).map((p, i) => <p key={i}><AutoLinked text={p} /></p>)}
           </details>
         </section>
       )}
@@ -377,7 +378,7 @@ function PriceBox({ aiData, destName }: { aiData: CarRentalAIData; destName: str
           {restRec.length > 0 && (
             <details className="z-more-text">
               <summary>Číst dál</summary>
-              {restRec.map((p, i) => <p key={i}>{p}</p>)}
+              {restRec.map((p, i) => <p key={i}><AutoLinked text={p} /></p>)}
             </details>
           )}
         </section>

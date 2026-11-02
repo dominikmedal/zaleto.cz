@@ -2118,3 +2118,5 @@ button.z-chip { cursor: pointer; }
 .z-mrow[open] .z-mrow__chev { transform: rotate(180deg); }
 @media (max-width: 767px) { .z-land__tip { --stub: 84px; } .z-land__tipmain { padding: var(--space-4) var(--space-3) var(--space-4) var(--space-5); } }
 .z-ainote, .z-prose .z-ainote, .z-coll__body .z-ainote { font: 400 12px/18px var(--font-mono); letter-spacing: .02em; }
+/* odkazy v textech karet průvodce: nad „celokartovým“ odkazem, aby šly kliknout samostatně */
+.z-place__body p a, .z-itemcard__body p a, .z-placecard p a, .z-menu p a, .z-triproute p a { position: relative; z-index: 2; }

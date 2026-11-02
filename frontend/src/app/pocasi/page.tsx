@@ -5,6 +5,7 @@ import SectionHead from '@/components/ui/SectionHead'
 import WindowCard from '@/components/ui/WindowCard'
 import { fetchDestinations, fetchDestinationPhoto } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
+import LandingOverviews from '@/components/LandingOverviews'
 
 export const revalidate = 3600
 
@@ -44,6 +45,7 @@ export default async function PocasiPage() {
             <WindowCard key={c.slug} href={`/pocasi/${c.slug}`} name={c.name} photo={photos[i] ?? null} />
           ))}
         </div>
+        <LandingOverviews />
       </main>
     </>
   )

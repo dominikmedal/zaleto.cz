@@ -13,6 +13,8 @@ import { slugify } from '@/lib/slugify'
 import type { GuideBeach, GuidePlace } from '@/lib/guide'
 import { resolveDestination } from '../../resolve'
 import PlaceLinks from '@/components/PlaceLinks'
+import { fetchLinkTargets } from '@/lib/api'
+import { Linked } from '@/lib/autolink'
 import { loadGuide } from '../../guideData'
 
 export const revalidate = 3600
@@ -51,6 +53,7 @@ export default async function GuideItemPage({ params }: Props) {
   const d = await load(params)
   if (!d) notFound()
   const { sec, dest, item, list } = d
+  const textLinks = await fetchLinkTargets()
   const base = `/destinace/${params.slug}`
   const sectionUrl = `${base}/${sec.key}`
   const beach = sec.key === 'plaze' ? (item as GuideBeach) : null
@@ -94,7 +97,7 @@ export default async function GuideItemPage({ params }: Props) {
               <div className="z-item__passmain">
                 {kicker && <div className="z-kicker">{kicker} · {dest.name}</div>}
                 <h1 className="h1" style={{ margin: 'var(--space-3) 0 var(--space-4)' }}>{item.name}<span className="z-dot">.</span></h1>
-                <p className="lead z-item__lead">{item.description}</p>
+                <p className="lead z-item__lead"><Linked text={item.description} links={textLinks} exclude={[`/destinace/${params.slug}`]} /></p>
               </div>
               <div className="z-item__stub">
                 {badge && <span className="z-stamp z-stamp--brand"><Icon name={sec.icon} size="sm" />{badge}</span>}
@@ -128,7 +131,7 @@ export default async function GuideItemPage({ params }: Props) {
                 {beach.facilities?.length ? <div><dt>Vybavení</dt><dd><ul className="z-beach__chips">{[...new Set(beach.facilities)].filter(x => !beach.suitable_for?.includes(x)).map(x => <li key={x}>{x}</li>)}</ul></dd></div> : null}
                 {beach.type ? <div><dt>Povrch</dt><dd>{beach.type}</dd></div> : null}
               </dl>
-              {beach.tip && <p className="z-beach__tip"><Icon name="info" size="sm" /><span>{beach.tip}</span></p>}
+              {beach.tip && <p className="z-beach__tip"><Icon name="info" size="sm" /><span><Linked text={beach.tip} links={textLinks} exclude={[`/destinace/${params.slug}`]} /></span></p>}
             </div></div>
             {hasGeo
               ? <ItemMap lat={beach.lat as number} lng={beach.lng as number} title={item.name} sub={beach.resort} />
