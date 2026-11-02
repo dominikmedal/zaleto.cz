@@ -87,7 +87,7 @@ export default function OZaletoPage() {
           <div className="z-prose" style={{ maxWidth: 'var(--article-max)' }}>
             <p><strong>Odkud jsou ceny.</strong> Nabídky, termíny a ceny stahujeme z webů českých cestovních kanceláří a ukládáme je do vlastní databáze. Cena, kterou u hotelu vidíš, je nejnižší aktuálně nalezená cena za osobu; konečnou cenu a podmínky vždy potvrdí cestovní kancelář před rezervací.</p>
             <p><strong>Jak řadíme.</strong> Výsledky jsou ve výchozím nastavení řazené podle ceny od nejlevnější. Pořadí neovlivňuje to, kolik bychom na nabídce vydělali.</p>
-            <p><strong>Jak vznikají texty.</strong> Shrnutí hotelů, průvodci destinacemi a přehledy zájezdů vznikají s pomocí AI z údajů cestovních kanceláří a našich vlastních dat (ceny, počty termínů, měsíční ceny). Modelu zakazujeme vymýšlet vybavení, vzdálenosti i ceny; takové texty jsou na stránkách označené a mají uvedené datum aktualizace. Pokud najdeš chybu, napiš nám na <a href="mailto:info@zaleto.cz">info@zaleto.cz</a>, opravíme ji.</p>
+            <p><strong>Jak vznikají texty.</strong> Shrnutí hotelů, průvodce destinacemi a přehledy zájezdů připravuje redakce Zaleto z údajů cestovních kanceláří a z našich vlastních dat (ceny, počty termínů, měsíční ceny). Nic si nevymýšlíme: vybavení, vzdálenosti a ceny bereme jen z uvedených údajů a u textů uvádíme datum aktualizace. Pokud najdeš chybu, napiš nám na <a href="mailto:info@zaleto.cz">info@zaleto.cz</a>, opravíme ji.</p>
             <p><strong>Jak se financujeme.</strong> Odkazy na cestovní kanceláře mohou být partnerské: pokud přes ně zarezervuješ, můžeme získat provizi. Cena pro tebe se tím nemění.</p>
           </div>
         </section>
