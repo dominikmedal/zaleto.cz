@@ -1,3 +1,4 @@
+import Photo from '@/components/ui/Photo'
 import Link from 'next/link'
 import Icon, { type IconName } from './Icon'
 import { PhotoCredit } from './PhotoCredit'
@@ -21,7 +22,7 @@ export function GuideHub({ guide, base }: { guide: DestinationGuide; base: strin
             <div className="z-ghub__media">
               {ph ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={ph.url} alt="" loading="lazy" />
+                <Photo widths={[400, 800]} sizes="(max-width: 767px) 90vw, 400px" src={ph.url} alt="" loading="lazy" />
               ) : <span aria-hidden="true"><Icon name={sec.icon} size="lg" /></span>}
             </div>
             <div className="z-ghub__body">
@@ -50,7 +51,7 @@ export function ResortCards({ items, links, photos = {} }: { items: GuideResort[
               <div className="z-place__media" data-tilt={i % 2}>
                 {ph ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={ph.url} alt={r.name} loading="lazy" />
+                  <Photo widths={[400, 800]} sizes="(max-width: 767px) 90vw, 400px" src={ph.url} alt={r.name} loading="lazy" />
                 ) : <span className="z-place__ph" aria-hidden="true"><Icon name="poloha" size="lg" /></span>}
                 {r.vibe && <span className="z-stamp z-place__stamp">{r.vibe}</span>}
                 {ph?.credit && <PhotoCredit photo={ph} className="z-place__credit" />}

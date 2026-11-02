@@ -1,4 +1,5 @@
 'use client'
+import Photo from '@/components/ui/Photo'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { PiMagnifyingGlass, PiMapPin, PiBuildings, PiX, PiArrowRight } from '@/components/ui/icons'
@@ -226,7 +227,7 @@ export default function HeaderSearch() {
                         >
                           {h.thumbnail_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={h.thumbnail_url} alt={h.name} className="w-11 h-8 rounded-lg object-cover flex-shrink-0 shadow-sm" />
+                            <Photo widths={[96, 192]} sizes="44px" src={h.thumbnail_url} alt={h.name} className="w-11 h-8 rounded-lg object-cover flex-shrink-0 shadow-sm" />
                           ) : (
                             <div className="w-11 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
                               <PiBuildings className="w-4 h-4 text-[#0093FF]/60" />

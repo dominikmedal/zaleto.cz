@@ -37,6 +37,11 @@ export default function Header() {
   }, [])
   useEffect(() => { setOpen(false) }, [pathname])
   useEffect(() => {
+    const openMenu = () => setOpen(o => !o)
+    window.addEventListener('z-open-menu', openMenu)
+    return () => window.removeEventListener('z-open-menu', openMenu)
+  }, [])
+  useEffect(() => {
     if (!open) return
     document.body.style.overflow = 'hidden'
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }

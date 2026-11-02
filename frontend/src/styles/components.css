@@ -520,7 +520,7 @@ a.z-tk:hover { transform: translateY(-4px) rotate(-.4deg); filter: drop-shadow(0
 
 /* ---------- Banner půjčovny aut (detail hotelu) ---------- */
 .z-carbanner__in { display: grid; grid-template-columns: 200px minmax(0, 1fr) var(--stub); padding: 10px; }
-.z-carbanner__photo { border-radius: 16px; background: var(--paper-deep) url('/img/header-car.jpg') center / cover no-repeat; min-height: 170px; }
+.z-carbanner__photo { border-radius: 16px; background: var(--paper-deep) url('/img/header-car.webp') center / cover no-repeat; min-height: 170px; }
 .z-carbanner__body { padding: var(--space-4) var(--space-5); }
 .z-carbanner__stub { display: flex; align-items: center; justify-content: center; padding: var(--space-3); }
 @media (max-width: 767px) {

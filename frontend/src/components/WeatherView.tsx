@@ -1,3 +1,4 @@
+import Photo from '@/components/ui/Photo'
 import Link from 'next/link'
 import Icon, { type IconName } from '@/components/ui/Icon'
 import Crumbs from '@/components/ui/Crumbs'
@@ -81,7 +82,7 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
         {heroPhoto && (
           <div className="z-cardest__photo">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={heroPhoto} alt={name} />
+            <Photo widths={[640, 1200]} sizes="(max-width: 767px) 100vw, 600px" src={heroPhoto} alt={name} />
           </div>
         )}
       </div>
@@ -171,7 +172,7 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
             <div className="z-chips">
               {subDestinations.map(d => (
                 <Link key={d.slug} href={`${subBase}/${d.slug}`} className="z-chip" style={{ textDecoration: 'none', height: 40, padding: '0 var(--space-4)' }}>
-                  {d.name} · {d.hotelCount}
+                  {d.name}
                 </Link>
               ))}
             </div>

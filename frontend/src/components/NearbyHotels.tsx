@@ -1,3 +1,4 @@
+import Photo from '@/components/ui/Photo'
 import Link from 'next/link'
 import { PiMapPin, PiBuildings } from '@/components/ui/icons'
 import { fetchNearbyHotels } from '@/lib/api'
@@ -45,7 +46,8 @@ export default async function NearbyHotels({ lat, lon, exclude }: { lat: number;
             <div className="relative w-12 h-9 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 shadow-[0_1px_4px_rgba(0,0,0,0.10)]">
               {n.thumbnail_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Photo
+                  widths={[320, 640]} sizes="(max-width: 767px) 50vw, 300px"
                   src={n.thumbnail_url}
                   alt={n.name}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"

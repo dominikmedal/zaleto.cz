@@ -1,3 +1,4 @@
+import Photo from '@/components/ui/Photo'
 import Icon from './Icon'
 import { formatDateRange, formatPrice } from './format'
 import type { Hotel } from '@/lib/types'
@@ -17,7 +18,7 @@ export default function TourAd({ hotel, sticky = false, kicker = 'Dnešní tip p
         <div className="z-ad__media">
           {hotel.thumbnail_url && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={hotel.thumbnail_url} alt={hotel.name} loading="lazy" />
+            <Photo widths={[240, 480]} sizes="(max-width: 767px) 112px, 330px" src={hotel.thumbnail_url} alt={hotel.name} loading="lazy" />
           )}
           {hotel.has_last_minute ? <span className="z-stamp z-stamp--fill">Last minute</span> : null}
         </div>

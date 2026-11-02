@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: '*',
       allow: ['/', '/api/', '/openapi.json'],
       // neveřejné nebo vedlejší endpointy (administrace, affiliate přesměrování, převod do Markdownu, zápisové operace)
-      disallow: ['/api/admin/', '/api/revalidate', '/api/cron/', '/api/redirect/', '/api/markdown', '/api/contact', '/api/car-rental/click', '/api/img', '/hledat'],
+      disallow: ['/api/admin/', '/api/revalidate', '/api/cron/', '/api/redirect/', '/api/markdown', '/api/contact', '/api/car-rental/click', '/api/img', '/api/thumb', '/hledat'],
     },
     sitemap: 'https://zaleto.cz/sitemap.xml',
   }

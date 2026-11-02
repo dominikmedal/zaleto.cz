@@ -1,4 +1,5 @@
 'use client'
+import Photo from '@/components/ui/Photo'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
@@ -143,7 +144,7 @@ export default function SiteSearch() {
                     >
                       {it.photo
                         // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={it.photo} alt="" loading="lazy" />
+                        ? <Photo widths={[96, 192]} sizes="48px" src={it.photo} alt="" loading="lazy" />
                         : <span className="z-sr-item__icon"><Icon name={it.icon} /></span>}
                       <span className="z-sr-item__text"><b>{it.title}</b>{(it.sub || it.stars) && (
                         <small>

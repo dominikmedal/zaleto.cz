@@ -86,7 +86,7 @@ export default async function HomePage() {
       <main>
         <CarRentalProvider>
         <section className="z-masthead z-masthead--under" aria-label="Hledání zájezdu">
-          <div className="z-masthead__photo" style={{ backgroundImage: 'url("/img/header-car.jpg")' }} aria-hidden="true" />
+          <div className="z-masthead__photo" style={{ backgroundImage: 'url("/img/header-car.webp")' }} aria-hidden="true" />
           <span className="z-masthead__sun" aria-hidden="true" />
           <svg className="z-masthead__route" viewBox="0 0 1600 360" preserveAspectRatio="none" aria-hidden="true">
             <path d="M-20 330 C 320 340, 520 160, 860 200 S 1300 60, 1640 40" />
@@ -94,7 +94,6 @@ export default async function HomePage() {
           <div className="z-masthead__inner">
             <div className="z-masthead__head">
               <div>
-                <div className="z-kicker">Srovnání zájezdů a půjčoven aut</div>
                 <h1 className="z-masthead__title">najdi dovolenou za <span className="z-hl">nejlepší cenu</span><span className="z-dot">.</span></h1>
               </div>
               <p className="z-masthead__lead">
@@ -173,7 +172,7 @@ export default async function HomePage() {
             </div></div>
             <div className="z-carpromo__photo">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/img/1509.jpg" alt="Žena sedí v kufru auta u moře" width={1500} height={1000} loading="lazy" />
+              <img src="/img/1509.webp" alt="Žena sedí v kufru auta u moře" width={1500} height={1000} loading="lazy" />
               <span className="z-stamp z-carpromo__stamp">Svoboda na kolech</span>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import Photo from '@/components/ui/Photo'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -107,7 +108,7 @@ export default async function GuideItemPage({ params }: Props) {
           {item.image ? (
             <figure className="z-item__photo">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={item.image.url} alt={item.name} />
+              <Photo widths={[640, 1200]} sizes="(max-width: 767px) 100vw, 600px" src={item.image.url} alt={item.name} />
               <figcaption><PhotoCredit photo={item.image} /></figcaption>
             </figure>
           ) : (

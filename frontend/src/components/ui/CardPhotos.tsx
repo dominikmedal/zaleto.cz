@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { sizedImage, imageSrcSet } from '@/lib/imageLoader'
 
 interface Props {
   photos: string[]
@@ -21,7 +22,7 @@ export default function CardPhotos({ photos, alt, priority }: Props) {
     if (!card || n < 2) return
     let timer: ReturnType<typeof setInterval> | undefined
     const enter = () => {
-      photos.slice(1).forEach(src => { const i = new Image(); i.src = src })
+      photos.slice(1).forEach(src => { const i = new Image(); i.src = sizedImage(src, 640) })
       setIdx(i => (i + 1) % n)
       timer = setInterval(() => setIdx(i => (i + 1) % n), 2000)
     }
@@ -35,7 +36,14 @@ export default function CardPhotos({ photos, alt, priority }: Props) {
     <div className="z-cardphotos" ref={root}>
       {n > 0 && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={photos[idx]} alt={alt} loading={priority ? 'eager' : 'lazy'} />
+        <img
+          src={sizedImage(photos[idx], 640)}
+          srcSet={imageSrcSet(photos[idx], [320, 640, 960])}
+          sizes="(max-width: 767px) 112px, (max-width: 1100px) 45vw, 380px"
+          alt={alt}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+        />
       )}
       {n > 1 && (
         <span className="z-cardphotos__dots" aria-hidden="true">

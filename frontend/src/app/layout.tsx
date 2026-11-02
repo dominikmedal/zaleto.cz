@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { Fraunces, Poppins, Space_Mono } from 'next/font/google'
 import './globals.css'
@@ -33,6 +33,14 @@ import ServiceWorkerSetup from '@/components/ServiceWorkerSetup'
 import JsonLd from '@/components/JsonLd'
 import ChatWidget from '@/components/ChatWidget'
 import CookieConsent from '@/components/CookieConsent'
+import MobileTabBar from '@/components/MobileTabBar'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#faf6ee',
+}
 
 export const metadata: Metadata = {
   title: {
@@ -133,6 +141,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <FieldClicks />
         {children}
         <Footer />
+        <MobileTabBar />
         <ScrollToTop />
         <ChatWidget />
         <CookieConsent />

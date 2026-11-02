@@ -9,6 +9,7 @@ import HotelGallery from '@/components/HotelGallery'
 import FavoriteButton from '@/components/FavoriteButton'
 import ShareButton from '@/components/ShareButton'
 import ScrollToButton from '@/components/ScrollToButton'
+import HotelMobileCta from '@/components/HotelMobileCta'
 import TourDatesList from '@/components/TourDatesList'
 import TourModalTrigger from '@/components/TourModalTrigger'
 import ReviewsSection from '@/components/ReviewsSection'
@@ -300,6 +301,7 @@ async function BookingBox({ hotel, slug, tourCount }: { hotel: Hotel; slug: stri
         <ShareButton slug={slug} name={hotel.name} />
       </div>
       <p className="z-data z-bookbox__note"><Icon name="ok" size="sm" />REZERVACE PŘÍMO U CESTOVNÍ KANCELÁŘE</p>
+      <HotelMobileCta price={hotel.min_price ? formatPrice(hotel.min_price) : 'Aktualizuje se'} label="Termíny" />
     </div>
   )
 }

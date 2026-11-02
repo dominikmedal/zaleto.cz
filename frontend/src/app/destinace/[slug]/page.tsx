@@ -1,4 +1,5 @@
-﻿import type { Metadata } from 'next'
+﻿import Photo from '@/components/ui/Photo'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Header from '@/components/Header'
@@ -202,7 +203,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
             <div className="z-cardest__media" data-thumbs={thumbs.length > 0 || undefined}>
               <div className="z-cardest__photo">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={heroPhoto.url} alt={dest.name} />
+                <Photo widths={[640, 1200]} sizes="(max-width: 767px) 100vw, 600px" src={heroPhoto.url} alt={dest.name} />
                 {heroPhoto.credit && (
                   <span className="z-photocredit">Foto: <a href={heroPhoto.creditUrl ?? 'https://unsplash.com'} target="_blank" rel="noopener noreferrer">{heroPhoto.credit}</a> / <a href="https://unsplash.com/?utm_source=zaleto&utm_medium=referral" target="_blank" rel="noopener noreferrer">Unsplash</a></span>
                 )}
@@ -212,7 +213,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
                   {thumbs.map((t, i) => (
                     <span key={t.url} className="z-herothumbs__item" style={{ transform: `rotate(${t.rot}deg) translateY(${t.dy}px)`, zIndex: i + 1 }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={t.url} alt="" loading="lazy" />
+                      <Photo widths={[640, 1200]} sizes="(max-width: 767px) 100vw, 600px" src={t.url} alt="" loading="lazy" />
                     </span>
                   ))}
                   <span className="z-herothumbs__more"><Icon name="foto" />+{photos.length} fotek</span>

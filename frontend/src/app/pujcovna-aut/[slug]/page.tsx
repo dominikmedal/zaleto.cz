@@ -1,3 +1,4 @@
+import Photo from '@/components/ui/Photo'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
@@ -62,7 +63,7 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
   const heroPhoto =
     (await fetchDestinationPhoto(dest.name).catch(() => null)) ??
     (await fetchDestinationPhoto(dest.country).catch(() => null)) ??
-    '/img/header-car.jpg'
+    '/img/header-car.webp'
 
   const related = getRelatedDestinations(params.slug, allDests, 8)
   const year = new Date().getFullYear()
@@ -139,8 +140,7 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
             )}
           </div>
           <div className="z-cardest__photo">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={heroPhoto} alt={`Půjčovna aut ${dest.name} ${year}`} />
+                        <Photo widths={[640, 1200]} sizes="(max-width: 767px) 100vw, 600px" src={heroPhoto} alt={`Půjčovna aut ${dest.name} ${year}`} />
           </div>
         </div>
 

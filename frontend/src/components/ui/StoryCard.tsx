@@ -1,3 +1,4 @@
+import Photo from '@/components/ui/Photo'
 import Link from 'next/link'
 import Icon from './Icon'
 import { formatLongDate, readingTime } from './format'
@@ -11,7 +12,7 @@ export default function StoryCard({ article, lead, image }: { article: Article; 
       <div className="z-story__media">
         {src && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="" loading={lead ? 'eager' : 'lazy'} />
+          <Photo widths={[240, 480, 800]} sizes="(max-width: 767px) 110px, 420px" src={src} alt="" loading={lead ? 'eager' : 'lazy'} />
         )}
         {article.category && <span className="z-chip"><Icon name="clanek" />{article.category}</span>}
       </div>

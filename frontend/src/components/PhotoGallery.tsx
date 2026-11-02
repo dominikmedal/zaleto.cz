@@ -1,4 +1,5 @@
 'use client'
+import Photo from '@/components/ui/Photo'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Icon from '@/components/ui/Icon'
 
@@ -40,7 +41,7 @@ export default function PhotoGallery({ photos, name }: { photos: Photo[]; name: 
           <figure key={ph.url} className="z-gallery__item" data-big={i === 0 || undefined}>
             <button type="button" className="z-gallery__open" onClick={() => setOpen(i)} aria-label={`Zvětšit fotografii ${i + 1} z ${n}`} aria-haspopup="dialog">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={ph.url} alt={alt(ph)} loading="lazy" />
+              <Photo widths={[400, 800]} sizes="(max-width: 767px) 50vw, 33vw" src={ph.url} alt={alt(ph)} loading="lazy" />
             </button>
             <figcaption>
               <a href={ph.creditUrl} target="_blank" rel="noopener noreferrer">{ph.credit}</a> / <a href={UNSPLASH} target="_blank" rel="noopener noreferrer">Unsplash</a>
@@ -64,7 +65,7 @@ export default function PhotoGallery({ photos, name }: { photos: Photo[]; name: 
           {n > 1 && <button type="button" className="z-lightbox__btn z-lightbox__next" onClick={() => go(1)} aria-label="Další fotografie"><Icon name="chevron" /></button>}
           <figure className="z-lightbox__fig">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={cur.url} alt={alt(cur)} />
+            <Photo widths={[400, 800]} sizes="(max-width: 767px) 50vw, 33vw" src={cur.url} alt={alt(cur)} />
             <figcaption>
               <span className="z-data">{(open ?? 0) + 1} / {n}</span>
               <span><a href={cur.creditUrl} target="_blank" rel="noopener noreferrer">{cur.credit}</a> / <a href={UNSPLASH} target="_blank" rel="noopener noreferrer">Unsplash</a></span>

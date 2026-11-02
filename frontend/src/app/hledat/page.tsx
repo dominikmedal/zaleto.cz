@@ -1,3 +1,4 @@
+import Photo from '@/components/ui/Photo'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Header from '@/components/Header'
@@ -57,7 +58,7 @@ export default async function SearchPage({ searchParams }: Props) {
               {r.hotels.map(h => (
                 <Link key={h.slug} href={h.href} className="z-sr-card">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {h.photo ? <img src={h.photo} alt="" loading="lazy" /> : <span className="z-sr-card__ph" />}
+                  {h.photo ? <Photo widths={[240, 480]} sizes="(max-width: 767px) 104px, 300px" src={h.photo} alt="" loading="lazy" /> : <span className="z-sr-card__ph" />}
                   <span className="z-sr-card__body">
                     <b>{h.name}</b>
                     <small>{h.place}{h.stars ? <span className="z-sr-stars">{Array.from({ length: h.stars }).map((_, i) => <Icon key={i} name="hvezda" size="sm" />)}</span> : null}</small>
@@ -77,7 +78,7 @@ export default async function SearchPage({ searchParams }: Props) {
               {r.places.map(p => (
                 <Link key={p.href} href={p.href} className="z-sr-item" style={{ textDecoration: 'none' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {p.photo ? <img src={p.photo} alt="" loading="lazy" /> : <span className="z-sr-item__icon"><Icon name={({ plaze: 'plaz', klastery: 'mesto', pamatky: 'kompas', priroda: 'hory', vesnicky: 'srdce' } as const)[p.section as 'plaze'] ?? 'poloha'} /></span>}
+                  {p.photo ? <Photo widths={[240, 480]} sizes="(max-width: 767px) 104px, 300px" src={p.photo} alt="" loading="lazy" /> : <span className="z-sr-item__icon"><Icon name={({ plaze: 'plaz', klastery: 'mesto', pamatky: 'kompas', priroda: 'hory', vesnicky: 'srdce' } as const)[p.section as 'plaze'] ?? 'poloha'} /></span>}
                   <span className="z-sr-item__text"><b>{p.name}</b><small>{p.kind} · {p.sub}</small></span>
                 </Link>
               ))}
@@ -106,7 +107,7 @@ export default async function SearchPage({ searchParams }: Props) {
               {r.articles.map(a => (
                 <Link key={a.slug} href={a.href} className="z-sr-item" style={{ textDecoration: 'none' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {a.image ? <img src={a.image} alt="" loading="lazy" /> : <span className="z-sr-item__icon"><Icon name="clanek" /></span>}
+                  {a.image ? <Photo widths={[240, 480]} sizes="(max-width: 767px) 104px, 300px" src={a.image} alt="" loading="lazy" /> : <span className="z-sr-item__icon"><Icon name="clanek" /></span>}
                   <span className="z-sr-item__text"><b>{a.title}</b><small>{a.excerpt ?? a.location}</small></span>
                 </Link>
               ))}

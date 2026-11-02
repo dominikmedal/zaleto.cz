@@ -1,4 +1,5 @@
 'use client'
+import Photo from '@/components/ui/Photo'
 import { useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
@@ -70,7 +71,7 @@ export default function BeachExplorer({ beaches, resortLinks = {}, regionName, b
               <div className="z-place__media" data-tilt={i % 2}>
                 {b.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={b.image.url} alt={`${b.name} – pláž`} loading="lazy" />
+                  <Photo widths={[400, 800]} sizes="(max-width: 767px) 90vw, 400px" src={b.image.url} alt={`${b.name} – pláž`} loading="lazy" />
                 ) : <span className="z-place__ph" aria-hidden="true"><Icon name="plaz" size="lg" /></span>}
                 {b.type && <span className="z-stamp z-place__stamp">{b.type}</span>}
                 {b.image && <PhotoCredit photo={b.image} className="z-place__credit" />}

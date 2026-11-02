@@ -153,7 +153,7 @@ export default function DestinationHeroAI({
                   {/* Photo */}
                   <div className="relative w-full sm:w-52 h-36 sm:h-32 rounded-xl overflow-hidden flex-shrink-0">
                     <Image
-                      src="/img/header-car.jpg"
+                      src="/img/header-car.webp"
                       alt="Půjčovna aut"
                       fill
                       className="object-cover"

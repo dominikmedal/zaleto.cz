@@ -326,7 +326,7 @@ export function FeaturedHotelsBarVertical({ hotels }: { hotels: Hotel[] }) {
       <div className="hidden lg:block" style={{ borderTop: '1px solid rgba(4,150,105,0.10)' }}>
         <Link href="/pujcovna-aut" className="group relative block overflow-hidden" style={{ minHeight: 180 }}>
           <Image
-            src="/img/1509.jpg"
+            src="/img/1509.webp"
             alt="Půjčovna aut"
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"

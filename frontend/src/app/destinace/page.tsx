@@ -92,7 +92,7 @@ export default async function DestinacePage() {
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
                   {c.regions.slice(0, 8).map(r => (
                     <li key={r.label}>
-                      <Link className="z-chip" href={`/destinace/${slugify(r.label)}`} style={{ textDecoration: 'none' }}>{r.label} · {r.count}</Link>
+                      <Link className="z-chip" href={`/destinace/${slugify(r.label)}`} style={{ textDecoration: 'none' }}>{r.label}</Link>
                     </li>
                   ))}
                 </ul>

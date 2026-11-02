@@ -55,7 +55,11 @@ const nextConfig = {
     ]
   },
   images: {
-    unoptimized: true,
+    // fotky zmenšuje vlastní route /api/thumb (zdarma, bez Vercel Image Optimization)
+    loader: 'custom',
+    loaderFile: './src/lib/imageLoader.ts',
+    deviceSizes: [320, 640, 960, 1200, 1600],
+    imageSizes: [96, 192, 240, 360, 400, 480, 720, 800, 900],
     remotePatterns: [
       { protocol: 'https', hostname: '**' },
       { protocol: 'http',  hostname: '**' },

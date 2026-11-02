@@ -1,4 +1,5 @@
 'use client'
+import Photo from '@/components/ui/Photo'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
@@ -73,7 +74,7 @@ export default function ExitOfferDialog({ offer }: { offer: ExitOfferData }) {
           <span className="z-stamp z-stamp--fill z-exit__stamp">Nabídka dne</span>
           <div className="z-exit__media">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={offer.photo} alt={offer.name} />
+            <Photo widths={[480, 900]} sizes="(max-width: 767px) 92vw, 440px" src={offer.photo} alt={offer.name} />
             {offer.save ? <span className="z-exit__save">Až −{offer.save} %</span> : null}
           </div>
           <div className="z-exit__body">

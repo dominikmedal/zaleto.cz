@@ -1,3 +1,4 @@
+import Photo from '@/components/ui/Photo'
 import Link from 'next/link'
 import Icon from './Icon'
 
@@ -17,8 +18,7 @@ export default function WindowCard({ href, name, photo, stamp, count, countLabel
     <Link className="z-window" href={href}>
       <div className="z-window__frame">
         <div className="z-window__glass">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {photo && <img src={photo} alt="" loading="lazy" />}
+                    {photo && <Photo widths={[240, 480]} sizes="(max-width: 767px) 45vw, 300px" src={photo} alt="" loading="lazy" />}
         </div>
         {stamp && <span className="z-stamp z-stamp--fill">{stamp}</span>}
       </div>

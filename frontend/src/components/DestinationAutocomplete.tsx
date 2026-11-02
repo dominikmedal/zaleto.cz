@@ -1,4 +1,5 @@
 'use client'
+import Photo from '@/components/ui/Photo'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { LuX as X, LuCheck as Check } from '@/components/ui/icons'
@@ -634,7 +635,7 @@ export default function DestinationAutocomplete({ destinations, value, onChange,
                           >
                             {hotel.thumbnail_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={hotel.thumbnail_url} alt={hotel.name} className="w-12 h-9 rounded-xl object-cover flex-shrink-0 shadow-sm" />
+                              <Photo widths={[96, 192]} sizes="48px" src={hotel.thumbnail_url} alt={hotel.name} className="w-12 h-9 rounded-xl object-cover flex-shrink-0 shadow-sm" />
                             ) : (
                               <div className="w-12 h-9 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(0,147,255,0.08)' }}>
                                 <PiBuildings className="w-4.5 h-4.5 text-[#0093FF]" />

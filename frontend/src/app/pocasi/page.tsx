@@ -41,7 +41,7 @@ export default async function PocasiPage() {
         </p>
         <div className="z-grid-4">
           {countries.map((c, i) => (
-            <WindowCard key={c.slug} href={`/pocasi/${c.slug}`} name={c.name} photo={photos[i] ?? null} count={c.count} countLabel="hotelů" />
+            <WindowCard key={c.slug} href={`/pocasi/${c.slug}`} name={c.name} photo={photos[i] ?? null} />
           ))}
         </div>
       </main>

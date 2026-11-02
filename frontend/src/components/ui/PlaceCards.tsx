@@ -1,3 +1,4 @@
+import Photo from '@/components/ui/Photo'
 import Link from 'next/link'
 import Icon, { type IconName } from './Icon'
 import { PhotoCredit } from './PhotoCredit'
@@ -17,7 +18,7 @@ export default function PlaceCards({ items, icon, base }: { items: GuidePlace[];
             <div className="z-place__media" data-tilt={i % 2}>
               {it.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={it.image.url} alt={it.name} loading="lazy" />
+                <Photo widths={[400, 800]} sizes="(max-width: 767px) 90vw, 400px" src={it.image.url} alt={it.name} loading="lazy" />
               ) : <span className="z-place__ph" aria-hidden="true"><Icon name={icon} size="lg" /></span>}
               {it.kind && <span className="z-stamp z-place__stamp">{it.kind}</span>}
               {it.image && <PhotoCredit photo={it.image} className="z-place__credit" />}

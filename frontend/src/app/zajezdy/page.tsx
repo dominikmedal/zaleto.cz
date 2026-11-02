@@ -1,4 +1,5 @@
-﻿import PersonsField from '@/components/ui/PersonsField'
+﻿import Photo from '@/components/ui/Photo'
+import PersonsField from '@/components/ui/PersonsField'
 import RememberFilters from '@/components/RememberFilters'
 import type { Metadata } from 'next'
 import { Fragment } from 'react'
@@ -107,7 +108,7 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
             {destInfo.photo && (
               <div className="z-destmini__photo">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={destInfo.photo} alt="" />
+                <Photo widths={[240, 480]} sizes="120px" src={destInfo.photo} alt="" />
               </div>
             )}
             <div className="z-destmini__body">
