@@ -211,7 +211,7 @@ function TripTipsFullPage({ tips, destName }: { tips: CarRentalTripTip[]; destNa
           <ItemCard
             key={i}
             title={tip.title}
-            text={tip.description}
+            text={<AutoLinked text={tip.description} />}
             icon="trasa"
             meta={<>
               {tip.distance_km ? <span><Icon name="trasa" />{tip.distance_km} km</span> : null}

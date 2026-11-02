@@ -54,3 +54,27 @@ export function Linked({ text, links, exclude, max = 8 }: { text: string; links?
   const ctx = makeAutoLinkCtx(links, max, exclude)
   return <>{autolinkText(text, ctx, 'l').map((p, i) => (typeof p === 'string' ? <span key={i} style={{ display: 'contents' }}>{p}</span> : p))}</>
 }
+
+/** Část textu: prostý text, nebo odkaz (`href`). Serializovatelné, takže jde poslat do klientské komponenty (bez celého seznamu cílů). */
+export interface LinkPart { text: string; href?: string }
+
+/** Totéž co autolinkText, ale vrací data místo JSX: server vypočítá odkazy, klient je jen vykreslí (PartsText). */
+export function linkParts(text: string, links: AutoLink[] = [], opts: { max?: number; exclude?: string[] } = {}): LinkPart[] {
+  const ctx = makeAutoLinkCtx(links, opts.max ?? 8, opts.exclude ?? [])
+  const parts: LinkPart[] = [{ text }]
+  for (const l of ctx.links) {
+    if (ctx.used.has(l.href) || ctx.used.size >= ctx.max) continue
+    const idx = parts.findIndex(p => !p.href && l.re.test(p.text))
+    if (idx < 0) continue
+    const p = parts[idx]
+    const m = l.re.exec(p.text)!
+    parts.splice(idx, 1, { text: p.text.slice(0, m.index) }, { text: m[0], href: l.href }, { text: p.text.slice(m.index + m[0].length) })
+    ctx.used.add(l.href)
+  }
+  return parts.filter(p => p.text !== '')
+}
+
+/** Vykreslení částí z linkParts (funguje i v klientských komponentách). */
+export function PartsText({ parts }: { parts: LinkPart[] }) {
+  return <>{parts.map((p, i) => (p.href ? <Link key={i} href={p.href}>{p.text}</Link> : <span key={i} style={{ display: 'contents' }}>{p.text}</span>))}</>
+}

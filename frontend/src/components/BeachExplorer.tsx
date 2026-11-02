@@ -8,6 +8,7 @@ import type { MapPin } from './GuideMap'
 import type { GuideBeach } from '@/lib/guide'
 import { PhotoCredit } from '@/components/ui/PhotoCredit'
 import { slugify } from '@/lib/slugify'
+import { PartsText, type LinkPart } from '@/lib/autolink'
 
 const GuideMap = dynamic(() => import('./GuideMap'), { ssr: false, loading: () => <div className="z-map z-map--loading" /> })
 
@@ -16,7 +17,7 @@ const CROWDLVL: Record<string, number> = { 'klidná': 1, 'střední': 2, 'rušn�
 const OTHER = 'Další pláže'
 
 /** Pláže oblasti: mapa s značkami, filtr podle střediska a karty pláží seskupené podle středisek. */
-export default function BeachExplorer({ beaches, resortLinks = {}, regionName, base }: { beaches: GuideBeach[]; resortLinks?: Record<string, string>; regionName: string; base: string }) {
+export default function BeachExplorer({ beaches, resortLinks = {}, regionName, base, descParts = {} }: { beaches: GuideBeach[]; resortLinks?: Record<string, string>; regionName: string; base: string; descParts?: Record<string, LinkPart[]> }) {
   const [resort, setResort] = useState<string>('all')
   const [active, setActive] = useState<string | null>(null)
   const mapBox = useRef<HTMLDivElement>(null)
@@ -79,7 +80,7 @@ export default function BeachExplorer({ beaches, resortLinks = {}, regionName, b
               <div className="z-place__body">
                 {k !== OTHER && <div className="z-kicker">{resortLinks[k] ? <Link href={resortLinks[k]}>{k}</Link> : k}</div>}
                 <h3 className="z-place__title"><Link className="z-gcard__hit" href={`${base}/${slugify(b.name)}`}>{b.name}</Link></h3>
-                <p>{b.description}</p>
+                <p>{descParts[b.name] ? <PartsText parts={descParts[b.name]} /> : b.description}</p>
                 {(b.facilities?.length || b.suitable_for?.length || b.crowd) ? (
                   <ul className="z-beach__chips">
                     {b.crowd && <li data-k="crowd">{CROWD[b.crowd] ?? b.crowd}</li>}

@@ -245,7 +245,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
               Destinace{dest.country && dest.country !== dest.name ? ` · ${dest.country}` : ''}
             </div>
             <h1 className="h1" style={{ margin: 'var(--space-3) 0 var(--space-4)' }}>{title}<span className="z-dot">.</span></h1>
-            {paragraphs[0] && <p className="lead" style={{ margin: 0 }}>{paragraphs[0]}</p>}
+            {paragraphs[0] && <p className="lead" style={{ margin: 0 }}><Linked text={paragraphs[0]} links={textLinks} exclude={selfHref} /></p>}
             <div className="z-meta" style={{ marginTop: 'var(--space-5)', fontSize: 15 }}>
               {pg ? <span><Icon name="hotel" />{pg.total} hotelů s termínem</span> : null}
               {weatherUrl ? <span><Icon name="slunce" /><Link href={weatherUrl} style={{ color: 'inherit' }}>Počasí a klima</Link></span> : null}

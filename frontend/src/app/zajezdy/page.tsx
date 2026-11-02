@@ -13,6 +13,7 @@ import DestinationSuggest from '@/components/ui/DestinationSuggest'
 import { DateRangeField } from '@/components/DateRangePicker'
 import { fetchFilters, fetchHotels, fetchDestinations, fetchDestinationAI, fetchDestinationPhoto, fetchLandingList } from '@/lib/api'
 import { LinkList } from '@/components/ui/SeoBlocks'
+import AutoLinked from '@/components/AutoLinked'
 import { formatPrice } from '@/components/ui/format'
 import { slugify } from '@/lib/slugify'
 import { seasonYear } from '@/lib/seo'
@@ -146,7 +147,7 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
             )}
             <div className="z-destmini__body">
               <h2 className="h3">{destInfo.name}<span className="z-dot">.</span></h2>
-              {destInfo.text && <p>{destInfo.text}</p>}
+              {destInfo.text && <p><AutoLinked text={destInfo.text} exclude={[`/destinace/${destInfo.slug}`]} /></p>}
               <div className="z-meta">
                 {pg ? <span><Icon name="hotel" />{pg.total.toLocaleString('cs-CZ')} hotelů s termínem</span> : null}
                 {hotels[0] ? <span><Icon name="mena" />od {Math.round(hotels[0].min_price).toLocaleString('cs-CZ')} Kč</span> : null}

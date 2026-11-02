@@ -4,7 +4,7 @@ import Icon, { type IconName } from './Icon'
 
 interface Props {
   title: string
-  text: string
+  text: ReactNode
   icon: IconName
   /** Volitelné údaje pod textem (vzdálenost, doba jízdy…). */
   meta?: ReactNode

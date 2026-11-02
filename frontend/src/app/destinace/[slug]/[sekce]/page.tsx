@@ -12,6 +12,7 @@ import { GUIDE_SECTIONS, sectionCount } from '@/lib/guideSections'
 import { resolveDestination } from '../resolve'
 import PlaceLinks from '@/components/PlaceLinks'
 import { fetchLinkTargets } from '@/lib/api'
+import { linkParts } from '@/lib/autolink'
 import { loadGuide, loadResortPhotos } from '../guideData'
 
 export const revalidate = 3600
@@ -49,7 +50,7 @@ export default async function GuideSectionPage({ params }: Props) {
   const selfHref = [base]
   let body: React.ReactNode = null
   if (sec.key === 'strediska') body = <ResortCards items={guide.resorts} links={resortLinks} photos={await loadResortPhotos(guide)} textLinks={textLinks} exclude={selfHref} />
-  else if (sec.key === 'plaze') body = <BeachExplorer beaches={guide.beaches} resortLinks={resortLinks} regionName={dest.name} base={`${base}/plaze`} />
+  else if (sec.key === 'plaze') body = <BeachExplorer beaches={guide.beaches} resortLinks={resortLinks} regionName={dest.name} base={`${base}/plaze`} descParts={Object.fromEntries(guide.beaches.map(b => [b.name, linkParts(b.description, textLinks, { exclude: selfHref })]))} />
   else if (sec.key === 'klastery') body = <PlaceCards items={guide.monasteries} icon="mesto" base={`${base}/klastery`} textLinks={textLinks} exclude={selfHref} />
   else if (sec.key === 'pamatky') body = <PlaceCards items={guide.sights} icon="kompas" base={`${base}/pamatky`} textLinks={textLinks} exclude={selfHref} />
   else if (sec.key === 'priroda') body = <PlaceCards items={guide.nature} icon="hory" base={`${base}/priroda`} textLinks={textLinks} exclude={selfHref} />

@@ -1,4 +1,5 @@
 import { FAQS } from './faq-data'
+import AutoLinked from '@/components/AutoLinked'
 
 export { FAQS }
 
@@ -11,7 +12,7 @@ export default function FaqAccordion() {
           <summary>
             <span className="h4">{q}</span>
           </summary>
-          <p>{a}</p>
+          <p><AutoLinked text={a} /></p>
         </details>
       ))}
     </div>

@@ -204,7 +204,7 @@ function AirportSection({ airport, destName }: { airport: AirportInfo; destName:
         <div className="z-tk__in z-airport">
           <div>
             <h3 className="h4">{airport.name}</h3>
-            <p style={{ margin: 'var(--space-2) 0 0', color: 'var(--ink-muted)' }}>{airport.description}</p>
+            <p style={{ margin: 'var(--space-2) 0 0', color: 'var(--ink-muted)' }}><AutoLinked text={airport.description} /></p>
           </div>
           <div className="z-airport__stub">
             <span className="code">{airport.iata}</span>
@@ -286,7 +286,7 @@ function TripTips({ tips, destName, slug }: { tips: CarRentalTripTip[]; destName
           <ItemCard
             key={i}
             title={tip.title}
-            text={tip.description}
+            text={<AutoLinked text={tip.description} />}
             icon="trasa"
             meta={<>
               {tip.distance_km ? <span><Icon name="trasa" />{tip.distance_km} km</span> : null}
