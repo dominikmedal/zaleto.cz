@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Icon from '@/components/ui/Icon'
 import DateRangePicker from '@/components/DateRangePicker'
 import type { Tour } from '@/lib/types'
@@ -19,7 +19,7 @@ function TourSkeleton() {
   )
 }
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 40
 
 function formatPrice(p: number) {
   return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(p)
@@ -166,7 +166,6 @@ export default function TourDatesList({ slug }: { slug: string }) {
   const [dateFrom,   setDateFrom]   = useState(() => getStoredFilter('date_from'))
   const [dateTo,     setDateTo]     = useState(() => getStoredFilter('date_to'))
   const [page,       setPage]       = useState(1)
-  const sentinelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -204,17 +203,6 @@ export default function TourDatesList({ slug }: { slug: string }) {
   const loadMore = useCallback(() => {
     if (hasMore) setPage(p => p + 1)
   }, [hasMore])
-
-  useEffect(() => {
-    const el = sentinelRef.current
-    if (!el) return
-    const obs = new IntersectionObserver(
-      entries => { if (entries[0].isIntersecting) loadMore() },
-      { rootMargin: '300px' }
-    )
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [loadMore])
 
   const hasActiveFilters = cityFilter.length > 0 || dateFrom || dateTo
 
@@ -286,10 +274,11 @@ export default function TourDatesList({ slug }: { slug: string }) {
         {visible.map(tour => <TourTicket key={tour.id} tour={tour} slug={slug} adults={adults} />)}
       </div>
 
-      <div ref={sentinelRef} style={{ height: 16, marginTop: 16 }} />
       {hasMore && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-4) 0', color: 'var(--brand-strong)' }}>
-          <Icon name="spinner" className="animate-spin" />
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-5) 0' }}>
+          <button type="button" className="z-btn z-btn--line" onClick={loadMore}>
+            Načíst dalších {Math.min(PAGE_SIZE, filtered.length - visible.length)} termínů · zbývá {filtered.length - visible.length}
+          </button>
         </div>
       )}
       {!hasMore && visible.length > PAGE_SIZE && <p className="z-data" style={{ textAlign: 'center', padding: 'var(--space-4) 0' }}>ZOBRAZENY VŠECHNY TERMÍNY</p>}

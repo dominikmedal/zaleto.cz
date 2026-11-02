@@ -8,7 +8,7 @@ import Header from '@/components/Header'
 import Icon from '@/components/ui/Icon'
 import Crumbs from '@/components/ui/Crumbs'
 import SectionHead from '@/components/ui/SectionHead'
-import InfiniteHotels from '@/components/InfiniteHotels'
+import LoadMoreHotels from '@/components/LoadMoreHotels'
 import DestinationSuggest from '@/components/ui/DestinationSuggest'
 import { DateRangeField } from '@/components/DateRangePicker'
 import { fetchFilters, fetchHotels, fetchDestinations, fetchDestinationAI, fetchDestinationPhoto, fetchLandingList } from '@/lib/api'
@@ -24,7 +24,7 @@ const KEYS = ['destination', 'date_from', 'date_to', 'duration', 'min_price', 'm
 const SORTS: [string, string][] = [
   ['price_asc', 'Nejlevnější'], ['price_desc', 'Nejdražší'], ['date_asc', 'Nejbližší odlet'], ['stars_desc', 'Nejvíc hvězd'], ['name_asc', 'Podle názvu'],
 ]
-const LIMIT = 24
+const LIMIT = 48
 
 export async function generateMetadata({ searchParams }: { searchParams: SP }): Promise<Metadata> {
   const dest = one(searchParams.destination)
@@ -213,11 +213,10 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
           <div className="z-info"><h2 className="z-info__title">nic jsme nenašli<span className="z-dot">.</span></h2>
             <p style={{ margin: 'var(--space-3) 0 0' }}>Zkus rozšířit termín nebo zrušit některý filtr.</p></div>
         ) : (
-          <InfiniteHotels
+          <LoadMoreHotels
             initial={hotels}
             total={pg?.total ?? hotels.length}
             limit={LIMIT}
-            autoPages={3}
             query={{
               destination: f.destination, date_from: f.date_from, date_to: f.date_to, date_flex: one(searchParams.date_flex),
               duration: f.duration, min_price: f.min_price, max_price: f.max_price, stars: f.stars, meal_plan: f.meal_plan,

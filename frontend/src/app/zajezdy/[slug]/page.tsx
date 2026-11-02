@@ -6,9 +6,10 @@ import JsonLd from '@/components/JsonLd'
 import Icon from '@/components/ui/Icon'
 import Crumbs from '@/components/ui/Crumbs'
 import SectionHead from '@/components/ui/SectionHead'
-import InfiniteHotels from '@/components/InfiniteHotels'
+import LoadMoreHotels from '@/components/LoadMoreHotels'
 import { Paragraphs, FaqList, AiNote, LinkList, faqSchema } from '@/components/ui/SeoBlocks'
-import { fetchHotels, fetchLanding, fetchLandingList } from '@/lib/api'
+import { fetchHotels, fetchLanding, fetchLandingList, fetchLinkTargets } from '@/lib/api'
+import { Linked, weatherAutoLinks } from '@/lib/autolink'
 import { formatPrice } from '@/components/ui/format'
 import { slugify } from '@/lib/slugify'
 import { landingFilters, landingSearchHref, MONTHS, type LandingAI } from '@/lib/seoContent'
@@ -16,7 +17,7 @@ import { landingFilters, landingSearchHref, MONTHS, type LandingAI } from '@/lib
 export const revalidate = 3600
 export const dynamicParams = true
 
-const LIMIT = 24
+const LIMIT = 48
 const TIP_ICONS = ['mena', 'kompas', 'kalendar'] as const
 const SITE = 'https://zaleto.cz'
 
@@ -71,6 +72,8 @@ export default async function LandingPage({ params }: Props) {
     .sort((a, b) => globalTypeOrder[a.type] - globalTypeOrder[b.type] || Number(a.value) - Number(b.value))
     .map(x => ({ href: `/zajezdy/${x.slug}`, label: x.title, hint: `${x.hotel_count} hotelů` }))
   const alsoElsewhere =sameType.map(x => ({ href: `/zajezdy/${x.slug}`, label: x.title, hint: `${x.hotel_count} hotelů` }))
+  // vnitřní odkazy v textech: střediska → průvodci, slova o počasí → počasí země
+  const textLinks = [...(await fetchLinkTargets()), ...weatherAutoLinks(l.country ? `/pocasi/${slugify(l.country)}` : null)]
   const guide = l.country ? [
     { href: `/destinace/${slugify(l.country)}`, label: `Průvodce: ${l.country}`, hint: 'kdy jet, pro koho, kolik stojí' },
     { href: `/pocasi/${slugify(l.country)}`, label: `Počasí: ${l.country}`, hint: 'klima po měsících' },
@@ -116,7 +119,7 @@ export default async function LandingPage({ params }: Props) {
 
         {/* úvod vlevo, vpravo přehled nabídky (číslo, cena, typ); texty jsou nahoře, aby se k nim nemuselo scrollovat přes seznam */}
         <div className="z-land">
-          <div className="z-prose z-land__intro"><Paragraphs text={l.intro} lead /></div>
+          <div className="z-prose z-land__intro"><Paragraphs text={l.intro} lead links={textLinks} /></div>
           <aside className="z-info z-land__facts" aria-label="Přehled nabídky">
             <dl className="z-info__grid">
               <div className="z-info__item"><Icon name="hotel" /><dt>Hotelů</dt><dd>{(pg?.total ?? l.hotel_count).toLocaleString('cs-CZ')}</dd></div>
@@ -135,7 +138,7 @@ export default async function LandingPage({ params }: Props) {
                 <span className="z-land__tipicon" aria-hidden="true"><Icon name={TIP_ICONS[i % TIP_ICONS.length]} /></span>
                 <div>
                   <h2 className="h4">{s.heading}<span className="z-dot">.</span></h2>
-                  <p>{s.text}</p>
+                  <p><Linked text={s.text} links={textLinks} /></p>
                 </div>
               </article>
             ))}
@@ -146,11 +149,10 @@ export default async function LandingPage({ params }: Props) {
           <div className="z-info"><h2 className="z-info__title">teď tu nic není<span className="z-dot">.</span></h2>
             <p style={{ margin: 'var(--space-3) 0 0' }}>Pro tuto nabídku teď nemáme volný termín. <Link href="/zajezdy" className="z-more">Zkusit jiné zájezdy</Link></p></div>
         ) : (
-          <InfiniteHotels
+          <LoadMoreHotels
             initial={hotels}
             total={pg?.total ?? hotels.length}
             limit={LIMIT}
-            autoPages={2}
             query={{ ...Object.fromEntries(Object.entries(landingFilters(l)).map(([k, v]) => [k, String(v)])), sort: 'price_asc' }}
           />
         )}
@@ -158,7 +160,7 @@ export default async function LandingPage({ params }: Props) {
         {l.faq.length > 0 && (
           <section id="faq" style={{ marginTop: 'var(--space-8)' }}>
             <SectionHead kicker="Časté otázky" title="dotazy k nabídce" />
-            <FaqList items={l.faq} />
+            <FaqList items={l.faq} links={textLinks} />
           </section>
         )}
 

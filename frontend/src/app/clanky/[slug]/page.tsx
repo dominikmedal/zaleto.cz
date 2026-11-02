@@ -12,7 +12,7 @@ import TourAd from '@/components/ui/TourAd'
 import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
 import CarRentalBanner from '@/components/CarRentalBanner'
 import { formatLongDate, readingTime } from '@/components/ui/format'
-import { fetchArticle, fetchArticles, fetchAllArticleSlugs, fetchDestinationPhoto, fetchHotels, fetchDestinations, fetchLandingList } from '@/lib/api'
+import { fetchArticle, fetchArticles, fetchAllArticleSlugs, fetchDestinationPhoto, fetchHotels, fetchDestinations, fetchLandingList, fetchLinkTargets } from '@/lib/api'
 import { LinkList } from '@/components/ui/SeoBlocks'
 import { slugify } from '@/lib/slugify'
 
@@ -62,7 +62,8 @@ export default async function ArticlePage({ params }: Props) {
     // obecná slova (Ostrov, Pobřeží …) se jako názvy oblastí v textu nelinkují: shoda by byla náhodná
     for (const n of [d.country, region]) if (n && !GENERIC.test(n) && !names.has(n)) names.set(n, `/destinace/${slugify(n)}`)
   }
-  const autoLinks = [...names].map(([name, href]) => ({ name, href }))
+  // odkazy v textu: země, oblasti i střediska (první výskyt každého názvu); lokalita článku má přednost při omezení počtu odkazů
+  const autoLinks = (await fetchLinkTargets())
     .sort((a, b) => Number(b.name === article.location) - Number(a.name === article.location))
 
   // odkazy pod článkem: průvodce a přehledy zájezdů pro lokalitu článku

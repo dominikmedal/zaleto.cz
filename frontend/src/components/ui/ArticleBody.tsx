@@ -1,51 +1,18 @@
-import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { makeAutoLinkCtx, autolinkText, type AutoLink, type AutoLinkCtx } from '@/lib/autolink'
 
-/** Odkaz, který se v textu doplní automaticky (první výskyt názvu destinace → její průvodce). */
-export interface AutoLink { name: string; href: string }
-
-interface Ctx { links: { href: string; re: RegExp }[]; used: Set<string>; max: number }
-
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-function makeCtx(links: AutoLink[] = [], max = 6): Ctx {
-  return {
-    links: links.filter(l => l.name.length >= 4).map(l => ({ href: l.href, re: new RegExp(String.raw`(?<![\p{L}\d])` + esc(l.name) + String.raw`(?![\p{L}\d])`, 'u') })),
-    used: new Set(), max,
-  }
-}
-
-/** První výskyt každé destinace v prostém textu nahradí odkazem (nejvýš `max` odkazů v celém článku). */
-function autolink(text: string, ctx: Ctx, key: string): ReactNode[] {
-  let parts: ReactNode[] = [text]
-  for (const l of ctx.links) {
-    if (ctx.used.has(l.href) || ctx.used.size >= ctx.max) continue
-    let hit = false
-    const out: ReactNode[] = []
-    for (const part of parts) {
-      const m = !hit && typeof part === 'string' ? l.re.exec(part) : null
-      if (!m || typeof part !== 'string') { out.push(part); continue }
-      hit = true
-      out.push(part.slice(0, m.index), <Link key={`${key}-${l.href}`} href={l.href}>{m[0]}</Link>, part.slice(m.index + m[0].length))
-    }
-    parts = out
-    if (hit) ctx.used.add(l.href)
-  }
-  return parts
-}
-
-function inline(text: string, ctx: Ctx, key: string): ReactNode {
+function inline(text: string, ctx: AutoLinkCtx, key: string): ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g)
   return parts.map((p, i) => (p.startsWith('**') && p.endsWith('**')
     ? <strong key={i}>{p.slice(2, -2)}</strong>
-    : <span key={i} style={{ display: 'contents' }}>{autolink(p, ctx, `${key}-${i}`)}</span>))
+    : <span key={i} style={{ display: 'contents' }}>{autolinkText(p, ctx, `${key}-${i}`)}</span>))
 }
 
 /** Sazba článku (`z-prose`): ## → h2, # → h2, * / - → odrážky s modrou tečkou, první odstavec s iniciálou. */
 export default function ArticleBody({ content, insert, links }: { content: string; insert?: ReactNode; links?: AutoLink[] }) {
   const lines = content.split('\n')
   const out: ReactNode[] = []
-  const ctx = makeCtx(links)
+  const ctx = makeAutoLinkCtx(links)
   let key = 0
   let leadDone = false
 

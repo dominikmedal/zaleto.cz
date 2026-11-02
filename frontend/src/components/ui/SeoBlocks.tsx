@@ -1,31 +1,32 @@
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import { Linked, type AutoLink } from '@/lib/autolink'
 import { formatPrice } from '@/components/ui/format'
 import { MONTHS, RATING_LABEL, type AudienceItem, type DestinationSeo, type FaqItem, type MonthRating } from '@/lib/seoContent'
 
 /** Odstavce z textu s \n\n (AI texty se ukládají s prázdným řádkem mezi odstavci). */
-export function Paragraphs({ text, lead }: { text: string; lead?: boolean }) {
-  return <>{text.split(/\n\s*\n/).filter(Boolean).map((p, i) => <p key={i} className={lead && i === 0 ? 'z-lead' : undefined}>{p}</p>)}</>
+export function Paragraphs({ text, lead, links, exclude }: { text: string; lead?: boolean; links?: AutoLink[]; exclude?: string[] }) {
+  return <>{text.split(/\n\s*\n/).filter(Boolean).map((p, i) => <p key={i} className={lead && i === 0 ? 'z-lead' : undefined}><Linked text={p} links={links} exclude={exclude} /></p>)}</>
 }
 
 /** „Pro koho“: skupina + jedna věta proč. */
-export function AudienceList({ items }: { items: AudienceItem[] }) {
+export function AudienceList({ items, links, exclude }: { items: AudienceItem[]; links?: AutoLink[]; exclude?: string[] }) {
   if (!items.length) return null
   return (
     <ul className="z-who">
-      {items.map(a => <li key={a.who}><b>{a.who}</b><span>{a.text}</span></li>)}
+      {items.map(a => <li key={a.who}><b>{a.who}</b><span><Linked text={a.text} links={links} exclude={exclude} /></span></li>)}
     </ul>
   )
 }
 
 /** Časté otázky jako nativní <details> (funguje bez JS, text je v HTML pro vyhledávače). */
-export function FaqList({ items }: { items: FaqItem[] }) {
+export function FaqList({ items, links, exclude }: { items: FaqItem[]; links?: AutoLink[]; exclude?: string[] }) {
   return (
     <div>
       {items.map(({ q, a }) => (
         <details key={q} className="z-faq">
           <summary><span className="h4">{q}</span></summary>
-          <p>{a}</p>
+          <p><Linked text={a} links={links} exclude={exclude} /></p>
         </details>
       ))}
     </div>

@@ -5,7 +5,7 @@ import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
 import Crumbs from '@/components/ui/Crumbs'
 import Icon from '@/components/ui/Icon'
-import InfiniteHotels from '@/components/InfiniteHotels'
+import LoadMoreHotels from '@/components/LoadMoreHotels'
 import HotelsAreaMap from '@/components/HotelsAreaMap'
 import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
 import NavTabs, { type NavTabItem } from '@/components/ui/NavTabs'
@@ -15,7 +15,7 @@ import { resolveDestination } from '../resolve'
 export const revalidate = 3600
 export const dynamicParams = true
 
-const LIMIT = 24
+const LIMIT = 48
 const SORTS: [string, string][] = [['price_asc', 'Nejlevnější'], ['date_asc', 'Nejbližší'], ['stars_desc', 'Nejlepší hotely']]
 
 interface Props { params: { slug: string }; searchParams: { sort?: string } }
@@ -90,7 +90,7 @@ export default async function DestinaceHotelyPage({ params, searchParams }: Prop
           </div>
           {hotels.length > 0 && <div style={{ marginBottom: 'var(--space-6)' }}><HotelsAreaMap destination={dest.name} /></div>}
           {hotels.length > 0 && (
-            <InfiniteHotels key={sort} initial={hotels} total={total} limit={LIMIT} query={{ destination: dest.name, sort }} variant="tile" />
+            <LoadMoreHotels key={sort} initial={hotels} total={total} limit={LIMIT} query={{ destination: dest.name, sort }} variant="tile" />
           )}
         </section>
       </main>

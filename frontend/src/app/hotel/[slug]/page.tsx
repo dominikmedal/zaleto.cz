@@ -21,9 +21,10 @@ import Crumbs from '@/components/ui/Crumbs'
 import Icon from '@/components/ui/Icon'
 import TourCard from '@/components/ui/TourCard'
 import { airportCode, formatDateRange, formatPrice } from '@/components/ui/format'
-import { fetchHotel, fetchHotels, fetchHotelTours, fetchNearbyHotels, fetchHotelAI, fetchLandingList, fetchArticles, API } from '@/lib/api'
+import { fetchHotel, fetchHotels, fetchHotelTours, fetchNearbyHotels, fetchHotelAI, fetchLandingList, fetchArticles, fetchLinkTargets, API } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 import { Paragraphs, AudienceList, FaqList, AiNote, LinkList, faqSchema } from '@/components/ui/SeoBlocks'
+import { Linked, weatherAutoLinks } from '@/lib/autolink'
 import type { Hotel, Tour } from '@/lib/types'
 
 // Leaflet potřebuje prohlížeč → dynamický import bez SSR
@@ -121,6 +122,9 @@ export default async function HotelDetailPage({ params }: Props) {
     ? weatherRegion ? `/pocasi/${slugify(hotel.country)}/${slugify(weatherRegion)}` : `/pocasi/${slugify(hotel.country)}`
     : null
 
+  // Vnitřní odkazy v textech: střediska a oblasti → průvodci, slova o počasí → počasí místa
+  const textLinks = ai ? [...(await fetchLinkTargets()), ...weatherAutoLinks(weatherUrl)] : []
+
   // do strukturovaných dat jen absolutní adresy (až 6 různých fotek)
   const schemaPhotos = photos.filter(p => /^https?:\/\//.test(p)).slice(0, 6)
 
@@ -185,14 +189,14 @@ export default async function HotelDetailPage({ params }: Props) {
               <section id="nas-pohled" data-rail="Náš pohled" className="z-coll" style={{ scrollMarginTop: 'calc(var(--header-height) + 16px)' }}>
                 <div className="z-coll__head" style={{ cursor: 'default' }}><h2 className="h3">náš pohled<span className="z-dot">.</span></h2></div>
                 <div className="z-coll__body">
-                  <div className="z-prose"><Paragraphs text={ai.summary} /></div>
-                  {ai.audience.length > 0 && (<><h3 className="z-kicker" style={{ margin: 'var(--space-5) 0 var(--space-2)' }}>Pro koho se hodí</h3><AudienceList items={ai.audience} /></>)}
+                  <div className="z-prose"><Paragraphs text={ai.summary} links={textLinks} /></div>
+                  {ai.audience.length > 0 && (<><h3 className="z-kicker" style={{ margin: 'var(--space-5) 0 var(--space-2)' }}>Pro koho se hodí</h3><AudienceList items={ai.audience} links={textLinks} /></>)}
                   {ai.highlights.length > 0 && (<><h3 className="z-kicker" style={{ margin: 'var(--space-5) 0 var(--space-3)' }}>Čím hotel vyniká</h3><div className="z-chips">{ai.highlights.map(a => <span key={a} className="z-chip z-chip--ok"><Icon name="ok" />{a}</span>)}</div></>)}
                   {ai.watch_out.length > 0 && (<><h3 className="z-kicker" style={{ margin: 'var(--space-5) 0 var(--space-3)' }}>Na co si dát pozor</h3><div className="z-chips">{ai.watch_out.map(a => <span key={a} className="z-chip"><Icon name="info" />{a}</span>)}</div></>)}
                   {(ai.location || ai.food) && (
                     <div className="z-prose" style={{ marginTop: 'var(--space-5)' }}>
-                      {ai.location && <p><strong>Poloha.</strong> {ai.location}</p>}
-                      {ai.food && <p><strong>Strava.</strong> {ai.food}</p>}
+                      {ai.location && <p><strong>Poloha.</strong> <Linked text={ai.location} links={textLinks} /></p>}
+                      {ai.food && <p><strong>Strava.</strong> <Linked text={ai.food} links={textLinks} /></p>}
                     </div>
                   )}
                   <AiNote at={ai.generated_at} what="Shrnutí" />
@@ -273,7 +277,7 @@ export default async function HotelDetailPage({ params }: Props) {
             {ai && ai.faq.length > 0 && (
               <section id="otazky" data-rail="Otázky" className="z-coll" style={{ marginTop: 'var(--space-5)' }}>
                 <div className="z-coll__head" style={{ cursor: 'default' }}><h2 className="h3">časté otázky<span className="z-dot">.</span></h2></div>
-                <div className="z-coll__body"><FaqList items={ai.faq} /></div>
+                <div className="z-coll__body"><FaqList items={ai.faq} links={textLinks} /></div>
               </section>
             )}
 

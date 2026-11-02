@@ -6,7 +6,7 @@ import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
 import Crumbs from '@/components/ui/Crumbs'
 import Icon from '@/components/ui/Icon'
-import InfiniteHotels from '@/components/InfiniteHotels'
+import LoadMoreHotels from '@/components/LoadMoreHotels'
 import TourAd from '@/components/ui/TourAd'
 import StoryCard from '@/components/ui/StoryCard'
 import NavTabs, { type NavTabItem } from '@/components/ui/NavTabs'
@@ -27,7 +27,8 @@ import { mergeDestinations } from '@/lib/carRental'
 import { fetchDynamicCarDestinations } from '@/lib/api'
 import { formatPrice } from '@/components/ui/format'
 import { seasonYear } from '@/lib/seo'
-import { fetchDestinationSeo, fetchLandingList } from '@/lib/api'
+import { fetchDestinationSeo, fetchLandingList, fetchLinkTargets } from '@/lib/api'
+import { Linked, weatherAutoLinks } from '@/lib/autolink'
 import { MONTHS } from '@/lib/seoContent'
 import { Paragraphs, AudienceList, MonthsGrid, LinkList, AiNote } from '@/components/ui/SeoBlocks'
 
@@ -85,7 +86,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-const LIMIT = 24
+const LIMIT = 48
 const SORTS: [string, string][] = [['price_asc', 'Nejlevnější'], ['date_asc', 'Nejbližší'], ['stars_desc', 'Nejlepší hotely']]
 
 type Item = { name: string; description: string }
@@ -145,6 +146,10 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
   const weatherUrl = dest.type === 'country'
     ? `/pocasi/${slugify(dest.name)}`
     : dest.country ? `/pocasi/${slugify(dest.country)}/${slugify(dest.name)}` : null
+
+  // Vnitřní odkazy v textech: názvy středisek a oblastí vedou na jejich průvodce (kromě této stránky), slova o počasí na stránku počasí
+  const textLinks = [...(await fetchLinkTargets()), ...weatherAutoLinks(weatherUrl)]
+  const selfHref = [`/destinace/${params.slug}`]
 
   // Půjčovna aut: rovnou na odpovídající destinaci (u země na nejpopulárnější místo v ní)
   const carDests = mergeDestinations(await fetchDynamicCarDestinations().catch(() => []))
@@ -279,12 +284,12 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
             <div className="z-cardest__main">
               {paragraphs.length > 1 && (
                 <Block id="o-destinaci" kicker="O destinaci" title={`o místě: ${dest.name}`}>
-                  <div className="z-prose">{paragraphs.slice(1).map((p, i) => <p key={i}>{p}</p>)}</div>
+                  <div className="z-prose">{paragraphs.slice(1).map((p, i) => <p key={i}><Linked text={p} links={textLinks} exclude={selfHref} /></p>)}</div>
                 </Block>
               )}
               {bestTime && (
                 <Block id="kdy-jet" kicker="Kdy jet" title="nejlepší doba na cestu">
-                  <div className="z-prose">{bestTime.split(/\n\n+/).map((p, i) => <p key={i}>{p}</p>)}</div>
+                  <div className="z-prose">{bestTime.split(/\n\n+/).map((p, i) => <p key={i}><Linked text={p} links={textLinks} exclude={selfHref} /></p>)}</div>
                   {weatherUrl && <p style={{ marginTop: 'var(--space-4)' }}><Link className="z-more" href={weatherUrl}>Počasí po měsících</Link></p>}
                 </Block>
               )}
@@ -300,18 +305,18 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
               )}
               {seo && seo.audiences.length > 0 && (
                 <Block id="pro-koho" kicker="Pro koho" title="komu se destinace hodí">
-                  <AudienceList items={seo.audiences} />
+                  <AudienceList items={seo.audiences} links={textLinks} exclude={selfHref} />
                 </Block>
               )}
               {seo?.budget && (
                 <Block id="rozpocet" kicker="Rozpočet" title={`kolik stojí dovolená: ${dest.name}`}>
-                  <div className="z-prose"><Paragraphs text={seo.budget} /></div>
+                  <div className="z-prose"><Paragraphs text={seo.budget} links={textLinks} exclude={selfHref} /></div>
                 </Block>
               )}
               {seo?.comparison && (
                 <Block id="srovnani" kicker="Srovnání" title={`${dest.name} nebo ${seo.comparison.with}?`}>
                   <div className="z-prose">
-                    <p>{seo.comparison.text}</p>
+                    <p><Linked text={seo.comparison.text} links={textLinks} exclude={selfHref} /></p>
                     <p><Link className="z-more" href={`/destinace/${slugify(seo.comparison.with)}`}>Průvodce: {seo.comparison.with}</Link></p>
                   </div>
                   <AiNote at={seo.generated_at} />
@@ -365,7 +370,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
           {hotels.length === 0 ? (
             <p className="body">Pro tuto destinaci teď nemáme žádný volný termín.</p>
           ) : (
-            <InfiniteHotels key={sort} initial={hotels} total={pg?.total ?? hotels.length} limit={LIMIT} query={{ destination: dest.name, sort }} />
+            <LoadMoreHotels key={sort} initial={hotels} total={pg?.total ?? hotels.length} limit={LIMIT} query={{ destination: dest.name, sort }} />
           )}
         </section>
 
@@ -374,7 +379,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
             {faqs.map(({ q, a }) => (
               <details key={q} className="z-faq">
                 <summary><span className="h4">{q}</span></summary>
-                <p>{a}</p>
+                <p><Linked text={a} links={textLinks} exclude={selfHref} /></p>
               </details>
             ))}
           </Block>

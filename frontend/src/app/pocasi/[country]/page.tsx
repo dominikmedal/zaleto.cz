@@ -5,6 +5,7 @@ import WeatherView from '@/components/WeatherView'
 import JsonLd from '@/components/JsonLd'
 import { fetchDestinations, fetchDestinationPhoto, fetchWeatherAI, fetchWeatherLocation, fetchHotels } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
+import { fetchLandingList } from '@/lib/api'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -103,6 +104,16 @@ export default async function CountryWeatherPage({ params }: Props) {
     ],
   }
 
+  // vnitřní odkazy: průvodce země a přehledy zájezdů
+  const landings = await fetchLandingList()
+  const order = { meal: 0, stars: 1, month: 2 } as const
+  const linkGroups = [
+    { title: 'Průvodce', links: [{ href: `/destinace/${params.country}`, label: `Průvodce: ${info.name}`, hint: 'kdy jet, pro koho, kolik stojí' }] },
+    { title: `Přehledy zájezdů: ${info.name}`, links: landings.filter(l => l.country === info.name)
+      .sort((a, b) => order[a.type] - order[b.type] || b.hotel_count - a.hotel_count).slice(0, 8)
+      .map(l => ({ href: `/zajezdy/${l.slug}`, label: l.title, hint: `${l.hotel_count} hotelů` })) },
+  ]
+
   return (
     <>
       <JsonLd data={breadcrumbSchema} />
@@ -118,6 +129,7 @@ export default async function CountryWeatherPage({ params }: Props) {
         toursHref={`/destinace/${params.country}`}
         subDestinations={info.subDestinations}
         subBase={`/pocasi/${params.country}`}
+        linkGroups={linkGroups}
       />
     </>
   )

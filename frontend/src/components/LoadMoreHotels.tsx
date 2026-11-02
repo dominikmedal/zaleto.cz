@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import TourCard from '@/components/ui/TourCard'
 import HotelTile from '@/components/ui/HotelTile'
 import TourAd from '@/components/ui/TourAd'
@@ -10,6 +10,7 @@ import type { Hotel } from '@/lib/types'
 interface Props {
   initial: Hotel[]
   total: number
+  /** Kolik hotelů se načte najednou (první stránka od serveru i každé kliknutí na „Načíst další“). */
   limit: number
   /** Parametry dotazu do /api/hotels (bez page a limit). */
   query: Record<string, string | undefined>
@@ -17,20 +18,19 @@ interface Props {
   adAfter?: number
   /** `tile` = dlaždice bez ceny a termínu (stránka Hotely). */
   variant?: 'ticket' | 'tile'
-  /** Kolik stránek se dočítá samo při scrollu; dál jen tlačítkem, aby šlo dojet k textům a patičce pod seznamem. */
-  autoPages?: number
 }
 
-/** Mřížka hotelů s nekonečným scrollem: další stránky se dočítají při dojetí na konec. */
-export default function InfiniteHotels({ initial, total, limit, query, adAfter = 6, variant = 'ticket', autoPages }: Props) {
+/**
+ * Mřížka hotelů s tlačítkem „Načíst další“. Žádný automatický scroll: stránka pod seznamem
+ * (texty, otázky, odkazy, patička) zůstává dosažitelná a návštěvník sám rozhoduje, kdy chce víc.
+ */
+export default function LoadMoreHotels({ initial, total, limit, query, adAfter = 6, variant = 'ticket' }: Props) {
   const [hotels, setHotels] = useState<Hotel[]>(initial)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
-  const sentinel = useRef<HTMLDivElement>(null)
-  const hasMore = hotels.length < total && !failed
-  // po `autoPages` stránkách se další načítá až tlačítkem
-  const manual = autoPages !== undefined && page >= autoPages && hasMore
+  const remaining = total - hotels.length
+  const hasMore = remaining > 0
 
   // změna filtrů = nový seznam od serveru
   useEffect(() => { setHotels(initial); setPage(1); setFailed(false) }, [initial])
@@ -38,6 +38,7 @@ export default function InfiniteHotels({ initial, total, limit, query, adAfter =
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return
     setLoading(true)
+    setFailed(false)
     const p = new URLSearchParams()
     Object.entries(query).forEach(([k, v]) => { if (v) p.set(k, v) })
     p.set('page', String(page + 1)); p.set('limit', String(limit)); p.set('known_total', String(total))
@@ -45,23 +46,15 @@ export default function InfiniteHotels({ initial, total, limit, query, adAfter =
       const r = await apiFetch(`/api/hotels?${p}`)
       if (!r.ok) throw new Error('fetch')
       const data: { hotels: Hotel[] } = await r.json()
+      if (data.hotels.length === 0) throw new Error('empty')
       setHotels(prev => {
         const seen = new Set(prev.map(h => h.slug))
         return [...prev, ...data.hotels.filter(h => !seen.has(h.slug))]
       })
       setPage(x => x + 1)
-      if (data.hotels.length === 0) setFailed(true)
     } catch { setFailed(true) }
     finally { setLoading(false) }
   }, [loading, hasMore, query, page, limit, total])
-
-  useEffect(() => {
-    const el = sentinel.current
-    if (!el || manual) return
-    const obs = new IntersectionObserver(e => { if (e[0].isIntersecting) loadMore() }, { rootMargin: '600px' })
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [loadMore, manual])
 
   const ad = hotels.find(h => h.thumbnail_url) ?? null
 
@@ -75,18 +68,16 @@ export default function InfiniteHotels({ initial, total, limit, query, adAfter =
         ))}
       </div>
 
-      <div ref={sentinel} style={{ height: 1 }} />
       <div className="z-infinite" aria-live="polite">
-        {manual && !loading && (
-          <button type="button" className="z-btn z-btn--line" onClick={loadMore}>
-            Načíst další zájezdy ({(total - hotels.length).toLocaleString('cs-CZ')} zbývá)
+        {hasMore && (
+          <button type="button" className="z-btn z-btn--line" onClick={loadMore} disabled={loading} aria-busy={loading}>
+            {loading
+              ? <><Icon name="spinner" className="animate-spin" />Načítám další zájezdy</>
+              : <>{failed ? 'Zkusit znovu: ' : ''}Načíst dalších {Math.min(limit, remaining)} zájezdů · zbývá {remaining.toLocaleString('cs-CZ')}</>}
           </button>
         )}
-        {loading && <span className="z-infinite__load"><Icon name="spinner" className="animate-spin" />Načítám další zájezdy</span>}
-        {!hasMore && !loading && hotels.length > limit && <span className="z-data">TO JE VŠE — {hotels.length} HOTELŮ</span>}
-        {failed && hotels.length < total && (
-          <button type="button" className="z-btn z-btn--line z-btn--sm" onClick={() => { setFailed(false); loadMore() }}>Zkusit znovu</button>
-        )}
+        {!hasMore && hotels.length > limit && <span className="z-data">TO JE VŠE — {hotels.length} HOTELŮ</span>}
+        {failed && !loading && <span className="z-data" style={{ marginLeft: 'var(--space-3)' }}>NAČTENÍ SE NEZDAŘILO</span>}
       </div>
     </div>
   )

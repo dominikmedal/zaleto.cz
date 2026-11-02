@@ -1,5 +1,7 @@
 import type { Hotel, NearbyHotel, Tour, Filters, Pagination } from './types'
 import type { HotelAI, DestinationSeo, LandingAI } from './seoContent'
+import { GENERIC_PLACE, type AutoLink } from './autolink'
+import { slugify } from './slugify'
 
 /** Prázdný základ = stejný origin (route handlery v app/api). Na serveru se volá in-process přes apiFetch. */
 export const API = ''
@@ -192,6 +194,25 @@ export async function fetchDestinationAI(destination: string): Promise<Destinati
       trips:       d.trips       ?? [],
     }
   } catch { return { description: null, excursions: [], best_time: null, places: [], food: [], trips: [] } }
+}
+
+/** Názvy zemí, oblastí a středisek, které mají vlastní stránku /destinace/<slug>: cíle pro automatické odkazy v textech. */
+export async function fetchLinkTargets(): Promise<AutoLink[]> {
+  const rows = await fetchDestinations().catch(() => [])
+  const out = new Map<string, AutoLink>()
+  const add = (n: string | null | undefined) => {
+    const name = n?.trim()
+    if (!name || name.length < 4 || GENERIC_PLACE.test(name) || /safari|bike|trek|plus|sport|aktivní/i.test(name)) return
+    const href = `/destinace/${slugify(name)}`
+    if (!out.has(href)) out.set(href, { name, href })
+  }
+  for (const r of rows) {
+    add(r.country)
+    const parts = r.destination?.split('/').map(s => s.trim())
+    add(parts && parts.length >= 2 ? parts[1] : parts?.[0])
+    add(r.resort_town)
+  }
+  return [...out.values()]
 }
 
 // ─── SEO obsah (AI): hotely, destinace, vstupní stránky ──────────────────────

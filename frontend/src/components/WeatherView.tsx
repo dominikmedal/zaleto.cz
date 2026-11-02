@@ -1,6 +1,7 @@
 import Photo from '@/components/ui/Photo'
 import Link from 'next/link'
 import Icon, { type IconName } from '@/components/ui/Icon'
+import { LinkList } from '@/components/ui/SeoBlocks'
 import Crumbs from '@/components/ui/Crumbs'
 import TourCard from '@/components/ui/TourCard'
 import TourAd from '@/components/ui/TourAd'
@@ -37,9 +38,11 @@ interface Props {
   subDestinations?: { name: string; slug: string; hotelCount: number }[]
   /** Základ URL pro odkazy na podoblasti, např. /pocasi/recko. */
   subBase?: string
+  /** Související stránky pod nabídkou (průvodce, přehledy zájezdů …). */
+  linkGroups?: { title: string; links: { href: string; label: string; hint?: string }[] }[]
 }
 
-export default function WeatherView({ name, crumbs, weather, location, heroPhoto, hotels, toursHref, subDestinations = [], subBase, country }: Props) {
+export default function WeatherView({ name, crumbs, weather, location, heroPhoto, hotels, toursHref, subDestinations = [], subBase, country, linkGroups = [] }: Props) {
   const hasCharts = !!(weather.monthly_air && weather.monthly_air.length === 12)
   const peakSea = weather.monthly_sea ? Math.max(...weather.monthly_sea) : null
   const bestNames = weather.best_months.map(m => MONTH_SHORT[m - 1])
@@ -188,6 +191,8 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
             </div>
           )}
         </Section>
+
+        {linkGroups.map(g => <LinkList key={g.title} title={g.title} links={g.links} />)}
       </div>
 
       <aside className="z-cardest__side">
