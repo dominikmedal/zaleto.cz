@@ -11,7 +11,7 @@ import { Paragraphs, FaqList, AiNote, LinkList, faqSchema } from '@/components/u
 import { fetchHotels, fetchLanding, fetchLandingList } from '@/lib/api'
 import { formatPrice } from '@/components/ui/format'
 import { slugify } from '@/lib/slugify'
-import { landingFilters, landingSearchHref, type LandingAI } from '@/lib/seoContent'
+import { landingFilters, landingSearchHref, MONTHS, type LandingAI } from '@/lib/seoContent'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -91,6 +91,12 @@ export default async function LandingPage({ params }: Props) {
   } : null
   const faqLd = faqSchema(l.faq)
 
+  // třetí údaj v kartě přehledu podle typu stránky
+  const facts: { icon: 'jidlo' | 'hvezda' | 'kalendar'; label: string; value: string } =
+    l.type === 'meal' ? { icon: 'jidlo', label: 'Strava', value: l.value }
+    : l.type === 'stars' ? { icon: 'hvezda', label: 'Hotely', value: `${l.value} hvězd` }
+    : { icon: 'kalendar', label: 'Odlet', value: MONTHS[Number(l.value) - 1] }
+
   return (
     <>
       <JsonLd data={breadcrumbSchema} />
@@ -107,10 +113,31 @@ export default async function LandingPage({ params }: Props) {
           title={l.title.toLowerCase()}
         />
 
-        <div className="z-prose" style={{ maxWidth: 'var(--article-max)', marginBottom: 'var(--space-7)' }}>
-          <Paragraphs text={l.intro} lead />
-          <p><Link className="z-more" href={landingSearchHref(l)}>Upravit filtry a termín<span className="z-btn__go"><Icon name="sipka" /></span></Link></p>
+        {/* úvod vlevo, vpravo přehled nabídky (číslo, cena, typ); texty jsou nahoře, aby se k nim nemuselo scrollovat přes seznam */}
+        <div className="z-land">
+          <div className="z-prose z-land__intro"><Paragraphs text={l.intro} lead /></div>
+          <aside className="z-info z-land__facts" aria-label="Přehled nabídky">
+            <dl className="z-info__grid">
+              <div className="z-info__item"><Icon name="hotel" /><dt>Hotelů</dt><dd>{(pg?.total ?? l.hotel_count).toLocaleString('cs-CZ')}</dd></div>
+              {from ? <div className="z-info__item"><Icon name="mena" /><dt>Zájezdy od</dt><dd>{formatPrice(from)}</dd></div> : null}
+              <div className="z-info__item"><Icon name={facts.icon} /><dt>{facts.label}</dt><dd>{facts.value}</dd></div>
+              <div className="z-info__item"><Icon name="poloha" /><dt>Destinace</dt><dd>{l.country ?? 'všechny'}</dd></div>
+            </dl>
+            <Link className="z-btn z-btn--primary z-btn--block" href={landingSearchHref(l)}>Upravit filtry a termín<span className="z-btn__go"><Icon name="sipka" /></span></Link>
+          </aside>
         </div>
+
+        {l.sections.length > 0 && (
+          <section className="z-land__tips" aria-label="Rady k výběru">
+            {l.sections.map((s, i) => (
+              <article key={s.heading} className="z-land__tip">
+                <div className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{String(i + 1).padStart(2, '0')}</div>
+                <h2 className="h4">{s.heading}</h2>
+                <p>{s.text}</p>
+              </article>
+            ))}
+          </section>
+        )}
 
         {hotels.length === 0 ? (
           <div className="z-info"><h2 className="z-info__title">teď tu nic není<span className="z-dot">.</span></h2>
@@ -120,19 +147,9 @@ export default async function LandingPage({ params }: Props) {
             initial={hotels}
             total={pg?.total ?? hotels.length}
             limit={LIMIT}
+            autoPages={2}
             query={{ ...Object.fromEntries(Object.entries(landingFilters(l)).map(([k, v]) => [k, String(v)])), sort: 'price_asc' }}
           />
-        )}
-
-        {l.sections.length > 0 && (
-          <div className="z-prose" style={{ maxWidth: 'var(--article-max)', marginTop: 'var(--space-8)' }}>
-            {l.sections.map(s => (
-              <section key={s.heading}>
-                <h2>{s.heading}</h2>
-                <p>{s.text}</p>
-              </section>
-            ))}
-          </div>
         )}
 
         {l.faq.length > 0 && (

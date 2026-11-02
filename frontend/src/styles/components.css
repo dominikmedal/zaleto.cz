@@ -2057,3 +2057,15 @@ button.z-chip { cursor: pointer; }
   .z-months { grid-template-columns: 1fr; }
   .z-who li { grid-template-columns: 1fr; gap: var(--space-1); }
 }
+
+/* Vstupní stránky /zajezdy/[slug]: úvod + karta přehledu, rady v kartách */
+.z-land { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--space-7); align-items: start; margin-bottom: var(--space-7); }
+.z-land__intro { max-width: var(--article-max); }
+.z-land__facts { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+.z-land__facts .z-info__grid { grid-template-columns: repeat(2, 1fr); }
+.z-land__facts .z-info__item dd { font-size: 18px; line-height: 24px; overflow-wrap: anywhere; }
+.z-land__tips { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-7); }
+.z-land__tip { padding: var(--space-5); border-radius: var(--radius-lg); background: var(--raised); box-shadow: var(--shadow-ticket); }
+.z-land__tip h2 { margin: var(--space-2) 0; }
+.z-land__tip p { margin: 0; font: 400 16px/25px var(--font-serif); color: var(--ink-muted); }
+@media (max-width: 1023px) { .z-land { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); } }

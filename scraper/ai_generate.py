@@ -819,6 +819,8 @@ def run_guide_images(conn, g):
 
 MIN_LANDING_HOTELS = int(os.environ.get("AI_LANDING_MIN", "8"))
 HOTEL_MAX = int(os.environ.get("AI_HOTEL_MAX", "2000"))
+# texty vygenerované před tímto časem vznikly se starším promptem (obsahovaly ceny a počty, které zastarávají) a přegenerují se
+PROMPT_CUTOFF = "2026-11-02 21:30:00+00"
 # po kolika dnech se text přegeneruje (jsou v něm ceny a počty hotelů, které zastarávají)
 REFRESH_DAYS = int(os.environ.get("AI_REFRESH_DAYS", "60"))
 HOTEL_REFRESH_DAYS = int(os.environ.get("AI_HOTEL_REFRESH_DAYS", "120"))
@@ -928,9 +930,9 @@ def todo_hotel(conn):
         SELECT {HOTEL_COLS}
         FROM hotels h JOIN hotel_stats s ON s.hotel_id = h.id JOIN hotel_ai a ON a.slug = h.slug
         WHERE s.next_departure >= CURRENT_DATE::text AND s.min_price IS NOT NULL AND {CANON}
-          AND a.generated_at < NOW() - make_interval(days => %s)
-        ORDER BY a.generated_at LIMIT 300""", (HOTEL_REFRESH_DAYS,))
-    return missing + stale
+          AND (a.generated_at < NOW() - make_interval(days => %s) OR a.generated_at < %s::timestamptz)
+        ORDER BY a.generated_at LIMIT 300""", (HOTEL_REFRESH_DAYS, PROMPT_CUTOFF))
+    return stale + missing
 
 
 def run_hotel(conn, h):
@@ -1185,10 +1187,11 @@ def landing_candidates(conn):
 def todo_landing(conn):
     ensure_seo_tables(conn)
     have = {r["slug"] for r in rows(conn, "SELECT slug FROM landing_ai")}
-    fresh = {r["slug"] for r in rows(conn, "SELECT slug FROM landing_ai WHERE generated_at > NOW() - make_interval(days => %s)", (REFRESH_DAYS,))}
+    fresh = {r["slug"] for r in rows(conn, "SELECT slug FROM landing_ai WHERE generated_at > NOW() - make_interval(days => %s) AND generated_at > %s::timestamptz",
+                                     (REFRESH_DAYS, PROMPT_CUTOFF))}
     cands = landing_candidates(conn)
-    # nejdřív nové přehledy, pak ty, jejichž text (s cenami a počty hotelů) zestárl
-    return [c for c in cands if c["slug"] not in have] + [c for c in cands if c["slug"] in have and c["slug"] not in fresh]
+    # nejdřív přehledy se zastaralým textem (je jich málo), pak nové
+    return [c for c in cands if c["slug"] in have and c["slug"] not in fresh] + [c for c in cands if c["slug"] not in have]
 
 
 def run_landing(conn, c):

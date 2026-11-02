@@ -217,6 +217,7 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
             initial={hotels}
             total={pg?.total ?? hotels.length}
             limit={LIMIT}
+            autoPages={3}
             query={{
               destination: f.destination, date_from: f.date_from, date_to: f.date_to, date_flex: one(searchParams.date_flex),
               duration: f.duration, min_price: f.min_price, max_price: f.max_price, stars: f.stars, meal_plan: f.meal_plan,

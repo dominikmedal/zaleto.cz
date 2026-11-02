@@ -17,16 +17,20 @@ interface Props {
   adAfter?: number
   /** `tile` = dlaždice bez ceny a termínu (stránka Hotely). */
   variant?: 'ticket' | 'tile'
+  /** Kolik stránek se dočítá samo při scrollu; dál jen tlačítkem, aby šlo dojet k textům a patičce pod seznamem. */
+  autoPages?: number
 }
 
 /** Mřížka hotelů s nekonečným scrollem: další stránky se dočítají při dojetí na konec. */
-export default function InfiniteHotels({ initial, total, limit, query, adAfter = 6, variant = 'ticket' }: Props) {
+export default function InfiniteHotels({ initial, total, limit, query, adAfter = 6, variant = 'ticket', autoPages }: Props) {
   const [hotels, setHotels] = useState<Hotel[]>(initial)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
   const sentinel = useRef<HTMLDivElement>(null)
   const hasMore = hotels.length < total && !failed
+  // po `autoPages` stránkách se další načítá až tlačítkem
+  const manual = autoPages !== undefined && page >= autoPages && hasMore
 
   // změna filtrů = nový seznam od serveru
   useEffect(() => { setHotels(initial); setPage(1); setFailed(false) }, [initial])
@@ -53,11 +57,11 @@ export default function InfiniteHotels({ initial, total, limit, query, adAfter =
 
   useEffect(() => {
     const el = sentinel.current
-    if (!el) return
+    if (!el || manual) return
     const obs = new IntersectionObserver(e => { if (e[0].isIntersecting) loadMore() }, { rootMargin: '600px' })
     obs.observe(el)
     return () => obs.disconnect()
-  }, [loadMore])
+  }, [loadMore, manual])
 
   const ad = hotels.find(h => h.thumbnail_url) ?? null
 
@@ -73,6 +77,11 @@ export default function InfiniteHotels({ initial, total, limit, query, adAfter =
 
       <div ref={sentinel} style={{ height: 1 }} />
       <div className="z-infinite" aria-live="polite">
+        {manual && !loading && (
+          <button type="button" className="z-btn z-btn--line" onClick={loadMore}>
+            Načíst další zájezdy ({(total - hotels.length).toLocaleString('cs-CZ')} zbývá)
+          </button>
+        )}
         {loading && <span className="z-infinite__load"><Icon name="spinner" className="animate-spin" />Načítám další zájezdy</span>}
         {!hasMore && !loading && hotels.length > limit && <span className="z-data">TO JE VŠE — {hotels.length} HOTELŮ</span>}
         {failed && hotels.length < total && (
