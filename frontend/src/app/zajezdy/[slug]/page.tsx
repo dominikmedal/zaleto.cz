@@ -17,6 +17,7 @@ export const revalidate = 3600
 export const dynamicParams = true
 
 const LIMIT = 24
+const TIP_ICONS = ['mena', 'kompas', 'kalendar'] as const
 const SITE = 'https://zaleto.cz'
 
 interface Props { params: { slug: string } }
@@ -131,9 +132,11 @@ export default async function LandingPage({ params }: Props) {
           <section className="z-land__tips" aria-label="Rady k výběru">
             {l.sections.map((s, i) => (
               <article key={s.heading} className="z-land__tip">
-                <div className="z-kicker" style={{ color: 'var(--brand-strong)' }}>{String(i + 1).padStart(2, '0')}</div>
-                <h2 className="h4">{s.heading}</h2>
-                <p>{s.text}</p>
+                <span className="z-land__tipicon" aria-hidden="true"><Icon name={TIP_ICONS[i % TIP_ICONS.length]} /></span>
+                <div>
+                  <h2 className="h4">{s.heading}<span className="z-dot">.</span></h2>
+                  <p>{s.text}</p>
+                </div>
               </article>
             ))}
           </section>

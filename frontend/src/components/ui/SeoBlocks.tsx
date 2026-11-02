@@ -54,18 +54,37 @@ export function AiNote({ at, what = 'Text' }: { at: string; what?: string }) {
 /** Dvanáct měsíců: hodnocení sezóny, krátký popis a nejnižší cena zájezdu z našich dat. */
 export function MonthsGrid({ seo }: { seo: DestinationSeo }) {
   const prices = seo.stats.monthly ?? {}
+  const hasPrices = Object.keys(prices).length > 0
+  const thousands = (v: number) => (v / 1000).toLocaleString('cs-CZ', { maximumFractionDigits: 1 })
   return (
-    <div className="z-months">
-      {seo.months.map(m => (
-        <div key={m.month} className={`z-month z-month--${m.rating}`}>
-          <div className="z-month__head">
-            <h3>{MONTHS[m.month - 1]}</h3>
-            <span className="z-month__tag">{RATING_LABEL[m.rating]}</span>
+    <div>
+      {/* osa celého roku: výška sloupce = hodnocení měsíce, pod ním nejnižší cena zájezdu */}
+      <div className="z-mseason" role="img" aria-label="Hodnocení sezóny po měsících">
+        {seo.months.map(m => (
+          <div key={m.month} className={`z-mseason__col z-mseason__col--${m.rating}`} title={`${MONTHS[m.month - 1]}: ${RATING_LABEL[m.rating]}`}>
+            <div className="z-mseason__bar"><i /></div>
+            <span className="z-mseason__name">{MONTHS[m.month - 1].slice(0, 3)}</span>
+            {hasPrices && <span className="z-mseason__price">{prices[String(m.month)] ? thousands(prices[String(m.month)]) : '–'}</span>}
           </div>
-          <p>{m.text}</p>
-          {prices[String(m.month)] ? <span className="z-month__price">zájezdy od {formatPrice(prices[String(m.month)])}</span> : null}
-        </div>
-      ))}
+        ))}
+      </div>
+      <p className="z-mseason__legend">
+        Výška sloupce = jak je měsíc vhodný na dovolenou{hasPrices ? ' · pod ním nejnižší cena zájezdu v tis. Kč' : ''}
+      </p>
+
+      {/* popis každého měsíce: nejlepší měsíce jsou rozbalené, ostatní jedním klikem */}
+      <div className="z-mlist">
+        {seo.months.map(m => (
+          <details key={m.month} className={`z-mrow z-mrow--${m.rating}`} open={m.rating === 'top'}>
+            <summary>
+              <span className="z-mrow__name">{MONTHS[m.month - 1]}</span>
+              <span className="z-month__tag">{RATING_LABEL[m.rating]}</span>
+              <span className="z-mrow__price">{prices[String(m.month)] ? `od ${formatPrice(prices[String(m.month)])}` : ''}</span>
+            </summary>
+            <p>{m.text}</p>
+          </details>
+        ))}
+      </div>
     </div>
   )
 }
