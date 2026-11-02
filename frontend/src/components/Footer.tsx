@@ -24,6 +24,7 @@ const COLUMNS = [
       { label: 'Last minute', href: '/zajezdy?tour_type=last_minute' },
       { label: 'First minute', href: '/zajezdy?tour_type=first_minute' },
       { label: 'Půjčovna aut', href: '/pujcovna-aut' },
+      { label: 'Půjčení auta na Mallorce', href: 'https://mallorca-pujcovna.cz', external: true },
     ],
   },
   {
@@ -66,7 +67,9 @@ export default async function Footer() {
           <div key={col.heading}>
             <h3>{col.heading}</h3>
             <ul>
-              {[...col.items, ...(col.heading === 'Cestuj' ? overviews : [])].map(i => <li key={i.label}><Link href={i.href}>{i.label}</Link></li>)}
+              {[...col.items, ...(col.heading === 'Cestuj' ? overviews : [])].map((i: { label: string; href: string; external?: boolean }) => (
+                <li key={i.label}>{i.external ? <a href={i.href} target="_blank" rel="noopener">{i.label}</a> : <Link href={i.href}>{i.label}</Link>}</li>
+              ))}
               {col.heading === 'Zaleto' && <li><CookieSettingsLink /></li>}
             </ul>
           </div>
