@@ -2120,3 +2120,30 @@ button.z-chip { cursor: pointer; }
 .z-ainote, .z-prose .z-ainote, .z-coll__body .z-ainote { font: 400 12px/18px var(--font-mono); letter-spacing: .02em; }
 /* odkazy v textech karet průvodce: nad „celokartovým“ odkazem, aby šly kliknout samostatně */
 .z-place__body p a, .z-itemcard__body p a, .z-placecard p a, .z-menu p a, .z-triproute p a { position: relative; z-index: 2; }
+
+/* Sezónní položka hlavního menu: pilulka v barvě roční doby + vlastní grafika (listí, vločky, květ, slunce) */
+.z-season--autumn { --s-bg: var(--accent-soft); --s-ink: var(--accent-strong); --s-line: var(--accent); }
+.z-season--winter { --s-bg: var(--sky); --s-ink: var(--brand-deep); --s-line: var(--brand); }
+.z-season--spring { --s-bg: #e3f3e8; --s-ink: var(--success); --s-line: var(--success); }
+.z-season--summer { --s-bg: #fff1cf; --s-ink: var(--accent-strong); --s-line: var(--accent); }
+.z-header__nav .z-header__season a, .z-header--over .z-header__nav .z-header__season a { position: relative; display: inline-flex; align-items: center; padding: 6px 14px 6px 18px; margin-left: 10px; border: 1.5px solid var(--s-line); border-radius: var(--radius-pill); background: var(--s-bg); color: var(--s-ink); font-weight: 600; white-space: nowrap; }
+.z-header__season a::after { display: none; }
+.z-header__season a:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -8px var(--s-line); }
+.z-header__season a[aria-current="page"] { background: var(--s-ink); color: #fff; border-color: var(--s-ink); }
+.z-sart { position: absolute; inset: 0; pointer-events: none; }
+.z-sart svg { position: absolute; height: auto; overflow: visible; }
+.z-sart__a, .z-sart__b, .z-sart__c { transform-origin: 50% 50%; transform: rotate(var(--r, 0deg)); animation: z-sart-sway 5s ease-in-out infinite; }
+.z-sart__b { animation-delay: -1.7s; animation-duration: 6s; }
+.z-sart__c { animation-delay: -3.2s; animation-duration: 4.4s; }
+.z-sart--winter .z-sart__a { animation-name: z-sart-drift; }
+.z-sart--winter .z-sart__b { animation-name: z-sart-drift; }
+.z-sart__cap { left: 8%; right: 8%; top: -8px; width: 84%; height: 12px; }
+.z-sart__dot { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--brand); opacity: .7; animation: z-sart-drift 4s ease-in-out infinite; }
+.z-sart__dot--s { width: 3px; height: 3px; animation-delay: -2s; }
+@keyframes z-sart-sway { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(2px) rotate(calc(var(--r, 0deg) + 14deg)); } }
+@keyframes z-sart-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+@media (prefers-reduced-motion: reduce) { .z-sart__a, .z-sart__b, .z-sart__c, .z-sart__dot { animation: none; } }
+/* mobilní menu: ikona roční doby v kuličce, grafika jen jemně v rohu */
+.z-mnav__season .z-mnav__link { background: var(--s-bg); color: var(--s-ink); border-radius: var(--radius-md); }
+.z-mnav__season .z-mnav__icon { position: relative; color: var(--s-ink); }
+.z-mnav__season .z-sart { display: none; }

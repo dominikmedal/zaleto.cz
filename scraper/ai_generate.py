@@ -1190,8 +1190,15 @@ def todo_landing(conn):
     fresh = {r["slug"] for r in rows(conn, "SELECT slug FROM landing_ai WHERE generated_at > NOW() - make_interval(days => %s) AND generated_at > %s::timestamptz",
                                      (REFRESH_DAYS, PROMPT_CUTOFF))}
     cands = landing_candidates(conn)
-    # nejdřív přehledy se zastaralým textem (je jich málo), pak nové
-    return [c for c in cands if c["slug"] in have and c["slug"] not in fresh] + [c for c in cands if c["slug"] not in have]
+    # nejdřív přehledy se zastaralým textem (je jich málo), pak nové; globální přehled aktuálního a příštího měsíce
+    # má přednost (aktuální měsíc je v hlavním menu webu: „Zájezdy v listopadu“)
+    this_m = int(time.strftime("%m"))
+    soon = {this_m, this_m % 12 + 1}
+    def prio(c):
+        return 0 if (c["type"] == "month" and not c["country"] and int(c["value"]) in soon) else 1
+    stale = [c for c in cands if c["slug"] in have and c["slug"] not in fresh]
+    new = [c for c in cands if c["slug"] not in have]
+    return sorted(stale, key=prio) + sorted(new, key=prio)
 
 
 def run_landing(conn, c):
