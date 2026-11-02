@@ -9,6 +9,6 @@ export function seasonYear(now = new Date()): number {
   return now.getFullYear() + (now.getMonth() >= 9 ? 1 : 0)
 }
 
-/** Profily Zaleto na sociálních sítích a v katalozích (pro Organization.sameAs). Čárkou oddělené adresy v NEXT_PUBLIC_SOCIAL_LINKS. */
-export const SOCIAL_LINKS: string[] = (process.env.NEXT_PUBLIC_SOCIAL_LINKS ?? '')
+/** Profily Zaleto na sociálních sítích a v katalozích (pro Organization.sameAs). Výchozí je Instagram; jiné adresy (čárkou oddělené) lze nastavit v NEXT_PUBLIC_SOCIAL_LINKS. */
+export const SOCIAL_LINKS: string[] = (process.env.NEXT_PUBLIC_SOCIAL_LINKS ?? 'https://www.instagram.com/zaletocz/')
   .split(',').map(s => s.trim()).filter(s => s.startsWith('https://'))
