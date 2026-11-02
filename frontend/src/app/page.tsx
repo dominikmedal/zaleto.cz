@@ -14,6 +14,7 @@ import { formatPrice } from '@/components/ui/format'
 import { fetchArticles, fetchDestinationPhoto, fetchDestinations, fetchHotels } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 import LandingOverviews from '@/components/LandingOverviews'
+import { CAR_DESTINATIONS } from '@/lib/carRental'
 
 export const revalidate = 3600
 
@@ -163,15 +164,24 @@ export default async function HomePage() {
         <section className="z-section">
           <div className="z-container">
           <div className="z-carpromo">
-            <div className="z-tk z-carpromo__card"><div className="z-tk__in">
-              <div className="z-kicker" style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Icon name="auto" size="sm" />Půjčovna aut</div>
-              <h2 className="z-carpromo__title">auto na dovolenou, cena předem<span className="z-dot">.</span></h2>
-              <p>Skryté zátoky, horské vesničky a místní trhy dostupné jen autem. Srovnáme přes 500 půjčoven a cena při rezervaci je finální.</p>
-              <div className="z-meta">
-                <span><Icon name="shield" />Pojištění v ceně</span>
-                <span><Icon name="kalendar" />Storno zdarma 48 h</span>
+            <div className="z-tk z-tk--h z-carpromo__card" style={{ ['--cut' as string]: '112px' }}><div className="z-tk__in">
+              <div className="z-carpromo__body">
+                <div className="z-kicker" style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Icon name="auto" size="sm" />Půjčovna aut</div>
+                <h2 className="z-carpromo__title">auto na dovolenou, cena předem<span className="z-dot">.</span></h2>
+                <p>Skryté zátoky, horské vesničky a místní trhy dostupné jen autem. Srovnáme přes 500 půjčoven a cena při rezervaci je finální.</p>
+                <div className="z-chips">
+                  <span className="z-chip"><Icon name="plaz" />Skryté zátoky</span>
+                  <span className="z-chip"><Icon name="hory" />Horské vesničky</span>
+                  <span className="z-chip"><Icon name="mesto" />Místní trhy</span>
+                </div>
               </div>
-              <Link className="z-btn z-btn--primary" href="/pujcovna-aut">Srovnat půjčovny<span className="z-btn__go"><Icon name="sipka" /></span></Link>
+              <div className="z-carpromo__stub">
+                <nav className="z-carpromo__dests" aria-label="Oblíbené destinace půjčovny aut">
+                  <span className="z-data">Oblíbené</span>
+                  {CAR_DESTINATIONS.filter(d => d.popular).slice(0, 4).map(d => <Link key={d.slug} href={`/pujcovna-aut/${d.slug}`}>{d.name}</Link>)}
+                </nav>
+                <Link className="z-btn z-btn--offer" href="/pujcovna-aut">Srovnat půjčovny<span className="z-btn__go"><Icon name="sipka" /></span></Link>
+              </div>
             </div></div>
             <div className="z-carpromo__photo">
               {/* eslint-disable-next-line @next/next/no-img-element */}

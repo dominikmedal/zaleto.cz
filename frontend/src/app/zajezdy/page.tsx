@@ -17,15 +17,16 @@ import AutoLinked from '@/components/AutoLinked'
 import { formatPrice } from '@/components/ui/format'
 import { slugify } from '@/lib/slugify'
 import { seasonYear } from '@/lib/seo'
+import { MONTHS } from '@/lib/seoContent'
 
 type SP = Record<string, string | string[] | undefined>
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || undefined
 
-const KEYS = ['destination', 'date_from', 'date_to', 'duration', 'min_price', 'max_price', 'stars', 'meal_plan', 'transport', 'tour_type', 'departure_city', 'sort'] as const
+const KEYS = ['destination', 'date_from', 'date_to', 'date_month', 'duration', 'min_price', 'max_price', 'stars', 'meal_plan', 'transport', 'tour_type', 'departure_city', 'sort'] as const
 const SORTS: [string, string][] = [
   ['price_asc', 'Nejlevnější'], ['price_desc', 'Nejdražší'], ['date_asc', 'Nejbližší odlet'], ['stars_desc', 'Nejvíc hvězd'], ['name_asc', 'Podle názvu'],
 ]
-const LIMIT = 48
+const LIMIT = 47
 
 export async function generateMetadata({ searchParams }: { searchParams: SP }): Promise<Metadata> {
   const dest = one(searchParams.destination)
@@ -105,7 +106,7 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
   const [meta, result, destInfo] = await Promise.all([
     fetchFilters().catch(() => null),
     fetchHotels({
-      destination: f.destination, date_from: f.date_from, date_to: f.date_to, date_flex: one(searchParams.date_flex), duration: f.duration,
+      destination: f.destination, date_from: f.date_from, date_to: f.date_to, date_month: f.date_month, date_flex: one(searchParams.date_flex), duration: f.duration,
       min_price: f.min_price ? parseFloat(f.min_price) : undefined, max_price: f.max_price ? parseFloat(f.max_price) : undefined,
       stars: f.stars, meal_plan: f.meal_plan, transport: f.transport, tour_type: f.tour_type,
       departure_city: f.departure_city, sort, page, limit: LIMIT,
@@ -136,6 +137,14 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
         <Crumbs items={[{ label: 'Zaleto', href: '/' }, { label: 'Zájezdy' }]} />
         <div style={{ height: 'var(--space-6)' }} />
         <SectionHead as="h1" keepKicker kicker={pg ? `${pg.total.toLocaleString('cs-CZ')} hotelů s volným termínem` : 'Zájezdy'} title={title} />
+
+        {/* měsíc odletu z přehledu zájezdů (date_month): ukážeme ho jako štítek, jinak by nebylo poznat, proč je termín prázdný */}
+        {f.date_month && /^\d{4}-\d{2}$/.test(f.date_month) && (
+          <div className="z-chips" style={{ margin: 'var(--space-4) 0 var(--space-5)', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <span className="z-chip z-chip--ok"><Icon name="kalendar" />Odlety: {MONTHS[Number(f.date_month.slice(5)) - 1]} {f.date_month.slice(0, 4)}</span>
+            <Link className="z-more" href={`/zajezdy${qs(searchParams, { date_month: undefined })}`}>Zrušit měsíc</Link>
+          </div>
+        )}
 
         {destInfo && (
           <aside className="z-destmini" aria-label={`O destinaci ${destInfo.name}`}>
@@ -219,7 +228,7 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
             total={pg?.total ?? hotels.length}
             limit={LIMIT}
             query={{
-              destination: f.destination, date_from: f.date_from, date_to: f.date_to, date_flex: one(searchParams.date_flex),
+              destination: f.destination, date_from: f.date_from, date_to: f.date_to, date_month: f.date_month, date_flex: one(searchParams.date_flex),
               duration: f.duration, min_price: f.min_price, max_price: f.max_price, stars: f.stars, meal_plan: f.meal_plan,
               transport: f.transport, tour_type: f.tour_type, departure_city: f.departure_city, sort,
             }}

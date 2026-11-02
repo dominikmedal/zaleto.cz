@@ -149,7 +149,10 @@ function normalizeOffer(offer: any) {
   const pr = offer.price || {}
   const su = offer.supplier || {}
   const ex = offer.extras || {}
-  const raw = pr.raw || {}
+  // price.raw je dnes číslo (celková cena za celý pronájem); měna je v textu „CZK 659.94“. Starší tvar (objekt) zůstává podporovaný.
+  const rawNum = typeof pr.raw === 'number' ? pr.raw : null
+  const raw = (rawNum === null ? pr.raw : null) || {}
+  const currencyFromText = typeof pr.formatted === 'string' ? pr.formatted.match(/[A-Z]{3}/)?.[0] : undefined
   const sp = parseSpecs(v.specifications || v.specs || {})
   const sipp = v.sippGroup || v.sipp || ''
   const cat = v.category || v.vehicleCategory || SIPP_CATEGORY[sipp?.[0]?.toUpperCase()] || 'Ostatní'
@@ -164,10 +167,10 @@ function normalizeOffer(offer: any) {
     ac: sp.ac !== undefined ? !!sp.ac : sp.aircon !== undefined ? !!sp.aircon : true,
     fuelPolicy: sp.fuelPolicy || ex.fuelPolicy || null,
     price: {
-      total: raw.total || raw.value || raw.price || null,
+      total: rawNum ?? (raw.total || raw.value || raw.price || null),
       perDay: raw.perDay || raw.daily || null,
       formatted: pr.formatted || null,
-      currency: raw.currency || 'EUR',
+      currency: raw.currency || currencyFromText || 'EUR',
     },
     supplier: {
       name: su.name || 'N/A',
@@ -301,4 +304,69 @@ export async function carAutocomplete(q: Q) {
     console.error('[car-rental] autocomplete error:', (err as Error).message || err)
     return []
   }
+}
+
+// ─── Konkrétní nabídky pro banner (GET /api/car-rental/quote?slug=…) ──────────────
+
+export interface CarQuoteCar {
+  name: string; category: string; image: string | null; supplier: string; perDay: number; total: number; bookUrl: string | null
+  /** Úspora nejlevnější nabídky modelu oproti mediánu nabídek stejné třídy auta (celá %, nejméně 10), jinak null. */
+  savingPct: number | null
+}
+export interface CarQuote {
+  currency: string
+  /** Čtyři modely: nejdřív ty s největší slevou (z levnější poloviny nabídky), zobrazené od nejlevnějšího. */
+  cars: CarQuoteCar[]
+  days: number; pickup: string; dropoff: string
+  searchUrl: string
+}
+
+const QUOTE_TTL = 6 * 60 * 60 * 1000
+
+/**
+ * Nabídky půjčovny pro destinaci (7 dní, odjezd za ~3 týdny) z DiscoverCars. Volá se jen pro známé destinace
+ * (žádné libovolné dotazy) a výsledek se drží 6 hodin. Slevu počítáme z reálných nabídek stejné třídy auta:
+ * nejlevnější nabídka modelu vs. medián třídy (aspoň 3 nabídky), takže nesrovnáváme malé auto s velkým SUV.
+ */
+export async function carQuote(slug: string | undefined): Promise<CarQuote | null> {
+  const { CAR_DESTINATIONS, buildDCUrlById } = await import('@/lib/carRental')
+  const dest = CAR_DESTINATIONS.find(d => d.slug === slug)
+  if (!dest) return null
+  const key = `quote3:${dest.slug}:${new Date().toISOString().slice(0, 10)}`
+  const hit = cGet(key)
+  if (hit !== null) return hit.none ? null : hit
+
+  const iso = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)
+  const pickup = iso(21), dropoff = iso(28), days = 7
+  const r = await carSearch({ location: dest.dcSearchTerm, pickup_date: pickup, dropoff_date: dropoff } as Q)
+  const cars: any[] = (r.body as any)?.cars ?? []
+  const priced = cars.filter(c => typeof c.price?.total === 'number' && c.price.total > 0).sort((a, b) => a.price.total - b.price.total)
+  if (!priced.length) { cSet(key, { none: true }, 30 * 60 * 1000); return null }
+
+  // nabídky podle třídy auta (Mini, Economy, Compact …), vzestupně podle ceny: sleva = nejlevnější nabídka modelu vs. medián třídy
+  const byClass = new Map<string, any[]>()
+  for (const c of priced) byClass.set(c.sipp || c.category, [...(byClass.get(c.sipp || c.category) ?? []), c])
+  const seen = new Set<string>()
+  const models = priced.filter(c => !seen.has(c.carName) && seen.add(c.carName)).map(best => {
+    const cls = byClass.get(best.sipp || best.category) ?? []
+    const median = cls.length >= 3 ? cls[Math.floor(cls.length / 2)].price.total : null
+    const pct = median ? Math.floor((1 - best.price.total / median) * 100) : 0
+    return { name: best.carName as string, best, saving: pct >= 10 ? Math.min(pct, 60) : null }
+  })
+  // kandidáti: deset nejlevnějších modelů; z nich čtyři s největší slevou, zobrazené od nejlevnějšího
+  const pool = models.slice(0, 10)
+  const picked = [...pool].sort((a, b) => (b.saving ?? 0) - (a.saving ?? 0) || a.best.price.total - b.best.price.total).slice(0, 4)
+    .sort((a, b) => a.best.price.total - b.best.price.total)
+  const top: CarQuoteCar[] = picked.map(m => ({
+    name: m.name, category: m.best.category as string, image: (m.best.image ?? null) as string | null, supplier: (m.best.supplier?.name ?? '') as string,
+    total: Math.round(m.best.price.total), perDay: Math.round(m.best.price.total / days), bookUrl: (m.best.bookUrl ?? null) as string | null,
+    savingPct: m.saving,
+  }))
+  const placeID = (r.body as any)?.location?.placeID
+  const quote: CarQuote = {
+    currency: priced[0].price.currency || 'CZK', cars: top, days, pickup, dropoff,
+    searchUrl: placeID ? buildDCUrlById({ placeID, pickupDate: pickup, dropoffDate: dropoff }) : '',
+  }
+  cSet(key, quote, QUOTE_TTL)
+  return quote
 }

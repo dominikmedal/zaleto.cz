@@ -71,11 +71,7 @@ export function landingSearchHref(l: Pick<LandingAI, 'type' | 'value' | 'country
   if (f.destination) p.set('destination', f.destination)
   if (f.meal_plan) p.set('meal_plan', f.meal_plan)
   if (f.stars) p.set('stars', f.stars)
-  if (f.date_month) {
-    const [y, m] = f.date_month.split('-').map(Number)
-    p.set('date_from', `${f.date_month}-01`)
-    p.set('date_to', `${f.date_month}-${new Date(y, m, 0).getDate()}`)
-    p.set('date_flex', '0')
-  }
+  // celý měsíc odletu (date_from + date_to by hledalo přesné datum odletu i návratu a nenašlo nic)
+  if (f.date_month) p.set('date_month', f.date_month)
   return `/zajezdy?${p}`
 }

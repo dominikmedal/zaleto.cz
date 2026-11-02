@@ -17,7 +17,8 @@ export default function PersonsField({ defaultValue = 2, name = 'adults', disabl
       <span className="z-sfield__label"><Icon name="osoby" />Osoby</span>
       <div className="z-persons">
         <button type="button" className="z-iconbtn" onClick={() => setN(v => Math.max(MIN, v - 1))} disabled={disabled || n <= MIN} aria-label="Méně osob"><Icon name="minus" size="sm" /></button>
-        <output aria-live="polite"><b>{n}</b><span>{n === 1 ? 'osoba' : n < 5 ? 'osoby' : 'osob'}</span></output>
+        {/* jednotka „osoby“ je už v popisku pole; tady jen číslo (čtečka si ji přečte z aria-label) */}
+        <output aria-live="polite" aria-label={`${n} ${n === 1 ? 'osoba' : n < 5 ? 'osoby' : 'osob'}`}><b>{n}</b></output>
         <button type="button" className="z-iconbtn" onClick={() => setN(v => Math.min(MAX, v + 1))} disabled={disabled || n >= MAX} aria-label="Více osob"><Icon name="plus" size="sm" /></button>
       </div>
       <span className="z-sfield__sub">dospělí na pokoji</span>

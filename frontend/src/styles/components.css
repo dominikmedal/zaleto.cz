@@ -1982,13 +1982,19 @@ button.z-chip { cursor: pointer; }
 
 /* homepage: promo půjčovny aut */
 .z-carpromo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: var(--space-8); align-items: center; }
-.z-carpromo__card .z-tk__in { padding: var(--space-7) var(--space-7); display: grid; gap: var(--space-4); justify-items: start; }
+.z-carpromo__card .z-tk__in { padding: 0; }
+.z-carpromo__body { padding: var(--space-7) var(--space-7) var(--space-6); display: grid; gap: var(--space-4); justify-items: start; }
+.z-carpromo__route { width: 100%; max-width: 360px; color: var(--ink-muted); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; }
+.z-carpromo__stub { min-height: var(--cut, 112px); padding: var(--space-4) var(--space-7); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-5); }
+.z-carpromo__dests { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
+.z-carpromo__dests a { font: 600 15px/22px var(--font-sans); color: var(--brand-strong); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 4px; }
+.z-carpromo__dests a:hover { text-decoration-color: var(--brand-strong); }
 .z-carpromo__title { margin: 0; font: 600 clamp(32px, 4vw, 48px)/1.1 var(--font-serif); letter-spacing: -.02em; }
 .z-carpromo__card p { margin: 0; color: var(--ink-muted); max-width: 46ch; }
 .z-carpromo__photo { position: relative; border-radius: var(--radius-window); overflow: hidden; border: 10px solid var(--raised); box-shadow: var(--shadow-ticket); aspect-ratio: 3 / 2; background: var(--paper-deep); }
 .z-carpromo__photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .z-carpromo__stamp { position: absolute; left: 18px; bottom: 18px; transform: rotate(-4deg); color: var(--brand-strong); }
-@media (max-width: 1023px) { .z-carpromo { grid-template-columns: 1fr; gap: var(--space-5); } .z-carpromo__photo { order: -1; } .z-carpromo__card .z-tk__in { padding: var(--space-5); } }
+@media (max-width: 1023px) { .z-carpromo { grid-template-columns: 1fr; gap: var(--space-5); } .z-carpromo__photo { order: -1; } .z-carpromo__body { padding: var(--space-5) var(--space-5) var(--space-4); } .z-carpromo__stub { padding: var(--space-3) var(--space-5); --cut: 140px; } }
 
 /* banner zájezdů: úspora místo termínu */
 .z-strip__save { font: 400 10.5px/14px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: rgba(255, 255, 255, .75); }
@@ -2147,3 +2153,95 @@ button.z-chip { cursor: pointer; }
 .z-mnav__season .z-mnav__link { background: var(--s-bg); color: var(--s-ink); border-radius: var(--radius-md); }
 .z-mnav__season .z-mnav__icon { position: relative; color: var(--s-ink); }
 .z-mnav__season .z-sart { display: none; }
+
+/* Rozbalovací sekce destinace (nativní details): hlavička jako v detailu hotelu, chevron z vlastní sady ikon */
+.z-fold { border-top: 2px dotted var(--line); padding-top: var(--space-4); }
+.z-fold__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); cursor: pointer; list-style: none; }
+.z-fold__head::-webkit-details-marker { display: none; }
+.z-fold__head h2 { margin-top: var(--space-3); }
+.z-fold__head:hover h2 { color: var(--brand-strong); }
+.z-fold__chev { flex: none; width: 28px; height: 28px; color: var(--ink-muted); transition: transform .2s; }
+.z-fold[open] > .z-fold__head .z-fold__chev { transform: rotate(180deg); }
+.z-fold__body { padding-top: var(--space-5); }
+
+/* hlavní menu: položky se nezalamují, na užších monitorech se zmenší mezery a písmo (kvůli sezónní položce navíc) */
+.z-header__nav a { white-space: nowrap; }
+@media (max-width: 1439px) { .z-header__nav { gap: 14px; } .z-header__nav a { font-size: 14px; } .z-header__nav .z-header__season a { padding: 5px 12px 5px 16px; margin-left: 6px; } }
+@media (max-width: 1199px) { .z-header__nav { gap: 10px; } .z-header__nav a { font-size: 13px; } }
+.z-sart--autumn, .z-sart--spring, .z-sart--summer { transform: scale(1.3); transform-origin: 20% 40%; }
+
+/* „Co vidět“: klikací karty (celá karta přes protažený odkaz v nadpisu) */
+.z-placecard--link { cursor: pointer; }
+.z-placecard--link:hover { transform: translateY(-4px) rotate(-.4deg); }
+.z-placecard--link:hover h3 { color: var(--brand-strong); }
+.z-placecard__more { display: inline-flex; align-items: center; gap: 6px; margin-top: var(--space-3); font: 700 12px/16px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--brand-strong); }
+
+/* Ukázka sekce se stínem: začátek obsahu, pozvolna zakrytý přechodem do barvy pozadí; tlačítko rozbalí celek */
+.z-teaser { position: relative; }
+.z-teaser__body { position: relative; overflow: hidden; transition: max-height .4s ease; }
+.z-teaser[data-open="false"] .z-teaser__body::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 120px; pointer-events: none; background: linear-gradient(to bottom, rgba(250, 246, 238, 0), var(--paper) 85%); }
+.z-teaser__btn { display: flex; margin: var(--space-3) auto 0; position: relative; z-index: 1; }
+.z-teaser[data-open="false"] .z-teaser__btn { margin-top: -18px; background: var(--paper); }
+.z-teaser__chev { width: 18px; height: 18px; transition: transform .2s; }
+.z-teaser[data-open="true"] .z-teaser__chev { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .z-teaser__body { transition: none; } }
+
+/* Banner půjčovny aut: tmavý lístek s nadpisem vlevo a čtyřmi konkrétními auty vpravo (odliší se od světlého obsahu) */
+.z-cars { position: relative; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: var(--space-5); align-items: stretch; margin: var(--space-4) 0; padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); color: var(--on-night); background: radial-gradient(rgba(255, 255, 255, .09) 1.4px, transparent 1.5px) 0 0 / 18px 18px, linear-gradient(135deg, var(--night), var(--brand-deep)); box-shadow: var(--shadow-ticket); }
+.z-cars__head { display: flex; flex-direction: column; justify-content: center; gap: var(--space-2); }
+.z-cars__kicker { display: inline-flex; gap: 6px; align-items: center; color: var(--on-night-muted); }
+.z-cars__title { margin: 0; font: 600 24px/28px var(--font-serif); color: var(--on-night); text-transform: none; }
+.z-cars__title .z-dot { color: var(--accent); }
+.z-cars__sub { margin: 0; font: 400 13px/19px var(--font-sans); color: var(--on-night-muted); }
+.z-cars__btn { align-self: flex-start; margin-top: var(--space-2); }
+.z-cars__grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
+.z-cars__car { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; padding: var(--space-3) var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--raised); color: var(--ink); text-decoration: none; text-align: center; transition: transform .2s, box-shadow .2s; }
+a.z-cars__car:hover { transform: translateY(-3px); box-shadow: 0 12px 20px -12px rgba(0, 0, 0, .55); }
+.z-cars__img { display: grid; place-items: center; width: 100%; height: 66px; color: var(--ink-muted); }
+.z-cars__img img { width: 100%; height: 100%; object-fit: contain; }
+.z-cars__name { font: 600 15px/19px var(--font-serif); color: var(--ink); }
+.z-cars__price { display: flex; flex-direction: column; line-height: 1.25; }
+.z-cars__price small { font: 700 10px/14px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-muted); }
+.z-cars__price b { font: 700 15px/20px var(--font-serif); color: var(--accent-strong); }
+.z-cars__stamp { position: absolute; z-index: 2; top: -9px; right: -4px; transform: rotate(6deg); }
+.z-cars__car--skeleton { min-height: 150px; background: rgba(255, 255, 255, .14); animation: z-cars-pulse 1.4s ease-in-out infinite; }
+@keyframes z-cars-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .z-cars__car--skeleton { animation: none; } }
+@media (max-width: 1023px) { .z-cars { grid-template-columns: 1fr; gap: var(--space-4); } .z-cars__head { align-items: flex-start; } }
+@media (max-width: 599px) { .z-cars__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .z-cars__title { font-size: 21px; line-height: 25px; } }
+.z-cars__deal { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 2px; }
+.z-cars__deal b { display: inline-block; padding: 3px 12px; border-radius: var(--radius-pill); background: var(--accent); color: #fff; font: 700 17px/22px var(--font-serif); }
+.z-cars__deal small { font: 700 10px/14px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-muted); }
+.z-cars__deal--plain { font: 700 11px/16px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--brand-strong); margin-top: 6px; }
+/* Klikací nadpis ukázkové sekce a spojená sekce „o místě“ + fotky */
+.z-teaser__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); cursor: pointer; }
+.z-teaser__head:hover h2 { color: var(--brand-strong); }
+.z-teaser__head:focus-visible { outline: 3px solid var(--brand); outline-offset: 4px; border-radius: var(--radius-md); }
+.z-teaser__headchev { flex: none; width: 28px; height: 28px; margin-top: var(--space-4); color: var(--ink-muted); transition: transform .2s; }
+.z-teaser[data-open="true"] .z-teaser__headchev { transform: rotate(180deg); }
+.z-cars__deal b { white-space: nowrap; }
+.z-cars__deal small { text-align: center; line-height: 13px; }
+
+/* „O místě na pár fotek“: pohlednice z cest vlevo, fotky jako polaroidy s páskou vpravo */
+.z-about__grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); gap: var(--space-7); align-items: center; }
+.z-about__grid[data-solo] { grid-template-columns: minmax(0, 1fr); }
+.z-about__card { position: relative; padding: var(--space-6) var(--space-6) var(--space-7); border-radius: var(--radius-lg); background: var(--raised); box-shadow: var(--shadow-ticket); outline: 2px dashed var(--line); outline-offset: -12px; }
+.z-about__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); }
+.z-about__stamp { flex: none; margin-top: -4px; }
+.z-about__card .z-prose { max-width: none; }
+.z-about__lines { display: grid; gap: 14px; margin-top: var(--space-5); }
+.z-about__lines i { display: block; height: 0; border-top: 2px dotted var(--line); }
+.z-about__lines i:last-child { width: 55%; }
+.z-polaroids { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: var(--space-4) var(--space-3); padding: var(--space-3) 0; }
+.z-polaroid { position: relative; width: 44%; margin: 0; padding: 8px 8px 34px; background: #fff; box-shadow: var(--shadow-ticket); transform: rotate(var(--r, 0deg)); transition: transform .25s, box-shadow .25s; }
+.z-polaroid[data-big] { width: 64%; }
+.z-polaroid:nth-child(n + 2) { margin-top: -2px; }
+.z-polaroid:hover { transform: rotate(0deg) scale(1.03); z-index: 2; box-shadow: var(--shadow-lift); }
+.z-polaroid::before { content: ""; position: absolute; top: -10px; left: 50%; width: 62px; height: 20px; margin-left: -31px; background: rgba(255, 233, 214, .9); border: 1px solid rgba(169, 68, 7, .18); transform: rotate(-3deg); z-index: 1; }
+.z-polaroid:nth-child(even)::before { transform: rotate(4deg); background: rgba(220, 239, 255, .9); border-color: rgba(10, 79, 153, .18); }
+.z-polaroid .z-gallery__open { aspect-ratio: 4 / 3; }
+.z-polaroid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.z-polaroid figcaption { position: absolute; left: 10px; right: 10px; bottom: 8px; font: 400 10px/14px var(--font-mono); letter-spacing: .04em; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.z-polaroid figcaption a { color: inherit; text-decoration: none; }
+@media (max-width: 1023px) { .z-about__grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); } }
+@media (max-width: 599px) { .z-about__card { padding: var(--space-5) var(--space-4) var(--space-6); } .z-polaroid { width: 46%; } .z-polaroid[data-big] { width: 78%; } }

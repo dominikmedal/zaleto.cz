@@ -481,11 +481,8 @@ export async function landingAI(slug: string) {
 
 /** Všechny vstupní stránky (sitemapa, odkazy z destinací a hotelů). */
 export async function landingList() {
-  const cached = metaCache.get('landing_list')
-  if (cached) return cached as import('@/lib/seoContent').LandingAI[]
+  // bez paměťové cache: seznam drží datová cache Next (10 min, štítek „api“), takže nový přehled se v menu objeví rychle
   try {
-    const rows = (await query<Record<string, unknown>>(`SELECT ${LANDING_COLS} FROM landing_ai ORDER BY hotel_count DESC`)).rows.map(toLanding)
-    metaCache.set('landing_list', rows)
-    return rows
+    return (await query<Record<string, unknown>>(`SELECT ${LANDING_COLS} FROM landing_ai ORDER BY hotel_count DESC`)).rows.map(toLanding)
   } catch { return [] }
 }

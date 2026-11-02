@@ -1,15 +1,13 @@
 import { fetchLandingList } from '@/lib/api'
-import { MONTHS_IN } from '@/lib/seoContent'
-import { seasonOf } from '@/lib/season'
 import HeaderClient from './HeaderClient'
 
 /**
- * Hlavní menu. Serverová obálka jen zjistí, jestli existuje přehled zájezdů pro aktuální měsíc
- * („Zájezdy v listopadu“), a předá ho klientskému menu. Bez přehledu se položka nezobrazí (žádný odkaz do prázdna).
+ * Hlavní menu. Serverová obálka zjistí, pro které měsíce existuje přehled zájezdů („Zájezdy v listopadu“),
+ * a předá je klientskému menu; to podle skutečného data vybere aktuální měsíc (funguje i na staticky předrenderovaných
+ * stránkách a po přelomu měsíce bez nového nasazení). Bez přehledu pro aktuální měsíc se položka nezobrazí.
  */
 export default async function Header() {
-  const month = new Date().getMonth() + 1
-  const landing = (await fetchLandingList().catch(() => [])).find(l => l.type === 'month' && !l.country && Number(l.value) === month)
-  const seasonal = landing ? { href: `/zajezdy/${landing.slug}`, label: `Zájezdy v ${MONTHS_IN[month - 1]}`, season: seasonOf(month) } : null
-  return <HeaderClient seasonal={seasonal} />
+  const landings = await fetchLandingList().catch(() => [])
+  const months = landings.filter(l => l.type === 'month' && !l.country).map(l => ({ month: Number(l.value), href: `/zajezdy/${l.slug}` }))
+  return <HeaderClient months={months} serverMonth={new Date().getMonth() + 1} />
 }

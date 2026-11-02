@@ -7,7 +7,9 @@ interface Photo { url: string; credit: string; creditUrl: string; alt: string | 
 const UNSPLASH = 'https://unsplash.com/?utm_source=zaleto&utm_medium=referral'
 
 /** Galerie fotek destinace: mozaika, klik otevře prohlížeč přes celou obrazovku (šipky, Esc, swipe). */
-export default function PhotoGallery({ photos, name }: { photos: Photo[]; name: string }) {
+const TILT = [-3.5, 2.5, -1.5, 4, -2.5]
+
+export default function PhotoGallery({ photos, name, variant = 'mosaic' }: { photos: Photo[]; name: string; /** `collage` = fotky jako polaroidy s páskou (max. 5) */ variant?: 'mosaic' | 'collage' }) {
   const [open, setOpen] = useState<number | null>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const touchX = useRef<number | null>(null)
@@ -36,6 +38,21 @@ export default function PhotoGallery({ photos, name }: { photos: Photo[]; name: 
 
   return (
     <>
+      {variant === 'collage' ? (
+        <div className="z-polaroids">
+          {photos.slice(0, 5).map((ph, i) => (
+            <figure key={ph.url} className="z-polaroid" data-big={i === 0 || undefined} style={{ ['--r' as string]: `${TILT[i % TILT.length]}deg` }}>
+              <button type="button" className="z-gallery__open" onClick={() => setOpen(i)} aria-label={`Zvětšit fotografii ${i + 1} z ${n}`} aria-haspopup="dialog">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <Photo widths={[400, 800]} sizes="(max-width: 767px) 50vw, 25vw" src={ph.url} alt={alt(ph)} loading="lazy" />
+              </button>
+              <figcaption>
+                <a href={ph.creditUrl} target="_blank" rel="noopener noreferrer">{ph.credit}</a> / <a href={UNSPLASH} target="_blank" rel="noopener noreferrer">Unsplash</a>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      ) : (
       <div className="z-gallery">
         {photos.map((ph, i) => (
           <figure key={ph.url} className="z-gallery__item" data-big={i === 0 || undefined}>
@@ -49,6 +66,7 @@ export default function PhotoGallery({ photos, name }: { photos: Photo[]; name: 
           </figure>
         ))}
       </div>
+      )}
 
       {cur && (
         <div className="z-lightbox" role="dialog" aria-modal="true" aria-label={`Fotogalerie: ${name}`}

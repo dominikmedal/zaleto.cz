@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Linked, type AutoLink } from '@/lib/autolink'
 import type { ReactNode } from 'react'
 import Icon, { type IconName } from './Icon'
@@ -30,7 +31,7 @@ export default function ItemCard({ title, text, icon, meta }: Props) {
   )
 }
 
-interface Item { name: string; description: string }
+interface Item { name: string; description: string; /** Cíl, na který místo vede (stránka průvodce nebo destinace); bez něj karta není klikací. */ href?: string }
 interface LinkProps { links?: AutoLink[]; exclude?: string[] }
 
 /** „Co vidět“: lístky, každý druhý s nakloněným razítkem – vypadá to jako sbírka vstupenek. */
@@ -38,11 +39,12 @@ export function PlaceTickets({ items, links, exclude }: { items: Item[] } & Link
   return (
     <div className="z-grid-2">
       {items.map((it, i) => (
-        <article key={it.name} className="z-tk z-tk--h z-placecard" style={{ ['--cut' as string]: '0px' }} data-odd={i % 2 === 1 || undefined}>
+        <article key={it.name} className={`z-tk z-tk--h z-placecard${it.href ? ' z-placecard--link' : ''}`} style={{ ['--cut' as string]: '0px' }} data-odd={i % 2 === 1 || undefined}>
           <div className="z-tk__in">
             <span className="z-placecard__stamp"><Icon name="poloha" /></span>
-            <h3 className="h3">{it.name}</h3>
+            <h3 className="h3">{it.href ? <Link className="z-gcard__hit" href={it.href}>{it.name}</Link> : it.name}</h3>
             <p><Linked text={it.description} links={links} exclude={exclude} /></p>
+            {it.href && <span className="z-placecard__more">Více o místě<Icon name="sipka" size="sm" /></span>}
           </div>
         </article>
       ))}
@@ -75,7 +77,7 @@ export function TripRoute({ items, links, exclude }: { items: Item[] } & LinkPro
         <li key={it.name}>
           <span className="z-triproute__node" aria-hidden="true"><Icon name={i % 2 ? 'auto' : 'trasa'} size="sm" /></span>
           <div>
-            <h3 className="h4">{it.name}</h3>
+            <h3 className="h4"><Linked text={it.name} links={links} exclude={exclude} /></h3>
             <p><Linked text={it.description} links={links} exclude={exclude} /></p>
           </div>
         </li>

@@ -17,7 +17,7 @@ import { landingFilters, landingSearchHref, MONTHS, type LandingAI } from '@/lib
 export const revalidate = 3600
 export const dynamicParams = true
 
-const LIMIT = 48
+const LIMIT = 47
 /** Razítko na odtrhávací části lístku: vlastní ikony webu a krátký popisek. */
 const TIPS = [
   { icon: 'mena', label: 'Ceny' },

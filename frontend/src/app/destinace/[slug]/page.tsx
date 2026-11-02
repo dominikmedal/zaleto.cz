@@ -29,6 +29,7 @@ import { formatPrice } from '@/components/ui/format'
 import { seasonYear } from '@/lib/seo'
 import { fetchDestinationSeo, fetchLandingList, fetchLinkTargets } from '@/lib/api'
 import { Linked, weatherAutoLinks } from '@/lib/autolink'
+import Teaser from '@/components/ui/Teaser'
 import { MONTHS } from '@/lib/seoContent'
 import { Paragraphs, AudienceList, MonthsGrid, LinkList, AiNote } from '@/components/ui/SeoBlocks'
 
@@ -86,7 +87,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-const LIMIT = 48
+const LIMIT = 47
 const SORTS: [string, string][] = [['price_asc', 'Nejlevnější'], ['date_asc', 'Nejbližší'], ['stars_desc', 'Nejlepší hotely']]
 
 type Item = { name: string; description: string }
@@ -97,10 +98,30 @@ function Block({ id, kicker, title, className, children }: { id: string; kicker:
       <div className="z-shead" style={{ marginBottom: 'var(--space-5)' }}>
         <div>
           <div className="z-kicker">{kicker}</div>
-          <h2 style={{ fontSize: 32, lineHeight: '38px' }}>{title}<span className="z-dot">.</span></h2>
+          <h2 style={{ fontSize: 32, lineHeight: '38px' }}>{title}{/[?!.…]$/.test(title.trim()) ? null : <span className="z-dot">.</span>}</h2>
         </div>
       </div>
       {children}
+    </section>
+  )
+}
+
+/** Méně důležitá sekce: ukáže se začátek obsahu, který se pozvolna ztrácí do stínu, a tlačítko rozbalí celou sekci (text je v HTML celý). */
+function Fold({ id, kicker, title, children }: { id: string; kicker: string; title: string; children: React.ReactNode }) {
+  return (
+    <section id={id} data-rail={kicker} className="z-cardest__block">
+      <Teaser
+        head={
+          <div className="z-shead" style={{ marginBottom: 'var(--space-5)' }}>
+            <div>
+              <div className="z-kicker">{kicker}</div>
+              <h2 style={{ fontSize: 32, lineHeight: '38px' }}>{title}{/[?!.…]$/.test(title.trim()) ? null : <span className="z-dot">.</span>}</h2>
+            </div>
+          </div>
+        }
+      >
+        {children}
+      </Teaser>
     </section>
   )
 }
@@ -151,6 +172,22 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
   const textLinks = [...(await fetchLinkTargets()), ...weatherAutoLinks(weatherUrl)]
   const selfHref = [`/destinace/${params.slug}`]
 
+  // „Co vidět“: místo vede na svou stránku v průvodci (shoda názvu), jinak na stránku střediska/oblasti stejného jména
+  const nrm = (s: string) => slugify(s)
+  const guideItems = guide
+    ? GUIDE_SECTIONS.filter(s => s.key !== 'strediska' && Array.isArray(guide[s.field]))
+        .flatMap(s => (guide[s.field] as { name?: string }[]).filter(i => i.name).map(i => ({ slug: nrm(i.name as string), href: `/destinace/${params.slug}/${s.key}/${nrm(i.name as string)}` })))
+    : []
+  const targetBySlug = new Map(textLinks.map(l => [nrm(l.name), l.href]))
+  const placeHref = (name: string): string | undefined => {
+    const s = nrm(name)
+    const g = guideItems.find(x => x.slug === s) ?? guideItems.find(x => s.length >= 6 && x.slug.length >= 6 && (x.slug.includes(s) || s.includes(x.slug)))
+    if (g) return g.href
+    const t = targetBySlug.get(s)
+    return t && !selfHref.includes(t) ? t : undefined
+  }
+  const placeItems = places.map(p => ({ ...p, href: placeHref(p.name) }))
+
   // Půjčovna aut: rovnou na odpovídající destinaci (u země na nejpopulárnější místo v ní)
   const carDests = mergeDestinations(await fetchDynamicCarDestinations().catch(() => []))
   const norm = (v: string | null | undefined) => slugify(v ?? '')
@@ -171,16 +208,16 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
     : []
 
   const tabs: NavTabItem[] = [
-    ...(paragraphs.length > 1 ? [{ href: '#o-destinaci', label: 'O destinaci', icon: 'kompas' as const }] : []),
     ...(bestTime ? [{ href: '#kdy-jet', label: 'Kdy jet', icon: 'kalendar' as const }] : []),
     ...(seo ? [{ href: '#mesice', label: 'Počasí a ceny', icon: 'slunce' as const }] : []),
     ...(seo?.budget ? [{ href: '#rozpocet', label: 'Kolik stojí', icon: 'mena' as const }] : []),
-    ...(places.length ? [{ href: '#co-videt', label: 'Co vidět', icon: 'poloha' as const }] : []),
-    ...(food.length ? [{ href: '#jidlo', label: 'Jídlo', icon: 'jidlo' as const }] : []),
-    ...(trips.length ? [{ href: '#vylety', label: 'Výlety', icon: 'trasa' as const }] : []),
     ...(hubCount ? [{ href: '#pruvodce', label: 'Průvodce', icon: 'mapa' as const }] : []),
-    ...(photos.length >= 3 ? [{ href: '#fotky', label: 'Fotky', icon: 'foto' as const }] : []),
+    ...(places.length ? [{ href: '#co-videt', label: 'Co vidět', icon: 'poloha' as const }] : []),
+    ...(trips.length ? [{ href: '#vylety', label: 'Výlety', icon: 'trasa' as const }] : []),
+    ...(food.length ? [{ href: '#jidlo', label: 'Jídlo', icon: 'jidlo' as const }] : []),
+    ...((paragraphs.length > 1 || photos.length >= 3) ? [{ href: '#o-destinaci', label: 'O destinaci a fotky', icon: 'foto' as const }] : []),
     { href: '#zajezdy', label: 'Zájezdy', icon: 'letadlo' as const },
+    ...((seo?.faq.length || bestTime || hotels[0]?.min_price) ? [{ href: '#faq', label: 'Otázky', icon: 'info' as const }] : []),
     ...((pg?.total ?? 0) > 0 ? [{ href: `/destinace/${params.slug}/hotely`, label: 'Hotely', icon: 'hotel' as const }] : []),
     ...(logs.length ? [{ href: '#cestopisy', label: 'Cestopisy', icon: 'trasa' as const }] : []),
     ...(articles.length ? [{ href: '#clanky', label: 'Články', icon: 'clanek' as const }] : []),
@@ -261,7 +298,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
                 )}
               </div>
               {thumbs.length > 0 && (
-                <a href="#fotky" className="z-herothumbs" aria-label={`Zobrazit všech ${photos.length + 1} fotografií`}>
+                <a href="#o-destinaci" className="z-herothumbs" aria-label={`Zobrazit všech ${photos.length + 1} fotografií`}>
                   {thumbs.map((t, i) => (
                     <span key={t.url} className="z-herothumbs__item" style={{ transform: `rotate(${t.rot}deg) translateY(${t.dy}px)`, zIndex: i + 1 }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -279,14 +316,11 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
 
         <div className="z-stripwrap"><OfferStrip hotels={pickOffers(hotels)} /></div>
 
-        {hasLong && (
+        {/* Pořadí: 1) kdy jet a kolik to stojí, 2) kde bydlet (průvodce), 3) co vidět a dělat, rozbalovací zázemí, 4) o místě a fotky, 5) nabídka zájezdů a hned pod ní časté otázky,
+            6) cestopisy a články, 7) přehledy. */}
+        {(bestTime || seo) && (
           <div className="z-cardest__grid">
             <div className="z-cardest__main">
-              {paragraphs.length > 1 && (
-                <Block id="o-destinaci" kicker="O destinaci" title={`o místě: ${dest.name}`}>
-                  <div className="z-prose">{paragraphs.slice(1).map((p, i) => <p key={i}><Linked text={p} links={textLinks} exclude={selfHref} /></p>)}</div>
-                </Block>
-              )}
               {bestTime && (
                 <Block id="kdy-jet" kicker="Kdy jet" title="nejlepší doba na cestu">
                   <div className="z-prose">{bestTime.split(/\n\n+/).map((p, i) => <p key={i}><Linked text={p} links={textLinks} exclude={selfHref} /></p>)}</div>
@@ -303,28 +337,16 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
                   ) : null}
                 </Block>
               )}
+              {seo?.budget && (
+                <Block id="rozpocet" kicker="Rozpočet" title="kolik zde stojí dovolená?">
+                  <div className="z-prose"><Paragraphs text={seo.budget} links={textLinks} exclude={selfHref} /></div>
+                </Block>
+              )}
               {seo && seo.audiences.length > 0 && (
                 <Block id="pro-koho" kicker="Pro koho" title="komu se destinace hodí">
                   <AudienceList items={seo.audiences} links={textLinks} exclude={selfHref} />
                 </Block>
               )}
-              {seo?.budget && (
-                <Block id="rozpocet" kicker="Rozpočet" title={`kolik stojí dovolená: ${dest.name}`}>
-                  <div className="z-prose"><Paragraphs text={seo.budget} links={textLinks} exclude={selfHref} /></div>
-                </Block>
-              )}
-              {seo?.comparison && (
-                <Block id="srovnani" kicker="Srovnání" title={`${dest.name} nebo ${seo.comparison.with}?`}>
-                  <div className="z-prose">
-                    <p><Linked text={seo.comparison.text} links={textLinks} exclude={selfHref} /></p>
-                    <p><Link className="z-more" href={`/destinace/${slugify(seo.comparison.with)}`}>Průvodce: {seo.comparison.with}</Link></p>
-                  </div>
-                  <AiNote at={seo.generated_at} />
-                </Block>
-              )}
-              {places.length > 0 && <Block id="co-videt" kicker="Co vidět" title="místa, která stojí za to"><PlaceTickets items={places} links={textLinks} exclude={selfHref} /></Block>}
-              {food.length > 0 && <Block id="jidlo" kicker="Jídlo" title="co ochutnat"><FoodMenu items={food} links={textLinks} exclude={selfHref} /></Block>}
-              {trips.length > 0 && <Block id="vylety" kicker="Výlety" title="výlety z místa"><TripRoute items={trips} links={textLinks} exclude={selfHref} /></Block>}
             </div>
 
             <aside className="z-cardest__side">
@@ -342,10 +364,46 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
           </>
         )}
 
-        {photos.length >= 3 && (
-          <Block id="fotky" kicker="Fotky" title="pár fotek z destinace" className="z-cardest__block--gallery">
-            <PhotoGallery photos={photos} name={dest.name} />
-          </Block>
+        {(places.length > 0 || trips.length > 0 || food.length > 0 || paragraphs.length > 1 || photos.length >= 3 || seo?.comparison) && (
+          <div className="z-cardest__main" style={{ marginTop: 'var(--space-8)' }}>
+            {places.length > 0 && <Block id="co-videt" kicker="Co vidět" title="místa, která stojí za to"><PlaceTickets items={placeItems} links={textLinks} exclude={selfHref} /></Block>}
+            {trips.length > 0 && <Fold id="vylety" kicker="Výlety" title="výlety z místa"><TripRoute items={trips} links={textLinks} exclude={selfHref} /></Fold>}
+            {food.length > 0 && <Fold id="jidlo" kicker="Jídlo" title="co ochutnat"><FoodMenu items={food} links={textLinks} exclude={selfHref} /></Fold>}
+            {(paragraphs.length > 1 || photos.length >= 3) && (
+              <section id="o-destinaci" data-rail="O destinaci" className="z-cardest__block z-about">
+                <div className="z-shead" style={{ marginBottom: 'var(--space-6)' }}>
+                  <div>
+                    <div className="z-kicker">O destinaci</div>
+                    <h2 style={{ fontSize: 32, lineHeight: '38px' }}>{`o místě: ${dest.name} na pár fotek`}<span className="z-dot">.</span></h2>
+                  </div>
+                </div>
+                <div className="z-about__grid" data-solo={paragraphs.length <= 1 || photos.length < 3 || undefined}>
+                  {paragraphs.length > 1 && (
+                    <article className="z-about__card">
+                      <div className="z-about__head">
+                        <span className="z-kicker">Pozdrav z cest · {dest.name}</span>
+                        <span className="z-stamp z-stamp--brand z-about__stamp"><Icon name="poloha" size="sm" />Pohled z cest</span>
+                      </div>
+                      <div className="z-prose"><Paragraphs text={paragraphs.slice(1).join('\n\n')} lead links={textLinks} exclude={selfHref} /></div>
+                      <div className="z-about__lines" aria-hidden="true"><i /><i /><i /></div>
+                    </article>
+                  )}
+                  {photos.length >= 3 && (
+                    <div className="z-about__photos"><PhotoGallery photos={photos} name={dest.name} variant="collage" /></div>
+                  )}
+                </div>
+              </section>
+            )}
+            {seo?.comparison && (
+              <Fold id="srovnani" kicker="Srovnání" title={`${dest.name} nebo ${seo.comparison.with}?`}>
+                <div className="z-prose">
+                  <p><Linked text={seo.comparison.text} links={textLinks} exclude={selfHref} /></p>
+                  <p><Link className="z-more" href={`/destinace/${slugify(seo.comparison.with)}`}>Průvodce: {seo.comparison.with}</Link></p>
+                </div>
+                <AiNote at={seo.generated_at} />
+              </Fold>
+            )}
+          </div>
         )}
 
         <section id="zajezdy" data-rail="Zájezdy" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 56px)' }}>
@@ -375,7 +433,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
         </section>
 
         {faqs.length > 0 && (
-          <Block id="faq" kicker="Časté otázky" title={`dotazy k zájezdům: ${dest.name}`}>
+          <Block id="faq" kicker="Časté otázky" title="dotazy k zájezdům" className="z-cardest__block--gallery">
             {faqs.map(({ q, a }) => (
               <details key={q} className="z-faq">
                 <summary><span className="h4">{q}</span></summary>
@@ -384,15 +442,6 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
             ))}
           </Block>
         )}
-
-        <LinkList
-          title={`Přehledy zájezdů${dest.country ? `: ${dest.country}` : ''}`}
-          links={landings
-            .filter(l => l.country && l.country === dest.country)
-            .sort((a, b) => ({ meal: 0, stars: 1, month: 2 })[a.type] - ({ meal: 0, stars: 1, month: 2 })[b.type] || b.hotel_count - a.hotel_count)
-            .slice(0, 10)
-            .map(l => ({ href: `/zajezdy/${l.slug}`, label: l.title, hint: `${l.hotel_count} hotelů` }))}
-        />
 
         <section id="cestopisy" data-rail="Cestopisy" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 56px)' }}>
           <div className="z-shead">
@@ -419,6 +468,16 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
             <div className="z-grid-3w">{articles.map(a => <StoryCard key={a.slug} article={a} />)}</div>
           </section>
         )}
+
+        <LinkList
+          title={`Přehledy zájezdů${dest.country ? `: ${dest.country}` : ''}`}
+          links={landings
+            .filter(l => l.country && l.country === dest.country)
+            .sort((a, b) => ({ meal: 0, stars: 1, month: 2 })[a.type] - ({ meal: 0, stars: 1, month: 2 })[b.type] || b.hotel_count - a.hotel_count)
+            .slice(0, 10)
+            .map(l => ({ href: `/zajezdy/${l.slug}`, label: l.title, hint: `${l.hotel_count} hotelů` }))}
+        />
+
       </main>
     </>
   )

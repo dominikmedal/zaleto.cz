@@ -13,13 +13,14 @@ const MONTHS_FULL = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
 
 export default function WeatherBarsChart({ title, values, color, unit, highlightMonths }: BarChartProps) {
   const maxVal = Math.max(...values)
-  const W = 700
-  const H = 200
-  const PAD = { top: 12, right: 16, bottom: 36, left: 36 }
+  // Rozměry odpovídají zobrazené velikosti (karta je jen půlka sloupce), aby písmo nebylo zmenšené a graf byl čitelný
+  const W = 360
+  const H = 260
+  const PAD = { top: 26, right: 6, bottom: 34, left: 6 }
   const CW = W - PAD.left - PAD.right
   const CH = H - PAD.top - PAD.bottom
   const barW = CW / 12
-  const gap = barW * 0.28
+  const gap = barW * 0.22
 
   return (
     <div className="z-chartcard">
@@ -39,17 +40,17 @@ export default function WeatherBarsChart({ title, values, color, unit, highlight
             return (
               <g key={i}>
                 <rect x={bx} y={by} width={barW - gap} height={bh}
-                  fill={barColor} rx="3" opacity={isHighlight ? 1 : 0.8} />
+                  fill={barColor} rx="4" opacity={isHighlight ? 1 : 0.8} />
                 {/* Value label on top */}
                 {v > 0 && (
                   <text x={bx + (barW - gap) / 2} y={by - 4}
-                    textAnchor="middle" fontSize="9.5" fill="var(--ink)" fontWeight="700" fontFamily="var(--font-mono)">
+                    textAnchor="middle" fontSize="12.5" fill="var(--ink)" fontWeight="700" fontFamily="var(--font-mono)">
                     {v}
                   </text>
                 )}
                 {/* Month label */}
-                <text x={bx + (barW - gap) / 2} y={PAD.top + CH + 18}
-                  textAnchor="middle" fontSize="10.5" fill="var(--ink-muted)" fontFamily="var(--font-mono)">
+                <text x={bx + (barW - gap) / 2} y={PAD.top + CH + 20}
+                  textAnchor="middle" fontSize="11.5" fill="var(--ink-muted)" fontFamily="var(--font-mono)">
                   {MONTHS[i]}
                 </text>
               </g>
@@ -60,6 +61,7 @@ export default function WeatherBarsChart({ title, values, color, unit, highlight
           <line x1={PAD.left} y1={PAD.top + CH} x2={PAD.left + CW} y2={PAD.top + CH}
             stroke="var(--line-strong)" strokeWidth="1" />
         </svg>
+        {maxVal === 0 && <p className="z-data" style={{ textAlign: 'center', textTransform: 'none' }}>Hodnoty jsou po celý rok prakticky nulové.</p>}
         <p className="z-data" style={{ textAlign: 'right', paddingRight: 16 }}>{unit.toUpperCase()}</p>
       </div>
     </div>

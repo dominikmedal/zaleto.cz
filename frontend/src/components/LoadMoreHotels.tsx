@@ -10,11 +10,11 @@ import type { Hotel } from '@/lib/types'
 interface Props {
   initial: Hotel[]
   total: number
-  /** Kolik hotelů se načte najednou (první stránka od serveru i každé kliknutí na „Načíst další“). */
+  /** Kolik hotelů se načte najednou (první stránka od serveru i každé kliknutí na „Načíst další“). U variant s tipem zvol 47, aby dávka s tipem dala 48 buněk (dělitelné 2, 3 i 4 sloupci). */
   limit: number
   /** Parametry dotazu do /api/hotels (bez page a limit). */
   query: Record<string, string | undefined>
-  /** Za kolikátou kartu vložit reklamní lístek (jen jednou). */
+  /** Za kolikátou kartu každé dávky vložit reklamní lístek (tip od nás); dávka je pak limit + 1 buněk. */
   adAfter?: number
   /** `tile` = dlaždice bez ceny a termínu (stránka Hotely). */
   variant?: 'ticket' | 'tile'
@@ -56,13 +56,19 @@ export default function LoadMoreHotels({ initial, total, limit, query, adAfter =
     finally { setLoading(false) }
   }, [loading, hasMore, query, page, limit, total])
 
-  const ad = hotels.find(h => h.thumbnail_url) ?? null
+  // Tip od nás se vkládá do každé dávky (po adAfter-té kartě): dávka = limit hotelů + 1 tip, takže se mřížka dole vždy zarovná.
+  // Tip je první hotel dávky s fotkou.
+  const adFor = (i: number): Hotel | null => {
+    if (variant !== 'ticket' || i % limit !== adAfter - 1) return null
+    const start = Math.floor(i / limit) * limit
+    return hotels.slice(start, start + limit).find(h => h.thumbnail_url) ?? null
+  }
 
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${variant === 'tile' ? 250 : 280}px, 1fr))`, gap: 'var(--space-5)', alignItems: 'stretch' }}>
         {hotels.map((h, i) => (
-          <FragmentWithAd key={h.slug} showAd={variant === 'ticket' && i === adAfter - 1 && !!ad} ad={ad}>
+          <FragmentWithAd key={h.slug} showAd={!!adFor(i)} ad={adFor(i)}>
             {variant === 'tile' ? <HotelTile hotel={h} priority={i < 3} /> : <TourCard hotel={h} priority={i < 3} />}
           </FragmentWithAd>
         ))}

@@ -8,7 +8,8 @@ import HeaderFavorites from './HeaderFavorites'
 import FavoritesToast from './FavoritesToast'
 import SiteSearch from './SiteSearch'
 import SeasonArt from '@/components/ui/SeasonArt'
-import type { SeasonalNav } from '@/lib/season'
+import { seasonOf, type SeasonalNav } from '@/lib/season'
+import { MONTHS_IN } from '@/lib/seoContent'
 
 /** Ikona roční doby v mobilním menu (vlastní sada ikon). */
 const SEASON_ICON: Record<SeasonalNav['season'], IconName> = { spring: 'flower', summer: 'slunce', autumn: 'leaf', winter: 'snowflake' }
@@ -27,9 +28,14 @@ const NAV: { href: string; label: string; icon: IconName; type?: 'last_minute' |
   { href: '/cestopisy', label: 'Cestopisy', icon: 'trasa' },
 ]
 
-export default function HeaderClient({ seasonal }: { seasonal: SeasonalNav | null }) {
+export default function HeaderClient({ months, serverMonth }: { months: { month: number; href: string }[]; serverMonth: number }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  // aktuální měsíc podle data v prohlížeči (server pošle jen měsíc, ve kterém se stránka vykreslila)
+  const [month, setMonth] = useState(serverMonth)
+  useEffect(() => { setMonth(new Date().getMonth() + 1) }, [])
+  const link = months.find(m => m.month === month)
+  const seasonal: SeasonalNav | null = link ? { href: link.href, label: `Zájezdy v ${MONTHS_IN[month - 1]}`, season: seasonOf(month) } : null
   const [scrolled, setScrolled] = useState(false)
   const [tourType, setTourType] = useState<string | null>(null)
   // typ nabídky z adresy (bez useSearchParams, ať stránky zůstanou statické)

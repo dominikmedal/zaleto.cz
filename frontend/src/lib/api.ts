@@ -219,28 +219,28 @@ export async function fetchLinkTargets(): Promise<AutoLink[]> {
 
 export async function fetchHotelAI(slug: string): Promise<HotelAI | null> {
   try {
-    const res = await apiFetch(`/api/hotel-ai/${encodeURIComponent(slug)}`, { next: { revalidate: 3600 }, signal: timeout() })
+    const res = await apiFetch(`/api/hotel-ai/${encodeURIComponent(slug)}`, { next: { revalidate: 3600, tags: ['api'] }, signal: timeout() })
     return res.ok ? res.json() : null
   } catch { return null }
 }
 
 export async function fetchDestinationSeo(name: string): Promise<DestinationSeo | null> {
   try {
-    const res = await apiFetch(`/api/destination-seo/${encodeURIComponent(name)}`, { next: { revalidate: 3600 }, signal: timeout() })
+    const res = await apiFetch(`/api/destination-seo/${encodeURIComponent(name)}`, { next: { revalidate: 3600, tags: ['api'] }, signal: timeout() })
     return res.ok ? res.json() : null
   } catch { return null }
 }
 
 export async function fetchLanding(slug: string): Promise<LandingAI | null> {
   try {
-    const res = await apiFetch(`/api/landing/${encodeURIComponent(slug)}`, { next: { revalidate: 3600 }, signal: timeout() })
+    const res = await apiFetch(`/api/landing/${encodeURIComponent(slug)}`, { next: { revalidate: 3600, tags: ['api'] }, signal: timeout() })
     return res.ok ? res.json() : null
   } catch { return null }
 }
 
 export async function fetchLandingList(): Promise<LandingAI[]> {
   try {
-    const res = await apiFetch(`/api/landing/list`, { next: { revalidate: 3600 }, signal: timeout() })
+    const res = await apiFetch(`/api/landing/list`, { next: { revalidate: 600, tags: ['api'] }, signal: timeout() })
     return res.ok ? res.json() : []
   } catch { return [] }
 }
