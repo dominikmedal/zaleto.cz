@@ -64,7 +64,12 @@ export default async function LandingPage({ params }: Props) {
     ...sameCountry.sort((a, b) => order[a.type] - order[b.type] || b.hotel_count - a.hotel_count).slice(0, 8)
       .map(x => ({ href: `/zajezdy/${x.slug}`, label: x.title, hint: `${x.hotel_count} hotelů` })),
   ]
-  const alsoElsewhere = sameType.map(x => ({ href: `/zajezdy/${x.slug}`, label: x.title, hint: `${x.hotel_count} hotelů` }))
+  // přehledy bez země (všechny destinace): jinak by na ně nevedl žádný odkaz kromě sitemapy
+  const globalTypeOrder = { meal: 0, stars: 1, month: 2 } as const
+  const globals = all.filter(x => !x.country && x.slug !== l.slug)
+    .sort((a, b) => globalTypeOrder[a.type] - globalTypeOrder[b.type] || Number(a.value) - Number(b.value))
+    .map(x => ({ href: `/zajezdy/${x.slug}`, label: x.title, hint: `${x.hotel_count} hotelů` }))
+  const alsoElsewhere =sameType.map(x => ({ href: `/zajezdy/${x.slug}`, label: x.title, hint: `${x.hotel_count} hotelů` }))
   const guide = l.country ? [
     { href: `/destinace/${slugify(l.country)}`, label: `Průvodce: ${l.country}`, hint: 'kdy jet, pro koho, kolik stojí' },
     { href: `/pocasi/${slugify(l.country)}`, label: `Počasí: ${l.country}`, hint: 'klima po měsících' },
@@ -142,6 +147,7 @@ export default async function LandingPage({ params }: Props) {
         <LinkList title="Průvodce a počasí" links={guide} />
         <LinkList title={l.country ? `Další přehledy: ${l.country}` : 'Další přehledy'} links={related} />
         <LinkList title="Stejná nabídka jinde" links={alsoElsewhere} />
+        <LinkList title="Zájezdy podle stravy, hvězdiček a měsíce" links={globals} />
         <div style={{ height: 'var(--space-8)' }} />
       </main>
     </>

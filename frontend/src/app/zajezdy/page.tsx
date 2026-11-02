@@ -11,7 +11,8 @@ import SectionHead from '@/components/ui/SectionHead'
 import InfiniteHotels from '@/components/InfiniteHotels'
 import DestinationSuggest from '@/components/ui/DestinationSuggest'
 import { DateRangeField } from '@/components/DateRangePicker'
-import { fetchFilters, fetchHotels, fetchDestinations, fetchDestinationAI, fetchDestinationPhoto } from '@/lib/api'
+import { fetchFilters, fetchHotels, fetchDestinations, fetchDestinationAI, fetchDestinationPhoto, fetchLandingList } from '@/lib/api'
+import { LinkList } from '@/components/ui/SeoBlocks'
 import { formatPrice } from '@/components/ui/format'
 import { slugify } from '@/lib/slugify'
 import { seasonYear } from '@/lib/seo'
@@ -114,6 +115,17 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
   const hotels = result?.hotels ?? []
   const pg = result?.pagination
   const active = KEYS.filter(k => k !== 'sort' && f[k]).length
+  // bez filtrů ukážeme přehledy (strava, hvězdičky, měsíce, země): hlavní vstup pro vnitřní odkazy na vstupní stránky
+  const landings = active === 0 ? await fetchLandingList() : []
+  const typeOrder = { meal: 0, stars: 1, month: 2 } as const
+  const overviewLinks = landings
+    .filter(l => !l.country)
+    .sort((a, b) => typeOrder[a.type] - typeOrder[b.type] || Number(a.value) - Number(b.value))
+    .map(l => ({ href: `/zajezdy/${l.slug}`, label: l.title, hint: `${l.hotel_count} hotelů` }))
+  const countryLinks = landings
+    .filter(l => l.country && l.type === 'meal' && l.value === 'All Inclusive')
+    .slice(0, 12)
+    .map(l => ({ href: `/zajezdy/${l.slug}`, label: l.title, hint: `${l.hotel_count} hotelů` }))
   const title = f.tour_type === 'last_minute' ? 'last minute' : f.tour_type === 'first_minute' ? 'first minute' : f.destination ? f.destination.toLowerCase() : 'všechny zájezdy'
 
   return (
@@ -212,6 +224,9 @@ export default async function ZajezdyPage({ searchParams }: { searchParams: SP }
             }}
           />
         )}
+        <LinkList title="Přehledy zájezdů" links={overviewLinks} />
+        <LinkList title="All Inclusive podle destinace" links={countryLinks} />
+        <div style={{ height: 'var(--space-7)' }} />
       </main>
     </>
   )

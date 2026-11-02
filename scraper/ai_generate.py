@@ -819,6 +819,9 @@ def run_guide_images(conn, g):
 
 MIN_LANDING_HOTELS = int(os.environ.get("AI_LANDING_MIN", "8"))
 HOTEL_MAX = int(os.environ.get("AI_HOTEL_MAX", "2000"))
+# po kolika dnech se text přegeneruje (jsou v něm ceny a počty hotelů, které zastarávají)
+REFRESH_DAYS = int(os.environ.get("AI_REFRESH_DAYS", "60"))
+HOTEL_REFRESH_DAYS = int(os.environ.get("AI_HOTEL_REFRESH_DAYS", "120"))
 CANON = "(h.canonical_slug IS NULL OR h.canonical_slug = h.slug)"
 MONTHS = ["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen", "listopad", "prosinec"]
 MONTHS_IN = ["lednu", "únoru", "březnu", "dubnu", "květnu", "červnu", "červenci", "srpnu", "září", "říjnu", "listopadu", "prosinci"]
@@ -904,20 +907,30 @@ def kc(v) -> str:
 
 # ---- hotel ----
 
+HOTEL_COLS = """h.id, h.slug, h.name, h.country, h.destination, h.resort_town, h.stars, h.review_score, h.amenities,
+               h.food_options, h.price_includes, h.distances, h.description, s.min_price, s.max_price, s.available_dates"""
+
+
 def todo_hotel(conn):
+    """Nejdřív hotely bez textu (nejnabízenější první), potom nejstarší texty: v textu je cena, která časem zastará."""
     ensure_seo_tables(conn)
     have = rows(conn, "SELECT COUNT(*) AS n FROM hotel_ai")[0]["n"]
-    room = HOTEL_MAX - have
-    if room <= 0:
-        return []
-    return rows(conn, f"""
-        SELECT h.id, h.slug, h.name, h.country, h.destination, h.resort_town, h.stars, h.review_score, h.amenities,
-               h.food_options, h.price_includes, h.distances, h.description, s.min_price, s.max_price, s.available_dates
-        FROM hotels h JOIN hotel_stats s ON s.hotel_id = h.id
+    missing = []
+    if HOTEL_MAX - have > 0:
+        missing = rows(conn, f"""
+            SELECT {HOTEL_COLS}
+            FROM hotels h JOIN hotel_stats s ON s.hotel_id = h.id
+            WHERE s.next_departure >= CURRENT_DATE::text AND s.min_price IS NOT NULL AND {CANON}
+              AND NOT EXISTS (SELECT 1 FROM hotel_ai a WHERE a.slug = h.slug)
+            ORDER BY s.available_dates DESC NULLS LAST, h.review_score DESC NULLS LAST, h.id
+            LIMIT %s""", (HOTEL_MAX - have,))
+    stale = rows(conn, f"""
+        SELECT {HOTEL_COLS}
+        FROM hotels h JOIN hotel_stats s ON s.hotel_id = h.id JOIN hotel_ai a ON a.slug = h.slug
         WHERE s.next_departure >= CURRENT_DATE::text AND s.min_price IS NOT NULL AND {CANON}
-          AND NOT EXISTS (SELECT 1 FROM hotel_ai a WHERE a.slug = h.slug)
-        ORDER BY s.available_dates DESC NULLS LAST, h.review_score DESC NULLS LAST, h.id
-        LIMIT %s""", (room,))
+          AND a.generated_at < NOW() - make_interval(days => %s)
+        ORDER BY a.generated_at LIMIT 300""", (HOTEL_REFRESH_DAYS,))
+    return missing + stale
 
 
 def run_hotel(conn, h):
@@ -1007,15 +1020,18 @@ def dest_stats(conn, name):
 def todo_destination_seo(conn):
     ensure_seo_tables(conn)
     have = {r["name"] for r in rows(conn, "SELECT name FROM destination_seo")}
-    # země a oblasti (střediska mají jen krátký text z průvodce)
-    return [n for n in geo_names(conn, False) if n not in have]
+    fresh = {r["name"] for r in rows(conn, "SELECT name FROM destination_seo WHERE generated_at > NOW() - make_interval(days => %s)", (REFRESH_DAYS,))}
+    # země a oblasti (střediska mají jen krátký text z průvodce); nejdřív chybějící, pak zastaralé
+    names = geo_names(conn, False)
+    return [n for n in names if n not in have] + [n for n in names if n in have and n not in fresh]
 
 
 def run_destination_seo(conn, name):
     st = dest_stats(conn, name)
     if not st or st["hotels"] < 3:
         # málo dat na poctivý text: uložíme prázdný záznam, ať se destinace neopakuje v každém běhu
-        conn.cursor().execute("INSERT INTO destination_seo (name, stats) VALUES (%s, %s) ON CONFLICT (name) DO NOTHING", (name, js(st or {})))
+        conn.cursor().execute("""INSERT INTO destination_seo (name, stats) VALUES (%s, %s)
+                                 ON CONFLICT (name) DO UPDATE SET stats = EXCLUDED.stats, generated_at = NOW()""", (name, js(st or {})))
         conn.commit()
         return True
     cond, params = _dest_match(name)
@@ -1169,7 +1185,10 @@ def landing_candidates(conn):
 def todo_landing(conn):
     ensure_seo_tables(conn)
     have = {r["slug"] for r in rows(conn, "SELECT slug FROM landing_ai")}
-    return [c for c in landing_candidates(conn) if c["slug"] not in have]
+    fresh = {r["slug"] for r in rows(conn, "SELECT slug FROM landing_ai WHERE generated_at > NOW() - make_interval(days => %s)", (REFRESH_DAYS,))}
+    cands = landing_candidates(conn)
+    # nejdřív nové přehledy, pak ty, jejichž text (s cenami a počty hotelů) zestárl
+    return [c for c in cands if c["slug"] not in have] + [c for c in cands if c["slug"] in have and c["slug"] not in fresh]
 
 
 def run_landing(conn, c):
