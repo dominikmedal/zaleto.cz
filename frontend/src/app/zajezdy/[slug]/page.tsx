@@ -18,7 +18,12 @@ export const revalidate = 3600
 export const dynamicParams = true
 
 const LIMIT = 48
-const TIP_ICONS = ['mena', 'kompas', 'kalendar'] as const
+/** Razítko na odtrhávací části lístku: vlastní ikony webu a krátký popisek. */
+const TIPS = [
+  { icon: 'mena', label: 'Ceny' },
+  { icon: 'kompas', label: 'Výběr' },
+  { icon: 'kalendar', label: 'Termín' },
+] as const
 const SITE = 'https://zaleto.cz'
 
 interface Props { params: { slug: string } }
@@ -134,11 +139,18 @@ export default async function LandingPage({ params }: Props) {
         {l.sections.length > 0 && (
           <section className="z-land__tips" aria-label="Rady k výběru">
             {l.sections.map((s, i) => (
-              <article key={s.heading} className="z-land__tip">
-                <span className="z-land__tipicon" aria-hidden="true"><Icon name={TIP_ICONS[i % TIP_ICONS.length]} /></span>
-                <div>
-                  <h2 className="h4">{s.heading}<span className="z-dot">.</span></h2>
-                  <p><Linked text={s.text} links={textLinks} /></p>
+              /* palubní lístek: text vlevo, za perforací razítko s ikonou */
+              <article key={s.heading} className="z-tk z-tk--v z-land__tip" style={{ '--stub': '104px' } as React.CSSProperties}>
+                <div className="z-tk__in">
+                  <div className="z-land__tipmain">
+                    {/* tečka za nadpisem jen tam, kde nekončí otazníkem nebo jinou interpunkcí */}
+                    <h2 className="h4">{s.heading}{/[?!.…]$/.test(s.heading.trim()) ? null : <span className="z-dot">.</span>}</h2>
+                    <p><Linked text={s.text} links={textLinks} /></p>
+                  </div>
+                  <div className="z-land__tipstub" aria-hidden="true">
+                    <span className="z-round"><Icon name={TIPS[i % TIPS.length].icon} /></span>
+                    <span className="z-data">{TIPS[i % TIPS.length].label}</span>
+                  </div>
                 </div>
               </article>
             ))}

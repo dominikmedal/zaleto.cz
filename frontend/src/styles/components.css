@@ -2054,11 +2054,6 @@ button.z-chip { cursor: pointer; }
 .z-land__tips { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-7); }
 @media (max-width: 1023px) { .z-land { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); } }
 
-/* Rady na vstupní stránce: karta s ikonou, titulek s modrou tečkou (bez číslování) */
-.z-land__tip { display: flex; gap: var(--space-4); align-items: flex-start; padding: var(--space-5); border-radius: var(--radius-lg); background: var(--raised); border: 1px solid var(--line); box-shadow: var(--shadow-ticket); }
-.z-land__tipicon { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--sky); color: var(--brand-strong); }
-.z-land__tip h2 { margin: 2px 0 var(--space-2); }
-.z-land__tip p { margin: 0; font: 400 16px/25px var(--font-serif); color: var(--ink-muted); }
 
 /* Sezóna po měsících: osa s výškou podle hodnocení + rozbalovací řádky s popisem */
 .z-mseason { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; align-items: end; margin-bottom: var(--space-2); }
@@ -2076,8 +2071,6 @@ button.z-chip { cursor: pointer; }
 .z-mrow { border-bottom: 2px dotted var(--line); }
 .z-mrow summary { display: grid; grid-template-columns: 1fr auto auto 20px; gap: var(--space-3); align-items: center; padding: var(--space-4) 0; cursor: pointer; list-style: none; }
 .z-mrow summary::-webkit-details-marker { display: none; }
-.z-mrow summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--ink-muted); border-bottom: 2px solid var(--ink-muted); transform: rotate(45deg); transition: transform .2s; justify-self: center; }
-.z-mrow[open] summary::after { transform: rotate(-135deg); }
 .z-mrow__name { font: 600 20px/26px var(--font-serif); text-transform: capitalize; color: var(--ink); }
 .z-mrow summary:hover .z-mrow__name { color: var(--brand-strong); }
 .z-mrow p { margin: 0 0 var(--space-4); font: 400 16px/25px var(--font-serif); color: var(--ink); }
@@ -2109,3 +2102,19 @@ button.z-chip { cursor: pointer; }
 .z-mseason__sw--top { background: var(--brand-strong); border-color: var(--brand-strong); }
 .z-mseason__sw--dobre { background: var(--brand); border-color: var(--brand); }
 .z-mseason__sw--prumer { background: var(--accent-soft); border-color: var(--accent); }
+
+/* Rady na vstupní stránce: palubní lístek (z-tk--v), text vlevo, za perforací razítko s ikonou webu */
+.z-land__tips { gap: var(--space-5); }
+.z-land__tip .z-tk__in { display: grid; grid-template-columns: minmax(0, 1fr) var(--stub, 104px); }
+.z-land__tipmain { padding: var(--space-5) var(--space-5) var(--space-5) var(--space-6); }
+.z-land__tipmain h2 { margin: 0 0 var(--space-2); }
+.z-land__tipmain p { margin: 0; font: 400 16px/25px var(--font-serif); color: var(--ink-muted); }
+.z-land__tipmain p a { color: var(--brand-strong); }
+.z-land__tipstub { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-4) var(--space-2); }
+.z-land__tipstub .z-round { width: 52px; height: 52px; cursor: default; }
+.z-land__tipstub .z-round:hover { transform: none; background: var(--brand-strong); }
+.z-land__tipstub .z-data { text-transform: uppercase; }
+.z-mrow__chev { width: 20px; height: 20px; justify-self: center; color: var(--ink-muted); transition: transform .2s; }
+.z-mrow[open] .z-mrow__chev { transform: rotate(180deg); }
+@media (max-width: 767px) { .z-land__tip { --stub: 84px; } .z-land__tipmain { padding: var(--space-4) var(--space-3) var(--space-4) var(--space-5); } }
+.z-ainote, .z-prose .z-ainote, .z-coll__body .z-ainote { font: 400 12px/18px var(--font-mono); letter-spacing: .02em; }

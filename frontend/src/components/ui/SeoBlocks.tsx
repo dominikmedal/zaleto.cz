@@ -99,6 +99,7 @@ export function MonthsGrid({ seo }: { seo: DestinationSeo }) {
               <span className="z-mrow__name">{MONTHS[m.month - 1]}</span>
               <RatingBadge rating={m.rating} />
               <span className="z-mrow__price">{prices[String(m.month)] ? <><small>od</small>{formatPrice(prices[String(m.month)])}</> : ''}</span>
+              <Icon name="chevron" className="z-mrow__chev" />
             </summary>
             <p>{m.text}</p>
           </details>
