@@ -28,7 +28,7 @@ interface Props { params: { slug: string } }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const dynamic = await fetchDynamicCarDestinations().catch(() => [])
   const dest = getCarDestination(params.slug, mergeDestinations(dynamic))
-  if (!dest) return { title: 'Půjčovna aut | Zaleto' }
+  if (!dest) return { title: 'Půjčovna aut' }
 
   const aiData = await fetchCarRentalAI(params.slug).catch(() => null)
   const cheapest = aiData?.car_examples?.length

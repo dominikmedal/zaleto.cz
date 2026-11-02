@@ -148,7 +148,7 @@
   .z-footer__top > div:first-child, .z-footer__top > div:last-child { grid-column: 1 / -1; }
   .z-footer__big { font-size: 38px; line-height: 40px; margin-bottom: var(--space-2); }
   .z-footer p { margin-bottom: var(--space-4); max-width: none; }
-  .z-footer h4 { margin-bottom: var(--space-2); }
+  .z-footer h3 { margin-bottom: var(--space-2); }
   .z-footer ul { gap: 0; }
   .z-footer a, .z-footer__linkbtn { min-height: 38px; font-size: 14px; line-height: 20px; }
   .z-footer__route { margin-top: var(--space-5); }

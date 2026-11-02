@@ -33,7 +33,7 @@ export async function listHotels(q: Q) {
   if (cached) return cached
 
   const {
-    destination, date_from, date_to, date_flex, duration, min_price, max_price,
+    destination, date_from, date_to, date_month, date_flex, duration, min_price, max_price,
     stars, meal_plan, transport, tour_type, departure_city,
     sort = 'price_asc', page = '1', limit = '24', view,
   } = q
@@ -44,7 +44,7 @@ export async function listHotels(q: Q) {
   const offset = (pageNum - 1) * limitNum
   const flexDays = date_flex === '0' ? 0 : 3
 
-  const hasTourFilters = date_from || date_to || duration || meal_plan || transport || departure_city
+  const hasTourFilters = date_from || date_to || date_month || duration || meal_plan || transport || departure_city
 
   const extraFields = view === 'list'
     ? ', h.description, h.amenities, h.distances, h.food_options, h.price_includes'
@@ -147,6 +147,14 @@ export async function listHotels(q: Q) {
       }
     } else {
       tourConds.push('t.departure_date >= CURRENT_DATE::text')
+    }
+
+    // Odlety v jednom kalendářním měsíci (YYYY-MM): vstupní stránky typu „Egypt v listopadu“.
+    if (date_month && /^\d{4}-(0[1-9]|1[0-2])$/.test(date_month)) {
+      const [y, m] = date_month.split('-').map(Number)
+      const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`
+      tourConds.push('t.departure_date >= ? AND t.departure_date < ?')
+      tourParams.push(`${date_month}-01`, `${next}-01`)
     }
 
     const hotelConds = ['(h.canonical_slug IS NULL OR h.canonical_slug = h.slug)']

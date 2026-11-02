@@ -12,8 +12,14 @@ const keyFile = readdirSync(new URL('../public/', import.meta.url)).find(f => /^
 if (!keyFile) { console.error('V public/ chybí soubor s klíčem IndexNow (<32 hex>.txt).'); process.exit(1) }
 const key = keyFile.replace('.txt', '')
 
-const sitemap = await (await fetch(`${BASE}/sitemap.xml`)).text()
-let urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1])
+// /sitemap.xml je index; adresy jsou v jednotlivých částech (/sitemap/<id>.xml)
+const index = await (await fetch(`${BASE}/sitemap.xml`)).text()
+const parts = [...index.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1])
+let urls = []
+for (const part of parts) {
+  const xml = await (await fetch(BASE + new URL(part).pathname)).text()
+  urls.push(...[...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]))
+}
 if (!ALL) urls = urls.filter(u => !/\/hotel\//.test(u) && !/\/pujcovna-aut\/[^/]+\/[^/]+$/.test(u) && !/\/pocasi\/[^/]+\/[^/]+$/.test(u))
 console.log(`Odesílám ${urls.length} adres (${ALL ? 'celá sitemapa' : 'hlavní stránky, destinace, články'})`)
 

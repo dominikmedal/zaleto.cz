@@ -8,7 +8,7 @@ import { formatPrice } from '@/components/ui/format'
 import { siteSearch } from '@/server/search'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = { title: 'Hledání | Zaleto', alternates: { canonical: 'https://zaleto.cz/hledat' }, robots: { index: false, follow: true } }
+export const metadata: Metadata = { title: 'Hledání', alternates: { canonical: 'https://zaleto.cz/hledat' }, robots: { index: false, follow: true } }
 
 interface Props { searchParams: { q?: string | string[] } }
 

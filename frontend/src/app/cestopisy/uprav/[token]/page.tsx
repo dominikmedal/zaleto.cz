@@ -6,7 +6,7 @@ import TravelogueForm from '@/components/TravelogueForm'
 import { getByToken } from '@/server/travelogues'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = { title: 'Upravit cestopis | Zaleto', robots: { index: false, follow: false } }
+export const metadata: Metadata = { title: 'Upravit cestopis', robots: { index: false, follow: false } }
 
 export default async function UpravPage({ params }: { params: { token: string } }) {
   const t = await getByToken(params.token)

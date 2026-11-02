@@ -53,11 +53,11 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  if (!isValidSection(params.section)) return { title: 'Půjčovna aut | Zaleto' }
+  if (!isValidSection(params.section)) return { title: 'Půjčovna aut' }
 
   const dynamic = await fetchDynamicCarDestinations().catch(() => [])
   const dest = getCarDestination(params.slug, mergeDestinations(dynamic))
-  if (!dest) return { title: 'Půjčovna aut | Zaleto' }
+  if (!dest) return { title: 'Půjčovna aut' }
 
   const year = new Date().getFullYear()
   const meta = SECTION_META[params.section]

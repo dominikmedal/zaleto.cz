@@ -1,4 +1,5 @@
 import type { Hotel, NearbyHotel, Tour, Filters, Pagination } from './types'
+import type { HotelAI, DestinationSeo, LandingAI } from './seoContent'
 
 /** Prázdný základ = stejný origin (route handlery v app/api). Na serveru se volá in-process přes apiFetch. */
 export const API = ''
@@ -191,6 +192,36 @@ export async function fetchDestinationAI(destination: string): Promise<Destinati
       trips:       d.trips       ?? [],
     }
   } catch { return { description: null, excursions: [], best_time: null, places: [], food: [], trips: [] } }
+}
+
+// ─── SEO obsah (AI): hotely, destinace, vstupní stránky ──────────────────────
+
+export async function fetchHotelAI(slug: string): Promise<HotelAI | null> {
+  try {
+    const res = await apiFetch(`/api/hotel-ai/${encodeURIComponent(slug)}`, { next: { revalidate: 3600 }, signal: timeout() })
+    return res.ok ? res.json() : null
+  } catch { return null }
+}
+
+export async function fetchDestinationSeo(name: string): Promise<DestinationSeo | null> {
+  try {
+    const res = await apiFetch(`/api/destination-seo/${encodeURIComponent(name)}`, { next: { revalidate: 3600 }, signal: timeout() })
+    return res.ok ? res.json() : null
+  } catch { return null }
+}
+
+export async function fetchLanding(slug: string): Promise<LandingAI | null> {
+  try {
+    const res = await apiFetch(`/api/landing/${encodeURIComponent(slug)}`, { next: { revalidate: 3600 }, signal: timeout() })
+    return res.ok ? res.json() : null
+  } catch { return null }
+}
+
+export async function fetchLandingList(): Promise<LandingAI[]> {
+  try {
+    const res = await apiFetch(`/api/landing/list`, { next: { revalidate: 3600 }, signal: timeout() })
+    return res.ok ? res.json() : []
+  } catch { return [] }
 }
 
 export type WeatherAIData = {

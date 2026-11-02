@@ -31,6 +31,7 @@ import SectionRail from '@/components/SectionRail'
 import FieldClicks from '@/components/ui/FieldClicks'
 import ServiceWorkerSetup from '@/components/ServiceWorkerSetup'
 import JsonLd from '@/components/JsonLd'
+import { SOCIAL_LINKS } from '@/lib/seo'
 import ChatWidget from '@/components/ChatWidget'
 import CookieConsent from '@/components/CookieConsent'
 import MobileTabBar from '@/components/MobileTabBar'
@@ -102,6 +103,7 @@ const orgSchema = {
   description: 'Zaleto je český srovnávač zájezdů od českých cestovních kanceláří a půjčoven aut.',
   email: 'info@zaleto.cz',
   identifier: { '@type': 'PropertyValue', propertyID: 'IČO', value: '17271541' },
+  ...(SOCIAL_LINKS.length ? { sameAs: SOCIAL_LINKS } : {}),
   address: {
     '@type': 'PostalAddress',
     streetAddress: 'Majerského 2032/9',

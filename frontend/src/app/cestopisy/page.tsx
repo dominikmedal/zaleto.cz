@@ -9,7 +9,7 @@ import { approvedTravelogues } from '@/server/travelogues'
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  title: 'Cestopisy od čtenářů | Zaleto',
+  title: 'Cestopisy od čtenářů',
   description: 'Cestopisy od lidí, kteří tam byli. Skutečné zážitky a tipy z dovolených.',
   alternates: { canonical: 'https://zaleto.cz/cestopisy' },
 }

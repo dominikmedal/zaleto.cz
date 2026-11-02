@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import Header from '@/components/Header'
 import JsonLd from '@/components/JsonLd'
 import Icon from '@/components/ui/Icon'
@@ -11,7 +12,9 @@ import TourAd from '@/components/ui/TourAd'
 import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
 import CarRentalBanner from '@/components/CarRentalBanner'
 import { formatLongDate, readingTime } from '@/components/ui/format'
-import { fetchArticle, fetchArticles, fetchAllArticleSlugs, fetchDestinationPhoto, fetchHotels } from '@/lib/api'
+import { fetchArticle, fetchArticles, fetchAllArticleSlugs, fetchDestinationPhoto, fetchHotels, fetchDestinations, fetchLandingList } from '@/lib/api'
+import { LinkList } from '@/components/ui/SeoBlocks'
+import { slugify } from '@/lib/slugify'
 
 export const revalidate = 300
 export const dynamicParams = true
@@ -22,11 +25,13 @@ export async function generateStaticParams() {
 
 interface Props { params: { slug: string } }
 
+const GENERIC = /^(ostrov|ostrovy|pobřeží|město|hory|riviéra|centrum|okolí|sever|jih|východ|západ|pláž|moře|ostatní)$/i
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = await fetchArticle(params.slug).catch(() => null)
-  if (!article) return { title: 'Článek nenalezen | Zaleto' }
+  if (!article) return { title: 'Článek nenalezen' }
   return {
-    title: `${article.title} | Zaleto`,
+    title: article.title,
     description: article.excerpt ?? undefined,
     alternates: { canonical: `https://zaleto.cz/clanky/${params.slug}` },
     openGraph: { title: article.title, description: article.excerpt ?? undefined, type: 'article' },
@@ -37,22 +42,48 @@ export default async function ArticlePage({ params }: Props) {
   const article = await fetchArticle(params.slug).catch(() => null)
   if (!article) notFound()
 
-  const [photo, byDest, cheapest, others] = await Promise.all([
+  const [photo, byDest, cheapest, others, destinations, landings] = await Promise.all([
     article.location && !article.custom_image_url ? fetchDestinationPhoto(article.location).catch(() => null) : Promise.resolve(null),
     article.location ? fetchHotels({ destination: article.location, limit: 24, sort: 'price_asc' }).catch(() => null) : Promise.resolve(null),
     fetchHotels({ limit: 24, sort: 'price_asc' }).catch(() => null),
     fetchArticles(5).catch(() => []),
+    fetchDestinations().catch(() => []),
+    fetchLandingList(),
   ])
   const hero = article.custom_image_url ?? photo
   const pool = (byDest?.hotels.length ? byDest.hotels : cheapest?.hotels ?? []).filter(h => h.thumbnail_url)
   const adHotel = pool[0] ?? null
   const more = others.filter(a => a.slug !== params.slug).slice(0, 3)
 
+  // Vnitřní prolinkování: první zmínka země / oblasti v textu vede na její průvodce (místo článku jde první)
+  const names = new Map<string, string>()
+  for (const d of destinations) {
+    const region = d.destination?.split('/')[1]?.trim()
+    // obecná slova (Ostrov, Pobřeží …) se jako názvy oblastí v textu nelinkují: shoda by byla náhodná
+    for (const n of [d.country, region]) if (n && !GENERIC.test(n) && !names.has(n)) names.set(n, `/destinace/${slugify(n)}`)
+  }
+  const autoLinks = [...names].map(([name, href]) => ({ name, href }))
+    .sort((a, b) => Number(b.name === article.location) - Number(a.name === article.location))
+
+  // odkazy pod článkem: průvodce a přehledy zájezdů pro lokalitu článku
+  const locSlug = article.location ? slugify(article.location) : ''
+  const guideLinks = article.location && names.has(article.location)
+    ? [{ href: names.get(article.location)!, label: `Průvodce: ${article.location}`, hint: 'kdy jet, pro koho, kolik stojí' }] : []
+  const overviewLinks = locSlug
+    ? landings.filter(l => l.country && slugify(l.country) === locSlug)
+        .sort((a, b) => b.hotel_count - a.hotel_count).slice(0, 6)
+        .map(l => ({ href: `/zajezdy/${l.slug}`, label: l.title, hint: `${l.hotel_count} hotelů` }))
+    : []
+
   return (
     <>
       <JsonLd data={{
         '@context': 'https://schema.org', '@type': 'Article', headline: article.title,
-        description: article.excerpt ?? undefined, datePublished: article.published_at,
+        description: article.excerpt ?? undefined, datePublished: article.published_at, dateModified: article.published_at,
+        ...(hero?.startsWith('http') ? { image: hero } : {}),
+        author: { '@type': 'Organization', name: 'Redakce Zaleto', url: 'https://zaleto.cz/o-zaleto' },
+        publisher: { '@type': 'Organization', name: 'Zaleto', url: 'https://zaleto.cz', logo: { '@type': 'ImageObject', url: 'https://zaleto.cz/img/logo/logo.png' } },
+        inLanguage: 'cs-CZ',
         mainEntityOfPage: `https://zaleto.cz/clanky/${params.slug}`,
       }} />
       <Header />
@@ -62,6 +93,7 @@ export default async function ArticlePage({ params }: Props) {
           <h1 className="h1" style={{ margin: 'var(--space-4) 0' }}>{article.title}</h1>
           <div className="z-byline">
             {article.location && <span><Icon name="poloha" />{article.location}</span>}
+            <span><Icon name="agentura" /><Link href="/o-zaleto">Redakce Zaleto</Link></span>
             <span><Icon name="cas" />{readingTime(article.reading_time)}</span>
             <span><Icon name="kalendar" />{formatLongDate(article.published_at)}</span>
           </div>
@@ -80,7 +112,10 @@ export default async function ArticlePage({ params }: Props) {
               )}
             </figure>
           )}
-          {article.content && <ArticleBody content={article.content} insert={<CarRentalBanner place={article.location ?? ''} country="" />} />}
+          {article.content && <ArticleBody content={article.content} links={autoLinks} insert={<CarRentalBanner place={article.location ?? ''} country="" />} />}
+
+          <LinkList title="Související průvodci" links={guideLinks} />
+          <LinkList title={`Přehledy zájezdů${article.location ? `: ${article.location}` : ''}`} links={overviewLinks} />
 
           <div style={{ marginTop: 'var(--space-7)' }}>
             <Button href={article.location ? `/zajezdy?destination=${encodeURIComponent(article.location)}` : '/zajezdy'}>

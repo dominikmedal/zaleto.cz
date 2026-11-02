@@ -417,3 +417,75 @@ export async function guideSearchIndex(): Promise<GuideSearchItem[]> {
     return out
   } catch { return [] }
 }
+
+// ─── SEO obsah: hotely, destinace, vstupní stránky (plní scraper/ai_generate.py) ──────────────
+
+/** JSONB sloupce přijdou z Neonu už rozparsované, ale pro jistotu zvládneme i text. */
+const jsonCol = <T,>(v: unknown, fallback: T): T => {
+  if (v == null) return fallback
+  if (typeof v === 'string') { try { return JSON.parse(v) as T } catch { return fallback } }
+  return v as T
+}
+
+/** Redakční text hotelu; null, dokud ho AI nevygenerovala (nebo tabulka ještě neexistuje). */
+export async function hotelAI(slug: string): Promise<import('@/lib/seoContent').HotelAI | null> {
+  const key = `hotel_ai_${slug}`
+  const cached = metaCache.get(key)
+  if (cached !== undefined && cached !== null) return cached as import('@/lib/seoContent').HotelAI
+  try {
+    const r = (await query<Record<string, unknown>>('SELECT summary, audience, highlights, watch_out, location, food, faq, generated_at FROM hotel_ai WHERE slug = ?', [slug])).rows[0]
+    if (!r) return null
+    const out = {
+      summary: String(r.summary), audience: jsonCol(r.audience, []), highlights: jsonCol(r.highlights, []), watch_out: jsonCol(r.watch_out, []),
+      location: (r.location as string | null) ?? null, food: (r.food as string | null) ?? null, faq: jsonCol(r.faq, []), generated_at: String(r.generated_at),
+    }
+    metaCache.set(key, out)
+    return out
+  } catch { return null }
+}
+
+/** Měsíce, publikum, rozpočet a otázky destinace; null bez dostatku dat (prázdný záznam = málo hotelů). */
+export async function destinationSeo(name: string): Promise<import('@/lib/seoContent').DestinationSeo | null> {
+  const key = `dest_seo_${name}`
+  const cached = metaCache.get(key)
+  if (cached !== undefined && cached !== null) return cached as import('@/lib/seoContent').DestinationSeo
+  try {
+    const r = (await query<Record<string, unknown>>('SELECT months, audiences, budget, comparison, faq, stats, generated_at FROM destination_seo WHERE name = ?', [name])).rows[0]
+    if (!r) return null
+    const months = jsonCol<unknown[]>(r.months, [])
+    if (months.length !== 12) return null
+    const out = {
+      months: months as import('@/lib/seoContent').DestinationSeo['months'], audiences: jsonCol(r.audiences, []), budget: (r.budget as string | null) ?? null,
+      comparison: jsonCol(r.comparison, null), faq: jsonCol(r.faq, []), stats: jsonCol(r.stats, {}), generated_at: String(r.generated_at),
+    }
+    metaCache.set(key, out)
+    return out
+  } catch { return null }
+}
+
+const LANDING_COLS = 'slug, type, value, country, title, intro, sections, faq, hotel_count, min_price, generated_at'
+const toLanding = (r: Record<string, unknown>): import('@/lib/seoContent').LandingAI => ({
+  slug: String(r.slug), type: r.type as 'meal' | 'stars' | 'month', value: String(r.value), country: (r.country as string | null) ?? null,
+  title: String(r.title), intro: String(r.intro), sections: jsonCol(r.sections, []), faq: jsonCol(r.faq, []),
+  hotel_count: Number(r.hotel_count) || 0, min_price: r.min_price == null ? null : Number(r.min_price), generated_at: String(r.generated_at),
+})
+
+/** Vstupní stránka podle slugu; neexistující = 404 (stránky vznikají jen tam, kde je dost hotelů a AI text). */
+export async function landingAI(slug: string) {
+  try {
+    const r = (await query<Record<string, unknown>>(`SELECT ${LANDING_COLS} FROM landing_ai WHERE slug = ?`, [slug])).rows[0]
+    if (r) return toLanding(r)
+  } catch { /* tabulka ještě neexistuje */ }
+  throw new HttpError(404, 'Landing page not found')
+}
+
+/** Všechny vstupní stránky (sitemapa, odkazy z destinací a hotelů). */
+export async function landingList() {
+  const cached = metaCache.get('landing_list')
+  if (cached) return cached as import('@/lib/seoContent').LandingAI[]
+  try {
+    const rows = (await query<Record<string, unknown>>(`SELECT ${LANDING_COLS} FROM landing_ai ORDER BY hotel_count DESC`)).rows.map(toLanding)
+    metaCache.set('landing_list', rows)
+    return rows
+  } catch { return [] }
+}

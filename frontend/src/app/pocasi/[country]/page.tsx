@@ -70,7 +70,7 @@ function weatherTitle(name: string): string {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const info = await resolveCountry(params.country)
-  if (!info) return { title: 'Počasí | Zaleto' }
+  if (!info) return { title: 'Počasí' }
   const title = weatherTitle(info.name)
   const description = `Průměrné teploty vzduchu a moře, sluneční svit a srážky v ${info.name} po měsících. Zjistěte, kdy je nejlepší dovolená a kdy se můžete koupat.`
   const canonical = `https://zaleto.cz/pocasi/${params.country}`

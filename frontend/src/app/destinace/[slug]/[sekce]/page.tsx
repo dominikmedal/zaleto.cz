@@ -20,8 +20,8 @@ interface Props { params: { slug: string; sekce: string } }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const sec = GUIDE_SECTIONS.find(s => s.key === params.sekce)
   const dest = await resolveDestination(params.slug)
-  if (!sec || !dest) return { title: 'Stránka nenalezena | Zaleto' }
-  const title = `${sec.label}: ${dest.name} | Zaleto`
+  if (!sec || !dest) return { title: 'Stránka nenalezena' }
+  const title = `${sec.label}: ${dest.name}`
   const description = `${sec.heading.charAt(0).toUpperCase()}${sec.heading.slice(1)} v destinaci ${dest.name}: popisy, fotky a poloha na mapě.`
   const canonical = `https://zaleto.cz/destinace/${params.slug}/${sec.key}`
   return { title, description, alternates: { canonical }, openGraph: { title, description, url: canonical, type: 'website', siteName: 'Zaleto', locale: 'cs_CZ' } }

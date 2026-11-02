@@ -82,6 +82,23 @@ export default function OZaletoPage() {
           </ol>
         </section>
 
+        <section className="z-section" id="jak-pracujeme">
+          <SectionHead kicker="Důvěra" title="jak pracujeme s daty" />
+          <div className="z-prose" style={{ maxWidth: 'var(--article-max)' }}>
+            <p><strong>Odkud jsou ceny.</strong> Nabídky, termíny a ceny stahujeme z webů českých cestovních kanceláří a ukládáme je do vlastní databáze. Cena, kterou u hotelu vidíš, je nejnižší aktuálně nalezená cena za osobu; konečnou cenu a podmínky vždy potvrdí cestovní kancelář před rezervací.</p>
+            <p><strong>Jak řadíme.</strong> Výsledky jsou ve výchozím nastavení řazené podle ceny od nejlevnější. Pořadí neovlivňuje to, kolik bychom na nabídce vydělali.</p>
+            <p><strong>Jak vznikají texty.</strong> Shrnutí hotelů, průvodci destinacemi a přehledy zájezdů vznikají s pomocí AI z údajů cestovních kanceláří a našich vlastních dat (ceny, počty termínů, měsíční ceny). Modelu zakazujeme vymýšlet vybavení, vzdálenosti i ceny; takové texty jsou na stránkách označené a mají uvedené datum aktualizace. Pokud najdeš chybu, napiš nám na <a href="mailto:info@zaleto.cz">info@zaleto.cz</a>, opravíme ji.</p>
+            <p><strong>Jak se financujeme.</strong> Odkazy na cestovní kanceláře mohou být partnerské: pokud přes ně zarezervuješ, můžeme získat provizi. Cena pro tebe se tím nemění.</p>
+          </div>
+        </section>
+
+        <section className="z-section" id="provozovatel">
+          <SectionHead kicker="Provozovatel" title="kdo za tím stojí" />
+          <div className="z-prose" style={{ maxWidth: 'var(--article-max)' }}>
+            <p>Zaleto provozuje Bc. Dominik Medal, IČO 17271541, Majerského 2032/9, 149 00 Praha 4 – Chodov. Kontakt: <a href="mailto:info@zaleto.cz">info@zaleto.cz</a> nebo <a href="/kontakt">kontaktní formulář</a>.</p>
+          </div>
+        </section>
+
         <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', marginTop: 'var(--space-8)' }}>
           <Button href="/zajezdy">Najít zájezd</Button>
           <Button href="/kontakt" variant="line">Kontakt</Button>

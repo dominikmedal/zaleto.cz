@@ -38,14 +38,27 @@ const nextConfig = {
   // Veřejné API: JSON se nemá indexovat jako stránky, ale musí být čitelné odkudkoli (CORS jen pro čtení)
   async headers() {
     const publicApi = ['search', 'hotels', 'hotels/:path*', 'destinations', 'filters', 'calendar-prices', 'articles', 'articles/:path*', 'destination-ai/:path*', 'weather-ai/:path*', 'car-rental-ai/:path*', 'destination-photo/:path*', 'health']
-    return publicApi.map(p => ({
+    // Bezpečnostní hlavičky pro všechny stránky. CSP je záměrně jen frame-ancestors (plná CSP by rozbila inline JSON-LD a mapy).
+    const security = {
+      source: '/:path*',
+      headers: [
+        { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+        { key: 'X-Content-Type-Options', value: 'nosniff' },
+        { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+        { key: 'Content-Security-Policy', value: "frame-ancestors 'self'" },
+        { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
+        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+      ],
+    }
+    return [security, ...publicApi.map(p => ({
       source: `/api/${p}`,
       headers: [
         { key: 'X-Robots-Tag', value: 'noindex' },
         { key: 'Access-Control-Allow-Origin', value: '*' },
         { key: 'Access-Control-Allow-Methods', value: 'GET, HEAD, OPTIONS' },
       ],
-    }))
+    }))]
   },
   async rewrites() {
     return [

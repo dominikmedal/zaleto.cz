@@ -7,7 +7,7 @@ import { fetchDestinations } from '@/lib/api'
 
 export const revalidate = 3600
 export const metadata: Metadata = {
-  title: 'Napsat cestopis | Zaleto',
+  title: 'Napsat cestopis',
   description: 'Podělte se o svou cestu. Cestopis po schválení zveřejníme u destinace.',
   alternates: { canonical: 'https://zaleto.cz/cestopisy/napsat' },
 }

@@ -25,6 +25,11 @@ import PhotoGallery from '@/components/PhotoGallery'
 import { FactsStrip, GuideHub } from '@/components/ui/GuideSections'
 import { mergeDestinations } from '@/lib/carRental'
 import { fetchDynamicCarDestinations } from '@/lib/api'
+import { formatPrice } from '@/components/ui/format'
+import { seasonYear } from '@/lib/seo'
+import { fetchDestinationSeo, fetchLandingList } from '@/lib/api'
+import { MONTHS } from '@/lib/seoContent'
+import { Paragraphs, AudienceList, MonthsGrid, LinkList, AiNote } from '@/components/ui/SeoBlocks'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -54,22 +59,28 @@ interface Props { params: { slug: string } }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const dest = await resolveDestination(params.slug)
-  if (!dest) return { title: 'Destinace nenalezena | Zaleto' }
+  if (!dest) return { title: 'Destinace nenalezena' }
 
-  const year = new Date().getFullYear()
-  const wiki = await fetchWikiSummary(dest.name).catch(() => null)
+  const year = seasonYear()
+  // stejný dotaz jako v těle stránky (výchozí řazení), takže se jen sdílí cache
+  const [wiki, first] = await Promise.all([
+    fetchWikiSummary(dest.name).catch(() => null),
+    fetchHotels({ destination: dest.name, sort: 'price_asc', page: 1, limit: LIMIT }).catch(() => null),
+  ])
+  const minPrice = first?.hotels[0]?.min_price
+  const from = minPrice ? ` od ${formatPrice(minPrice)}` : ''
   const name = wiki?.title ?? dest.name
   const description = wiki
     ? wiki.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ')
     : `Porovnej zájezdy do destinace ${name} od českých cestovních kanceláří.`
   const canonical = `https://zaleto.cz/destinace/${params.slug}`
-  const title = `Zájezdy ${name} ${year} — srovnání cen CK | Zaleto`
+  const title = `Zájezdy ${name} ${year}${from} — srovnání cen CK`
 
   return {
     title,
     description,
     alternates: { canonical },
-    openGraph: { title: `Zájezdy ${name} ${year} | Zaleto`, description, url: canonical, type: 'website', siteName: 'Zaleto', locale: 'cs_CZ' },
+    openGraph: { title, description, url: canonical, type: 'website', siteName: 'Zaleto', locale: 'cs_CZ' },
     twitter: { card: 'summary_large_image', title, description },
   }
 }
@@ -99,8 +110,10 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
 
   const sort = SORTS.some(([v]) => v === searchParams.sort) ? (searchParams.sort as string) : 'price_asc'
 
-  const [destAI, heroPhoto, result, articles, gallery] = await Promise.all([
+  const [destAI, seo, landings, heroPhoto, result, articles, gallery] = await Promise.all([
     fetchDestinationAI(dest.name).catch(() => null),
+    fetchDestinationSeo(dest.name),
+    dest.country ? fetchLandingList() : Promise.resolve([]),
     fetchDestinationPhotoCredit(dest.name).then(async r => (r.url ? r : dest.country && dest.country !== dest.name ? fetchDestinationPhotoCredit(dest.country) : r)),
     fetchHotels({ destination: dest.name, sort, page: 1, limit: LIMIT }).catch(() => null),
     fetchArticles(3, dest.name).catch(() => []),
@@ -155,6 +168,8 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
   const tabs: NavTabItem[] = [
     ...(paragraphs.length > 1 ? [{ href: '#o-destinaci', label: 'O destinaci', icon: 'kompas' as const }] : []),
     ...(bestTime ? [{ href: '#kdy-jet', label: 'Kdy jet', icon: 'kalendar' as const }] : []),
+    ...(seo ? [{ href: '#mesice', label: 'Po měsících', icon: 'slunce' as const }] : []),
+    ...(seo?.budget ? [{ href: '#rozpocet', label: 'Kolik stojí', icon: 'mena' as const }] : []),
     ...(places.length ? [{ href: '#co-videt', label: 'Co vidět', icon: 'poloha' as const }] : []),
     ...(food.length ? [{ href: '#jidlo', label: 'Jídlo', icon: 'jidlo' as const }] : []),
     ...(trips.length ? [{ href: '#vylety', label: 'Výlety', icon: 'trasa' as const }] : []),
@@ -177,11 +192,43 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
     ],
   }
 
-  const hasLong = !!(paragraphs.length > 1 || bestTime || places.length || food.length || trips.length)
+  // Časté otázky: jen z dat, která na stránce opravdu jsou (odpovědi v textu = odpovědi ve strukturovaných datech)
+  const sentences = (t: string, n: number) => t.replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s+/).slice(0, n).join(' ')
+  const seoFaq = seo?.faq ?? []
+  const faqs = [
+    // „Kdy jet“ odvozujeme z textu jen tehdy, když ji nemáme z AI obsahu (ten má vlastní, podrobnější otázky)
+    ...(bestTime && !seoFaq.length ? [{ q: `Kdy jet do destinace ${dest.name}?`, a: sentences(bestTime, 3) }] : []),
+    ...(hotels[0]?.min_price ? [{
+      q: `Kolik stojí zájezd do destinace ${dest.name}?`,
+      a: `Nejlevnější zájezd, který teď srovnáváme, vychází od ${formatPrice(hotels[0].min_price)}${pg?.total ? ` a vybírat můžeš z ${pg.total.toLocaleString('cs-CZ')} hotelů s volným termínem` : ''}. Cena závisí na termínu, délce pobytu a stravování; konečnou cenu potvrdí cestovní kancelář před rezervací.`,
+    }] : []),
+    // otázky z AI obsahu; dotaz na cenu už odpovídáme z aktuálních nabídek výše
+    ...seoFaq.filter(f => !(hotels[0]?.min_price && /kolik\s+stoj/i.test(f.q))),
+  ]
+  const faqSchema = faqs.length ? {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+  } : null
+
+  const destinationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'TouristDestination',
+    name: title,
+    url: `https://zaleto.cz/destinace/${params.slug}`,
+    ...(paragraphs[0] ? { description: paragraphs[0] } : {}),
+    ...(heroPhoto?.url?.startsWith('http') ? { image: heroPhoto.url } : {}),
+    ...(dest.type !== 'country' && dest.country ? { containedInPlace: { '@type': 'Country', name: dest.country } } : {}),
+    ...(places.length ? { includesAttraction: places.slice(0, 10).map(p => ({ '@type': 'TouristAttraction', name: p.name, ...(p.description ? { description: p.description } : {}) })) } : {}),
+  }
+
+  const hasLong = !!(paragraphs.length > 1 || bestTime || seo || places.length || food.length || trips.length)
 
   return (
     <>
       <JsonLd data={breadcrumbSchema} />
+      <JsonLd data={destinationSchema} />
+      {faqSchema && <JsonLd data={faqSchema} />}
       <Header />
 
       <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
@@ -203,7 +250,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
             <div className="z-cardest__media" data-thumbs={thumbs.length > 0 || undefined}>
               <div className="z-cardest__photo">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <Photo widths={[640, 1200]} sizes="(max-width: 767px) 100vw, 600px" src={heroPhoto.url} alt={dest.name} />
+                <Photo widths={[640, 1200]} sizes="(max-width: 767px) 100vw, 600px" src={heroPhoto.url} alt={dest.name} loading="eager" fetchPriority="high" />
                 {heroPhoto.credit && (
                   <span className="z-photocredit">Foto: <a href={heroPhoto.creditUrl ?? 'https://unsplash.com'} target="_blank" rel="noopener noreferrer">{heroPhoto.credit}</a> / <a href="https://unsplash.com/?utm_source=zaleto&utm_medium=referral" target="_blank" rel="noopener noreferrer">Unsplash</a></span>
                 )}
@@ -239,6 +286,35 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
                 <Block id="kdy-jet" kicker="Kdy jet" title="nejlepší doba na cestu">
                   <div className="z-prose">{bestTime.split(/\n\n+/).map((p, i) => <p key={i}>{p}</p>)}</div>
                   {weatherUrl && <p style={{ marginTop: 'var(--space-4)' }}><Link className="z-more" href={weatherUrl}>Počasí po měsících</Link></p>}
+                </Block>
+              )}
+              {seo && (
+                <Block id="mesice" kicker="Po měsících" title={`${dest.name} měsíc po měsíci`}>
+                  <MonthsGrid seo={seo} />
+                  {seo.stats.cheapest_month && seo.stats.monthly?.[String(seo.stats.cheapest_month)] ? (
+                    <p className="z-note">
+                      Nejlevnější zájezdy teď vycházejí na odlety v měsíci {MONTHS[seo.stats.cheapest_month - 1]} (od {formatPrice(seo.stats.monthly[String(seo.stats.cheapest_month)])}).
+                    </p>
+                  ) : null}
+                </Block>
+              )}
+              {seo && seo.audiences.length > 0 && (
+                <Block id="pro-koho" kicker="Pro koho" title="komu se destinace hodí">
+                  <AudienceList items={seo.audiences} />
+                </Block>
+              )}
+              {seo?.budget && (
+                <Block id="rozpocet" kicker="Rozpočet" title={`kolik stojí dovolená: ${dest.name}`}>
+                  <div className="z-prose"><Paragraphs text={seo.budget} /></div>
+                </Block>
+              )}
+              {seo?.comparison && (
+                <Block id="srovnani" kicker="Srovnání" title={`${dest.name} nebo ${seo.comparison.with}?`}>
+                  <div className="z-prose">
+                    <p>{seo.comparison.text}</p>
+                    <p><Link className="z-more" href={`/destinace/${slugify(seo.comparison.with)}`}>Průvodce: {seo.comparison.with}</Link></p>
+                  </div>
+                  <AiNote at={seo.generated_at} />
                 </Block>
               )}
               {places.length > 0 && <Block id="co-videt" kicker="Co vidět" title="místa, která stojí za to"><PlaceTickets items={places} /></Block>}
@@ -292,6 +368,26 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
             <InfiniteHotels key={sort} initial={hotels} total={pg?.total ?? hotels.length} limit={LIMIT} query={{ destination: dest.name, sort }} />
           )}
         </section>
+
+        {faqs.length > 0 && (
+          <Block id="faq" kicker="Časté otázky" title={`dotazy k zájezdům: ${dest.name}`}>
+            {faqs.map(({ q, a }) => (
+              <details key={q} className="z-faq">
+                <summary><span className="h4">{q}</span></summary>
+                <p>{a}</p>
+              </details>
+            ))}
+          </Block>
+        )}
+
+        <LinkList
+          title={`Přehledy zájezdů${dest.country ? `: ${dest.country}` : ''}`}
+          links={landings
+            .filter(l => l.country && l.country === dest.country)
+            .sort((a, b) => ({ meal: 0, stars: 1, month: 2 })[a.type] - ({ meal: 0, stars: 1, month: 2 })[b.type] || b.hotel_count - a.hotel_count)
+            .slice(0, 10)
+            .map(l => ({ href: `/zajezdy/${l.slug}`, label: l.title, hint: `${l.hotel_count} hotelů` }))}
+        />
 
         <section id="cestopisy" data-rail="Cestopisy" className="z-section" style={{ scrollMarginTop: 'calc(var(--header-height) + 56px)' }}>
           <div className="z-shead">

@@ -9,7 +9,7 @@ import { slugify } from '@/lib/slugify'
 export const revalidate = 3600
 
 export const metadata: Metadata = {
-  title: 'Počasí na dovolené — kdy jet a kam? Průvodce klimatem | Zaleto',
+  title: 'Počasí na dovolené — kdy jet a kam? Průvodce klimatem',
   description: 'Zjisti, kdy je v dané destinaci nejlépe. Průměrné teploty vzduchu i moře, sluneční hodiny a nejlepší měsíce pro dovolenou.',
   alternates: { canonical: 'https://zaleto.cz/pocasi' },
   openGraph: {

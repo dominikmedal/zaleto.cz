@@ -15,9 +15,9 @@ interface Props { params: { slug: string } }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const t = await approvedTravelogue(params.slug)
-  if (!t) return { title: 'Cestopis nenalezen | Zaleto' }
+  if (!t) return { title: 'Cestopis nenalezen' }
   return {
-    title: `${t.title} | Cestopisy | Zaleto`,
+    title: `${t.title} | Cestopisy`,
     description: t.body.replace(/[#*>\-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 155),
     alternates: { canonical: `https://zaleto.cz/cestopisy/${t.slug}` },
   }

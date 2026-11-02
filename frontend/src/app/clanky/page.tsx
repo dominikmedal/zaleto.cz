@@ -9,7 +9,7 @@ import { fetchArticles, fetchDestinationPhoto, fetchHotels } from '@/lib/api'
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  title: 'Cestovní deník — články z cest, průvodci a tipy | Zaleto',
+  title: 'Cestovní deník — články z cest, průvodci a tipy',
   description: 'Články z cest, průvodci po destinacích a konkrétní tipy pro tvoji dovolenou.',
   alternates: { canonical: 'https://zaleto.cz/clanky' },
 }

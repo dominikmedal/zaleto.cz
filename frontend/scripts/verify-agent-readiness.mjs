@@ -46,14 +46,18 @@ for (const ua of ['ChatGPT-User/1.0', 'OAI-SearchBot/1.0', 'PerplexityBot/1.0', 
   check('llms.txt: začíná H1 a shrnutím', /^# Zaleto/.test(t) && /\n> /.test(t))
 }
 
-// 5) sitemap.xml
+// 5) sitemap.xml (index) a jeho části
+let sitemapXml = ''
 {
   const r = await get('/sitemap.xml')
-  const x = await r.text()
-  const locs = [...x.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1])
-  check('sitemap.xml: platný urlset', r.status === 200 && /<urlset/.test(x) && locs.length > 10, `${locs.length} adres`)
-  check('sitemap.xml: lastmod u adres', (x.match(/<lastmod>/g) || []).length >= locs.length * 0.9)
-  check('sitemap.xml: bez adres s ?tour_type na homepage', !locs.some(l => /^https:\/\/zaleto\.cz\/\?/.test(l)))
+  const idx = await r.text()
+  const parts = [...idx.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1])
+  check('sitemap.xml: platný sitemapindex s částmi', r.status === 200 && /<sitemapindex/.test(idx) && parts.length >= 1, `${parts.length} částí`)
+  for (const part of parts) sitemapXml += await (await get(new URL(part).pathname)).text()
+  const locs = [...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1])
+  check('sitemap: platné urlset a adresy', /<urlset/.test(sitemapXml) && locs.length > 10, `${locs.length} adres`)
+  check('sitemap: lastmod jen u adres se známým datem změny (hotely, články, průvodci)', (sitemapXml.match(/<lastmod>/g) || []).length >= locs.length * 0.5)
+  check('sitemap: bez adres s ?tour_type na homepage', !locs.some(l => /^https:\/\/zaleto\.cz\/\?/.test(l)))
 }
 
 // 6) robots.txt
@@ -132,8 +136,7 @@ for (const path of ['/about', '/contact', '/privacy']) {
   check('robots.txt: /api/ není zakázané', /Allow:\s*\/api\//.test(robots) && !/Disallow:\s*\/api\/\s*$/m.test(robots))
   const llms = await (await get('/llms.txt')).text()
   check('llms.txt: odkaz na openapi.json a /developers', /openapi\.json/.test(llms) && /\/developers/.test(llms))
-  const sm = await (await get('/sitemap.xml')).text()
-  check('sitemap.xml: obsahuje /developers', /\/developers<\/loc>/.test(sm))
+  check('sitemap: obsahuje /developers', /\/developers<\/loc>/.test(sitemapXml))
 }
 
 const failed = results.filter(r => !r.ok).length

@@ -36,8 +36,8 @@ async function load(p: Props['params']) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const d = await load(params)
-  if (!d) return { title: 'Stránka nenalezena | Zaleto' }
-  const title = `${d.item.name} (${d.dest.name}) | Zaleto`
+  if (!d) return { title: 'Stránka nenalezena' }
+  const title = `${d.item.name} (${d.dest.name})`
   const description = d.item.description.length > 155 ? `${d.item.description.slice(0, 152).replace(/\s+\S*$/, '')}…` : d.item.description
   const canonical = `https://zaleto.cz/destinace/${params.slug}/${params.sekce}/${params.polozka}`
   return {

@@ -4,7 +4,7 @@ import { fetchAiUsage, type AiUsage } from '@/lib/adminApi'
 import { PageHead, ErrorBox, Loading } from '@/components/admin/AdminUI'
 
 const KIND: Record<string, string> = {
-  destination: 'Popisy destinací', weather: 'Počasí', car_rental: 'Půjčovny aut', guide: 'Průvodci oblastí', article: 'Články (GitHub Actions)',
+  destination: 'Popisy destinací', weather: 'Počasí', car_rental: 'Půjčovny aut', guide: 'Průvodci oblastí', hotel: 'Hotely: shrnutí', destination_seo: 'Destinace: kdy jet', landing: 'Přehledy zájezdů', article: 'Články (GitHub Actions)',
   article_select: 'Články: výběr zdrojů', article_rewrite: 'Články: přepis', cover: 'Titulní obrázky', text: 'Ostatní text',
 }
 const fmtKc = (n: number) => `${Math.round(n).toLocaleString('cs-CZ')} Kč`

@@ -53,7 +53,7 @@ export default async function Footer() {
 
         {COLUMNS.map(col => (
           <div key={col.heading}>
-            <h4>{col.heading}</h4>
+            <h3>{col.heading}</h3>
             <ul>
               {col.items.map(i => <li key={i.label}><Link href={i.href}>{i.label}</Link></li>)}
               {col.heading === 'Zaleto' && <li><CookieSettingsLink /></li>}
@@ -62,7 +62,7 @@ export default async function Footer() {
         ))}
 
         <div>
-          <h4>Poslední zápisky</h4>
+          <h3>Poslední zápisky</h3>
           <ul>
             {recent.map(a => <li key={a.slug}><Link href={`/clanky/${a.slug}`}>{a.title}</Link></li>)}
             {recent.length === 0 && <li><Link href="/clanky">Cestovní deník</Link></li>}

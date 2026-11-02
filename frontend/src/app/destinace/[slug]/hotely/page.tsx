@@ -22,8 +22,8 @@ interface Props { params: { slug: string }; searchParams: { sort?: string } }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const dest = await resolveDestination(params.slug)
-  if (!dest) return { title: 'Destinace nenalezena | Zaleto' }
-  const title = `Hotely ${dest.name} — všechny hotely s termínem | Zaleto`
+  if (!dest) return { title: 'Destinace nenalezena' }
+  const title = `Hotely ${dest.name} — všechny hotely s termínem`
   const description = `Všechny hotely v destinaci ${dest.name}, ke kterým máme aktuální zájezdy od českých cestovních kanceláří.`
   const canonical = `https://zaleto.cz/destinace/${params.slug}/hotely`
   return {

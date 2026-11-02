@@ -11,7 +11,7 @@ import { slugify } from '@/lib/slugify'
 export const revalidate = 3600
 
 export const metadata: Metadata = {
-  title: 'Všechny destinace — přehled zájezdů | Zaleto.cz',
+  title: 'Všechny destinace — přehled zájezdů',
   description: 'Vyber zemi, oblast nebo středisko a najdi nejlepší nabídky od českých cestovních kanceláří.',
   alternates: { canonical: 'https://zaleto.cz/destinace' },
   openGraph: { title: 'Destinace zájezdů — Zaleto.cz', url: 'https://zaleto.cz/destinace', type: 'website' },

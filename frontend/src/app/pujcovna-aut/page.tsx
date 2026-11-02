@@ -7,13 +7,14 @@ import SectionHead from '@/components/ui/SectionHead'
 import { CarRentalProvider, CarRentalForm, CarRentalResults } from '@/components/CarRentalSearchForm'
 import { mergeDestinations } from '@/lib/carRental'
 import { fetchDynamicCarDestinations, fetchCarRentalAI } from '@/lib/api'
+import { seasonYear } from '@/lib/seo'
 
 export const revalidate = 86400
 
-const year = new Date().getFullYear()
+const year = seasonYear()
 
 export const metadata: Metadata = {
-  title: `Půjčovna aut v zahraničí ${year} – srovnání cen | Zaleto`,
+  title: `Půjčovna aut v zahraničí ${year} – srovnání cen`,
   description:
     `Porovnej ceny půjčoven aut ve více než 20 destinacích – Řecko, Turecko, Chorvatsko, Španělsko a další. ` +
     `Vyber si auto snadno a rychle.`,

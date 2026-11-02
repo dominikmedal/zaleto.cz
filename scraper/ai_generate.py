@@ -3,7 +3,7 @@ Generování AI obsahu (Google Gemini) – náhrada za fronty ve starém Express
 
 Spouští se z GitHub Actions (.github/workflows/ai.yml) nebo ručně:
     python ai_generate.py                      # všechno, co chybí
-    python ai_generate.py --only destination   # article | destination | weather | car_rental | guide | guide_images
+    python ai_generate.py --only destination   # article | destination | weather | car_rental | guide | guide_images | hotel | destination_seo | landing
     python ai_generate.py --limit 10           # nejvýše 10 položek za běh
 
 Prompty se berou z tabulky ai_prompts (úpravy v administraci, sekce Prompty);
@@ -11,6 +11,8 @@ když v DB chybí, použije se výchozí znění z frontend/src/server/promptDef
 Hotový obsah se nikdy nepřepisuje – generuje se jen to, co v DB ještě není.
 
 Env: DATABASE_URL, GEMINI_API_KEY, volitelně AI_PAUSE (s mezi voláními, výchozí 35),
+     AI_HOTEL_MAX (kolik nejnabízenějších hotelů celkem dostane vlastní text, výchozí 2000),
+     AI_LANDING_MIN (nejméně hotelů pro vznik vstupní stránky, výchozí 8),
      SITE_URL + REVALIDATE_SECRET (po doběhu obnoví cache webu).
 """
 
@@ -46,6 +48,9 @@ GEN = {
     "weather": {"max_tokens": 2048, "temperature": 0.4, "timeout": 25},
     "car_rental": {"max_tokens": 8192, "temperature": 0.5, "timeout": 45},
     "guide": {"max_tokens": 24000, "temperature": 0.4, "timeout": 120},
+    "hotel": {"max_tokens": 4096, "temperature": 0.45, "timeout": 40},
+    "destination_seo": {"max_tokens": 8192, "temperature": 0.5, "timeout": 70},
+    "landing": {"max_tokens": 4096, "temperature": 0.5, "timeout": 45},
 }
 
 
@@ -810,6 +815,407 @@ def run_guide_images(conn, g):
     return True
 
 
+# ── SEO obsah: hotely, destinace (kdy jet / pro koho / rozpočet), vstupní stránky ──────────────
+
+MIN_LANDING_HOTELS = int(os.environ.get("AI_LANDING_MIN", "8"))
+HOTEL_MAX = int(os.environ.get("AI_HOTEL_MAX", "2000"))
+CANON = "(h.canonical_slug IS NULL OR h.canonical_slug = h.slug)"
+MONTHS = ["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen", "listopad", "prosinec"]
+MONTHS_IN = ["lednu", "únoru", "březnu", "dubnu", "květnu", "červnu", "červenci", "srpnu", "září", "říjnu", "listopadu", "prosinci"]
+AUDIENCES = {"Rodiny s dětmi", "Páry", "Aktivní dovolená", "Klidná dovolená", "Parta přátel", "Senioři"}
+
+
+def ensure_seo_tables(conn):
+    cur = conn.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS hotel_ai (
+        slug TEXT PRIMARY KEY, summary TEXT NOT NULL, audience JSONB NOT NULL DEFAULT '[]', highlights JSONB NOT NULL DEFAULT '[]',
+        watch_out JSONB NOT NULL DEFAULT '[]', location TEXT, food TEXT, faq JSONB NOT NULL DEFAULT '[]',
+        generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS destination_seo (
+        name TEXT PRIMARY KEY, months JSONB NOT NULL DEFAULT '[]', audiences JSONB NOT NULL DEFAULT '[]', budget TEXT,
+        comparison JSONB, faq JSONB NOT NULL DEFAULT '[]', stats JSONB NOT NULL DEFAULT '{}',
+        generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS landing_ai (
+        slug TEXT PRIMARY KEY, type TEXT NOT NULL, value TEXT NOT NULL, country TEXT, title TEXT NOT NULL,
+        intro TEXT NOT NULL, sections JSONB NOT NULL DEFAULT '[]', faq JSONB NOT NULL DEFAULT '[]',
+        hotel_count INT NOT NULL DEFAULT 0, min_price REAL, generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+    conn.commit()
+
+
+def clean_faq(lst, limit, a_max=420):
+    out = []
+    for it in (lst if isinstance(lst, list) else [])[:limit]:
+        if not isinstance(it, dict):
+            continue
+        q, a = _clean_text(it.get("q"), 160), _clean_text(it.get("a"), a_max)
+        if q and a and len(a) >= 20 and q.endswith("?"):
+            out.append({"q": q, "a": a})
+    return out
+
+
+def clean_audience(lst, limit, t_max=320):
+    out, seen = [], set()
+    for it in (lst if isinstance(lst, list) else [])[:limit]:
+        if not isinstance(it, dict):
+            continue
+        who, text = _clean_text(it.get("who"), 40), _clean_text(it.get("text"), t_max)
+        if who in AUDIENCES and text and len(text) >= 20 and who not in seen:
+            seen.add(who)
+            out.append({"who": who, "text": text})
+    return out
+
+
+def clean_strs(lst, limit, max_len):
+    out = []
+    for s in (lst if isinstance(lst, list) else [])[:limit]:
+        v = _clean_text(s, max_len) if isinstance(s, str) else None
+        if v and len(v) >= 4:
+            out.append(v)
+    return out
+
+
+def clean_paragraphs(raw, each=900, total=2000):
+    """Odstavce oddělené prázdným řádkem zůstanou odstavci (_clean_text jinak spojuje řádky)."""
+    parts = [_clean_text(x, each) for x in re.split(r"\n\s*\n", raw if isinstance(raw, str) else "")]
+    return "\n\n".join(x for x in parts if x)[:total]
+
+
+def _strip_html(s: str) -> str:
+    s = re.sub(r"<[^>]*>", " ", s or "")
+    s = s.replace("&nbsp;", " ").replace("&amp;", "&").replace("&quot;", '"')
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _list_field(raw) -> list[str]:
+    if not raw:
+        return []
+    try:
+        v = json.loads(raw)
+        if isinstance(v, list):
+            return [str(x).strip() for x in v if str(x).strip()]
+    except Exception:
+        pass
+    return [x.strip() for x in re.split(r"[|,\n]", raw) if x.strip()]
+
+
+def kc(v) -> str:
+    return f"{int(round(float(v))):,}".replace(",", " ") + " Kč"
+
+
+# ---- hotel ----
+
+def todo_hotel(conn):
+    ensure_seo_tables(conn)
+    have = rows(conn, "SELECT COUNT(*) AS n FROM hotel_ai")[0]["n"]
+    room = HOTEL_MAX - have
+    if room <= 0:
+        return []
+    return rows(conn, f"""
+        SELECT h.id, h.slug, h.name, h.country, h.destination, h.resort_town, h.stars, h.review_score, h.amenities,
+               h.food_options, h.price_includes, h.distances, h.description, s.min_price, s.max_price, s.available_dates
+        FROM hotels h JOIN hotel_stats s ON s.hotel_id = h.id
+        WHERE s.next_departure >= CURRENT_DATE::text AND s.min_price IS NOT NULL AND {CANON}
+          AND NOT EXISTS (SELECT 1 FROM hotel_ai a WHERE a.slug = h.slug)
+        ORDER BY s.available_dates DESC NULLS LAST, h.review_score DESC NULLS LAST, h.id
+        LIMIT %s""", (room,))
+
+
+def run_hotel(conn, h):
+    region = (h["destination"] or "").split("/")
+    region = region[1].strip() if len(region) > 1 else ""
+    place = ", ".join(dict.fromkeys(x for x in [h["resort_town"], region, h["country"]] if x))
+    amenities = _list_field(h["amenities"])[:40]
+    distances = [x.strip() for x in (h["distances"] or "").split("|") if x.strip()][:12]
+    food = [x.strip() for x in (h["food_options"] or "").split("|") if x.strip()][:8]
+    includes = [x.strip() for x in (h["price_includes"] or "").split("|") if x.strip()][:10]
+    desc = _strip_html(h["description"] or "")[:1200]
+    tour_rows = rows(conn, """SELECT meal_plan, COUNT(*) AS n, MIN(duration) AS dmin, MAX(duration) AS dmax,
+                                     MIN(departure_date) AS first, MAX(departure_date) AS last
+                              FROM tours WHERE hotel_id = %s AND price > 0 AND departure_date >= CURRENT_DATE::text
+                              GROUP BY meal_plan ORDER BY n DESC""", (h["id"],))
+    cities = [r["departure_city"] for r in rows(conn, """SELECT departure_city, COUNT(*) AS n FROM tours
+        WHERE hotel_id = %s AND price > 0 AND departure_date >= CURRENT_DATE::text AND departure_city IS NOT NULL
+        GROUP BY departure_city ORDER BY n DESC LIMIT 4""", (h["id"],))]
+
+    facts = [f"Název: {h['name']}", f"Lokalita: {place or 'neuvedena'}", f"Hvězdičky: {h['stars'] or 'neuvedeno'}"]
+    facts.append("Vybavení: " + ("; ".join(amenities) if amenities else "neuvedeno"))
+    facts.append("Vzdálenosti: " + ("; ".join(distances) if distances else "neuvedeny"))
+    facts.append("Stravování (z nabídky hotelu): " + ("; ".join(food) if food else "neuvedeno"))
+    if includes:
+        facts.append("V ceně zájezdu: " + "; ".join(includes))
+    if desc:
+        facts.append("Popis od cestovní kanceláře (jen podklad, přeformuluj vlastními slovy, nekopíruj věty): " + desc)
+    prices = [f"Nejnižší cena zájezdu: {kc(h['min_price'])} na osobu"
+              + (f", nejvyšší {kc(h['max_price'])}" if h["max_price"] and h["max_price"] > h["min_price"] else ""),
+              f"Počet volných termínů: {h['available_dates'] or 0}"]
+    for r in tour_rows[:5]:
+        dur = f"{r['dmin']}–{r['dmax']} nocí" if r["dmin"] != r["dmax"] else f"{r['dmin']} nocí"
+        prices.append(f"Strava {r['meal_plan'] or 'neuvedena'}: {r['n']} termínů, {dur}, odlety {r['first']} až {r['last']}")
+    if cities:
+        prices.append("Odlety z: " + ", ".join(cities))
+
+    review = f"{h['review_score']:.1f} z 10" if h["review_score"] else "zatím bez hodnocení"
+    stars = f"{h['stars']} hvězdy" if h["stars"] else "bez hvězdiček"
+    p = generate("hotel", load_prompt(conn, "hotel", name=h["name"], place=place or "neuvedena", stars=stars, review=review,
+                                       facts="\n".join(facts), prices="\n".join(prices)))
+    if not p:
+        return False
+    summary = clean_paragraphs(p.get("summary"), 900, 1600)
+    if len(summary) < 120:
+        return False
+    conn.cursor().execute(
+        """INSERT INTO hotel_ai (slug, summary, audience, highlights, watch_out, location, food, faq, generated_at)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+           ON CONFLICT (slug) DO UPDATE SET summary = EXCLUDED.summary, audience = EXCLUDED.audience,
+             highlights = EXCLUDED.highlights, watch_out = EXCLUDED.watch_out, location = EXCLUDED.location,
+             food = EXCLUDED.food, faq = EXCLUDED.faq, generated_at = NOW()""",
+        (h["slug"], summary, js(clean_audience(p.get("audience"), 4)), js(clean_strs(p.get("highlights"), 6, 90)),
+         js(clean_strs(p.get("watch_out"), 4, 130)), _clean_text(p.get("location"), 400), _clean_text(p.get("food"), 400),
+         js(clean_faq(p.get("faq"), 4))),
+    )
+    conn.commit()
+    return True
+
+
+# ---- destinace: kdy jet, pro koho, rozpočet ----
+
+def _dest_match(name):
+    like = f"%{name}%"
+    return "(h.destination ILIKE %s OR h.resort_town ILIKE %s OR h.country ILIKE %s)", [like, like, like]
+
+
+def dest_stats(conn, name):
+    cond, params = _dest_match(name)
+    s = rows(conn, f"""SELECT COUNT(DISTINCT h.id) AS hotels, MIN(t.price) AS minp
+                       FROM tours t JOIN hotels h ON h.id = t.hotel_id
+                       WHERE t.price > 0 AND t.departure_date >= CURRENT_DATE::text AND {CANON} AND {cond}""", params)[0]
+    if not s["hotels"]:
+        return None
+    per_hotel = sorted(float(r["m"]) for r in rows(conn, f"""SELECT MIN(t.price) AS m FROM tours t JOIN hotels h ON h.id = t.hotel_id
+        WHERE t.price > 0 AND t.departure_date >= CURRENT_DATE::text AND {CANON} AND {cond} GROUP BY h.id""", params))
+    monthly = {int(r["m"]): float(r["minp"]) for r in rows(conn, f"""SELECT substr(t.departure_date, 6, 2) AS m, MIN(t.price) AS minp
+        FROM tours t JOIN hotels h ON h.id = t.hotel_id
+        WHERE t.price > 0 AND t.departure_date >= CURRENT_DATE::text AND {CANON} AND {cond} GROUP BY 1""", params)}
+    stats = {"hotels": int(s["hotels"]), "min_price": float(s["minp"]), "median_price": per_hotel[len(per_hotel) // 2],
+             "monthly": {str(k): v for k, v in sorted(monthly.items())}}
+    if len(monthly) >= 3:
+        stats["cheapest_month"] = min(monthly, key=monthly.get)
+        stats["priciest_month"] = max(monthly, key=monthly.get)
+    return stats
+
+
+def todo_destination_seo(conn):
+    ensure_seo_tables(conn)
+    have = {r["name"] for r in rows(conn, "SELECT name FROM destination_seo")}
+    # země a oblasti (střediska mají jen krátký text z průvodce)
+    return [n for n in geo_names(conn, False) if n not in have]
+
+
+def run_destination_seo(conn, name):
+    st = dest_stats(conn, name)
+    if not st or st["hotels"] < 3:
+        # málo dat na poctivý text: uložíme prázdný záznam, ať se destinace neopakuje v každém běhu
+        conn.cursor().execute("INSERT INTO destination_seo (name, stats) VALUES (%s, %s) ON CONFLICT (name) DO NOTHING", (name, js(st or {})))
+        conn.commit()
+        return True
+    cond, params = _dest_match(name)
+    ctry = rows(conn, f"SELECT h.country, COUNT(*) AS n FROM hotels h WHERE {cond} GROUP BY h.country ORDER BY n DESC LIMIT 1", params)
+    country = ctry[0]["country"] if ctry else None
+    is_country = bool(country) and slugify(country) == slugify(name)
+    resorts = [r["resort_town"] for r in rows(conn, f"""SELECT h.resort_town, COUNT(*) AS n FROM hotels h
+        WHERE {cond} AND h.resort_town IS NOT NULL GROUP BY 1 ORDER BY n DESC LIMIT 10""", params)]
+    # podobné destinace: jiné země (u země) nebo jiné oblasti téže země
+    if is_country:
+        sim = [r["country"] for r in rows(conn, f"""SELECT h.country, COUNT(*) AS n FROM hotels h JOIN hotel_stats s ON s.hotel_id = h.id
+            WHERE s.next_departure >= CURRENT_DATE::text AND h.country IS NOT NULL AND h.country <> %s AND {CANON}
+            GROUP BY 1 ORDER BY n DESC LIMIT 5""", (country,))]
+    else:
+        sim = [r["reg"] for r in rows(conn, f"""SELECT btrim(split_part(h.destination, '/', 2)) AS reg, COUNT(*) AS n
+            FROM hotels h JOIN hotel_stats s ON s.hotel_id = h.id
+            WHERE s.next_departure >= CURRENT_DATE::text AND h.country = %s AND h.destination LIKE '%%/%%' AND {CANON}
+              AND btrim(split_part(h.destination, '/', 2)) NOT ILIKE %s
+            GROUP BY 1 ORDER BY n DESC LIMIT 5""", (country, f"%{name}%")) if r["reg"]]
+    sim = [x for x in sim if x and not NON_GEO.search(x)][:4]
+
+    lines = [f"Počet hotelů s volným termínem: {st['hotels']}", f"Nejnižší cena zájezdu: {kc(st['min_price'])} na osobu",
+             f"Typická cena (medián nejnižších cen hotelů): {kc(st['median_price'])} na osobu"]
+    if st["monthly"]:
+        lines.append("Nejnižší cena zájezdu podle měsíce odletu: "
+                     + "; ".join(f"{MONTHS[int(m) - 1]} {kc(v)}" for m, v in st["monthly"].items()))
+    if "cheapest_month" in st:
+        lines.append(f"Nejlevnější měsíc: {MONTHS[st['cheapest_month'] - 1]}; nejdražší: {MONTHS[st['priciest_month'] - 1]}")
+    p = generate("destination_seo", load_prompt(conn, "destination_seo", name=name,
+                                                 country=f" ({country})" if country and not is_country else "",
+                                                 stats="\n".join(lines), resorts=", ".join(resorts) or "neuvedena",
+                                                 similar=", ".join(sim) or "žádná, srovnání vynech"))
+    if not p:
+        return False
+    months, seen = [], set()
+    for it in (p.get("months") if isinstance(p.get("months"), list) else []):
+        if not isinstance(it, dict):
+            continue
+        m, txt = it.get("month"), _clean_text(it.get("text"), 260)
+        if isinstance(m, int) and 1 <= m <= 12 and m not in seen and txt and len(txt) >= 15:
+            seen.add(m)
+            r = it.get("rating") if it.get("rating") in ("top", "dobre", "prumer", "slabe") else "prumer"
+            months.append({"month": m, "rating": r, "text": txt})
+    months.sort(key=lambda x: x["month"])
+    if len(months) != 12:
+        return False  # neúplná tabulka měsíců by na webu působila nedůvěryhodně
+    cmp_ = p.get("comparison") if isinstance(p.get("comparison"), dict) else None
+    comparison = None
+    if cmp_ and _clean_text(cmp_.get("with"), 80) in sim and len(_clean_text(cmp_.get("text"), 600) or "") >= 40:
+        comparison = {"with": _clean_text(cmp_["with"], 80), "text": _clean_text(cmp_["text"], 600)}
+    conn.cursor().execute(
+        """INSERT INTO destination_seo (name, months, audiences, budget, comparison, faq, stats, generated_at)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+           ON CONFLICT (name) DO UPDATE SET months = EXCLUDED.months, audiences = EXCLUDED.audiences, budget = EXCLUDED.budget,
+             comparison = EXCLUDED.comparison, faq = EXCLUDED.faq, stats = EXCLUDED.stats, generated_at = NOW()""",
+        (name, js(months), js(clean_audience(p.get("audiences"), 4, 420)), clean_paragraphs(p.get("budget")) or None,
+         js(comparison) if comparison else None, js(clean_faq(p.get("faq"), 5, 520)), js(st)),
+    )
+    conn.commit()
+    return True
+
+
+# ---- vstupní stránky (All Inclusive Egypt, 5hvězdičkové hotely Turecko, Řecko v září …) ----
+
+MEAL_TYPES = [("All Inclusive", "all-inclusive", "All Inclusive zájezdy"),
+              ("Polopenze", "polopenze", "Zájezdy s polopenzí"),
+              ("Snídaně", "snidane", "Zájezdy se snídaní")]
+STAR_TYPES = [("5", "5-hvezdickove-hotely", "5hvězdičkové hotely"), ("4", "4-hvezdickove-hotely", "4hvězdičkové hotely")]
+
+
+def landing_cond(c):
+    cond, params = [], []
+    if c["country"]:
+        cond.append("h.country = %s")
+        params.append(c["country"])
+    if c["type"] == "meal":
+        cond.append("t.meal_plan = %s")
+        params.append(c["value"])
+    elif c["type"] == "stars":
+        cond.append("h.stars = %s")
+        params.append(int(c["value"]))
+    elif c["type"] == "month":
+        cond.append("substr(t.departure_date, 1, 7) = %s")
+        params.append(c["ym"])
+    return (" AND " + " AND ".join(cond)) if cond else "", params
+
+
+def landing_title(c):
+    if c["type"] == "month":
+        m = MONTHS_IN[int(c["value"]) - 1]
+        return f"{c['country']} v {m}" if c["country"] else f"Zájezdy v {m}"
+    return f"{c['label']} {c['country']}" if c["country"] else c["label"]
+
+
+def landing_candidates(conn):
+    """Kombinace typ × země, které mají dost hotelů s volným termínem (jinak by stránka byla tenká)."""
+    base = f"t.price > 0 AND t.departure_date >= CURRENT_DATE::text AND {CANON}"
+    out = []
+    ym_now = time.strftime("%Y-%m")
+    horizon = time.strftime("%Y-%m", time.localtime(time.time() + 330 * 86400))
+    mealmap = {v: (slug, label) for v, slug, label in MEAL_TYPES}
+    starmap = {v: (slug, label) for v, slug, label in STAR_TYPES}
+
+    for r in rows(conn, f"""SELECT h.country, t.meal_plan, COUNT(DISTINCT h.id) AS n FROM tours t JOIN hotels h ON h.id = t.hotel_id
+                            WHERE {base} AND h.country IS NOT NULL GROUP BY 1, 2"""):
+        if r["meal_plan"] in mealmap and r["n"] >= MIN_LANDING_HOTELS:
+            slug, label = mealmap[r["meal_plan"]]
+            out.append({"type": "meal", "value": r["meal_plan"], "type_slug": slug, "label": label, "country": r["country"], "n": r["n"]})
+    for r in rows(conn, f"SELECT t.meal_plan, COUNT(DISTINCT h.id) AS n FROM tours t JOIN hotels h ON h.id = t.hotel_id WHERE {base} GROUP BY 1"):
+        if r["meal_plan"] in mealmap and r["n"] >= MIN_LANDING_HOTELS:
+            slug, label = mealmap[r["meal_plan"]]
+            out.append({"type": "meal", "value": r["meal_plan"], "type_slug": slug, "label": label, "country": None, "n": r["n"]})
+
+    for r in rows(conn, f"""SELECT h.country, h.stars, COUNT(DISTINCT h.id) AS n FROM hotels h JOIN hotel_stats s ON s.hotel_id = h.id
+                            WHERE s.next_departure >= CURRENT_DATE::text AND {CANON} AND h.country IS NOT NULL AND h.stars IN (4, 5)
+                            GROUP BY 1, 2"""):
+        v = str(r["stars"])
+        if v in starmap and r["n"] >= MIN_LANDING_HOTELS:
+            slug, label = starmap[v]
+            out.append({"type": "stars", "value": v, "type_slug": slug, "label": label, "country": r["country"], "n": r["n"]})
+    for r in rows(conn, f"""SELECT h.stars, COUNT(DISTINCT h.id) AS n FROM hotels h JOIN hotel_stats s ON s.hotel_id = h.id
+                            WHERE s.next_departure >= CURRENT_DATE::text AND {CANON} AND h.stars IN (4, 5) GROUP BY 1"""):
+        v = str(r["stars"])
+        if v in starmap and r["n"] >= MIN_LANDING_HOTELS:
+            slug, label = starmap[v]
+            out.append({"type": "stars", "value": v, "type_slug": slug, "label": label, "country": None, "n": r["n"]})
+
+    # měsíce: každý měsíc v nejbližších ~11 měsících (stránka ukazuje vždy nejbližší výskyt měsíce)
+    for r in rows(conn, f"""SELECT h.country, substr(t.departure_date, 1, 7) AS ym, COUNT(DISTINCT h.id) AS n FROM tours t JOIN hotels h ON h.id = t.hotel_id
+                            WHERE {base} AND h.country IS NOT NULL GROUP BY 1, 2"""):
+        if ym_now <= r["ym"] <= horizon and r["n"] >= MIN_LANDING_HOTELS:
+            out.append({"type": "month", "value": str(int(r["ym"][5:7])), "label": "", "country": r["country"], "n": r["n"], "ym": r["ym"]})
+    for r in rows(conn, f"SELECT substr(t.departure_date, 1, 7) AS ym, COUNT(DISTINCT h.id) AS n FROM tours t JOIN hotels h ON h.id = t.hotel_id WHERE {base} GROUP BY 1"):
+        if ym_now <= r["ym"] <= horizon and r["n"] >= MIN_LANDING_HOTELS:
+            out.append({"type": "month", "value": str(int(r["ym"][5:7])), "label": "", "country": None, "n": r["n"], "ym": r["ym"]})
+
+    for c in out:
+        cs = slugify(c["country"]) if c["country"] else ""
+        if c["type"] == "month":
+            m = slugify(MONTHS_IN[int(c["value"]) - 1])
+            c["slug"] = f"{cs}-v-{m}" if cs else f"zajezdy-v-{m}"
+        else:
+            c["slug"] = f"{c['type_slug']}-{cs}" if cs else c["type_slug"]
+    uniq = {}
+    for c in sorted(out, key=lambda c: -c["n"]):
+        if c["slug"] and not c["slug"].startswith("-"):
+            uniq.setdefault(c["slug"], c)
+    return list(uniq.values())
+
+
+def todo_landing(conn):
+    ensure_seo_tables(conn)
+    have = {r["slug"] for r in rows(conn, "SELECT slug FROM landing_ai")}
+    return [c for c in landing_candidates(conn) if c["slug"] not in have]
+
+
+def run_landing(conn, c):
+    where, params = landing_cond(c)
+    base = f"t.price > 0 AND t.departure_date >= CURRENT_DATE::text AND {CANON}"
+    s = rows(conn, f"SELECT COUNT(DISTINCT h.id) AS n, MIN(t.price) AS minp, MAX(t.price) AS maxp FROM tours t JOIN hotels h ON h.id = t.hotel_id WHERE {base}{where}", params)[0]
+    if not s["n"] or s["n"] < MIN_LANDING_HOTELS:
+        return True  # mezitím ubylo termínů; stránka nevznikne
+    tops = rows(conn, f"""SELECT h.name, h.resort_town, h.stars, MIN(t.price) AS minp FROM tours t JOIN hotels h ON h.id = t.hotel_id
+                          WHERE {base}{where} GROUP BY h.id, h.name, h.resort_town, h.stars ORDER BY COUNT(*) DESC LIMIT 6""", params)
+    title = landing_title(c)
+    where_txt = f" v destinaci {c['country']}" if c["country"] else " do všech destinací"
+    if c["type"] == "meal":
+        about = f"Zájezdy se stravováním {c['value']}{where_txt}"
+    elif c["type"] == "stars":
+        about = f"{c['value']}hvězdičkové hotely{where_txt}"
+    else:
+        mon = MONTHS[int(c["value"]) - 1]
+        about = f"Zájezdy{' do destinace ' + c['country'] if c['country'] else ''} s odletem v měsíci {mon} (nejbližší termíny: {c['ym']})"
+    stats = [f"Počet hotelů s volným termínem: {s['n']}", f"Nejnižší cena zájezdu: {kc(s['minp'])} na osobu",
+             f"Nejvyšší cena zájezdu: {kc(s['maxp'])} na osobu"]
+    hotels = "\n".join(
+        f"- {r['name']} ({', '.join(x for x in [r['resort_town'], (str(r['stars']) + '*') if r['stars'] else None] if x)}), od {kc(r['minp'])}"
+        for r in tops)
+    p = generate("landing", load_prompt(conn, "landing", title=title, about=about, stats="\n".join(stats), hotels=hotels))
+    if not p:
+        return False
+    intro = clean_paragraphs(p.get("intro"), 1000, 2200)
+    if len(intro) < 150:
+        return False
+    sections = []
+    for it in (p.get("sections") if isinstance(p.get("sections"), list) else [])[:3]:
+        if isinstance(it, dict) and _clean_text(it.get("heading"), 70) and len(_clean_text(it.get("text"), 700) or "") >= 40:
+            sections.append({"heading": _clean_text(it["heading"], 70), "text": _clean_text(it["text"], 700)})
+    conn.cursor().execute(
+        """INSERT INTO landing_ai (slug, type, value, country, title, intro, sections, faq, hotel_count, min_price, generated_at)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+           ON CONFLICT (slug) DO UPDATE SET title = EXCLUDED.title, intro = EXCLUDED.intro, sections = EXCLUDED.sections,
+             faq = EXCLUDED.faq, hotel_count = EXCLUDED.hotel_count, min_price = EXCLUDED.min_price, generated_at = NOW()""",
+        (c["slug"], c["type"], c["value"], c["country"], title, intro, js(sections), js(clean_faq(p.get("faq"), 4)),
+         int(s["n"]), float(s["minp"])),
+    )
+    conn.commit()
+    return True
+
+
 KINDS = {
     "article": (todo_article, run_article, lambda x: x),
     "destination": (todo_destination, run_destination, lambda x: x),
@@ -817,6 +1223,10 @@ KINDS = {
     "car_rental": (todo_car_rental, run_car_rental, lambda d: f"{d['name']} ({d['country']})"),
     "guide": (todo_guide, run_guide, lambda d: f"{d['name']} ({d['country']})"),
     "guide_images": (todo_guide_images, run_guide_images, lambda g: g["name"]),
+    # pořadí = pořadí zpracování; hotelů jsou tisíce, proto až poslední (jinak by zablokovaly menší druhy obsahu)
+    "destination_seo": (todo_destination_seo, run_destination_seo, lambda n: n),
+    "landing": (todo_landing, run_landing, lambda c: c["slug"]),
+    "hotel": (todo_hotel, run_hotel, lambda h: f"{h['name']} ({h['country']})"),
 }
 
 

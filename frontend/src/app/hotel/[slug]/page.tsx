@@ -21,8 +21,9 @@ import Crumbs from '@/components/ui/Crumbs'
 import Icon from '@/components/ui/Icon'
 import TourCard from '@/components/ui/TourCard'
 import { airportCode, formatDateRange, formatPrice } from '@/components/ui/format'
-import { fetchHotel, fetchHotels, fetchHotelTours, fetchNearbyHotels, API } from '@/lib/api'
+import { fetchHotel, fetchHotels, fetchHotelTours, fetchNearbyHotels, fetchHotelAI, fetchLandingList, fetchArticles, API } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
+import { Paragraphs, AudienceList, FaqList, AiNote, LinkList, faqSchema } from '@/components/ui/SeoBlocks'
 import type { Hotel, Tour } from '@/lib/types'
 
 // Leaflet potřebuje prohlížeč → dynamický import bez SSR
@@ -65,11 +66,16 @@ const stripHtml = (html: string) =>
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   let hotel: Hotel
-  try { hotel = await fetchHotel(params.slug) } catch { return { title: 'Hotel nenalezen | Zaleto' } }
+  try { hotel = await fetchHotel(params.slug) } catch { return { title: 'Hotel nenalezen' } }
   const place = [hotel.resort_town, hotel.country].filter(Boolean).join(', ')
   const price = hotel.min_price ? ` od ${formatPrice(hotel.min_price)}` : ''
-  const title = `${hotel.name}${place ? ` — ${place}` : ''}${price} | Zaleto`
-  const description = hotel.description
+  const title = `${hotel.name}${place ? ` — ${place}` : ''}${price}`
+  // redakční text (AI z dat) je unikátní, popis od CK mají i konkurenční weby
+  const ai = await fetchHotelAI(hotel.canonical_slug ?? hotel.slug)
+  const aiFirst = ai?.summary.split(/\n\s*\n/)[0]
+  const description = aiFirst
+    ? (aiFirst.length > 158 ? `${aiFirst.slice(0, 157).replace(/\s+\S*$/, '')}…` : aiFirst)
+    : hotel.description
     ? stripHtml(hotel.description).slice(0, 160)
     : `Zájezdy do hotelu ${hotel.name}${place ? ` (${place})` : ''}. Porovnej termíny a ceny od českých cestovních kanceláří.`
   const canonical = `https://zaleto.cz/hotel/${hotel.canonical_slug ?? params.slug}`
@@ -77,7 +83,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description,
     alternates: { canonical },
-    openGraph: { title, description, url: canonical, type: 'website', images: hotel.thumbnail_url ? [{ url: hotel.thumbnail_url }] : undefined },
+    // obrázek pro sdílení generuje opengraph-image.tsx (název, cena a fotka hotelu)
+    openGraph: { title, description, url: canonical, type: 'website', siteName: 'Zaleto', locale: 'cs_CZ' },
+    twitter: { card: 'summary_large_image', title, description },
   }
 }
 
@@ -96,6 +104,8 @@ export default async function HotelDetailPage({ params }: Props) {
     ? hotel.agencyDescriptions!
     : hotel.description ? [{ agency: hotel.agency, description: hotel.description }] : []
 
+  const ai = await fetchHotelAI(hotel.canonical_slug ?? hotel.slug)
+  const aiFaqSchema = ai ? faqSchema(ai.faq) : null
   const tourCount = hotel.available_dates ?? 0
   const dates = formatDateRange(hotel.next_departure, hotel.next_return_date)
   const place = [hotel.resort_town, hotel.country].filter(Boolean).join(' · ')
@@ -111,20 +121,27 @@ export default async function HotelDetailPage({ params }: Props) {
     ? weatherRegion ? `/pocasi/${slugify(hotel.country)}/${slugify(weatherRegion)}` : `/pocasi/${slugify(hotel.country)}`
     : null
 
+  // do strukturovaných dat jen absolutní adresy (až 6 různých fotek)
+  const schemaPhotos = photos.filter(p => /^https?:\/\//.test(p)).slice(0, 6)
+
   const hotelSchema = {
     '@context': 'https://schema.org',
     '@type': 'LodgingBusiness',
     name: hotel.name,
-    description: hotel.description ? stripHtml(hotel.description).slice(0, 500) : undefined,
+    description: ai ? ai.summary.split(/\n\s*\n/)[0] : hotel.description ? stripHtml(hotel.description).slice(0, 500) : undefined,
     url: `https://zaleto.cz/hotel/${params.slug}`,
-    image: photos.slice(0, 3).length ? photos.slice(0, 3) : undefined,
+    image: schemaPhotos.length ? schemaPhotos : undefined,
     ...(hotel.stars ? { starRating: { '@type': 'Rating', ratingValue: hotel.stars, bestRating: 5 } } : {}),
     address: { '@type': 'PostalAddress', addressLocality: hotel.resort_town ?? hotel.destination ?? undefined, addressCountry: hotel.country ?? undefined },
     ...(hotel.latitude && hotel.longitude ? { geo: { '@type': 'GeoCoordinates', latitude: hotel.latitude, longitude: hotel.longitude } } : {}),
     ...(hotel.min_price ? {
       makesOffer: {
         '@type': 'Offer', name: `Zájezd ${hotel.name}`, price: hotel.min_price, priceCurrency: 'CZK',
-        availability: 'https://schema.org/InStock', seller: { '@type': 'Organization', name: 'Zaleto', url: 'https://zaleto.cz' },
+        // nejnižší cena platí nejdéle do nejbližšího odletu; bez termínu je zájezd nedostupný
+        availability: tourCount > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        ...(hotel.next_departure ? { priceValidUntil: hotel.next_departure.slice(0, 10) } : {}),
+        url: `https://zaleto.cz/hotel/${params.slug}`,
+        seller: { '@type': 'Organization', name: 'Zaleto', url: 'https://zaleto.cz' },
       },
     } : {}),
   }
@@ -141,6 +158,7 @@ export default async function HotelDetailPage({ params }: Props) {
     <>
       <JsonLd data={hotelSchema} />
       <JsonLd data={breadcrumbSchema} />
+      {aiFaqSchema && <JsonLd data={aiFaqSchema} />}
       <Header />
 
       <div className="z-container" style={{ paddingTop: 'var(--space-6)' }}>
@@ -163,6 +181,25 @@ export default async function HotelDetailPage({ params }: Props) {
 
         <div className="z-hotel">
           <div>
+            {ai && (
+              <section id="nas-pohled" data-rail="Náš pohled" className="z-coll" style={{ scrollMarginTop: 'calc(var(--header-height) + 16px)' }}>
+                <div className="z-coll__head" style={{ cursor: 'default' }}><h2 className="h3">náš pohled<span className="z-dot">.</span></h2></div>
+                <div className="z-coll__body">
+                  <div className="z-prose"><Paragraphs text={ai.summary} /></div>
+                  {ai.audience.length > 0 && (<><h3 className="z-kicker" style={{ margin: 'var(--space-5) 0 var(--space-2)' }}>Pro koho se hodí</h3><AudienceList items={ai.audience} /></>)}
+                  {ai.highlights.length > 0 && (<><h3 className="z-kicker" style={{ margin: 'var(--space-5) 0 var(--space-3)' }}>Čím hotel vyniká</h3><div className="z-chips">{ai.highlights.map(a => <span key={a} className="z-chip z-chip--ok"><Icon name="ok" />{a}</span>)}</div></>)}
+                  {ai.watch_out.length > 0 && (<><h3 className="z-kicker" style={{ margin: 'var(--space-5) 0 var(--space-3)' }}>Na co si dát pozor</h3><div className="z-chips">{ai.watch_out.map(a => <span key={a} className="z-chip"><Icon name="info" />{a}</span>)}</div></>)}
+                  {(ai.location || ai.food) && (
+                    <div className="z-prose" style={{ marginTop: 'var(--space-5)' }}>
+                      {ai.location && <p><strong>Poloha.</strong> {ai.location}</p>}
+                      {ai.food && <p><strong>Strava.</strong> {ai.food}</p>}
+                    </div>
+                  )}
+                  <AiNote at={ai.generated_at} what="Shrnutí" />
+                </div>
+              </section>
+            )}
+
             {descriptions.length > 0 && (
               <CollapsibleSection title="o hotelu">
                 <div className="z-prose"><AgencyDescriptionSwitcher descriptions={descriptions} /></div>
@@ -233,6 +270,13 @@ export default async function HotelDetailPage({ params }: Props) {
               <div className="z-coll__body"><TourDatesList slug={params.slug} /></div>
             </section>
 
+            {ai && ai.faq.length > 0 && (
+              <section id="otazky" data-rail="Otázky" className="z-coll" style={{ marginTop: 'var(--space-5)' }}>
+                <div className="z-coll__head" style={{ cursor: 'default' }}><h2 className="h3">časté otázky<span className="z-dot">.</span></h2></div>
+                <div className="z-coll__body"><FaqList items={ai.faq} /></div>
+              </section>
+            )}
+
             <div style={{ marginTop: 'var(--space-5)' }}>
               <CarRentalBanner place={hotel.resort_town ?? hotel.destination ?? hotel.country ?? ''} country={hotel.country ?? ''} />
             </div>
@@ -248,6 +292,10 @@ export default async function HotelDetailPage({ params }: Props) {
 
       <Suspense fallback={null}>
         <SimilarHotels hotel={hotel} exclude={params.slug} />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <HotelLinks hotel={hotel} weatherUrl={weatherUrl} />
       </Suspense>
     </>
   )
@@ -341,6 +389,35 @@ async function SimilarHotels({ hotel, exclude }: { hotel: Hotel; exclude: string
       <div className="z-grid-3">
         {similar.map(h => <TourCard key={h.slug} hotel={h} />)}
       </div>
+    </section>
+  )
+}
+
+/** Vnitřní prolinkování: průvodci místa, přehledy zájezdů do země a články o lokalitě. */
+async function HotelLinks({ hotel, weatherUrl }: { hotel: Hotel; weatherUrl: string | null }) {
+  const region = hotel.destination?.split('/')[1]?.trim()
+  const [landings, articles] = await Promise.all([
+    hotel.country ? fetchLandingList() : Promise.resolve([]),
+    fetchArticles(3, hotel.country ?? hotel.resort_town ?? undefined),
+  ])
+  const guides = [hotel.resort_town, region, hotel.country]
+    .filter((v, i, arr): v is string => !!v && arr.indexOf(v) === i)
+    .map(n => ({ href: `/destinace/${slugify(n)}`, label: `Průvodce: ${n}`, hint: n === hotel.country ? 'země, počasí, kdy jet' : undefined }))
+  if (weatherUrl) guides.push({ href: weatherUrl, label: `Počasí: ${hotel.resort_town ?? region ?? hotel.country}`, hint: 'klima po měsících' })
+  // typy přehledů (strava, hvězdičky) před měsíci; nejvýš 6 odkazů
+  const order = { meal: 0, stars: 1, month: 2 } as const
+  const overviews = landings
+    .filter(l => l.country === hotel.country)
+    .sort((a, b) => order[a.type] - order[b.type] || b.hotel_count - a.hotel_count)
+    .slice(0, 6)
+    .map(l => ({ href: `/zajezdy/${l.slug}`, label: l.title, hint: `${l.hotel_count} hotelů` }))
+  const reads = articles.slice(0, 3).map(a => ({ href: `/clanky/${a.slug}`, label: a.title }))
+  if (!guides.length && !overviews.length && !reads.length) return null
+  return (
+    <section className="z-container z-section" aria-label="Související stránky">
+      <LinkList title="Průvodce místem" links={guides} />
+      <LinkList title={`Přehledy zájezdů${hotel.country ? `: ${hotel.country}` : ''}`} links={overviews} />
+      <LinkList title="Čti dál" links={reads} />
     </section>
   )
 }

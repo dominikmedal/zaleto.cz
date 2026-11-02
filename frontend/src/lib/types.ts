@@ -70,6 +70,7 @@ export interface Filters {
   date_from?: string
   date_to?: string
   date_flex?: string
+  date_month?: string  // YYYY-MM: odlety v jednom měsíci
   adults?: number
   duration?: string
   min_price?: number

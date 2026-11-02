@@ -12,7 +12,9 @@ import InfiniteHotels from '@/components/InfiniteHotels'
 import DestinationSuggest from '@/components/ui/DestinationSuggest'
 import { DateRangeField } from '@/components/DateRangePicker'
 import { fetchFilters, fetchHotels, fetchDestinations, fetchDestinationAI, fetchDestinationPhoto } from '@/lib/api'
+import { formatPrice } from '@/components/ui/format'
 import { slugify } from '@/lib/slugify'
+import { seasonYear } from '@/lib/seo'
 
 type SP = Record<string, string | string[] | undefined>
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || undefined
@@ -27,15 +29,34 @@ export async function generateMetadata({ searchParams }: { searchParams: SP }): 
   const dest = one(searchParams.destination)
   const type = one(searchParams.tour_type)
   const hasFilters = KEYS.some(k => k !== 'sort' && one(searchParams[k]))
-  let title = 'Zájezdy 2026 — srovnání cen od českých CK | Zaleto'
-  if (type === 'last_minute') title = 'Last minute zájezdy — srovnání cen CK | Zaleto'
-  else if (type === 'first_minute') title = 'First minute zájezdy — srovnání cen CK | Zaleto'
-  else if (dest && !dest.includes(',')) title = `Zájezdy ${dest} — srovnání cen CK | Zaleto`
+  // Last / first minute jsou samostatné vstupní stránky (jsou i v sitemapě): indexují se a mají vlastní canonical.
+  // Jakákoli další kombinace filtrů zůstává noindex.
+  const landingType = (type === 'last_minute' || type === 'first_minute') && !KEYS.some(k => k !== 'sort' && k !== 'tour_type' && one(searchParams[k])) ? type : null
+  const indexable = !hasFilters || !!landingType
+
+  // Nejnižší cena a počet hotelů do titulku/popisu; stejný dotaz jako v těle stránky, takže se jen sdílí cache.
+  const first = indexable
+    ? await fetchHotels({ tour_type: landingType ?? undefined, sort: 'price_asc', page: 1, limit: LIMIT }).catch(() => null)
+    : null
+  const from = first?.hotels[0]?.min_price ? ` od ${formatPrice(first.hotels[0].min_price)}` : ''
+  const total = first?.pagination.total
+
+  const year = seasonYear()
+  let title = `Zájezdy ${year}${from} — srovnání cen od českých CK`
+  if (landingType === 'last_minute') title = `Last minute zájezdy${from} — srovnání cen CK`
+  else if (landingType === 'first_minute') title = `First minute zájezdy ${year}${from} — srovnání cen CK`
+  else if (dest && !dest.includes(',')) title = `Zájezdy ${dest} — srovnání cen CK`
+
+  const description = total
+    ? `Porovnej ${total.toLocaleString('cs-CZ')} hotelů s volným termínem od českých cestovních kanceláří${from ? ` (zájezdy${from})` : ''}. Filtruj podle destinace, termínu, stravování a ceny.`
+    : 'Porovnej zájezdy od českých cestovních kanceláří podle destinace, termínu, stravování a ceny.'
+  const canonical = landingType ? `https://zaleto.cz/zajezdy?tour_type=${landingType}` : 'https://zaleto.cz/zajezdy'
   return {
     title,
-    description: 'Porovnej zájezdy od českých cestovních kanceláří podle destinace, termínu, stravování a ceny.',
-    alternates: { canonical: 'https://zaleto.cz/zajezdy' },
-    robots: hasFilters ? { index: false, follow: true } : undefined,
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, type: 'website', siteName: 'Zaleto', locale: 'cs_CZ', images: [{ url: '/img/og-image.png', width: 1200, height: 630, alt: 'Zaleto — Vyhledávač zájezdů' }] },
+    robots: indexable ? undefined : { index: false, follow: true },
   }
 }
 
