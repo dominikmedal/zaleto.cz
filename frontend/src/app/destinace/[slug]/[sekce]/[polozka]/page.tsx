@@ -12,6 +12,7 @@ import { GUIDE_SECTIONS } from '@/lib/guideSections'
 import { slugify } from '@/lib/slugify'
 import type { GuideBeach, GuidePlace } from '@/lib/guide'
 import { resolveDestination } from '../../resolve'
+import PlaceLinks from '@/components/PlaceLinks'
 import { loadGuide } from '../../guideData'
 
 export const revalidate = 3600
@@ -157,6 +158,7 @@ export default async function GuideItemPage({ params }: Props) {
             </ul>
           </section>
         )}
+        <PlaceLinks slug={params.slug} />
       </main>
     </>
   )

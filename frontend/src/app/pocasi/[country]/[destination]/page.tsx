@@ -5,7 +5,7 @@ import WeatherView from '@/components/WeatherView'
 import JsonLd from '@/components/JsonLd'
 import { fetchDestinations, fetchDestinationPhoto, fetchWeatherAI, fetchWeatherLocation, fetchHotels } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
-import { fetchLandingList } from '@/lib/api'
+import { fetchLandingList, fetchLinkTargets } from '@/lib/api'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -110,6 +110,8 @@ export default async function DestinationWeatherPage({ params }: Props) {
       .map(l => ({ href: `/zajezdy/${l.slug}`, label: l.title, hint: `${l.hotel_count} hotelů` })) },
   ]
 
+  const textLinks = await fetchLinkTargets()
+
   return (
     <>
       <JsonLd data={breadcrumbSchema} />
@@ -124,6 +126,7 @@ export default async function DestinationWeatherPage({ params }: Props) {
         country={info.country}
         toursHref={`/destinace/${params.destination}`}
         linkGroups={linkGroups}
+        textLinks={textLinks}
       />
     </>
   )

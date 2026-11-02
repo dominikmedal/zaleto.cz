@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import PlaceLinks from '@/components/PlaceLinks'
+import { slugify } from '@/lib/slugify'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Header from '@/components/Header'
@@ -170,6 +172,8 @@ export default async function CarRentalSectionPage({ params }: Props) {
         <div style={{ marginTop: 'var(--space-7)' }}>
           <Link href={`/pujcovna-aut/${dest.slug}`} className="z-more">Zpět na přehled — {dest.name}</Link>
         </div>
+
+        <PlaceLinks slug={slugify(dest.name)} skip={['car']} />
       </main>
     </>
   )

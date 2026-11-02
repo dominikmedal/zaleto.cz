@@ -322,9 +322,9 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
                   <AiNote at={seo.generated_at} />
                 </Block>
               )}
-              {places.length > 0 && <Block id="co-videt" kicker="Co vidět" title="místa, která stojí za to"><PlaceTickets items={places} /></Block>}
-              {food.length > 0 && <Block id="jidlo" kicker="Jídlo" title="co ochutnat"><FoodMenu items={food} /></Block>}
-              {trips.length > 0 && <Block id="vylety" kicker="Výlety" title="výlety z místa"><TripRoute items={trips} /></Block>}
+              {places.length > 0 && <Block id="co-videt" kicker="Co vidět" title="místa, která stojí za to"><PlaceTickets items={places} links={textLinks} exclude={selfHref} /></Block>}
+              {food.length > 0 && <Block id="jidlo" kicker="Jídlo" title="co ochutnat"><FoodMenu items={food} links={textLinks} exclude={selfHref} /></Block>}
+              {trips.length > 0 && <Block id="vylety" kicker="Výlety" title="výlety z místa"><TripRoute items={trips} links={textLinks} exclude={selfHref} /></Block>}
             </div>
 
             <aside className="z-cardest__side">

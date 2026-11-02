@@ -14,7 +14,7 @@ export function weatherAutoLinks(href: string | null | undefined): AutoLink[] {
 export interface AutoLinkCtx { links: { href: string; re: RegExp }[]; used: Set<string>; max: number }
 
 /** Obecná slova, která jsou i názvy oblastí (Ostrov, Pobřeží …): shoda v textu by byla náhodná. */
-export const GENERIC_PLACE = /^(ostrov|ostrovy|pobřeží|město|hory|riviéra|centrum|okolí|sever|jih|východ|západ|pláž|moře|ostatní)$/i
+export const GENERIC_PLACE = /^((ostrov|ostrovy|pobřeží|město|hory|riviéra|centrum|okolí|sever|jih|východ|západ|pláž|moře|ostatní|vnitrozemí)|(severní|jižní|východní|západní|střední|vnitřní)\s.*)$/i
 
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 

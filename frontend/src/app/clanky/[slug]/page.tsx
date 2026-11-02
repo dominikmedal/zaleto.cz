@@ -14,6 +14,7 @@ import CarRentalBanner from '@/components/CarRentalBanner'
 import { formatLongDate, readingTime } from '@/components/ui/format'
 import { fetchArticle, fetchArticles, fetchAllArticleSlugs, fetchDestinationPhoto, fetchHotels, fetchDestinations, fetchLandingList, fetchLinkTargets } from '@/lib/api'
 import { LinkList } from '@/components/ui/SeoBlocks'
+import { GENERIC_PLACE } from '@/lib/autolink'
 import { slugify } from '@/lib/slugify'
 
 export const revalidate = 300
@@ -25,7 +26,7 @@ export async function generateStaticParams() {
 
 interface Props { params: { slug: string } }
 
-const GENERIC = /^(ostrov|ostrovy|pobřeží|město|hory|riviéra|centrum|okolí|sever|jih|východ|západ|pláž|moře|ostatní)$/i
+const GENERIC = GENERIC_PLACE
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = await fetchArticle(params.slug).catch(() => null)

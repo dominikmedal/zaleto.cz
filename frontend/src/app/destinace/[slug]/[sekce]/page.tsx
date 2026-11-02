@@ -10,6 +10,7 @@ import { ResortCards, TransportCards } from '@/components/ui/GuideSections'
 import PlaceCards from '@/components/ui/PlaceCards'
 import { GUIDE_SECTIONS, sectionCount } from '@/lib/guideSections'
 import { resolveDestination } from '../resolve'
+import PlaceLinks from '@/components/PlaceLinks'
 import { loadGuide, loadResortPhotos } from '../guideData'
 
 export const revalidate = 3600
@@ -78,6 +79,7 @@ export default async function GuideSectionPage({ params }: Props) {
           <Link href={`${base}/hotely`} className="z-more">Hotely: {dest.name}</Link>
           <Link href={`${base}#zajezdy`} className="z-more">Zájezdy: {dest.name}</Link>
         </p>
+        <PlaceLinks slug={params.slug} />
       </main>
     </>
   )

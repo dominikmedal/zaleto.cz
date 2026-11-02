@@ -8,7 +8,7 @@ import Crumbs from '@/components/ui/Crumbs'
 import SectionHead from '@/components/ui/SectionHead'
 import LoadMoreHotels from '@/components/LoadMoreHotels'
 import { Paragraphs, FaqList, AiNote, LinkList, faqSchema } from '@/components/ui/SeoBlocks'
-import { fetchHotels, fetchLanding, fetchLandingList, fetchLinkTargets } from '@/lib/api'
+import { fetchHotels, fetchLanding, fetchLandingList, fetchLinkTargets, fetchArticles } from '@/lib/api'
 import { Linked, weatherAutoLinks } from '@/lib/autolink'
 import { formatPrice } from '@/components/ui/format'
 import { slugify } from '@/lib/slugify'
@@ -59,7 +59,7 @@ export default async function LandingPage({ params }: Props) {
   const l = await fetchLanding(params.slug)
   if (!l) notFound()
 
-  const [result, all] = await Promise.all([load(l), fetchLandingList()])
+  const [result, all, articles] = await Promise.all([load(l), fetchLandingList(), fetchArticles(3, l.country ?? undefined).catch(() => [])])
   const hotels = result?.hotels ?? []
   const pg = result?.pagination
   const from = hotels[0]?.min_price
@@ -179,6 +179,7 @@ export default async function LandingPage({ params }: Props) {
         <AiNote at={l.generated_at} />
 
         <LinkList title="Průvodce a počasí" links={guide} />
+        <LinkList title="Čti dál" links={articles.slice(0, 3).map(a => ({ href: `/clanky/${a.slug}`, label: a.title }))} />
         <LinkList title={l.country ? `Další přehledy: ${l.country}` : 'Další přehledy'} links={related} />
         <LinkList title="Stejná nabídka jinde" links={alsoElsewhere} />
         <LinkList title="Zájezdy podle stravy, hvězdiček a měsíce" links={globals} />

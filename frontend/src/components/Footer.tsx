@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
-import { fetchArticles } from '@/lib/api'
+import { fetchArticles, fetchLandingList } from '@/lib/api'
 import { CookieSettingsLink } from '@/components/CookieConsent'
 
 const year = new Date().getFullYear()
@@ -38,7 +38,18 @@ const COLUMNS = [
 ]
 
 export default async function Footer() {
-  const recent = await fetchArticles(4).catch(() => [])
+  const [recent, landings] = await Promise.all([fetchArticles(4).catch(() => []), fetchLandingList()])
+
+  // přehledy zájezdů bez země (All Inclusive, 5hvězdičkové hotely, nejbližší měsíce): odkaz z každé stránky webu
+  const global = landings.filter(l => !l.country)
+  const nowM = new Date().getMonth() + 1
+  const soonest = global.filter(l => l.type === 'month')
+    .sort((a, b) => ((Number(a.value) - nowM + 12) % 12) - ((Number(b.value) - nowM + 12) % 12)).slice(0, 2)
+  const overviews = [
+    global.find(l => l.type === 'meal' && l.value === 'All Inclusive'),
+    global.find(l => l.type === 'stars' && l.value === '5'),
+    ...soonest,
+  ].filter((l): l is NonNullable<typeof l> => !!l).map(l => ({ label: l.title, href: `/zajezdy/${l.slug}` }))
 
   return (
     <footer className="z-footer">
@@ -55,7 +66,7 @@ export default async function Footer() {
           <div key={col.heading}>
             <h3>{col.heading}</h3>
             <ul>
-              {col.items.map(i => <li key={i.label}><Link href={i.href}>{i.label}</Link></li>)}
+              {[...col.items, ...(col.heading === 'Cestuj' ? overviews : [])].map(i => <li key={i.label}><Link href={i.href}>{i.label}</Link></li>)}
               {col.heading === 'Zaleto' && <li><CookieSettingsLink /></li>}
             </ul>
           </div>

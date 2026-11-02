@@ -2,6 +2,7 @@ import Photo from '@/components/ui/Photo'
 import Link from 'next/link'
 import Icon, { type IconName } from '@/components/ui/Icon'
 import { LinkList } from '@/components/ui/SeoBlocks'
+import { Linked, type AutoLink } from '@/lib/autolink'
 import Crumbs from '@/components/ui/Crumbs'
 import TourCard from '@/components/ui/TourCard'
 import TourAd from '@/components/ui/TourAd'
@@ -39,10 +40,12 @@ interface Props {
   /** Základ URL pro odkazy na podoblasti, např. /pocasi/recko. */
   subBase?: string
   /** Související stránky pod nabídkou (průvodce, přehledy zájezdů …). */
+  /** Cíle pro automatické odkazy v textech (střediska, oblasti → průvodci). */
+  textLinks?: AutoLink[]
   linkGroups?: { title: string; links: { href: string; label: string; hint?: string }[] }[]
 }
 
-export default function WeatherView({ name, crumbs, weather, location, heroPhoto, hotels, toursHref, subDestinations = [], subBase, country, linkGroups = [] }: Props) {
+export default function WeatherView({ name, crumbs, weather, location, heroPhoto, hotels, toursHref, subDestinations = [], subBase, country, linkGroups = [], textLinks = [] }: Props) {
   const hasCharts = !!(weather.monthly_air && weather.monthly_air.length === 12)
   const peakSea = weather.monthly_sea ? Math.max(...weather.monthly_sea) : null
   const bestNames = weather.best_months.map(m => MONTH_SHORT[m - 1])
@@ -50,6 +53,8 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
   const hasSun = !!(weather.monthly_sun_hours || weather.monthly_rain_days)
   const hasSeasons = SEASONS.some(s => weather[s.key])
   const hasWind = !!(weather.wind_info || weather.sea_info)
+  // stránka sama na sebe (průvodce téhož místa) se z textu neodkazuje
+  const textExclude = toursHref ? [toursHref] : []
   const intro = weather.description?.split(/\n\n+/) ?? []
   const withPhoto = hotels.filter(h => h.thumbnail_url)
   const offers = pickOffers(hotels)
@@ -74,7 +79,7 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
         <div>
           <div className="z-kicker" style={{ marginTop: 'var(--space-5)' }}>Klima a počasí</div>
           <h1 className="h1" style={{ margin: 'var(--space-3) 0 var(--space-4)' }}>počasí — {name}<span className="z-dot">.</span></h1>
-          {intro[0] && <p className="lead" style={{ margin: 0 }}>{intro[0]}</p>}
+          {intro[0] && <p className="lead" style={{ margin: 0 }}><Linked text={intro[0]} links={textLinks} exclude={textExclude} /></p>}
           {(peakSea || bestNames.length > 0) && (
             <div className="z-meta" style={{ marginTop: 'var(--space-5)', fontSize: 15 }}>
               {peakSea ? <span><Icon name="more" />Moře až {peakSea} °C</span> : null}
@@ -107,7 +112,7 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
                     {MONTH_SHORT.map((m, i) => <span key={m} className="z-monthpill" data-best={weather.best_months.includes(i + 1)}>{m}</span>)}
                   </div>
                   <p style={{ margin: 'var(--space-4) 0 0' }}>Ideální termíny: {weather.best_months.map(m => MONTH_NAMES[m - 1]).join(', ')}.</p>
-                  {intro[1] && <p style={{ margin: 'var(--space-4) 0 0', color: 'var(--ink-muted)' }}>{intro[1]}</p>}
+                  {intro[1] && <p style={{ margin: 'var(--space-4) 0 0', color: 'var(--ink-muted)' }}><Linked text={intro[1]} links={textLinks} exclude={textExclude} /></p>}
                 </div>
               )}
             </div>
@@ -157,13 +162,13 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
               {weather.wind_info && (
                 <div className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)', height: '100%' }}>
                   <Icon name="wind" size="lg" /><h3 className="h4" style={{ margin: 'var(--space-3) 0' }}>Vítr</h3>
-                  <p style={{ margin: 0, color: 'var(--ink-muted)' }}>{weather.wind_info}</p>
+                  <p style={{ margin: 0, color: 'var(--ink-muted)' }}><Linked text={weather.wind_info} links={textLinks} exclude={textExclude} /></p>
                 </div></div>
               )}
               {weather.sea_info && (
                 <div className="z-tk"><div className="z-tk__in" style={{ padding: 'var(--space-5)', height: '100%' }}>
                   <Icon name="more" size="lg" /><h3 className="h4" style={{ margin: 'var(--space-3) 0' }}>Teplota moře</h3>
-                  <p style={{ margin: 0, color: 'var(--ink-muted)' }}>{weather.sea_info}</p>
+                  <p style={{ margin: 0, color: 'var(--ink-muted)' }}><Linked text={weather.sea_info} links={textLinks} exclude={textExclude} /></p>
                 </div></div>
               )}
             </div>

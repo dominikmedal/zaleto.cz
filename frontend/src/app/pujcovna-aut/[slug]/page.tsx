@@ -1,4 +1,6 @@
 import Photo from '@/components/ui/Photo'
+import PlaceLinks from '@/components/PlaceLinks'
+import { slugify } from '@/lib/slugify'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
@@ -170,6 +172,8 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
             <RelatedWorld related={related} dest={dest} />
           </>
         )}
+
+        <PlaceLinks slug={slugify(dest.name)} skip={['car']} />
       </main>
     </>
   )

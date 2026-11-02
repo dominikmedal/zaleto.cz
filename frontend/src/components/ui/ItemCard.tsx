@@ -1,3 +1,4 @@
+import { Linked, type AutoLink } from '@/lib/autolink'
 import type { ReactNode } from 'react'
 import Icon, { type IconName } from './Icon'
 
@@ -30,9 +31,10 @@ export default function ItemCard({ title, text, icon, meta }: Props) {
 }
 
 interface Item { name: string; description: string }
+interface LinkProps { links?: AutoLink[]; exclude?: string[] }
 
 /** „Co vidět“: lístky, každý druhý s nakloněným razítkem – vypadá to jako sbírka vstupenek. */
-export function PlaceTickets({ items }: { items: Item[] }) {
+export function PlaceTickets({ items, links, exclude }: { items: Item[] } & LinkProps) {
   return (
     <div className="z-grid-2">
       {items.map((it, i) => (
@@ -40,7 +42,7 @@ export function PlaceTickets({ items }: { items: Item[] }) {
           <div className="z-tk__in">
             <span className="z-placecard__stamp"><Icon name="poloha" /></span>
             <h3 className="h3">{it.name}</h3>
-            <p>{it.description}</p>
+            <p><Linked text={it.description} links={links} exclude={exclude} /></p>
           </div>
         </article>
       ))}
@@ -49,7 +51,7 @@ export function PlaceTickets({ items }: { items: Item[] }) {
 }
 
 /** „Jídlo“: jídelní lístek na sky podkladu, názvy s tečkovaným vodítkem. */
-export function FoodMenu({ items }: { items: Item[] }) {
+export function FoodMenu({ items, links, exclude }: { items: Item[] } & LinkProps) {
   return (
     <div className="z-menu">
       <div className="z-menu__head"><Icon name="jidlo" size="lg" /><span className="z-kicker">Jídelní lístek</span></div>
@@ -57,7 +59,7 @@ export function FoodMenu({ items }: { items: Item[] }) {
         {items.map(it => (
           <li key={it.name}>
             <div className="z-menu__row"><h3 className="h4">{it.name}</h3><span className="z-menu__leader" /><span className="z-menu__dot" /></div>
-            <p>{it.description}</p>
+            <p><Linked text={it.description} links={links} exclude={exclude} /></p>
           </li>
         ))}
       </ul>
@@ -66,7 +68,7 @@ export function FoodMenu({ items }: { items: Item[] }) {
 }
 
 /** „Výlety“: svislá trasa s modrými uzly, položky jako zastávky. */
-export function TripRoute({ items }: { items: Item[] }) {
+export function TripRoute({ items, links, exclude }: { items: Item[] } & LinkProps) {
   return (
     <ol className="z-triproute">
       {items.map((it, i) => (
@@ -74,7 +76,7 @@ export function TripRoute({ items }: { items: Item[] }) {
           <span className="z-triproute__node" aria-hidden="true"><Icon name={i % 2 ? 'auto' : 'trasa'} size="sm" /></span>
           <div>
             <h3 className="h4">{it.name}</h3>
-            <p>{it.description}</p>
+            <p><Linked text={it.description} links={links} exclude={exclude} /></p>
           </div>
         </li>
       ))}

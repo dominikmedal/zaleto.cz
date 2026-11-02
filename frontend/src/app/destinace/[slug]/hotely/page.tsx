@@ -9,6 +9,7 @@ import LoadMoreHotels from '@/components/LoadMoreHotels'
 import HotelsAreaMap from '@/components/HotelsAreaMap'
 import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
 import NavTabs, { type NavTabItem } from '@/components/ui/NavTabs'
+import PlaceLinks from '@/components/PlaceLinks'
 import { fetchHotels } from '@/lib/api'
 import { resolveDestination } from '../resolve'
 
@@ -93,6 +94,7 @@ export default async function DestinaceHotelyPage({ params, searchParams }: Prop
             <LoadMoreHotels key={sort} initial={hotels} total={total} limit={LIMIT} query={{ destination: dest.name, sort }} variant="tile" />
           )}
         </section>
+        <PlaceLinks slug={params.slug} skip={['hotels']} />
       </main>
     </>
   )

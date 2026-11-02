@@ -8,6 +8,7 @@ import Crumbs from '@/components/ui/Crumbs'
 import ArticleBody from '@/components/ui/ArticleBody'
 import { formatLongDate } from '@/components/ui/format'
 import { approvedTravelogue } from '@/server/travelogues'
+import PlaceLinks from '@/components/PlaceLinks'
 
 export const revalidate = 300
 export const dynamicParams = true
@@ -49,6 +50,7 @@ export default async function CestopisPage({ params }: Props) {
             <Link href={`/destinace/${t.dest_slug}`} className="z-more">Zájezdy a tipy: {t.destination}</Link>
             <Link href="/cestopisy/napsat" className="z-more">Napsat vlastní cestopis</Link>
           </p>
+          <PlaceLinks slug={t.dest_slug} />
         </main>
       </div>
     </>
