@@ -80,9 +80,15 @@ export function MonthsGrid({ seo }: { seo: DestinationSeo }) {
           </div>
         ))}
       </div>
-      <p className="z-mseason__legend">
-        Výška sloupce = jak je měsíc vhodný na dovolenou{hasPrices ? ' · pod ním nejnižší cena zájezdu v tis. Kč' : ''}
-      </p>
+      <div className="z-mseason__legend">
+        <span className="z-mseason__key">
+          {(['top', 'dobre', 'prumer', 'slabe'] as const).map(r => (
+            <span key={r} className="z-mseason__keyitem"><i className={`z-mseason__sw z-mseason__sw--${r}`} />{RATING_LABEL[r]}</span>
+          ))}
+          <span>= jak se v daném měsíci hodí jet na dovolenou</span>
+        </span>
+        {hasPrices && <span>Číslo pod měsícem = nejnižší cena zájezdu v tisících Kč (7,3 = 7 300 Kč)</span>}
+      </div>
 
       {/* popis každého měsíce: nejlepší měsíce jsou rozbalené, ostatní jedním klikem */}
       <div className="z-mlist">
