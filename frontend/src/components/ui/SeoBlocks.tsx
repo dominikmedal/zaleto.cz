@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { formatPrice } from '@/components/ui/format'
-import { MONTHS, RATING_LABEL, type AudienceItem, type DestinationSeo, type FaqItem } from '@/lib/seoContent'
+import { MONTHS, RATING_LABEL, type AudienceItem, type DestinationSeo, type FaqItem, type MonthRating } from '@/lib/seoContent'
 
 /** Odstavce z textu s \n\n (AI texty se ukládají s prázdným řádkem mezi odstavci). */
 export function Paragraphs({ text, lead }: { text: string; lead?: boolean }) {
@@ -51,6 +51,18 @@ export function AiNote({ at, what = 'Text' }: { at: string; what?: string }) {
   )
 }
 
+const RATING_DOTS: Record<MonthRating, number> = { top: 3, dobre: 2, prumer: 1, slabe: 0 }
+
+/** Odznak hodnocení: tři tečky (vyplněné = kolik toho měsíc nabízí) a popisek. */
+export function RatingBadge({ rating }: { rating: MonthRating }) {
+  return (
+    <span className={`z-rate z-rate--${rating}`}>
+      <span className="z-rate__dots" aria-hidden="true">{[0, 1, 2].map(i => <i key={i} className={i < RATING_DOTS[rating] ? 'on' : undefined} />)}</span>
+      {RATING_LABEL[rating]}
+    </span>
+  )
+}
+
 /** Dvanáct měsíců: hodnocení sezóny, krátký popis a nejnižší cena zájezdu z našich dat. */
 export function MonthsGrid({ seo }: { seo: DestinationSeo }) {
   const prices = seo.stats.monthly ?? {}
@@ -78,8 +90,8 @@ export function MonthsGrid({ seo }: { seo: DestinationSeo }) {
           <details key={m.month} className={`z-mrow z-mrow--${m.rating}`} open={m.rating === 'top'}>
             <summary>
               <span className="z-mrow__name">{MONTHS[m.month - 1]}</span>
-              <span className="z-month__tag">{RATING_LABEL[m.rating]}</span>
-              <span className="z-mrow__price">{prices[String(m.month)] ? `od ${formatPrice(prices[String(m.month)])}` : ''}</span>
+              <RatingBadge rating={m.rating} />
+              <span className="z-mrow__price">{prices[String(m.month)] ? <><small>od</small>{formatPrice(prices[String(m.month)])}</> : ''}</span>
             </summary>
             <p>{m.text}</p>
           </details>
