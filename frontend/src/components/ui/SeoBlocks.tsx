@@ -40,13 +40,13 @@ export function faqSchema(items: FaqItem[]) {
   } : null
 }
 
-/** Průhledná poznámka o původu textu (AI + data Zaleto) a datum poslední aktualizace. */
+/** Poznámka o autorovi textu (redakce Zaleto) a datum poslední aktualizace. */
 export function AiNote({ at, what = 'Text' }: { at: string; what?: string }) {
   const d = new Date(at)
   const when = Number.isNaN(d.getTime()) ? '' : ` · aktualizováno ${d.toLocaleDateString('cs-CZ', { month: 'long', year: 'numeric' })}`
   return (
     <p className="z-data z-ainote" style={{ textTransform: 'none' }}>
-      <Icon name="info" size="sm" />{what} připravila redakce Zaleto s pomocí AI z údajů cestovních kanceláří a našich dat{when}.
+      <Icon name="info" size="sm" />{what} připravila redakce Zaleto{when}.
     </p>
   )
 }
