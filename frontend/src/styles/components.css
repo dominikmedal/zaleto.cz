@@ -2269,3 +2269,8 @@ a.z-cars__car:hover { transform: translateY(-3px); box-shadow: 0 12px 20px -12px
 .z-collabnote p { margin: 2px 0 0; font: 400 15px/22px var(--font-sans); color: var(--ink-muted); }
 .z-collabnote .z-btn { flex: none; }
 @media (max-width: 767px) { .z-collabnote { flex-direction: column; align-items: flex-start; } }
+/* tlačítko „Ověřit dostupnost u CK“ na lístku termínu: širší ústřižek, bez zalamování */
+.z-dateticket { --stub: 270px; }
+.z-dateticket__stub { padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5); }
+.z-dateticket__cta { white-space: nowrap; }
+@media (max-width: 767px) { .z-dateticket { --stub: 0px; } .z-dateticket__cta { font-size: 13px; } .z-dateticket__stub { gap: var(--space-3); } }

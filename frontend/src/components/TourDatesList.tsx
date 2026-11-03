@@ -136,7 +136,7 @@ function TourTicket({ tour, slug, adults }: { tour: Tour; slug: string; adults: 
             <span className="z-price">{formatPrice(tour.price)}</span>
             {adults > 1 && <span className="z-price__note">celkem {formatPrice(tour.price * adults)}</span>}
           </div>
-          <span className="z-btn z-btn--primary z-btn--sm z-dateticket__cta">Rezervovat<span className="z-btn__go"><Icon name="sipka" /></span></span>
+          <span className="z-btn z-btn--primary z-btn--sm z-dateticket__cta">Ověřit dostupnost u CK<span className="z-btn__go"><Icon name="sipka" /></span></span>
         </div>
       </div>
     </a>
