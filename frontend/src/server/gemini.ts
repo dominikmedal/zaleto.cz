@@ -52,14 +52,8 @@ export async function geminiText(prompt: string, opts: { temperature?: number; m
   throw last ?? new Error('Žádný dostupný model Gemini')
 }
 
-/** Vytáhne JSON (objekt nebo pole) z odpovědi, i když je obalený do ```json. */
-export function parseJson<T>(text: string): T {
-  const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
-  try { return JSON.parse(clean) as T } catch { /* zkusíme najít první JSON blok */ }
-  const m = clean.match(/[\[{][\s\S]*[\]}]/)
-  if (!m) throw new Error('Odpověď modelu neobsahuje JSON')
-  return JSON.parse(m[0]) as T
-}
+// parseJson žije v lib/aiJson.ts (čistá funkce, testovatelná bez DB); zde se jen re-exportuje pro stávající importy.
+export { parseJson, escapeControlCharsInStrings } from '../lib/aiJson'
 
 /** Obrázek z modelu (výchozí gemini-2.5-flash-image); vrací binární data a typ. */
 export async function geminiImage(prompt: string, kind = 'cover'): Promise<{ buffer: Buffer; mimeType: string }> {
