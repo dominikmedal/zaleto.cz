@@ -10,6 +10,13 @@
     "test": "node --test \"tests/**/*.test.ts\"",
     "verify:agent": "node scripts/verify-agent-readiness.mjs"
   },
+  "browserslist": [
+    "chrome >= 100",
+    "edge >= 100",
+    "firefox >= 100",
+    "safari >= 15.4",
+    "ios_saf >= 15.4"
+  ],
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
     "@neondatabase/serverless": "^1.2.0",

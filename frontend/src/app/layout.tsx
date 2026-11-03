@@ -125,7 +125,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="cs" className={`${fraunces.variable} ${poppins.variable} ${spaceMono.variable}`}>
       <head>
-        <Script src="https://www.googletagmanager.com/gtag/js?id=G-HPE9HH5VG3" strategy="afterInteractive" />
+        {/* gtag.js (177 kB) se stahuje až po načtení stránky v době nečinnosti – nezdržuje LCP ani TBT. Inicializace (consent) zůstává brzy. */}
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-HPE9HH5VG3" strategy="lazyOnload" />
         <Script id="ga-init" strategy="afterInteractive">{`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}

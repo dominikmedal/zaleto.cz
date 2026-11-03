@@ -88,7 +88,7 @@ export default async function PujcovnaAutPage() {
 
       <CarRentalProvider>
         <section className="z-masthead z-masthead--under" aria-label="Hledání půjčovny aut">
-          <div className="z-masthead__photo" style={{ backgroundImage: 'url("/img/header-car.webp")' }} aria-hidden="true" />
+          <div className="z-masthead__photo" aria-hidden="true" />
           <svg className="z-masthead__route" viewBox="0 0 1600 360" preserveAspectRatio="none" aria-hidden="true">
             <path d="M-20 330 C 320 340, 520 160, 860 200 S 1300 60, 1640 40" />
           </svg>

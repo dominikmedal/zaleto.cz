@@ -8,7 +8,12 @@ on:
     - cron: '0 1 * * 1'   # pondělí 01:00 UTC – Čedok
     - cron: '0 1 * * 2'   # úterý   01:00 UTC – Blue Style
     - cron: '0 1 * * 3'   # středa  01:00 UTC – TUI
-    - cron: '0 2 * * *'   # denně   02:00 UTC – Fischer (update-only, jednou za 14 dní plný scrape po částech)
+    # Druhý běh týdně se stejným klíčem cyklu (ISO týden): kdo se v limitu 6 h nedokončil, naváže na checkpointy;
+    # kdo se dokončil, projde se znovu a ceny jsou čerstvé.
+    - cron: '0 1 * * 4'   # čtvrtek 01:00 UTC – Čedok (navázání / obnova)
+    - cron: '0 1 * * 5'   # pátek   01:00 UTC – Blue Style (navázání / obnova)
+    - cron: '0 1 * * 6'   # sobota  01:00 UTC – TUI (navázání / obnova)
+    - cron: '0 2 * * *'   # denně   02:00 UTC – Fischer (update-only od nejstarších dat + objevení nových hotelů)
     - cron: '0 3 * * *'   # denně   03:00 UTC – Exim Tours (totéž)
   workflow_dispatch:
     inputs:
@@ -46,9 +51,9 @@ jobs:
           ONLY_INPUT: ${{ inputs.only }}
         run: |
           case "$SCHEDULE" in
-            "0 1 * * 1") ONLY="Cedok" ;;
-            "0 1 * * 2") ONLY="Blue Style" ;;
-            "0 1 * * 3") ONLY="TUI" ;;
+            "0 1 * * 1"|"0 1 * * 4") ONLY="Cedok" ;;
+            "0 1 * * 2"|"0 1 * * 5") ONLY="Blue Style" ;;
+            "0 1 * * 3"|"0 1 * * 6") ONLY="TUI" ;;
             "0 2 * * *") ONLY="Fischer" ;;
             "0 3 * * *") ONLY="Exim" ;;
             *) ONLY="$ONLY_INPUT" ;;
@@ -70,7 +75,11 @@ jobs:
           REPORT_TO: ${{ secrets.REPORT_TO }}
           REPORT_FROM: ${{ secrets.REPORT_FROM }}
           SCRAPER_DELAY: '1.5'
-          SCRAPER_WORKERS: '3'
+          SCRAPER_WORKERS: '5'
+          # Volitelné rozšíření pokrytí Fischer/Exim (viz scraper/scrape_opts.py). Zapínej až po ověření velikosti DB (Neon):
+          # EXTRA_MEALS=1 ≈ +90 % termínů, EXTRA_NIGHTS=4,5,6,15 ≈ +25–30 %. Tabulka tours má teď ~2,8 GB včetně indexů.
+          EXTRA_MEALS: '0'
+          EXTRA_NIGHTS: ''
           SCRAPER_CYCLE: ${{ steps.pick.outputs.cycle }}
           ONLY: ${{ steps.pick.outputs.only }}
           SKIP_EMAIL: ${{ github.event_name == 'schedule' || inputs.skip_email }}

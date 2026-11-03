@@ -6,10 +6,14 @@ const nextConfig = {
   experimental: { serverComponentsExternalPackages: ['jsdom'] },
   // Umožní spustit druhý dev server s oddělenou build složkou (NEXT_DIST_DIR=.next-dev).
   distDir: process.env.NEXT_DIST_DIR || '.next',
-  webpack: (config, { dev, isServer }) => {
+  webpack: (config, { dev, isServer, webpack }) => {
     // Serverový dispatch (DB, tajemství) se nesmí dostat do klientského bundlu.
     if (!isServer) {
       config.resolve.alias['@/server/dispatch'] = false
+      // Next vkládá polyfilly pro funkce, které cílové prohlížeče (viz browserslist) už mají – ušetří ~12 kB JS.
+      if (!dev) {
+        config.plugins.push(new webpack.NormalModuleReplacementPlugin(/polyfills[\/]polyfill-module/, path.resolve('./src/lib/emptyPolyfill.js')))
+      }
     }
     if (dev) {
       // Vypni filesystem cache v dev módu — zabraňuje OOM při čtení velkých cache souborů

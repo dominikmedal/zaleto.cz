@@ -459,10 +459,10 @@ a.z-tk:hover { transform: translateY(-4px) rotate(-.4deg); filter: drop-shadow(0
 @media (max-width: 767px) { .z-carform { flex-direction: column; } .z-carform .z-sfield { flex: none; max-width: none !important; border-left: 0 !important; border-top: 2px dotted var(--line); } .z-carform .z-sfield:first-child { border-top: 0; } }
 
 /* fotka v záhlaví: vpravo, plynule do noční modré */
-.z-masthead__photo { position: absolute; top: 0; right: 0; bottom: 0; width: 62%; background-size: cover; background-position: center; -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 55%); mask-image: linear-gradient(to right, transparent 0%, #000 55%); opacity: .9; }
+.z-masthead__photo { position: absolute; top: 0; right: 0; bottom: 0; width: 62%; background-image: url('/img/header-car.webp'); background-size: cover; background-position: center; -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 55%); mask-image: linear-gradient(to right, transparent 0%, #000 55%); opacity: .9; }
 .z-masthead__photo ~ .z-masthead__sun { display: none; }
 .z-masthead--inset { border-radius: var(--radius-lg); }
-@media (max-width: 767px) { .z-masthead__photo { width: 100%; opacity: .35; -webkit-mask-image: none; mask-image: none; } }
+@media (max-width: 767px) { .z-masthead__photo { background-image: url('/img/header-car-m.webp'); width: 100%; opacity: .35; -webkit-mask-image: none; mask-image: none; } }
 
 /* ---------- Menu přes záhlaví: průhledné, po scrollu světlé ---------- */
 .z-header { transition: background-color .25s, border-color .25s; }

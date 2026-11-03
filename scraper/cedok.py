@@ -409,7 +409,7 @@ def _discover_dest_slugs(session: requests.Session) -> list[str] | None:
         logger.debug(f"Čedok sitemap.xml: {e}")
 
     # 2. Projdi pod-sitemapy
-    for surl in sitemap_urls[:20]:
+    for surl in sitemap_urls[:200]:
         try:
             r = session.get(surl, timeout=20)
             if r.status_code == 200:
@@ -515,6 +515,22 @@ _DATES_OFFER_RE = re.compile(
 )
 
 
+# Nový formát RSC (2026-11): záznam termínu nese jen id, datum, délku a cenu; letiště, strava a pokoj jsou
+# u aktuálně zvolené konfigurace stránky (blok "current"). Starý formát (výše) měl vše v každém záznamu.
+_DATE_REC_RE = re.compile(
+    r'\{"id":"([A-Za-z0-9+/=_-]{20,})",'
+    r'"beginDate":"(\d{4}-\d{2}-\d{2})",'
+    r'"endDate":"(\d{4}-\d{2}-\d{2})",'
+    r'"duration":\{"days":(\d+),"nights":(\d+)\},'
+    r'"price":\{"total":\{"amount":(\d+),"currency":"[A-Z]{3}"\}'
+    r'(?:,"totalWithAdditionalPayments":\{[^{}]*\})?'
+    r'(?:,"perPerson":\{"amount":(\d+))?'
+)
+_CUR_DEP_RE  = re.compile(r'"departure":\{"type":"[a-z]+","id":"(\w+)","title":"([^"]+)"')
+_CUR_MEAL_RE = re.compile(r'"meal":\{"id":"[^"]*","title":"([^"]+)"')
+_CUR_ROOM_RE = re.compile(r'"roomId":"([A-Za-z0-9]+)"')
+
+
 def _parse_hotel_info(html: str) -> dict:
     """
     Extrahuje doplňkové info o hotelu z detail stránky:
@@ -612,6 +628,31 @@ def _parse_hotel_info(html: str) -> dict:
     return info
 
 
+def _parse_dates_new_format(unescaped: str) -> list[tuple]:
+    """
+    Termíny z nového RSC formátu Čedoku převedené na stejné n-tice jako starý regex
+    (offer_id, begin, end, days, nights, dep_id, dep_title, meal, room_code, price_celkem_za_skupinu).
+    Letiště/strava/pokoj = aktuální konfigurace stránky ("current").
+    """
+    cur = unescaped.find('"current":{')
+    if cur < 0:
+        return []
+    ctx = unescaped[cur:cur + 6000]
+    dm = _CUR_DEP_RE.search(ctx)
+    mm = _CUR_MEAL_RE.search(unescaped, cur)
+    rm = _CUR_ROOM_RE.search(unescaped, cur)
+    if not dm:
+        return []
+    dep_id, dep_title = dm.group(1), dm.group(2)
+    meal = mm.group(1) if mm else ""
+    room = rm.group(1) if rm else ""
+    out = []
+    for m in _DATE_REC_RE.finditer(unescaped):
+        offer_id, begin, end, days, nights, total, _pp = m.groups()
+        out.append((offer_id, begin, end, days, nights, dep_id, dep_title, meal, room, total))
+    return out
+
+
 def _parse_hotel_dates(html: str, hotel_url: str, adults: int = ADULTS) -> list[dict]:
     """
     Extrahuje všechny dostupné termíny z hotelové detail stránky.
@@ -634,6 +675,8 @@ def _parse_hotel_dates(html: str, hotel_url: str, adults: int = ADULTS) -> list[
             continue
 
         matches = _DATES_OFFER_RE.findall(unescaped)
+        if not matches:
+            matches = _parse_dates_new_format(unescaped)
         if not matches:
             continue
 

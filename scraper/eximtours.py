@@ -23,6 +23,7 @@ import logging
 import os
 import random
 import re
+import sys
 import threading
 import time
 import unicodedata
@@ -34,6 +35,7 @@ from pathlib import Path
 import requests
 from requests.exceptions import ConnectionError as ReqConnectionError, ChunkedEncodingError
 
+import scrape_opts
 from db import ZaletoDB
 
 # ---------------------------------------------------------------------------
@@ -156,10 +158,13 @@ class _HotelJsonParser(HTMLParser):
 
 DEFAULT_AIRPORT = 4312  # Praha Václav Havel
 
+# ID letišť podle API (stejná platforma jako Fischer). Dřívější ID 4313 NENÍ Ostrava (vracelo lety z Prahy); Ostrava je 2682.
 AIRPORT_NAMES: dict[int, str] = {
     4312: "Praha",
-    4313: "Ostrava",
     4305: "Brno",
+    2682: "Ostrava",
+    4308: "Pardubice",
+    4309: "Karlovy Vary",
 }
 
 
@@ -545,7 +550,9 @@ def _build_hotel_and_tours(hotel_url: str, p: dict, api_data: dict, airport_name
 
         if "D" not in params and p.get("destination_ids"):
             params["D"] = "|".join(str(x) for x in p["destination_ids"])
-        if "TO" not in params and p.get("transport_origin"):
+        # TO vždy podle letiště tohoto dotazu (v update-only režimu je tourFilterQuery z uložené konfigurace = Praha,
+        # termíny různých letišť by měly shodné URL a přepisovaly by se).
+        if p.get("transport_origin"):
             params["TO"] = "|".join(str(x) for x in p["transport_origin"])
         if "HID" not in params and p.get("hotel_id"):
             params["HID"] = str(p["hotel_id"])
@@ -612,7 +619,7 @@ def _fetch_hotel_data(session: requests.Session, hotel_url: str,
         airport_name  = AIRPORT_NAMES.get(airport, str(airport))
         airport_tours: list = []
 
-        for nights_val in p.get("all_nights", [p["nights"]]):
+        for nights_val in scrape_opts.nights(p.get("all_nights", [p["nights"]])):
             api_data = _get_offer(session, p, p["main_filter_from"] or "", p["main_filter_to"] or "",
                                   nights_override=nights_val)
 
@@ -625,6 +632,7 @@ def _fetch_hotel_data(session: requests.Session, hotel_url: str,
                 continue
 
             hd, tour_list = _build_hotel_and_tours(hotel_url, p, api_data, airport_name)
+            tour_list = tour_list + scrape_opts.extra_meal_tours(sys.modules[__name__], session, p, api_data, nights_val, hotel_url, airport_name)
             if hotel_dict is None:
                 hotel_dict = hd
             airport_tours.extend(tour_list)
@@ -661,10 +669,7 @@ def scrape_hotel(session: requests.Session, db: ZaletoDB,
     slug = _next_slug(slug_counter, hotel_dict["name"])
 
     hotel_id = db.upsert_hotel(slug, hotel_dict)
-    db.conn.execute("DELETE FROM tours WHERE hotel_id = %s AND agency = %s", (hotel_id, AGENCY))
-    for t in all_tours:
-        db.upsert_tour(hotel_id, t)
-    db.commit()
+    db.replace_hotel_tours(hotel_id, AGENCY, all_tours)
 
     logger.info(f"  {hotel_dict['name']} ⭐{hotel_dict['stars']} — {len(all_tours)} termínů")
     return len(all_tours)
@@ -722,7 +727,7 @@ def _p_from_api_config(cfg: dict) -> dict | None:
 
 
 def update_hotel_tours(session: requests.Session, db: ZaletoDB,
-                       hotel_id: int, api_config_str: str, airports: list[int]) -> int:
+                       hotel_id: int, api_config_str: str, airports: list[int], probe_only: bool = False) -> int:
     try:
         cfg = json.loads(api_config_str)
     except Exception:
@@ -734,33 +739,37 @@ def update_hotel_tours(session: requests.Session, db: ZaletoDB,
     base_p = _p_from_api_config(cfg)
     if not base_p:
         return 0
+    if probe_only:
+        # Hotel bez uložených termínů: stačí 1–2 dotazy (Praha, Brno × první počet nocí) – nemá smysl platit
+        # 40 požadavků za hotel, který nic nenabízí. Najde-li se nabídka, pokračuje se plnou aktualizací.
+        for _ap in airports[:2]:
+            _pp = {**base_p, "transport_origin": [_ap]}
+            _d = _get_offer(session, _pp, _pp["main_filter_from"], _pp["main_filter_to"], nights_override=_pp["all_nights"][0])
+            if _d and _d.get("availableDates"):
+                break
+        else:
+            return 0
+
     all_tours: list = []
     for airport in airports:
         p = {**base_p, "transport_origin": [airport]}
         airport_name  = AIRPORT_NAMES.get(airport, str(airport))
         airport_tours: list = []
-        for nights_val in p["all_nights"]:
+        for nights_val in scrape_opts.nights(p["all_nights"]):
             api_data = _get_offer(session, p, p["main_filter_from"], p["main_filter_to"],
                                   nights_override=nights_val)
             if not api_data or not api_data.get("availableDates"):
                 continue
             _, tour_list = _build_hotel_and_tours(hotel_url_base, p, api_data, airport_name)
+            tour_list = tour_list + scrape_opts.extra_meal_tours(sys.modules[__name__], session, p, api_data, nights_val, hotel_url_base, airport_name)
             airport_tours.extend(tour_list)
         if airport_tours:
             all_tours.extend(airport_tours)
     if not all_tours:
-        # Zachovej stávající termíny — API může vrátit prázdno kvůli sezóně nebo dočasné chybě.
-        # Aktualizujeme updated_at, aby purge_stale_tours v run_all.py termíny nesmazal.
-        db.conn.execute(
-            "UPDATE tours SET updated_at = NOW() WHERE hotel_id = %s AND agency = %s",
-            (hotel_id, AGENCY),
-        )
-        db.commit()
+        # Žádné termíny: staré termíny NEobnovujeme (dřív se jim zde přepsal updated_at, takže zastaralé ceny zůstávaly navždy).
+        # Odstraní je purge_unrefreshed_tours v run_all.py po dokončeném průchodu (bezpečně, s pojistkami).
         return 0
-    db.conn.execute("DELETE FROM tours WHERE hotel_id = %s AND agency = %s", (hotel_id, AGENCY))
-    for t in all_tours:
-        db.upsert_tour(hotel_id, t)
-    db.commit()
+    db.replace_hotel_tours(hotel_id, AGENCY, all_tours)
     return len(all_tours)
 
 
@@ -769,10 +778,18 @@ def _run_update_only(db: ZaletoDB, session: requests.Session,
     """
     workers > 1: paralelní zpracování, každý worker má vlastní session + DB spojení.
     """
-    rows = db.conn.execute(
-        "SELECT id, slug, api_config FROM hotels WHERE agency = %s AND api_config IS NOT NULL",
-        (AGENCY,)
+    # Pořadí: hotely s termíny od nejstarších dat (co se dlouho neaktualizovalo, jde první), hotely bez termínů až nakonec.
+    # Dřív se brala DB bez řazení a po timeoutu se každý týden začínalo znovu u stejných hotelů – konec seznamu nikdy nepřišel na řadu.
+    _all = db.conn.execute(
+        "SELECT h.id, h.slug, h.api_config, COUNT(t.id) AS n "
+        "FROM hotels h LEFT JOIN tours t ON t.hotel_id = h.id AND t.agency = %s "
+        "WHERE h.agency = %s AND h.api_config IS NOT NULL "
+        "GROUP BY h.id, h.slug, h.api_config "
+        "ORDER BY (COUNT(t.id) = 0), MAX(t.updated_at) ASC NULLS FIRST, h.id",
+        (AGENCY, AGENCY)
     ).fetchall()
+    rows = [(r[0], r[1], r[2]) for r in _all]
+    empty_ids = {r[0] for r in _all if r[3] == 0}
     total = len(rows)
     logger.info(f"Update-only: {total} hotelů k aktualizaci (workers={workers})")
     slug_counter: dict = {}
@@ -813,7 +830,7 @@ def _run_update_only(db: ZaletoDB, session: requests.Session,
 
         try:
             if cfg.get("_hotelDataKey"):
-                saved = update_hotel_tours(w_session, w_db, hotel_id, api_config_str, airports)
+                saved = update_hotel_tours(w_session, w_db, hotel_id, api_config_str, airports, probe_only=(hotel_id in empty_ids))
                 w_db.mark_done(AGENCY, f"upd:{hotel_id}")
                 with _lock:
                     _saved[0]   += saved
@@ -953,6 +970,11 @@ def run(limit: int = 0, delay: float = 1.5, delete: bool = False,
 
     if update_only:
         logger.info("Režim: UPDATE-ONLY (přeskočení GET stránek, jen API aktualizace termínů)")
+        try:
+            from discover import discover_new_hotels
+            discover_new_hotels(sys.modules[__name__], db, session, delay, workers=workers)
+        except Exception as e:
+            logger.error(f"Objevení nových hotelů selhalo (pokračuji update-only): {e}")
         total_saved = _run_update_only(db, session, delay, airports, workers=workers)
         db.close()
         logger.info(f"Update-only hotovo. Celkem uloženo: {total_saved} termínů.")

@@ -40,7 +40,7 @@ import sys
 import threading
 import time
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
@@ -501,18 +501,19 @@ def run_scraper(scraper: dict, conn=None) -> dict:
     if _own_conn:
         conn = open_db()
 
-    # Fischer / Exim Tours: rozhodni full vs update-only
+    # Fischer / Exim Tours: jakmile jsou hotely v DB, běží VŽDY rychlý update-only (uložený api_config, hotely od
+    # nejstarších dat) + objevení nových hotelů ze sitemapy. Dřívější "plný scrape po 14 dnech" se v limitu jobu
+    # (6 h) nikdy nedokončil, takže se nikdy nezapsal a každý den se znovu začínalo u stejných hotelů z konce sitemapy.
     is_update_only = False
     if agency in UPDATE_ONLY_AGENCIES:
-        last_full = last_full_scrape_date(conn, agency)
-        if last_full and (datetime.now() - last_full).days < FULL_SCRAPE_DAYS:
+        known = conn.execute(
+            "SELECT COUNT(*) AS n FROM hotels WHERE agency = ? AND api_config IS NOT NULL", (agency,)
+        ).fetchone()["n"]
+        if known > 0:
             is_update_only = True
-            logger.info(
-                f"{agency}: poslední plný scrape {last_full.strftime('%Y-%m-%d')} "
-                f"({(datetime.now() - last_full).days} dní), spouštím UPDATE-ONLY"
-            )
+            logger.info(f"{agency}: {known} hotelů v DB → UPDATE-ONLY (od nejstarších dat) + objevení nových hotelů")
         else:
-            logger.info(f"{agency}: spouštím PLNÝ SCRAPE (metadata + termíny)")
+            logger.info(f"{agency}: DB je prázdná → PLNÝ SCRAPE (metadata + termíny)")
 
     scraper_args = list(scraper["args"])
     if is_update_only:
@@ -626,9 +627,10 @@ def run_scraper(scraper: dict, conn=None) -> dict:
             except Exception:
                 pass  # tabulka ještě nemusí existovat při prvním běhu
             # Plný scrape: zaznamej datum jen pokud scraper skutečně aktualizoval data
-            if agency in UPDATE_ONLY_AGENCIES and not is_update_only and updated_count > 0:
+            if agency in UPDATE_ONLY_AGENCIES and updated_count > 0:
+                # Doběhl celý průchod všemi hotely → termíny starší než průchod jsou prokazatelně zastaralé (viz run_purge_cycle)
                 mark_full_scrape(conn, agency)
-                logger.info(f"{agency}: plný scrape zaznamenán → příštích {FULL_SCRAPE_DAYS} dní bude update-only")
+                logger.info(f"{agency}: průchod všemi hotely dokončen a zaznamenán")
             # Ulož checkpoint — přežije restart kontejneru
             mark_completed(conn, agency)
 
@@ -1049,6 +1051,36 @@ def run_cycle(cycle: int, skip_email: bool = False, only: list[dict] | None = No
         logger.info("Email: přeskočen (--skip-email)")
 
 
+STALE_DAYS = int(os.environ.get("STALE_TOUR_DAYS", "10"))   # termín neobnovený déle než X dní (a starší než poslední dokončený průchod)
+
+
+def purge_unrefreshed_tours(conn) -> int:
+    """
+    Smaže termíny Fischeru/Eximu, které poslední DOKONČENÝ průchod všemi hotely neobnovil (hotel už je CK nenabízí),
+    a které jsou zároveň starší než STALE_DAYS. Update-only je jinak nikdy nesmaže a na webu by zůstávaly staré ceny.
+    Pojistky: bez dokončeného průchodu (poslední ≤ 14 dní) se nemaže nic; nemaže se víc než 60 % termínů agentury najednou.
+    """
+    total_deleted = 0
+    for agency in sorted(UPDATE_ONLY_AGENCIES):
+        last = last_full_scrape_date(conn, agency)
+        if not last or (datetime.now() - last).days > 14:
+            logger.info(f"  {agency}: žádný nedávno dokončený průchod → zastaralé termíny se nemažou")
+            continue
+        cutoff = min(last, datetime.now() - timedelta(days=STALE_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
+        n_total = conn.execute("SELECT COUNT(*) AS n FROM tours WHERE agency = ?", (agency,)).fetchone()["n"]
+        n_stale = conn.execute("SELECT COUNT(*) AS n FROM tours WHERE agency = ? AND updated_at < ?", (agency, cutoff)).fetchone()["n"]
+        if n_stale == 0:
+            continue
+        if n_total and n_stale > 0.6 * n_total:
+            logger.warning(f"  {agency}: {n_stale}/{n_total} termínů by se smazalo (>60 %) → přeskočeno, zkontroluj ručně")
+            continue
+        cur = conn.execute("DELETE FROM tours WHERE agency = ? AND updated_at < ?", (agency, cutoff))
+        conn.commit()
+        total_deleted += cur.rowcount
+        logger.info(f"  {agency}: smazáno {cur.rowcount} zastaralých termínů (neobnoveno od {cutoff})")
+    return total_deleted
+
+
 def run_purge_cycle():
     """
     Lehký úklid mezi plnými scrape cykly — jen smazání expirovaných termínů
@@ -1063,6 +1095,7 @@ def run_purge_cycle():
     try:
         expired = purge_expired_tours(conn)
         logger.info(f"  Smazáno {expired} prošlých termínů")
+        purge_unrefreshed_tours(conn)
         refresh_hotel_stats(conn)
         logger.info("  hotel_stats aktualizováno")
     except Exception:

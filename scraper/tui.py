@@ -680,9 +680,18 @@ def _extract_next_data(html: str) -> dict | None:
     m = re.search(r'id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL)
     if not m:
         return None
+    raw = m.group(1).strip()
     try:
-        return json.loads(m.group(1))
+        return json.loads(raw)
     except json.JSONDecodeError:
+        pass
+    # TUI začalo __NEXT_DATA__ vydávat jako base64 (začíná "eyJwcm9wcyI6…" = '{"props":…'); bez dekódování scraper
+    # nenašel žádné nabídky (v DB hotely bez jediného termínu).
+    try:
+        import base64
+        pad = "=" * (-len(raw) % 4)
+        return json.loads(base64.b64decode(raw + pad).decode("utf-8"))
+    except Exception:
         return None
 
 

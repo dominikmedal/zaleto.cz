@@ -230,7 +230,17 @@ class ZaletoDB:
                 latitude       = EXCLUDED.latitude,
                 longitude      = EXCLUDED.longitude,
                 api_config     = EXCLUDED.api_config,
-                updated_at     = NOW()
+                -- updated_at jde do sitemapy jako <lastmod>: mění se jen při skutečné změně obsahu hotelu,
+                -- ne při každém scrapu (vymyšlené datum by vyhledávače naučilo lastmod ignorovat).
+                updated_at     = CASE WHEN (
+                        hotels.name, hotels.country, hotels.destination, hotels.resort_town, hotels.stars, hotels.review_score,
+                        hotels.description, hotels.thumbnail_url, hotels.photos, hotels.amenities, hotels.tags,
+                        hotels.distances, hotels.food_options, hotels.price_includes
+                    ) IS DISTINCT FROM (
+                        EXCLUDED.name, EXCLUDED.country, EXCLUDED.destination, EXCLUDED.resort_town, EXCLUDED.stars, EXCLUDED.review_score,
+                        EXCLUDED.description, EXCLUDED.thumbnail_url, EXCLUDED.photos, EXCLUDED.amenities, EXCLUDED.tags,
+                        EXCLUDED.distances, EXCLUDED.food_options, EXCLUDED.price_includes
+                    ) THEN NOW() ELSE hotels.updated_at END
         """, (
             slug,
             data.get("agency", data.get("_agency", "Fischer")),
@@ -318,6 +328,52 @@ class ZaletoDB:
             t.get("url_single"),
         ))
         self.conn.commit()
+
+    def replace_hotel_tours(self, hotel_id: int, agency: str, tours: list) -> int:
+        """
+        Nahradí termíny hotelu dané agentury novými — DELETE + hromadný INSERT v JEDNÉ transakci.
+        Dřív se mazalo a vkládalo po řádku s commitem každého řádku (stovky round-tripů do DB na hotel,
+        návštěvníci mezitím viděli jen část termínů). Teď: pár dotazů a hotel nikdy není „rozpůlený“.
+        """
+        rows: dict[str, tuple] = {}
+        for t in tours:                       # deduplikace podle URL (ON CONFLICT nesmí zasáhnout řádek dvakrát)
+            rows[t["url"]] = (
+                hotel_id, t.get("agency") or t.get("_agency") or agency, t["departure_date"], t.get("return_date"), t.get("duration"),
+                t["price"], t.get("transport", "letecky"), t.get("meal_plan", ""), t.get("adults", 2), t.get("room_code", ""), t["url"],
+                int(t.get("is_last_minute", False)), int(t.get("is_first_minute", False)), t.get("departure_city", ""),
+                t.get("price_single"), t.get("url_single"),
+            )
+        cur = self._cur()
+        try:
+            cur.execute("DELETE FROM tours WHERE hotel_id = %s AND agency = %s", (hotel_id, agency))
+            if rows:
+                psycopg2.extras.execute_values(cur, """
+                    INSERT INTO tours (
+                        hotel_id, agency, departure_date, return_date, duration,
+                        price, transport, meal_plan, adults, room_code, url,
+                        is_last_minute, is_first_minute, departure_city,
+                        price_single, url_single, updated_at
+                    ) VALUES %s
+                    ON CONFLICT (url) DO UPDATE SET
+                        hotel_id        = EXCLUDED.hotel_id,
+                        agency          = EXCLUDED.agency,
+                        price           = EXCLUDED.price,
+                        transport       = EXCLUDED.transport,
+                        meal_plan       = EXCLUDED.meal_plan,
+                        return_date     = EXCLUDED.return_date,
+                        departure_date  = EXCLUDED.departure_date,
+                        is_last_minute  = EXCLUDED.is_last_minute,
+                        is_first_minute = EXCLUDED.is_first_minute,
+                        departure_city  = EXCLUDED.departure_city,
+                        price_single    = EXCLUDED.price_single,
+                        url_single      = EXCLUDED.url_single,
+                        updated_at      = NOW()
+                """, list(rows.values()), template="(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW())", page_size=500)
+            self._pg_conn.commit()
+        except Exception:
+            self._pg_conn.rollback()
+            raise
+        return len(rows)
 
     def update_single_price(self, two_url: str, price_single: float, url_single: str):
         """Aktualizuje price_single a url_single pro tour identifikovaný two_url."""
