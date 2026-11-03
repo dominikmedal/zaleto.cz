@@ -9,6 +9,7 @@ import Icon from '@/components/ui/Icon'
 import LoadMoreHotels from '@/components/LoadMoreHotels'
 import TourAd from '@/components/ui/TourAd'
 import StoryCard from '@/components/ui/StoryCard'
+import { articleImageMap } from '@/lib/articleImages'
 import NavTabs, { type NavTabItem } from '@/components/ui/NavTabs'
 import { PlaceTickets, FoodMenu, TripRoute } from '@/components/ui/ItemCard'
 import { fetchDestinations, fetchWikiSummary, fetchDestinationPhoto, fetchDestinationPhotoCredit, fetchDestinationAI, fetchHotels, fetchArticles } from '@/lib/api'
@@ -141,6 +142,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
     fetchArticles(3, dest.name).catch(() => []),
     destinationGallery(dest.name, dest.country).catch(() => []),
   ])
+  const articleImages = await articleImageMap(articles)
 
   const tripSlugs = [slugify(dest.name), ...(dest.type === 'town' && dest.breadcrumb.length >= 3 ? [slugify(dest.breadcrumb[1].label)] : [])]
   const logs = await approvedTravelogues({ destSlugs: tripSlugs, limit: 6 })
@@ -465,7 +467,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
               </div>
               <Link className="z-more" href="/clanky">Všechny články</Link>
             </div>
-            <div className="z-grid-3w">{articles.map(a => <StoryCard key={a.slug} article={a} />)}</div>
+            <div className="z-grid-3w">{articles.map(a => <StoryCard key={a.slug} article={a} image={articleImages.get(a.slug)} />)}</div>
           </section>
         )}
 

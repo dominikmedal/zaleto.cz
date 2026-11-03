@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Icon from './Icon'
 import { formatLongDate, readingTime } from './format'
 import type { Article } from '@/lib/api'
+import { cleanLocation } from '@/lib/articleImages'
 
 /** Obsah (články) lístek není: karta s fotkou 4:3, nadtitulkem a titulkem s podtržením při najetí. */
 export default function StoryCard({ article, lead, image }: { article: Article; lead?: boolean; image?: string | null }) {
@@ -17,7 +18,7 @@ export default function StoryCard({ article, lead, image }: { article: Article; 
         {article.category && <span className="z-chip"><Icon name="clanek" />{article.category}</span>}
       </div>
       <div>
-        {article.location && <div className="z-kicker">{article.location}</div>}
+        {cleanLocation(article.location) && <div className="z-kicker">{cleanLocation(article.location)}</div>}
         <h3 className="z-story__title" style={lead ? { margin: '12px 0 16px' } : undefined}><span>{article.title}</span></h3>
         {lead && article.excerpt && <p className="z-story__text">{article.excerpt}</p>}
         <div className="z-data" style={lead ? { marginTop: 20 } : undefined}>

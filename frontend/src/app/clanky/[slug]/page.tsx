@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button'
 import Crumbs from '@/components/ui/Crumbs'
 import ArticleBody from '@/components/ui/ArticleBody'
 import StoryCard from '@/components/ui/StoryCard'
+import { articleImageMap, cleanLocation } from '@/lib/articleImages'
 import TourAd from '@/components/ui/TourAd'
 import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
 import CarRentalBanner from '@/components/CarRentalBanner'
@@ -40,8 +41,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ArticlePage({ params }: Props) {
-  const article = await fetchArticle(params.slug).catch(() => null)
-  if (!article) notFound()
+  const rawArticle = await fetchArticle(params.slug).catch(() => null)
+  if (!rawArticle) notFound()
+  const article = { ...rawArticle, location: cleanLocation(rawArticle.location) }   // v DB se objevuje řetězec "null"
 
   const [photo, byDest, cheapest, others, destinations, landings] = await Promise.all([
     article.location && !article.custom_image_url ? fetchDestinationPhoto(article.location).catch(() => null) : Promise.resolve(null),
@@ -55,6 +57,7 @@ export default async function ArticlePage({ params }: Props) {
   const pool = (byDest?.hotels.length ? byDest.hotels : cheapest?.hotels ?? []).filter(h => h.thumbnail_url)
   const adHotel = pool[0] ?? null
   const more = others.filter(a => a.slug !== params.slug).slice(0, 3)
+  const moreImages = await articleImageMap(more)
 
   // Vnitřní prolinkování: první zmínka země / oblasti v textu vede na její průvodce (místo článku jde první)
   const names = new Map<string, string>()
@@ -149,7 +152,7 @@ export default async function ArticlePage({ params }: Props) {
       {more.length > 0 && (
         <section className="z-container" style={{ marginTop: 'var(--space-8)' }}>
           <div className="z-kicker" style={{ marginBottom: 'var(--space-5)' }}>Čti dál</div>
-          <div className="z-grid-3w">{more.map(a => <StoryCard key={a.slug} article={a} />)}</div>
+          <div className="z-grid-3w">{more.map(a => <StoryCard key={a.slug} article={a} image={moreImages.get(a.slug)} />)}</div>
         </section>
       )}
     </>

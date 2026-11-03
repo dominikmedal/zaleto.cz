@@ -15,6 +15,7 @@ import { fetchArticles, fetchDestinationPhoto, fetchDestinations, fetchHotels } 
 import { slugify } from '@/lib/slugify'
 import LandingOverviews from '@/components/LandingOverviews'
 import { CAR_DESTINATIONS } from '@/lib/carRental'
+import { articleImageMap } from '@/lib/articleImages'
 
 export const revalidate = 3600
 
@@ -79,6 +80,7 @@ export default async function HomePage() {
   const heroHotel = deals[0] ?? null
 
   const [lead, ...restStories] = articles
+  const articleImages = await articleImageMap(articles)
 
   return (
     <>
@@ -141,10 +143,10 @@ export default async function HomePage() {
         {lead && (
           <section className="z-container z-section">
             <SectionHead num="02" kicker="Čerstvě z cest" title="čerstvě z cest" moreHref="/clanky" moreLabel="Všechny články" />
-            <StoryCard article={lead} lead />
+            <StoryCard article={lead} lead image={articleImages.get(lead.slug)} />
             {restStories.length > 0 && (
               <div className="z-grid-3w" style={{ marginTop: 24 }}>
-                {restStories.map(a => <StoryCard key={a.slug} article={a} />)}
+                {restStories.map(a => <StoryCard key={a.slug} article={a} image={articleImages.get(a.slug)} />)}
               </div>
             )}
           </section>
