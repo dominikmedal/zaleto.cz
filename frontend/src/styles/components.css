@@ -2245,3 +2245,27 @@ a.z-cars__car:hover { transform: translateY(-3px); box-shadow: 0 12px 20px -12px
 .z-polaroid figcaption a { color: inherit; text-decoration: none; }
 @media (max-width: 1023px) { .z-about__grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); } }
 @media (max-width: 599px) { .z-about__card { padding: var(--space-5) var(--space-4) var(--space-6); } .z-polaroid { width: 46%; } .z-polaroid[data-big] { width: 78%; } }
+
+/* Formulář spolupráce: výběr, přílohy */
+.z-tripform select { font: 400 16px/24px var(--font-sans); padding: 12px 14px; border: 1px solid rgba(11, 27, 51, .25); border-radius: 12px; background: var(--raised, #fff); color: var(--ink); width: 100%; }
+.z-tripform select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+.z-collab__label { font-weight: 600; }
+.z-collab__label small { font-weight: 400; opacity: .7; }
+.z-collab__files { display: grid; gap: var(--space-3); }
+.z-collab__drop { all: unset; box-sizing: border-box; display: grid; justify-items: center; gap: 6px; padding: var(--space-6) var(--space-4); text-align: center; border: 2px dashed var(--line-strong); border-radius: var(--radius-lg); background: var(--paper-deep); color: var(--ink); cursor: pointer; transition: background .2s, border-color .2s; }
+.z-collab__drop:hover, .z-collab__drop:focus-visible { background: var(--sky); border-color: var(--brand); }
+.z-collab__drop small { color: var(--ink-muted); }
+.z-collab__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.z-collab__list li { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--raised); }
+.z-collab__list li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.z-collab__list .z-collab__sum { border: 0; background: none; padding: 0; justify-content: flex-end; }
+.z-tripform .z-collab__consent { display: flex; align-items: flex-start; gap: var(--space-3); font-weight: 400; font-size: 15px; line-height: 22px; }
+.z-tripform .z-collab__consent input { width: 20px; height: 20px; margin-top: 2px; flex: none; accent-color: var(--brand-strong); }
+
+/* Zmínka o placených článcích na konci článku */
+.z-collabnote { display: flex; align-items: center; gap: var(--space-4); margin-top: var(--space-7); padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); background: var(--sky); outline: 2px dashed rgba(10, 79, 153, .35); outline-offset: -8px; color: var(--ink); }
+.z-collabnote .zi { flex: none; color: var(--brand-strong); }
+.z-collabnote > div { flex: 1; min-width: 0; }
+.z-collabnote p { margin: 2px 0 0; font: 400 15px/22px var(--font-sans); color: var(--ink-muted); }
+.z-collabnote .z-btn { flex: none; }
+@media (max-width: 767px) { .z-collabnote { flex-direction: column; align-items: flex-start; } }

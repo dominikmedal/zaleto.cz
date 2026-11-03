@@ -127,6 +127,15 @@ export default async function ArticlePage({ params }: Props) {
           <LinkList title="Související průvodci" links={guideLinks} />
           <LinkList title={`Přehledy zájezdů${article.location ? `: ${article.location}` : ''}`} links={overviewLinks} />
 
+          <aside className="z-collabnote">
+            <Icon name="clanek" size="lg" />
+            <div>
+              <strong>Chcete se objevit na Zaleto?</strong>
+              <p>Nabízíme zveřejnění placených článků a podle domluvy i jejich propagaci (sociální sítě, doporučení na webu). Vždy viditelně označené jako spolupráce.</p>
+            </div>
+            <Link className="z-btn z-btn--line z-btn--sm" href="/spoluprace">Spolupráce<span className="z-btn__go"><Icon name="sipka" /></span></Link>
+          </aside>
+
           <div style={{ marginTop: 'var(--space-7)' }}>
             <Button href={article.location ? `/zajezdy?destination=${encodeURIComponent(article.location)}` : '/zajezdy'}>
               {article.location ? `Najít zájezd: ${article.location}` : 'Najít zájezd'}

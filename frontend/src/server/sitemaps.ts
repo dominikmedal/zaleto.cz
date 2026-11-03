@@ -27,6 +27,7 @@ function staticPages(): Entry[] {
     { url: `${base}/clanky`,                        changeFrequency: 'daily',   priority: 0.8 },
     { url: `${base}/pujcovna-aut`,                  changeFrequency: 'weekly',  priority: 0.85 },
     { url: `${base}/faq`,                           lastModified: staticDate, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${base}/spoluprace`,                    lastModified: staticDate, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${base}/kontakt`,                       lastModified: staticDate, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${base}/o-zaleto`,                      lastModified: staticDate, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${base}/ochrana-osobnich-udaju`,        lastModified: staticDate, changeFrequency: 'yearly',  priority: 0.3 },

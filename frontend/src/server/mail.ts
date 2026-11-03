@@ -1,7 +1,8 @@
 import 'server-only'
 import nodemailer from 'nodemailer'
 
-export interface Mail { subject: string; html: string; text?: string; replyTo?: string }
+export interface MailAttachment { filename: string; content: Buffer; contentType?: string }
+export interface Mail { subject: string; html: string; text?: string; replyTo?: string; attachments?: MailAttachment[] }
 
 const recipients = () => (process.env.REPORT_TO || '').split(',').map(s => s.trim()).filter(Boolean)
 
@@ -31,5 +32,6 @@ export async function sendMail(m: Mail): Promise<void> {
     html: m.html,
     text: m.text,
     replyTo: m.replyTo,
+    attachments: m.attachments,
   })
 }

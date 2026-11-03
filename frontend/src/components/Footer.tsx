@@ -32,6 +32,7 @@ const COLUMNS = [
     items: [
       { label: 'Co je Zaleto', href: '/o-zaleto' },
       { label: 'Kontakt', href: '/kontakt' },
+      { label: 'Spolupráce a placené články', href: '/spoluprace' },
       { label: 'Ochrana údajů', href: '/ochrana-osobnich-udaju' },
       { label: 'Zaleto API', href: '/developers' },
     ],
