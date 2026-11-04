@@ -2,6 +2,7 @@ import Photo from '@/components/ui/Photo'
 import PlaceLinks from '@/components/PlaceLinks'
 import AutoLinked from '@/components/AutoLinked'
 import { slugify } from '@/lib/slugify'
+import { stayLink } from '@/lib/booking'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
@@ -97,12 +98,14 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
     mainEntity: aiData.faq.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })),
   } : null
 
-  const tabs: { href: string; label: string; icon: IconName }[] = []
+  const tabs: { href: string; label: string; icon: IconName; external?: boolean }[] = []
   if (aiData?.airport_info) tabs.push({ href: '#letiste', label: 'Letiště', icon: 'letadlo' })
   if (aiData?.monthly_prices?.length === 12) tabs.push({ href: '#ceny-mesice', label: 'Ceny dle měsíce', icon: 'mena' })
   if (aiData?.trip_tips?.length) tabs.push({ href: `/pujcovna-aut/${dest.slug}/tipy-na-vylety-autem`, label: 'Výlety autem', icon: 'trasa' })
   if (aiData?.driving_rules) tabs.push({ href: `/pujcovna-aut/${dest.slug}/pravidla-provozu`, label: 'Pravidla provozu', icon: 'clanek' })
   if (aiData?.faq?.length) tabs.push({ href: `/pujcovna-aut/${dest.slug}/nejcastejsi-dotazy`, label: 'FAQ', icon: 'info' })
+  const stayHref = stayLink(dest.name, dest.country, 'auta-destinace')
+  tabs.push({ href: stayHref, label: 'Ubytování', icon: 'hotel', external: true })
 
   return (
     <>
@@ -135,6 +138,7 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
                       <Icon name="sipka" size="sm" className="z-navtab__go" />
                     </>
                   )
+                  if (t.external) return <a key={t.label} href={t.href} className="z-navtab" target="_blank" rel="noopener noreferrer sponsored">{inner}</a>
                   return t.href.startsWith('#')
                     ? <a key={t.label} href={t.href} className="z-navtab">{inner}</a>
                     : <Link key={t.label} href={t.href} className="z-navtab">{inner}</Link>
@@ -149,6 +153,10 @@ export default async function PujcovnaAutSlugPage({ params }: Props) {
 
         <div style={{ marginTop: 'var(--space-6)' }}>
           <CarRentalSearchForm destination={dest} />
+          <p className="z-data" style={{ marginTop: 'var(--space-3)' }}>
+            <Icon name="hotel" size="sm" /> Hledáš i ubytování v oblasti {dest.name}?{' '}
+            <a href={stayHref} target="_blank" rel="noopener noreferrer sponsored">Chci jen ubytování</a>
+          </p>
         </div>
 
         {hasContent && (

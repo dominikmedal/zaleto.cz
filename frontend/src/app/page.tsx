@@ -14,6 +14,7 @@ import { formatPrice } from '@/components/ui/format'
 import { fetchArticles, fetchDestinationPhoto, fetchDestinations, fetchHotels } from '@/lib/api'
 import { slugify } from '@/lib/slugify'
 import LandingOverviews from '@/components/LandingOverviews'
+import WeekendTips from '@/components/WeekendTips'
 import { CAR_DESTINATIONS } from '@/lib/carRental'
 import { articleImageMap } from '@/lib/articleImages'
 
@@ -163,6 +164,8 @@ export default async function HomePage() {
             </div>
           </section>
         )}
+
+        <WeekendTips num="04" />
 
         <section className="z-section">
           <div className="z-container">

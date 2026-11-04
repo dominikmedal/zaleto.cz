@@ -165,7 +165,7 @@
 /* ───────── spodní navigace (jen telefon) ───────── */
 .z-tabbar { display: none; }
 @media (max-width: 767px) {
-  .z-tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 55; display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--paper) 94%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line); box-shadow: 0 -10px 24px -18px rgba(11, 27, 51, .5); }
+  .z-tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 55; display: grid; grid-template-columns: repeat(6, 1fr); padding: 6px 2px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--paper) 94%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line); box-shadow: 0 -10px 24px -18px rgba(11, 27, 51, .5); }
   .z-tabbar__item { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 46px; padding: 2px 0; background: none; border: 0; color: var(--ink-muted); text-decoration: none; font: 500 10.5px/12px var(--font-sans); cursor: pointer; }
   .z-tabbar__item .zi { width: 22px; height: 22px; }
   .z-tabbar__item[aria-current="page"] { color: var(--ink); font-weight: 700; }

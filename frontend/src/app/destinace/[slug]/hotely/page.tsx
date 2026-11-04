@@ -1,3 +1,4 @@
+import { stayLink } from '@/lib/booking'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -46,6 +47,7 @@ export default async function DestinaceHotelyPage({ params, searchParams }: Prop
   const tabs: NavTabItem[] = [
     { href: base, label: `O destinaci`, icon: 'kompas' },
     { href: `${base}#zajezdy`, label: 'Zájezdy', icon: 'letadlo' },
+    { href: stayLink(dest.name, dest.country, 'destinace-hotely'), label: 'Ubytování', icon: 'hotel', external: true },
   ]
 
   const schema = {

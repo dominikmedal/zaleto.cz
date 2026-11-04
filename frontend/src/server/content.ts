@@ -80,6 +80,14 @@ const DEST_EN: Record<string, string> = {
   'Mallorca': 'Mallorca Spain beach', 'Ibiza': 'Ibiza Spain beach',
   'Kapverdské ostrovy': 'Cape Verde beach island', 'Zanzibar': 'Zanzibar Tanzania beach',
   'Mauricius': 'Mauritius beach island', 'Seychely': 'Seychelles beach paradise',
+  // víkendová města (sekce „Kam na víkend“)
+  'Vídeň': 'Vienna Austria city', 'Budapešť': 'Budapest parliament Danube', 'Krakov': 'Krakow old town Poland',
+  'Drážďany': 'Dresden Frauenkirche', 'Salcburk': 'Salzburg Austria old town', 'Bratislava': 'Bratislava old town',
+  'Vratislav': 'Wroclaw Poland market square', 'Mnichov': 'Munich Marienplatz', 'Berlín': 'Berlin Brandenburg Gate',
+  'Norimberk': 'Nuremberg old town', 'Graz': 'Graz Austria old town', 'Lublaň': 'Ljubljana Slovenia old town',
+  'Řím': 'Rome Colosseum', 'Paříž': 'Paris Eiffel Tower', 'Amsterdam': 'Amsterdam canals', 'Barcelona': 'Barcelona Sagrada Familia',
+  'Lisabon': 'Lisbon tram old town', 'Benátky': 'Venice canals', 'Florencie': 'Florence Duomo', 'Hamburk': 'Hamburg harbour',
+  'Linec': 'Linz Austria', 'Innsbruck': 'Innsbruck Alps old town', 'Kodaň': 'Copenhagen Nyhavn', 'Záhřeb': 'Zagreb Croatia old town',
 }
 const STALE_DAYS = 3650 // původní fotky se nepřepisují
 
@@ -91,6 +99,17 @@ async function pexelsPhoto(term: string): Promise<string | null> {
     if (!r.ok) return null
     const data = await r.json()
     return data.photos?.[0]?.src?.large2x ?? data.photos?.[0]?.src?.large ?? null
+  } catch { return null }
+}
+
+/** Záloha bez Pexels: velká krajinná fotka z Unsplash (s autorem; použití se podle pravidel API hlásí). */
+async function unsplashDestPhoto(term: string) {
+  if (!process.env.UNSPLASH_ACCESS_KEY) return null
+  try {
+    const hit = (await searchUnsplash(term)).find(h => h.width >= 2000 && h.width / h.height >= 1.3)
+    if (!hit) return null
+    await registerDownload(hit.downloadLocation)
+    return hit
   } catch { return null }
 }
 
@@ -134,6 +153,18 @@ export async function destinationPhoto(name: string): Promise<{ url: string | nu
       )
       metaCache.set(key, fromPexels)
       return { url: fromPexels }
+    }
+    const fromUnsplash = DEST_EN[name] ? await unsplashDestPhoto(DEST_EN[name]) : null
+    if (fromUnsplash) {
+      await query(
+        `INSERT INTO destination_photos (name, photo_url, photo_credit, photo_credit_url, updated_at) VALUES (?, ?, ?, ?, NOW())
+         ON CONFLICT (name) DO UPDATE SET photo_url = EXCLUDED.photo_url, photo_credit = EXCLUDED.photo_credit,
+           photo_credit_url = EXCLUDED.photo_credit_url, updated_at = EXCLUDED.updated_at`,
+        [name, fromUnsplash.url, fromUnsplash.credit, fromUnsplash.creditUrl],
+      )
+      metaCache.set(key, fromUnsplash.url)
+      creditCache.set(name, { credit: fromUnsplash.credit, creditUrl: fromUnsplash.creditUrl })
+      return { url: fromUnsplash.url, credit: fromUnsplash.credit, creditUrl: fromUnsplash.creditUrl }
     }
     const fromHotel = await hotelPhoto(name)
     if (fromHotel) { metaCache.set(key, fromHotel); return { url: fromHotel } }

@@ -1,4 +1,5 @@
-﻿import Photo from '@/components/ui/Photo'
+﻿import { stayLink } from '@/lib/booking'
+import Photo from '@/components/ui/Photo'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -224,6 +225,7 @@ export default async function DestinacePage({ params, searchParams }: Props & { 
     ...(logs.length ? [{ href: '#cestopisy', label: 'Cestopisy', icon: 'trasa' as const }] : []),
     ...(articles.length ? [{ href: '#clanky', label: 'Články', icon: 'clanek' as const }] : []),
     ...(weatherUrl ? [{ href: weatherUrl, label: 'Počasí', icon: 'slunce' as const }] : []),
+    { href: stayLink(dest.name, dest.country, 'destinace'), label: 'Ubytování', icon: 'hotel' as const, external: true },
     { href: carUrl, label: 'Půjčovna aut', icon: 'auto' as const },
   ]
 

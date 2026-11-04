@@ -2274,3 +2274,7 @@ a.z-cars__car:hover { transform: translateY(-3px); box-shadow: 0 12px 20px -12px
 .z-dateticket__stub { padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5); }
 .z-dateticket__cta { white-space: nowrap; }
 @media (max-width: 767px) { .z-dateticket { --stub: 0px; } .z-dateticket__cta { font-size: 13px; } .z-dateticket__stub { gap: var(--space-3); } }
+
+/* Booking.com: tlačítko „Chci jen ubytování“ v rezervační kartě */
+.z-bookbox__alt { margin-top: var(--space-2); }
+a.z-navtab { text-decoration: none; }

@@ -25,6 +25,7 @@ function staticPages(): Entry[] {
     { url: `${base}/destinace`,                     changeFrequency: 'daily',   priority: 0.85 },
     { url: `${base}/cestopisy`,                     changeFrequency: 'weekly',  priority: 0.6 },
     { url: `${base}/clanky`,                        changeFrequency: 'daily',   priority: 0.8 },
+    { url: `${base}/ubytovani`,                     changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${base}/pujcovna-aut`,                  changeFrequency: 'weekly',  priority: 0.85 },
     { url: `${base}/faq`,                           lastModified: staticDate, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${base}/spoluprace`,                    lastModified: staticDate, changeFrequency: 'monthly', priority: 0.4 },

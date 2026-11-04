@@ -6,6 +6,7 @@ import { metaCache } from './cache'
 import { ensureAutomationSchema } from './automationDb'
 import { geminiText, geminiImage, parseJson } from './gemini'
 import { renderPrompt } from './prompts'
+import { ARTICLE_STAY_INSTRUCTION, applyStayLink } from '@/lib/booking'
 import { searchUnsplash, registerDownload } from './unsplash'
 import { slugify } from '@/lib/slugify'
 import { parseFeed, type FeedItem } from '@/lib/feed'
@@ -164,10 +165,11 @@ export async function processArticle(url: string, scheduledAt: Date, runId?: num
   if ((await query('SELECT id FROM articles WHERE source_url = ?', [url])).rows.length) return { skipped: 'Článek už existuje.' }
 
   const src = await scrapeArticle(url)
-  const prompt = await promptFor('auto_rewrite', { sourceTitle: src.title, sourceName: src.siteName, text: src.text.slice(0, 14000) })
+  const prompt = (await promptFor('auto_rewrite', { sourceTitle: src.title, sourceName: src.siteName, text: src.text.slice(0, 14000) })) + ARTICLE_STAY_INSTRUCTION
   const r = parseJson<{ title: string; category: string; location: string | null; excerpt: string; content: string; reading_time: number; image_query?: string }>(
     await geminiText(prompt, { temperature: 0.7, maxTokens: 8192, kind: 'article_rewrite' }))
   if (!r.title || !r.content || r.content.length < 800) throw new Error('Přepsaný článek je příliš krátký nebo neúplný.')
+  r.content = applyStayLink(r.content, r.location)
 
   const base = slugify(r.title).slice(0, 80) || 'clanek'
   let slug = base

@@ -2,10 +2,18 @@ import type { ReactNode } from 'react'
 import { makeAutoLinkCtx, autolinkText, type AutoLink, type AutoLinkCtx } from '@/lib/autolink'
 
 function inline(text: string, ctx: AutoLinkCtx, key: string): ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g)
-  return parts.map((p, i) => (p.startsWith('**') && p.endsWith('**')
-    ? <strong key={i}>{p.slice(2, -2)}</strong>
-    : <span key={i} style={{ display: 'contents' }}>{autolinkText(p, ctx, `${key}-${i}`)}</span>))
+  const parts = text.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\([^)\s]+\))/g)
+  return parts.map((p, i) => {
+    if (p.startsWith('**') && p.endsWith('**')) return <strong key={i}>{p.slice(2, -2)}</strong>
+    const m = p.match(/^\[([^\]]+)\]\(([^)\s]+)\)$/)
+    if (m) {
+      // Markdown odkaz; jen naše cesty a https (affiliate odkazy vedou ven a jsou označené sponsored)
+      const [, label, href] = m
+      if (href.startsWith('/api/booking/click')) return <a key={i} href={href} target="_blank" rel="noopener noreferrer sponsored">{label}</a>
+      if (href.startsWith('/') || href.startsWith('https://')) return <a key={i} href={href}>{label}</a>
+    }
+    return <span key={i} style={{ display: 'contents' }}>{autolinkText(p, ctx, `${key}-${i}`)}</span>
+  })
 }
 
 /** Sazba článku (`z-prose`): ## → h2, # → h2, * / - → odrážky s modrou tečkou, první odstavec s iniciálou. */

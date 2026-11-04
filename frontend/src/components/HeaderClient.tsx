@@ -15,17 +15,17 @@ import { MONTHS_IN } from '@/lib/seoContent'
 const SEASON_ICON: Record<SeasonalNav['season'], IconName> = { spring: 'flower', summer: 'slunce', autumn: 'leaf', winter: 'snowflake' }
 
 /** Stránky se širokým záhlavím (masthead), pod kterým je menu zpočátku průhledné. */
-const OVER_ROUTES = ['/', '/pujcovna-aut']
+const OVER_ROUTES = ['/', '/pujcovna-aut', '/ubytovani']
 
 const NAV: { href: string; label: string; icon: IconName; type?: 'last_minute' | 'first_minute' }[] = [
   { href: '/zajezdy', label: 'Zájezdy', icon: 'letadlo' },
   { href: '/zajezdy?tour_type=last_minute', label: 'Last minute', icon: 'timer', type: 'last_minute' },
   { href: '/zajezdy?tour_type=first_minute', label: 'First minute', icon: 'kalendar', type: 'first_minute' },
   { href: '/destinace', label: 'Destinace', icon: 'poloha' },
+  { href: '/ubytovani', label: 'Ubytování', icon: 'hotel' },
   { href: '/pujcovna-aut', label: 'Půjčovna aut', icon: 'auto' },
   { href: '/clanky', label: 'Články', icon: 'clanek' },
   { href: '/pocasi', label: 'Počasí', icon: 'slunce' },
-  { href: '/cestopisy', label: 'Cestopisy', icon: 'trasa' },
 ]
 
 export default function HeaderClient({ months, serverMonth }: { months: { month: number; href: string }[]; serverMonth: number }) {

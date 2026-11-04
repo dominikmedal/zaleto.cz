@@ -8,6 +8,7 @@ import TourCard from '@/components/ui/TourCard'
 import TourAd from '@/components/ui/TourAd'
 import OfferStrip, { pickOffers } from '@/components/ui/OfferStrip'
 import CarRentalBanner from '@/components/CarRentalBanner'
+import { buildBookingUrl, bookingClick, defaultStay } from '@/lib/booking'
 import WeatherWidget from '@/components/WeatherWidget'
 import ClimateChart from '@/components/ClimateChart'
 import WeatherBarsChart from '@/components/WeatherBarsChart'
@@ -69,7 +70,8 @@ export default function WeatherView({ name, crumbs, weather, location, heroPhoto
     hasWind ? { id: 'vitr', label: 'Vítr a moře' } : null,
     subDestinations.length > 0 ? { id: 'oblasti', label: 'Oblasti' } : null,
     { id: 'zajezdy', label: 'Zájezdy' },
-  ].filter(Boolean) as { id: string; label: string }[]
+    { id: 'ubytovani', label: 'Ubytování', href: bookingClick(buildBookingUrl({ ss: country && country !== name ? `${name}, ${country}` : name, ...defaultStay() }), 'pocasi') },
+  ].filter(Boolean) as { id: string; label: string; href?: string }[]
 
   return (
     <main className="z-container" style={{ paddingTop: 'var(--space-6)' }}>

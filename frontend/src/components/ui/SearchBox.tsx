@@ -6,13 +6,14 @@ import Icon from './Icon'
 import DestinationSuggest from './DestinationSuggest'
 import { DateRangeField } from '@/components/DateRangePicker'
 import { CarRentalForm } from '@/components/CarRentalSearchForm'
+import BookingSearchForm from '@/components/BookingSearchForm'
 
 const CITIES = ['Praha', 'Brno', 'Ostrava', 'Pardubice', 'Karlovy Vary']
 
 /** Vyhledávací lístek v hero: záložky Zájezdy / Auto, pole Kam · Odkud · Kdy. */
 export default function SearchBox() {
   const router = useRouter()
-  const [tab, setTab] = useState<'tours' | 'cars'>('tours')
+  const [tab, setTab] = useState<'tours' | 'stay' | 'cars'>('tours')
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -36,6 +37,9 @@ export default function SearchBox() {
       <button type="button" role="tab" className="z-search__tab" aria-selected={tab === 'tours'} onClick={() => setTab('tours')}>
         <Icon name="letadlo" size="sm" />Zájezdy
       </button>
+      <button type="button" role="tab" className="z-search__tab" aria-selected={tab === 'stay'} onClick={() => setTab('stay')}>
+        <Icon name="hotel" size="sm" />Ubytování
+      </button>
       <button type="button" role="tab" className="z-search__tab" aria-selected={tab === 'cars'} onClick={() => setTab('cars')}>
         <Icon name="auto" size="sm" />Půjčovna aut
       </button>
@@ -43,6 +47,7 @@ export default function SearchBox() {
   )
 
   // záložka „Půjčovna aut“ přepne formulář na vyhledávání aut (výsledky se zobrazí pod záhlavím)
+  if (tab === 'stay') return <div className="z-masthead__searchwrap">{tabs}<BookingSearchForm /></div>
   if (tab === 'cars') return <div className="z-masthead__searchwrap">{tabs}<CarRentalForm /></div>
 
   return (

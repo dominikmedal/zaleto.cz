@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react'
 import Icon, { type IconName } from '@/components/ui/Icon'
 
 const ICONS: Record<string, IconName> = {
-  pocasi: 'cloudSun', teploty: 'thermometer', slunce: 'slunce', obdobi: 'leaf', vitr: 'wind', zajezdy: 'letadlo', oblasti: 'poloha',
+  pocasi: 'cloudSun', teploty: 'thermometer', slunce: 'slunce', obdobi: 'leaf', vitr: 'wind', zajezdy: 'letadlo', ubytovani: 'hotel', oblasti: 'poloha',
 }
 
-export interface WeatherNavItem { id: string; label: string }
+/** `href` = externí odkaz (otevře se v nové kartě) místo posunu na sekci. */
+export interface WeatherNavItem { id: string; label: string; href?: string }
 
 /** Rychlá navigace po sekcích stránky o počasí – velké pilulky, aktivní je zčernalá. */
 export default function WeatherPageNav({ items }: { items: WeatherNavItem[] }) {
@@ -28,7 +29,12 @@ export default function WeatherPageNav({ items }: { items: WeatherNavItem[] }) {
 
   return (
     <nav aria-label="Sekce stránky" className="z-navtabs" style={{ marginTop: 'var(--space-6)' }}>
-      {items.map(({ id, label }) => (
+      {items.map(({ id, label, href }) => href ? (
+        <a key={id} className="z-navtab" href={href} target="_blank" rel="noopener noreferrer sponsored">
+          <span className="z-navtab__ic"><Icon name={ICONS[id] ?? 'letadlo'} /></span>
+          <span className="z-navtab__label">{label}</span>
+        </a>
+      ) : (
         <button
           key={id}
           type="button"

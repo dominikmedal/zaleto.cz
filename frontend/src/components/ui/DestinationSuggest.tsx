@@ -66,10 +66,14 @@ interface Props {
   disabled?: boolean
   /** Při výběru hotelu přejít rovnou na jeho stránku (výchozí zapnuto). */
   hotelLinks?: boolean
+  /** `stay` = hledání ubytování (Booking.com): hotel se po výběru vloží do pole, bez počtů našich zájezdových hotelů. */
+  mode?: 'tour' | 'stay'
 }
 
 /** Našeptávač kam: země, oblasti, letoviska a hotely. Ovládání šipkami, Enter, Esc. */
-export default function DestinationSuggest({ name, defaultValue = '', placeholder = 'Kamkoli', disabled, hotelLinks = true }: Props) {
+export default function DestinationSuggest({ name, defaultValue = '', placeholder, disabled, hotelLinks = true, mode = 'tour' }: Props) {
+  const stay = mode === 'stay'
+  placeholder ??= stay ? 'Město, oblast nebo hotel' : 'Kamkoli'
   const router = useRouter()
   const [value, setValue] = useState(defaultValue)
   const [items, setItems] = useState<Sug[]>([])
@@ -122,8 +126,9 @@ export default function DestinationSuggest({ name, defaultValue = '', placeholde
 
   const pick = (s: Sug) => {
     setOpen(false)
-    if (s.kind === 'hotel' && s.slug) { router.push(`/hotel/${s.slug}`); return }
-    setValue(s.label)
+    if (s.kind === 'hotel' && s.slug && !stay) { router.push(`/hotel/${s.slug}`); return }
+    // u ubytování hledáme na Booking.com podle názvu hotelu a letoviska
+    setValue(stay && s.kind === 'hotel' && s.sub ? `${s.label}, ${s.sub.split(',')[0].trim()}` : s.label)
   }
 
   const onKey = (e: React.KeyboardEvent) => {
@@ -159,7 +164,9 @@ export default function DestinationSuggest({ name, defaultValue = '', placeholde
       {open && pos && typeof document !== 'undefined' && createPortal(
         <div className="z-suggest z-dsuggest" role="listbox" style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}>
           <div className="z-dsuggest__head">
-            <Icon name="letadlo" size="sm" />{value.trim() === '' ? 'Kam by to mělo být?' : 'Kam poletíme?'}
+            {stay
+              ? <><Icon name="hotel" size="sm" />{value.trim() === '' ? 'Kde chceš bydlet?' : 'Kde budeš spát?'}</>
+              : <><Icon name="letadlo" size="sm" />{value.trim() === '' ? 'Kam by to mělo být?' : 'Kam poletíme?'}</>}
           </div>
           {items.map((s, i) => (
             <div key={`${s.kind}-${s.label}-${i}`} role="presentation">
@@ -179,12 +186,12 @@ export default function DestinationSuggest({ name, defaultValue = '', placeholde
                   <b>{hl(s.label, value)}</b>
                   <small>{KIND[s.kind].label}{s.sub ? ` · ${s.sub}` : ''}</small>
                 </span>
-                {s.count ? <span className="z-dsuggest__count"><b>{s.count}</b> hotelů</span> : null}
+                {s.count && !stay ? <span className="z-dsuggest__count"><b>{s.count}</b> hotelů</span> : null}
                 <span className="z-dsuggest__go" aria-hidden="true"><Icon name="sipka" size="sm" /></span>
               </button>
             </div>
           ))}
-          <div className="z-dsuggest__foot z-data"><Icon name="arrowsUpDown" size="sm" />↑↓ VÝBĚR · ENTER POTVRDÍ · ESC ZAVŘE</div>
+          <div className="z-dsuggest__foot z-data"><Icon name="arrowsUpDown" size="sm" />{stay ? '↑↓ VÝBĚR · JINÉ MÍSTO NAPIŠ A ENTER HLEDÁ' : '↑↓ VÝBĚR · ENTER POTVRDÍ · ESC ZAVŘE'}</div>
         </div>,
         document.body,
       )}

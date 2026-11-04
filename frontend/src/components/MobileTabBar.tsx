@@ -9,7 +9,8 @@ const ITEMS: { href: string; label: string; icon: IconName; hot?: boolean }[] = 
   { href: '/zajezdy', label: 'Zájezdy', icon: 'letadlo' },
   { href: '/zajezdy?tour_type=last_minute', label: 'Last minute', icon: 'timer', hot: true },
   { href: '/destinace', label: 'Destinace', icon: 'poloha' },
-  { href: '/pujcovna-aut', label: 'Autopůjčovny', icon: 'auto' },
+  { href: '/ubytovani', label: 'Ubytování', icon: 'hotel' },
+  { href: '/pujcovna-aut', label: 'Auta', icon: 'auto' },
 ]
 
 export default function MobileTabBar() {

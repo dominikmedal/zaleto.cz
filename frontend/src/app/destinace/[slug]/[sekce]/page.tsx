@@ -1,3 +1,4 @@
+import { stayLink } from '@/lib/booking'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -43,6 +44,7 @@ export default async function GuideSectionPage({ params }: Props) {
     { href: base, label: 'O destinaci', icon: 'kompas' },
     ...GUIDE_SECTIONS.filter(s => sectionCount(guide, s.field) > 0).map(s => ({ href: `${base}/${s.key}`, label: s.label, icon: s.icon })),
     { href: `${base}/hotely`, label: 'Hotely', icon: 'hotel' as const },
+    { href: stayLink(dest.name, dest.country, 'destinace-pruvodce'), label: 'Ubytování', icon: 'hotel' as const, external: true },
   ]
 
   // odkazy v textech: střediska a oblasti → průvodci (kromě této stránky)

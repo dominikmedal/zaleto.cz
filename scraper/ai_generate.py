@@ -25,6 +25,7 @@ import sys
 import time
 import unicodedata
 from pathlib import Path
+from urllib.parse import quote, urlencode
 
 import requests
 
@@ -306,8 +307,45 @@ def todo_article(conn):
     return [t for t in topics if t not in have]
 
 
+# Pokyn pro AI: vlastními slovy vložit jeden odkaz na ubytování (stejné znění jako ARTICLE_STAY_INSTRUCTION ve frontend/src/lib/booking.ts).
+# Přidává se v kódu, aby ho nešlo přepsat v administraci promptů.
+ARTICLE_STAY_INSTRUCTION = (
+    "\n\nDODATEČNÝ POKYN K ODKAZU NA UBYTOVÁNÍ (má přednost před případným pravidlem o zákazu odkazů):\n"
+    "Pokud má článek konkrétní lokalitu, vlož do textu PŘESNĚ JEDEN odkaz na naši nabídku nejlevnějšího ubytování v této lokalitě, "
+    "v Markdownu ve tvaru [text odkazu](ubytovani). Adresa musí být doslova ubytovani. Odkaz zasaď do věty tam, kde to v článku dává smysl, "
+    "klidně uprostřed textu, nemusí to být na konci. Formulaci vymysli vlastními slovy tak, aby odpovídala tématu a tónu článku a nezněla "
+    "jako reklama; vždy ji napiš jinak. Sdělení je, že máme nabídku nejlevnějšího ubytování v dané lokalitě. Odkazem má být jen pár slov "
+    "uvnitř věty. Nikdy nezmiňuj Booking.com ani žádného jiného partnera. Bez konkrétní lokality odkaz nevkládej."
+)
+STAY_LINK = re.compile(r"\[([^\]]+)\]\(/?ubytovani/?\)")
+
+
+def apply_stay_link(content, location):
+    """Nahradí zástupný odkaz (ubytovani) skutečným affiliate odkazem (stejně jako applyStayLink ve frontendu).
+    První výskyt nechá, další změní na prostý text; bez lokality odkazy odstraní; když AI odkaz vynechala, přidá krátkou větu na konec."""
+    place = re.sub(r"[()\[\]*]", "", location or "").strip()
+    valid = bool(place) and place.lower() != "null"
+    href = ""
+    if valid:
+        search = "https://www.booking.com/searchresults.cs.html?" + urlencode(
+            {"ss": place, "group_adults": 2, "no_rooms": 1, "group_children": 0, "selected_currency": "CZK"})
+        href = "/api/booking/click?url=" + quote(search, safe="-_.!~*'()") + "&sid=clanek"
+    used = [False]
+
+    def repl(m):
+        if not valid or used[0]:
+            return m.group(1)
+        used[0] = True
+        return f"[{m.group(1)}]({href})"
+
+    out = STAY_LINK.sub(repl, content)
+    if valid and not used[0]:
+        out = out.rstrip() + f"\n\nNabídku [nejlevnějšího ubytování: {place}]({href}) máme připravenou."
+    return out
+
+
 def run_article(conn, topic):
-    p = generate("article", load_prompt(conn, "article", topic=topic))
+    p = generate("article", load_prompt(conn, "article", topic=topic) + ARTICLE_STAY_INSTRUCTION)
     if not p or not p.get("content") or not p.get("title"):
         return False
     slug = slugify(p["title"], article=True) or slugify(topic, article=True)
@@ -320,7 +358,7 @@ def run_article(conn, topic):
              location = EXCLUDED.location, excerpt = EXCLUDED.excerpt, content = EXCLUDED.content,
              reading_time = EXCLUDED.reading_time, generated_at = NOW()""",
         (topic, slug, p["title"], p.get("category") or "Inspirace", p.get("location") or None,
-         p.get("excerpt") or None, p["content"], p.get("reading_time") or 5),
+         p.get("excerpt") or None, apply_stay_link(p["content"], p.get("location")), p.get("reading_time") or 5),
     )
     conn.commit()
     return True

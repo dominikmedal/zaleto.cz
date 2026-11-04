@@ -85,7 +85,7 @@ export default function CarRentalBanner({ place, country }: Props) {
                     </span>
                     <span className="z-cars__name">{c.name}</span>
                     {c.savingPct
-                      ? <span className="z-cars__deal"><b>−{c.savingPct} %</b><small>levněji než průměr</small></span>
+                      ? <span className="z-cars__deal"><b>−{c.savingPct} %</b></span>
                       : <span className="z-cars__deal z-cars__deal--plain">Zobrazit nabídku</span>}
                   </a>
                 </li>

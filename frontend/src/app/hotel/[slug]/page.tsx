@@ -17,6 +17,7 @@ import WeatherWidget from '@/components/WeatherWidget'
 import CollapsibleSection from '@/components/CollapsibleSection'
 import AgencyDescriptionSwitcher from '@/components/AgencyDescriptionSwitcher'
 import CarRentalBanner from '@/components/CarRentalBanner'
+import { buildBookingUrl, bookingClick, defaultStay } from '@/lib/booking'
 import Crumbs from '@/components/ui/Crumbs'
 import Icon from '@/components/ui/Icon'
 import TourCard from '@/components/ui/TourCard'
@@ -313,6 +314,15 @@ async function BookingBox({ hotel, slug, tourCount }: { hotel: Hotel; slug: stri
     tours = (data.tours ?? []).sort((a, b) => (a.departure_date || '').localeCompare(b.departure_date || '')).slice(0, 3)
   } catch { /* bez termínů */ }
 
+  // „jen ubytování“: konkrétní hotel na Booking.com v termínu nejbližšího zájezdu (jinak za ~3 týdny)
+  const noTours = tours.length === 0
+  const t0 = tours[0]
+  const stay = t0?.departure_date && t0.duration
+    ? { checkin: t0.departure_date.slice(0, 10), checkout: new Date(new Date(t0.departure_date.slice(0, 10)).getTime() + t0.duration * 86_400_000).toISOString().slice(0, 10) }
+    : defaultStay()
+  const ss = [hotel.name, hotel.resort_town ?? hotel.country].filter(Boolean).join(', ')
+  const stayHref = bookingClick(buildBookingUrl({ ss, ...stay }), noTours ? 'hotel-bez-terminu' : 'hotel-detail')
+
   return (
     <div className="z-bookbox">
       <div className="z-kicker">Rezervace</div>
@@ -344,16 +354,24 @@ async function BookingBox({ hotel, slug, tourCount }: { hotel: Hotel; slug: stri
         </ul>
       )}
 
-      <ScrollToButton targetId="terminy" className="z-btn z-btn--offer z-btn--block z-bookbox__cta">
-        {tourCount > tours.length ? `Všech ${tourCount} termínů` : 'Zobrazit termíny'}<span className="z-btn__go"><Icon name="sipka" /></span>
-      </ScrollToButton>
+      {noTours ? (
+        <p className="z-data" style={{ margin: 'var(--space-3) 0 var(--space-2)' }}><Icon name="info" size="sm" />ZÁJEZD TEĎ NENÍ V NABÍDCE</p>
+      ) : (
+        <ScrollToButton targetId="terminy" className="z-btn z-btn--offer z-btn--block z-bookbox__cta">
+          {tourCount > tours.length ? `Všech ${tourCount} termínů` : 'Zobrazit termíny'}<span className="z-btn__go"><Icon name="sipka" /></span>
+        </ScrollToButton>
+      )}
+
+      <a className={`z-btn ${noTours ? 'z-btn--offer' : 'z-btn--primary'} z-btn--block z-bookbox__cta z-bookbox__alt`} href={stayHref} target="_blank" rel="noopener noreferrer sponsored">
+        Chci jen ubytování<span className="z-btn__go"><Icon name="sipka" /></span>
+      </a>
 
       <div className="z-bookbox__row">
         <FavoriteButton slug={slug} name={hotel.name} variant="detail" />
         <ShareButton slug={slug} name={hotel.name} />
       </div>
       <p className="z-data z-bookbox__note"><Icon name="ok" size="sm" />REZERVACE PŘÍMO U CESTOVNÍ KANCELÁŘE</p>
-      <HotelMobileCta price={hotel.min_price ? formatPrice(hotel.min_price) : 'Aktualizuje se'} label="Termíny" />
+      <HotelMobileCta price={hotel.min_price ? formatPrice(hotel.min_price) : 'Aktualizuje se'} label={noTours ? 'Chci jen ubytování' : 'Termíny'} href={noTours ? stayHref : undefined} />
     </div>
   )
 }

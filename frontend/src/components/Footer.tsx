@@ -23,6 +23,7 @@ const COLUMNS = [
       { label: 'Všechny zájezdy', href: '/zajezdy' },
       { label: 'Last minute', href: '/zajezdy?tour_type=last_minute' },
       { label: 'First minute', href: '/zajezdy?tour_type=first_minute' },
+      { label: 'Ubytování', href: '/ubytovani' },
       { label: 'Půjčovna aut', href: '/pujcovna-aut' },
       { label: 'Půjčení auta na Mallorce', href: 'https://mallorca-pujcovna.cz', external: true },
     ],

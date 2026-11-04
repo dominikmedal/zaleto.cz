@@ -104,6 +104,7 @@ export default async function PujcovnaAutPage() {
             </div>
             <div className="z-search__tabs" role="tablist" aria-label="Co hledáš">
               <Link href="/" role="tab" className="z-search__tab" aria-selected="false"><Icon name="letadlo" size="sm" />Zájezdy</Link>
+              <Link href="/ubytovani" role="tab" className="z-search__tab" aria-selected="false"><Icon name="hotel" size="sm" />Ubytování</Link>
               <span role="tab" className="z-search__tab" aria-selected="true"><Icon name="auto" size="sm" />Půjčovna aut</span>
             </div>
             <CarRentalForm />
